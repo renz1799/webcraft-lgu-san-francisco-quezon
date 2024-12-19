@@ -53,6 +53,99 @@
     opacity: 1; /* Fully opaque */
 }
 
+    /* Add spacing between the search bar and the table */
+/* General styling for all DataTables */
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 15px; /* Adjust the spacing here */
+}
+    /* Customize the processing container */
+div.dataTables_processing {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200px;
+    margin-left: -100px;
+    margin-top: -26px;
+    text-align: center;
+    padding: 2px;
+    background: transparent; /* Remove any default background */
+}
+
+/* Target the loading dots container */
+div.dataTables_processing > div:last-child {
+    position: relative;
+    width: 80px;
+    height: 15px;
+    margin: 1em auto;
+}
+
+/* Style individual dots */
+div.dataTables_processing > div:last-child > div {
+    position: absolute;
+    top: 0;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: black; /* Change the dots to black */
+    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+/* Apply animations for the dots */
+div.dataTables_processing > div:last-child > div:nth-child(1) {
+    left: 8px;
+    animation: datatables-loader-1 0.6s infinite;
+}
+
+div.dataTables_processing > div:last-child > div:nth-child(2) {
+    left: 8px;
+    animation: datatables-loader-2 0.6s infinite;
+}
+
+div.dataTables_processing > div:last-child > div:nth-child(3) {
+    left: 32px;
+    animation: datatables-loader-2 0.6s infinite;
+}
+
+div.dataTables_processing > div:last-child > div:nth-child(4) {
+    left: 56px;
+    animation: datatables-loader-3 0.6s infinite;
+}
+
+/* Keyframes for the dots animations */
+@keyframes datatables-loader-1 {
+    0% {
+        transform: scale(0);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes datatables-loader-3 {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(0);
+    }
+}
+
+@keyframes datatables-loader-2 {
+    0% {
+        transform: translate(0, 0);
+    }
+    100% {
+        transform: translate(24px, 0);
+    }
+}
+/* Generic Modal Backdrop */
+.modal-backdrop {
+    opacity: 0.5; /* Standard opacity */
+}
+
+.hidden {
+    display: none !important;
+}
         </style>
 
         
@@ -101,9 +194,6 @@
             <!-- SEARCH-MODAL -->
 
             @include('layouts.components.search-modal')
-
-                <!-- Include the Global Delete Confirmation Modal -->
-                @include('partials.delete-modal')
 
             <!-- END SEARCH-MODAL -->
 
