@@ -24,6 +24,7 @@ use App\Http\Controllers\PermissionManagementController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\LoginLogController;
 use App\Http\Controllers\HeaderController;
+use App\Http\Controllers\RolesController;
 // use App\Http\Controllers\Controller;
 
 /*
@@ -80,8 +81,10 @@ Route::prefix('permissions')
         Route::get('/logs/data', [LoginLogController::class, 'getLogs'])->name('logs.data');
     });
 
-
-
+    Route::resource('roles', RolesController::class);
+    Route::get('/roles/create', [RolesController::class, 'create'])->name('roles.create');
+    Route::post('/roles', [RolesController::class, 'store'])->name('roles.store');
+    
 
 // Password reset routes
 Route::get('forgot-password', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');

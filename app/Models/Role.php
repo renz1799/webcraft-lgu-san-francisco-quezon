@@ -3,10 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Spatie\Permission\Models\Permission as SpatiePermission;
+use Spatie\Permission\Models\Role as SpatieRole;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Permission extends SpatiePermission
+class Role extends SpatieRole
 {
     use HasFactory;
 
@@ -16,11 +16,11 @@ class Permission extends SpatiePermission
     protected $fillable = ['id', 'name', 'guard_name'];
 
     /**
-     * Override the roles relationship to match the expected signature.
+     * Override the permissions relationship to match the expected signature.
      */
-    public function roles(): BelongsToMany
+    public function permissions(): BelongsToMany
     {
         // Use default Spatie relationship definition
-        return parent::roles();
+        return parent::permissions();
     }
 }
