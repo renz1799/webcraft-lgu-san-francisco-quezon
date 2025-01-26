@@ -16,11 +16,31 @@ class Permission extends SpatiePermission
     protected $fillable = ['id', 'name', 'guard_name'];
 
     /**
-     * Override the roles relationship to match the expected signature.
+     * Ensure UUIDs are always generated when creating a new permission.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) \Str::uuid();
+            }
+        });
+    }
+
+    /**
+     * Override the roles relationship to ensure correct UUID handling.
      */
     public function roles(): BelongsToMany
     {
-        // Use default Spatie relationship definition
-        return parent::roles();
+        return $this->belongsToMany(
+            Role::class,
+            'role_has_permissions',
+            'permission_id',
+            'role_id',
+            'id',
+            'id'
+        );
     }
 }

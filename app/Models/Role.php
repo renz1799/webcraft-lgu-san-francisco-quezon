@@ -16,11 +16,17 @@ class Role extends SpatieRole
     protected $fillable = ['id', 'name', 'guard_name'];
 
     /**
-     * Override the permissions relationship to match the expected signature.
+     * Override the permissions relationship to ensure correct UUID handling.
      */
     public function permissions(): BelongsToMany
     {
-        // Use default Spatie relationship definition
-        return parent::permissions();
+        return $this->belongsToMany(
+            Permission::class,
+            'role_has_permissions',
+            'role_id',
+            'permission_id',
+            'id',
+            'id'
+        );
     }
 }
