@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Permission;
+use App\Models\Permission;
 
 class PermissionManagementController extends Controller
 {
@@ -25,15 +25,15 @@ class PermissionManagementController extends Controller
             'name' => 'required|string|unique:permissions,name|max:255',
             'guard_name' => 'nullable|string|in:web,api', // Default to 'web'
         ]);
-
+    
         Permission::create([
             'name' => $request->name,
             'guard_name' => $request->guard_name ?? 'web', // Default guard name is 'web'
         ]);
-
+    
         return redirect()->route('permissions.manage')->with('success', 'Permission created successfully.');
     }
-
+    
     /**
      * Delete a permission.
      */

@@ -16,7 +16,7 @@ class Permission extends SpatiePermission
     protected $fillable = ['id', 'name', 'guard_name'];
 
     /**
-     * Ensure UUIDs are always generated when creating a new permission.
+     * Automatically generate UUID for the id field.
      */
     protected static function boot()
     {
@@ -30,7 +30,7 @@ class Permission extends SpatiePermission
     }
 
     /**
-     * Override the roles relationship to ensure correct UUID handling.
+     * Define the roles relationship.
      */
     public function roles(): BelongsToMany
     {
@@ -42,5 +42,17 @@ class Permission extends SpatiePermission
             'id',
             'id'
         );
+    }
+
+    /**
+     * Ensure an ID is always generated during creation.
+     */
+    public static function create(array $attributes = [])
+    {
+        if (empty($attributes['id'])) {
+            $attributes['id'] = (string) \Str::uuid();
+        }
+
+        return parent::create($attributes);
     }
 }

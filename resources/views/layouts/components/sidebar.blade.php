@@ -877,6 +877,12 @@
 
                                             {{-- Check if the user is authenticated and is an admin OR has the 'manage permissions' permission --}}
                                             @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('manage permissions')))
+                                                <li class="slide"><a href="{{ url('roles') }}" class="side-menu__item">Roles</a></li>
+                                            @endif
+
+
+                                            {{-- Check if the user is authenticated and is an admin OR has the 'manage permissions' permission --}}
+                                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('manage permissions')))
                                                 <li class="slide"><a href="{{ url('permissions/manage') }}" class="side-menu__item">Permissions</a></li>
                                             @endif
 

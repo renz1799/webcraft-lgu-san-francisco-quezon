@@ -55,23 +55,26 @@
                                 {{ $role->permissions->pluck('name')->join(', ') }}
                             @endif
                         </td>
-                        <td class="text-center">
+                        <td>
                             <div class="hstack flex gap-3 text-[.9375rem]">
-                                <button type="button" 
-                                        class="ti-btn btn-wave ti-btn-sm bg-primary text-white !rounded-full"
-                                        data-hs-overlay="#editRoleModal"
-                                        data-role-id="{{ $role->id }}"
-                                        data-role-name="{{ $role->name }}"
-                                        data-role-permissions="{{ $role->permissions->pluck('id') }}">
-                                    Edit
-                                </button>
-                                <button type="button" 
-                                        class="ti-btn btn-wave ti-btn-sm bg-danger text-white !rounded-full"
-                                        data-hs-overlay="#deleteRoleModal"
-                                        data-role-id="{{ $role->id }}"
-                                        data-role-name="{{ $role->name }}">
-                                    Delete
-                                </button>
+                                <!-- Edit Button -->
+                                <a aria-label="Edit Role" href="javascript:void(0);"
+                                    class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full"
+                                    data-hs-overlay="#editRoleModal"
+                                    data-role-id="{{ $role->id }}"
+                                    data-role-name="{{ $role->name }}"
+                                    data-role-permissions="{{ $role->permissions->pluck('id') }}">
+                                    <i class="ri-edit-line"></i>
+                                </a>
+
+                                <!-- Delete Button -->
+                                <a aria-label="Delete Role" href="javascript:void(0);"
+                                    class="ti-btn btn-wave ti-btn-sm ti-btn-danger !rounded-full"
+                                    data-hs-overlay="#deleteRoleModal"
+                                    data-role-id="{{ $role->id }}"
+                                    data-role-name="{{ $role->name }}">
+                                    <i class="ri-delete-bin-line"></i>
+                                </a>
                             </div>
                         </td>
                     </tr>
@@ -212,36 +215,38 @@
 
 @section('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Handle Edit Role Modal
-        document.querySelectorAll('[data-hs-overlay="#editRoleModal"]').forEach(button => {
-            button.addEventListener('click', function () {
-                const roleId = this.getAttribute('data-role-id');
-                const roleName = this.getAttribute('data-role-name');
-                const rolePermissions = JSON.parse(this.getAttribute('data-role-permissions'));
+document.addEventListener('DOMContentLoaded', () => {
+    // Handle Edit Role Modal
+    document.querySelectorAll('[data-hs-overlay="#editRoleModal"]').forEach(button => {
+        button.addEventListener('click', function () {
+            const roleId = this.getAttribute('data-role-id');
+            const roleName = this.getAttribute('data-role-name');
+            const rolePermissions = JSON.parse(this.getAttribute('data-role-permissions'));
 
-                document.getElementById('editRoleId').value = roleId;
-                document.getElementById('editRoleName').value = roleName;
+            document.getElementById('editRoleId').value = roleId;
+            document.getElementById('editRoleName').value = roleName;
 
-                // Update permissions
-                document.querySelectorAll('#editRoleForm input[name="permissions[]"]').forEach(input => {
-                    input.checked = rolePermissions.includes(parseInt(input.value));
-                });
-
-                document.getElementById('editRoleForm').action = `/roles/${roleId}`;
+            // Update permissions
+            document.querySelectorAll('#editRoleForm input[name="permissions[]"]').forEach(input => {
+                const permissionId = input.value.toString(); // Convert to string
+                input.checked = rolePermissions.map(String).includes(permissionId); // Ensure both are strings
             });
-        });
 
-        // Handle Delete Role Modal
-        document.querySelectorAll('[data-hs-overlay="#deleteRoleModal"]').forEach(button => {
-            button.addEventListener('click', function () {
-                const roleId = this.getAttribute('data-role-id');
-                const roleName = this.getAttribute('data-role-name');
-
-                document.getElementById('deleteRoleName').textContent = roleName;
-                document.getElementById('deleteRoleForm').action = `/roles/${roleId}`;
-            });
+            document.getElementById('editRoleForm').action = `/roles/${roleId}`;
         });
     });
+
+    // Handle Delete Role Modal
+    document.querySelectorAll('[data-hs-overlay="#deleteRoleModal"]').forEach(button => {
+        button.addEventListener('click', function () {
+            const roleId = this.getAttribute('data-role-id');
+            const roleName = this.getAttribute('data-role-name');
+
+            document.getElementById('deleteRoleName').textContent = roleName;
+            document.getElementById('deleteRoleForm').action = `/roles/${roleId}`;
+        });
+    });
+});
+
 </script>
 @endsection
