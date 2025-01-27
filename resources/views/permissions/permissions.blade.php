@@ -100,6 +100,15 @@
             <!-- Modal Body -->
             <div class="ti-modal-body px-4">
                 <form id="permissionsForm">
+                    <!-- Role Dropdown -->
+                    <div class="form-group mb-4">
+                        <label for="roleDropdown" class="font-medium text-defaulttextcolor">Role</label>
+                        <select id="roleDropdown" name="role" class="form-control w-full mt-2">
+                            <!-- Options will be dynamically populated -->
+                        </select>
+                    </div>
+
+                    <!-- Permissions Table -->
                     <div class="table-responsive">
                         <table class="table whitespace-nowrap min-w-full border border-primary/10">
                             <!-- Table Header -->
@@ -129,14 +138,13 @@
                     Close
                 </button>
                 <button type="button" class="ti-btn btn-wave bg-primary text-white !font-medium" id="submitPermissionsButton">
-    Save Changes
-</button>
-
+                    Save Changes
+                </button>
             </div>
-
         </div>
     </div>
 </div>
+
 
 <!-- Delete Confirmation Modal -->
 <div id="deleteConfirmationModal" class="hs-overlay hidden ti-modal">
@@ -268,15 +276,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Permissions Modal Logic
     document.querySelectorAll('[data-hs-overlay="#permissionsModal"]').forEach(button => {
-        button.addEventListener('click', async function () {
-            const userId = this.getAttribute('data-user-id');
+    button.addEventListener('click', async function () {
+        const userId = this.getAttribute('data-user-id');
+        
+        try {
             const response = await fetch(`/permissions/${userId}/get`);
-            const { permissions, userPermissions } = await response.json();
+            const { permissions, userPermissions, roles, currentRole } = await response.json();
 
+            // Populate permissions table (existing logic)
             const permissionsTable = document.getElementById('permissionsTable');
             permissionsTable.innerHTML = ''; // Clear previous content
-
-            // Populate permissions table dynamically
             Object.entries(permissions).forEach(([page, actions]) => {
                 let row = `<tr>
                     <td class="p-3 text-start">${page}</td>`;
@@ -295,53 +304,77 @@ document.addEventListener('DOMContentLoaded', () => {
                 permissionsTable.innerHTML += row;
             });
 
-            // Store user ID in the form for submission
-            document.getElementById('permissionsForm').dataset.userId = userId;
-        });
-    });
-
-    // Submit Permissions Form
-
-    async function submitPermissionsForm() {
-        const form = document.getElementById('permissionsForm');
-        const userId = form.dataset.userId; // Get user ID from form
-        const formData = new FormData(form);
-
-        const permissions = {};
-        for (const [key, value] of formData.entries()) {
-            const [page, action] = key.match(/\[([^\]]+)\]\[([^\]]+)\]/).slice(1);
-            permissions[page] = permissions[page] || {};
-            permissions[page][action] = true;
-        }
-
-        const feedbackMessage = document.getElementById('feedbackMessage');
-        feedbackMessage.classList.add('hidden'); // Hide previous feedback
-
-        try {
-            const response = await fetch(`/permissions/${userId}/update`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                },
-                body: JSON.stringify({ permissions }),
+            // Populate roles dropdown
+            const roleDropdown = document.getElementById('roleDropdown');
+            roleDropdown.innerHTML = ''; // Clear previous options
+            roles.forEach(role => {
+                const isSelected = role === currentRole ? 'selected' : '';
+                roleDropdown.innerHTML += `<option value="${role}" ${isSelected}>${role}</option>`;
             });
 
-            if (response.ok) {
-                feedbackMessage.textContent = 'Permissions updated successfully.';
-                feedbackMessage.className = 'text-green-600 text-left text-[0.875rem] font-medium mb-4';
-            } else {
-                feedbackMessage.textContent = 'You do not have permission to update. Please contact the administrator.';
-                feedbackMessage.className = 'text-red-600 text-left text-[0.875rem] font-medium mb-4';
-            }
+            document.getElementById('permissionsForm').dataset.userId = userId; // Store user ID
         } catch (error) {
-            console.error('Error updating permissions:', error);
-            feedbackMessage.textContent = 'An error occurred while updating permissions.';
-            feedbackMessage.className = 'text-red-600 text-left text-[0.875rem] font-medium mb-4';
+            console.error('Error fetching permissions:', error);
+        }
+    });
+});
+
+
+    // Submit Permissions Form
+    async function submitPermissionsForm() {
+    const form = document.getElementById('permissionsForm');
+    const userId = form.dataset.userId; // Get user ID from form
+    const formData = new FormData(form);
+
+    const permissions = {};
+    let role = null; // Initialize role variable
+
+    for (const [key, value] of formData.entries()) {
+        if (key === 'role') {
+            role = value; // Handle the role separately
+            continue; // Skip further processing for this key
         }
 
-        feedbackMessage.classList.remove('hidden'); // Display feedback
+        const matches = key.match(/\[([^\]]+)\]\[([^\]]+)\]/); // Match keys like permissions[module][action]
+        if (!matches) {
+            console.error(`Key format invalid: ${key}`);
+            continue; // Skip this entry if it doesn't match the expected format
+        }
+
+        const [_, page, action] = matches; // Destructure match results
+        permissions[page] = permissions[page] || {};
+        permissions[page][action] = true;
     }
+
+    const feedbackMessage = document.getElementById('feedbackMessage');
+    feedbackMessage.classList.add('hidden'); // Hide previous feedback
+
+    try {
+        const response = await fetch(`/permissions/${userId}/update`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            },
+            body: JSON.stringify({ permissions, role }), // Include role in the payload
+        });
+
+        if (response.ok) {
+            feedbackMessage.textContent = 'Permissions and role updated successfully.';
+            feedbackMessage.className = 'text-green-600 text-left text-[0.875rem] font-medium mb-4';
+        } else {
+            feedbackMessage.textContent = 'You do not have permission to update. Please contact the administrator.';
+            feedbackMessage.className = 'text-red-600 text-left text-[0.875rem] font-medium mb-4';
+        }
+    } catch (error) {
+        console.error('Error updating permissions:', error);
+        feedbackMessage.textContent = 'An error occurred while updating permissions.';
+        feedbackMessage.className = 'text-red-600 text-left text-[0.875rem] font-medium mb-4';
+    }
+
+    feedbackMessage.classList.remove('hidden'); // Display feedback
+}
+
 
     // Add event listener to the "Save Changes" button
     const submitPermissionsButton = document.getElementById('submitPermissionsButton');
