@@ -23,7 +23,9 @@
                 <div class="box">
                     <div class="box-body !p-[3rem]">
                         <p class="h5 font-semibold mb-2 text-center">Sign Up</p>
-                        <p class="mb-4 text-[#8c9097] dark:text-white/50 opacity-[0.7] font-normal text-center">Welcome &amp; Join us by creating a free account!</p>
+                        <p class="mb-4 text-[#8c9097] dark:text-white/50 opacity-[0.7] font-normal text-center">
+                            Welcome &amp; Join us by creating a free account!
+                        </p>
 
                         {{-- Display errors or success messages --}}
                         @if ($errors->any())
@@ -62,14 +64,16 @@
                                 </div>
 
                                 <div class="xl:col-span-12 col-span-12">
-                                    <label for="signup-usertype" class="form-label text-default">User Type</label>
-                                    <select name="user_type" class="form-control form-control-lg w-full !rounded-md" id="signup-usertype">
-                                        <option value="">Select User Type</option>
-                                        <option value="Administrator" {{ old('user_type') == 'Administrator' ? 'selected' : '' }}>Administrator</option>
-                                        <option value="Staff" {{ old('user_type') == 'Staff' ? 'selected' : '' }}>Staff</option>
-                                        <option value="Guest" {{ old('user_type') == 'Guest' ? 'selected' : '' }}>Guest</option>
+                                    <label for="signup-role" class="form-label text-default">Role</label>
+                                    <select name="role" class="form-control form-control-lg w-full !rounded-md" id="signup-role">
+                                        <option value="">Select Role</option>
+                                        @foreach ($roles as $role)
+                                            <option value="{{ $role->name }}" {{ old('role') == $role->name ? 'selected' : '' }}>
+                                                {{ $role->name }}
+                                            </option>
+                                        @endforeach
                                     </select>
-                                    @error('user_type')
+                                    @error('role')
                                         <span class="text-red-500 text-sm">{{ $message }}</span>
                                     @enderror
                                 </div>
@@ -99,7 +103,9 @@
                         {{-- End of the form --}}
 
                         <div class="text-center">
-                            <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mt-4">Already have an account? <a href="{{ url('signin-basic') }}" class="text-primary">Sign In</a></p>
+                            <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mt-4">Already have an account? 
+                                <a href="{{ url('signin-basic') }}" class="text-primary">Sign In</a>
+                            </p>
                         </div>
                         <div class="text-center my-4 authentication-barrier">
                             <span>OR</span>

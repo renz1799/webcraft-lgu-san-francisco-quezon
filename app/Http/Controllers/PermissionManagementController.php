@@ -23,17 +23,19 @@ class PermissionManagementController extends Controller
     {
         $request->validate([
             'name' => 'required|string|unique:permissions,name|max:255',
+            'page' => 'required|string|max:255', // Validate the page field
             'guard_name' => 'nullable|string|in:web,api', // Default to 'web'
         ]);
-    
+
         Permission::create([
             'name' => $request->name,
+            'page' => $request->page, // Store Page Value
             'guard_name' => $request->guard_name ?? 'web', // Default guard name is 'web'
         ]);
-    
+
         return redirect()->route('permissions.manage')->with('success', 'Permission created successfully.');
     }
-    
+
     /**
      * Delete a permission.
      */

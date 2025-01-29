@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\ROle;
 use App\Models\LoginDetail; // Import the LoginDetail model
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -20,9 +21,10 @@ class AuthController extends Controller
      */
     public function showSignUpForm()
     {
-        return view('auth.sign-up');
+        $roles = Role::all();
+        return view('auth.sign-up', compact('roles'));
     }
-
+    
     /**
      * Show the login form.
      */
@@ -39,26 +41,33 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'username' => 'required|string|max:255|unique:users,username',
             'email' => 'required|email|max:255|unique:users,email',
-            'user_type' => 'required|in:Administrator,Staff,Guest',
+            'role' => 'required|exists:roles,name', // Ensure the role exists in the roles table
             'password' => 'required|string|min:8|confirmed',
         ]);
-
+    
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
         }
-
-        User::create([
+    
+        // Create the user
+        $user = User::create([
             'username' => $request->username,
             'email' => $request->email,
-            'user_type' => $request->user_type,
             'password' => Hash::make($request->password),
             'is_active' => true,
         ]);
-
+    
+        // Assign the selected role to the user
+        $role = Role::where('name', $request->role)->first();
+        if ($role) {
+            $user->assignRole($role);
+        }
+    
         return redirect()->route('login')->with('success', 'Account created successfully. Please log in.');
     }
+    
 
     /**
      * Handle login attempts.

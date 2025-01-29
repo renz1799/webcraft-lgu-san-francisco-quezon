@@ -47,6 +47,10 @@
                     <input type="text" id="permission_name" name="name" class="form-control" placeholder="e.g., manage users" required>
                 </div>
                 <div class="form-group mb-3">
+                    <label for="page" class="form-label">Page</label>
+                    <input type="text" id="page" name="page" class="form-control" placeholder="e.g., Manage Users" required>
+                </div>
+                <div class="form-group mb-3">
                     <label for="guard_name" class="form-label">Guard Name</label>
                     <select id="guard_name" name="guard_name" class="form-control">
                         <option value="web" selected>Web</option>
@@ -69,6 +73,7 @@
                     <thead class="bg-primary/10">
                         <tr class="border-b border-primary/10">
                             <th scope="col" class="text-start">Permission Name</th>
+                            <th scope="col" class="text-start">Page</th> <!-- Added Page Column -->
                             <th scope="col" class="text-start">Guard</th>
                             <th scope="col" class="text-start">Actions</th>
                         </tr>
@@ -77,6 +82,7 @@
                         @forelse ($permissions as $permission)
                             <tr class="border-b border-primary/10">
                                 <td class="text-start">{{ $permission->name }}</td>
+                                <td class="text-start">{{ $permission->page }}</td> <!-- Show Page -->
                                 <td class="text-start">{{ $permission->guard_name }}</td>
                                 <td class="text-start">
                                     <form action="{{ route('permissions.destroy', $permission) }}" method="POST" style="display:inline;">
@@ -88,7 +94,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="text-center text-muted">No permissions found.</td>
+                                <td colspan="4" class="text-center text-muted">No permissions found.</td>
                             </tr>
                         @endforelse
                     </tbody>
