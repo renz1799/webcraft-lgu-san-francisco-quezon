@@ -19,20 +19,20 @@ class UserRolePermissionController extends Controller
 
         // Log the retrieved permissions
         Log::info('Permissions retrieved from DB:', $permissions->toArray());
+// Retrieve user's assigned permissions correctly
+$userPermissions = $user->permissions->groupBy('page')->map(function ($actions) {
+    return $actions->mapToGroups(function ($permission) {
+        $words = explode(' ', $permission->name);
+        $action = strtolower(array_shift($words)); // Extract 'view', 'modify', 'delete'
+        $cleanName = implode(' ', $words); // Extract actual permission name
 
-        // Retrieve user's assigned permissions
-            $userPermissions = $user->permissions->groupBy('page')->map(function ($actions) {
-                return $actions->mapWithKeys(function ($permission) {
-                    $words = explode(' ', $permission->name);
-                    $action = strtolower(array_shift($words)); // Extracts 'view', 'modify', 'delete'
-                    $cleanName = implode(' ', $words); // Extracts actual permission name
+        return [$cleanName => [$action]]; // Store multiple actions
+    })->map(function ($actions) {
+        return $actions->flatten()->unique()->values()->all(); // Ensure unique actions
+    });
+});
 
-                    return [$cleanName => [$action]];
-                });
-            });
 
-// Log the corrected user permissions structure
-Log::info('Corrected User Assigned Permissions:', $userPermissions->toArray());
 
 
         // Log the user's assigned permissions

@@ -72,85 +72,89 @@
                 </div>
 
 <!-- Section: Set Permissions -->
-@foreach ($permissions as $page => $actions)
-    <div class="mb-6">
-        <h6 class="font-semibold mb-3 text-[1.1rem]">{{ $page }}</h6>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+    @foreach ($permissions as $page => $actions)
+        <div class="mb-6 flex flex-col h-full">
+            <h6 class="font-semibold mb-3 text-[1.1rem] flex justify-between items-center">
+                {{ $page }}
+                <span id="feedback-{{ Str::slug($page) }}" class="text-green-500 text-sm hidden">
+                    ✔ Saved
+                </span>
+            </h6>
 
-        <div class="table-responsive">
-            <table class="table whitespace-nowrap border border-primary/10">
-                <thead class="bg-primary/10">
-                    <tr>
-                        <th class="p-3 text-start">Permission</th>
-                        <th class="p-3 text-center">View</th>
-                        <th class="p-3 text-center">Modify</th>
-                        <th class="p-3 text-center">Delete</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $groupedPermissions = []; @endphp
-
-                    @foreach ($actions as $permission)
-                        @php
-                            $words = explode(' ', $permission->name);
-                            $action = strtolower(array_shift($words));
-                            $cleanName = implode(' ', $words);
-
-                            if (!isset($groupedPermissions[$cleanName])) {
-                                $groupedPermissions[$cleanName] = ['view' => false, 'modify' => false, 'delete' => false];
-                            }
-                            $groupedPermissions[$cleanName][$action] = true;
-                        @endphp
-                    @endforeach
-
-                    @foreach ($groupedPermissions as $permissionName => $actions)
+            <div class="table-responsive h-full">
+                <table class="table whitespace-nowrap border border-primary/10 w-full">
+                    <thead class="bg-primary/10">
                         <tr>
-                            <td class="p-3 text-start">{{ $permissionName }}</td>
-
-                            <td class="text-center">
-                                @if ($actions['view'])
-                                    <input type="checkbox" class="permission-checkbox" 
-                                        id="view-{{ \Illuminate\Support\Str::slug($page . '-' . $permissionName) }}" 
-                                        name="permissions[{{ $page }}][{{ $permissionName }}][]" 
-                                        value="view"
-                                        data-page="{{ $page }}" 
-                                        data-action="view" 
-                                        data-permission="{{ $permissionName }}"
-                                        {{ isset($userPermissions[$page][$permissionName]) && in_array('view', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
-                                @endif
-                            </td>
-
-                            <td class="text-center">
-                                @if ($actions['modify'])
-                                    <input type="checkbox" class="permission-checkbox" 
-                                        id="modify-{{ \Illuminate\Support\Str::slug($page . '-' . $permissionName) }}" 
-                                        name="permissions[{{ $page }}][{{ $permissionName }}][]" 
-                                        value="modify"
-                                        data-page="{{ $page }}" 
-                                        data-action="modify" 
-                                        data-permission="{{ $permissionName }}"
-                                        {{ isset($userPermissions[$page][$permissionName]) && in_array('modify', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
-                                @endif
-                            </td>
-
-                            <td class="text-center">
-                                @if ($actions['delete'])
-                                    <input type="checkbox" class="permission-checkbox" 
-                                        id="delete-{{ \Illuminate\Support\Str::slug($page . '-' . $permissionName) }}" 
-                                        name="permissions[{{ $page }}][{{ $permissionName }}][]" 
-                                        value="delete"
-                                        data-page="{{ $page }}" 
-                                        data-action="delete" 
-                                        data-permission="{{ $permissionName }}"
-                                        {{ isset($userPermissions[$page][$permissionName]) && in_array('delete', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
-                                @endif
-                            </td>
+                            <th class="p-3 text-start">Permission</th>
+                            <th class="p-3 text-center">View</th>
+                            <th class="p-3 text-center">Modify</th>
+                            <th class="p-3 text-center">Delete</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @php $groupedPermissions = []; @endphp
+
+                        @foreach ($actions as $permission)
+                            @php
+                                $words = explode(' ', $permission->name);
+                                $action = strtolower(array_shift($words));
+                                $cleanName = implode(' ', $words);
+
+                                if (!isset($groupedPermissions[$cleanName])) {
+                                    $groupedPermissions[$cleanName] = ['view' => false, 'modify' => false, 'delete' => false];
+                                }
+                                $groupedPermissions[$cleanName][$action] = $permission->id;
+                            @endphp
+                        @endforeach
+
+                        @foreach ($groupedPermissions as $permissionName => $actions)
+                            <tr>
+                                <td class="p-3 text-start">{{ $permissionName }}</td>
+
+                                <td class="text-center">
+                                    @if ($actions['view'])
+                                        <input type="checkbox" class="permission-checkbox"
+                                            name="permissions[{{ $page }}][{{ $permissionName }}][]" 
+                                            value="view"
+                                            data-page="{{ $page }}" 
+                                            data-action="view" 
+                                            data-permission="{{ $permissionName }}"
+                                            {{ isset($userPermissions[$page][$permissionName]) && in_array('view', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
+                                    @endif
+                                </td>
+
+                                <td class="text-center">
+                                    @if ($actions['modify'])
+                                        <input type="checkbox" class="permission-checkbox"
+                                            name="permissions[{{ $page }}][{{ $permissionName }}][]" 
+                                            value="modify"
+                                            data-page="{{ $page }}" 
+                                            data-action="modify" 
+                                            data-permission="{{ $permissionName }}"
+                                            {{ isset($userPermissions[$page][$permissionName]) && in_array('modify', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
+                                    @endif
+                                </td>
+
+                                <td class="text-center">
+                                    @if ($actions['delete'])
+                                        <input type="checkbox" class="permission-checkbox"
+                                            name="permissions[{{ $page }}][{{ $permissionName }}][]" 
+                                            value="delete"
+                                            data-page="{{ $page }}" 
+                                            data-action="delete" 
+                                            data-permission="{{ $permissionName }}"
+                                            {{ isset($userPermissions[$page][$permissionName]) && in_array('delete', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-@endforeach
+    @endforeach
+</div>
 
 <!-- Save Button -->
 <div class="mt-4">
@@ -242,12 +246,28 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const result = await response.json();
-            alert("Permissions updated successfully!");
+            console.log("Permissions updated successfully!");
+
+            // Show feedback for each updated section
+            Object.keys(selectedPermissions).forEach(page => {
+                let feedbackSpan = document.getElementById(`feedback-${page.replace(/\s+/g, '-').toLowerCase()}`);
+                if (feedbackSpan) {
+                    feedbackSpan.classList.remove("hidden");
+                    feedbackSpan.textContent = "✔ Saved";
+
+                    // Hide after 3 seconds
+                    setTimeout(() => {
+                        feedbackSpan.classList.add("hidden");
+                    }, 3000);
+                }
+            });
+
         } catch (error) {
             console.error("Error updating permissions:", error);
         }
     });
 });
+
 
     </script>
    
