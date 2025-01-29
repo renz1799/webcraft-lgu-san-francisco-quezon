@@ -89,6 +89,9 @@ Route::prefix('permissions')
     
     Route::get('/set-user-role-permissions/{id}', [UserRolePermissionController::class, 'edit'])->name('permissions.edit');
     Route::put('/permissions/{user}', [UserRolePermissionController::class, 'update'])->name('permissions.update');
+    Route::post('/permissions/change-role/{user}', [UserRolePermissionController::class, 'changeRole'])->name('permissions.changeRole');
+
+    
 
 // Password reset routes
 Route::get('forgot-password', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');

@@ -13,7 +13,7 @@ class Permission extends SpatiePermission
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = ['id', 'name', 'guard_name'];
+    protected $fillable = ['id', 'name', 'page', 'guard_name'];
 
     /**
      * Automatically generate UUID for the id field.

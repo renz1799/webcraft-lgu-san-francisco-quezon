@@ -63,7 +63,7 @@
                         <label for="role" class="form-label">Select Role</label>
                         <select name="role" id="role" class="form-control">
                             @foreach ($roles as $role)
-                                <option value="{{ $role->name }}" {{ $user->role == $role->name ? 'selected' : '' }}>
+                                <option value="{{ $role->name }}" {{ $userRole && $userRole->name == $role->name ? 'selected' : '' }}>
                                     {{ $role->name }}
                                 </option>
                             @endforeach
@@ -83,75 +83,76 @@
             </h6>
 
             <div class="table-responsive h-full">
-                <table class="table whitespace-nowrap border border-primary/10 w-full">
-                    <thead class="bg-primary/10">
-                        <tr>
-                            <th class="p-3 text-start">Permission</th>
-                            <th class="p-3 text-center">View</th>
-                            <th class="p-3 text-center">Modify</th>
-                            <th class="p-3 text-center">Delete</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php $groupedPermissions = []; @endphp
+    <table class="table whitespace-nowrap border border-primary/10 w-full">
+        <thead class="bg-primary/10">
+            <tr>
+                <th class="p-3 text-start">Permission</th>
+                <th class="p-3 text-center">View</th>
+                <th class="p-3 text-center">Modify</th>
+                <th class="p-3 text-center">Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            @php $groupedPermissions = []; @endphp
 
-                        @foreach ($actions as $permission)
-                            @php
-                                $words = explode(' ', $permission->name);
-                                $action = strtolower(array_shift($words));
-                                $cleanName = implode(' ', $words);
+            @foreach ($actions as $permission)
+                @php
+                    $words = explode(' ', $permission->name);
+                    $action = strtolower(array_shift($words));
+                    $cleanName = implode(' ', $words);
 
-                                if (!isset($groupedPermissions[$cleanName])) {
-                                    $groupedPermissions[$cleanName] = ['view' => false, 'modify' => false, 'delete' => false];
-                                }
-                                $groupedPermissions[$cleanName][$action] = $permission->id;
-                            @endphp
-                        @endforeach
+                    if (!isset($groupedPermissions[$cleanName])) {
+                        $groupedPermissions[$cleanName] = ['view' => false, 'modify' => false, 'delete' => false];
+                    }
+                    $groupedPermissions[$cleanName][$action] = $permission->id;
+                @endphp
+            @endforeach
 
-                        @foreach ($groupedPermissions as $permissionName => $actions)
-                            <tr>
-                                <td class="p-3 text-start">{{ $permissionName }}</td>
+            @foreach ($groupedPermissions as $permissionName => $actions)
+                <tr>
+                    <td class="p-3 text-start">{{ $permissionName }}</td>
 
-                                <td class="text-center">
-                                    @if ($actions['view'])
-                                        <input type="checkbox" class="permission-checkbox"
-                                            name="permissions[{{ $page }}][{{ $permissionName }}][]" 
-                                            value="view"
-                                            data-page="{{ $page }}" 
-                                            data-action="view" 
-                                            data-permission="{{ $permissionName }}"
-                                            {{ isset($userPermissions[$page][$permissionName]) && in_array('view', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
-                                    @endif
-                                </td>
+                    <td class="text-center">
+                        @if ($actions['view'])
+                            <input type="checkbox" class="permission-checkbox ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4"
+                                name="permissions[{{ $page }}][{{ $permissionName }}][]" 
+                                value="view"
+                                data-page="{{ $page }}" 
+                                data-action="view" 
+                                data-permission="{{ $permissionName }}"
+                                {{ isset($userPermissions[$page][$permissionName]) && in_array('view', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
+                        @endif
+                    </td>
 
-                                <td class="text-center">
-                                    @if ($actions['modify'])
-                                        <input type="checkbox" class="permission-checkbox"
-                                            name="permissions[{{ $page }}][{{ $permissionName }}][]" 
-                                            value="modify"
-                                            data-page="{{ $page }}" 
-                                            data-action="modify" 
-                                            data-permission="{{ $permissionName }}"
-                                            {{ isset($userPermissions[$page][$permissionName]) && in_array('modify', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
-                                    @endif
-                                </td>
+                    <td class="text-center">
+                        @if ($actions['modify'])
+                            <input type="checkbox" class="permission-checkbox ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4"
+                                name="permissions[{{ $page }}][{{ $permissionName }}][]" 
+                                value="modify"
+                                data-page="{{ $page }}" 
+                                data-action="modify" 
+                                data-permission="{{ $permissionName }}"
+                                {{ isset($userPermissions[$page][$permissionName]) && in_array('modify', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
+                        @endif
+                    </td>
 
-                                <td class="text-center">
-                                    @if ($actions['delete'])
-                                        <input type="checkbox" class="permission-checkbox"
-                                            name="permissions[{{ $page }}][{{ $permissionName }}][]" 
-                                            value="delete"
-                                            data-page="{{ $page }}" 
-                                            data-action="delete" 
-                                            data-permission="{{ $permissionName }}"
-                                            {{ isset($userPermissions[$page][$permissionName]) && in_array('delete', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+                    <td class="text-center">
+                        @if ($actions['delete'])
+                            <input type="checkbox" class="permission-checkbox ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4"
+                                name="permissions[{{ $page }}][{{ $permissionName }}][]" 
+                                value="delete"
+                                data-page="{{ $page }}" 
+                                data-action="delete" 
+                                data-permission="{{ $permissionName }}"
+                                {{ isset($userPermissions[$page][$permissionName]) && in_array('delete', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
+                        @endif
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+
         </div>
     @endforeach
 </div>
@@ -188,6 +189,21 @@
                     <!--End::row-1 -->
 
                   </div>
+
+
+                  <!-- Confirmation Modal -->
+<div id="roleChangeModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex justify-center items-center">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+        <h3 class="text-lg font-semibold">Change Role?</h3>
+        <p class="text-sm text-gray-600 mt-2">
+            Changing the role will remove all current permissions and apply new ones based on the selected role. Do you want to proceed?
+        </p>
+        <div class="mt-4 flex justify-end">
+            <button id="cancelRoleChange" class="px-4 py-2 bg-gray-300 text-black rounded-md mr-2">Cancel</button>
+            <button id="confirmRoleChange" class="px-4 py-2 bg-red-500 text-white rounded-md">Confirm</button>
+        </div>
+    </div>
+</div>
       
 @endsection
 
@@ -267,8 +283,54 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 });
-
-
     </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const roleDropdown = document.getElementById("role");
+    const modal = document.getElementById("roleChangeModal");
+    const cancelBtn = document.getElementById("cancelRoleChange");
+    const confirmBtn = document.getElementById("confirmRoleChange");
+    let selectedRole = roleDropdown.value;  // Store the current role
+
+    roleDropdown.addEventListener("change", function () {
+        const newRole = this.value;
+
+        if (newRole !== selectedRole) {
+            modal.classList.remove("hidden");  // Show the modal
+        }
+    });
+
+    cancelBtn.addEventListener("click", function () {
+        modal.classList.add("hidden");
+        roleDropdown.value = selectedRole;  // Revert to previous role
+    });
+
+    confirmBtn.addEventListener("click", async function () {
+        modal.classList.add("hidden");
+        selectedRole = roleDropdown.value; // Update stored role
+
+        try {
+            const response = await fetch("{{ route('permissions.changeRole', $user->id) }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ role: selectedRole })
+            });
+
+            if (!response.ok) throw new Error("Failed to update role");
+
+            const result = await response.json();
+           // alert(result.message);
+
+            location.reload(); // Reload the page to reflect changes
+        } catch (error) {
+            console.error("Error updating role:", error);
+        }
+    });
+});
+</script>
    
 @endsection 
