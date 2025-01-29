@@ -9,7 +9,8 @@
         <meta name="Author" content="Spruko Technologies Private Limited">
         <meta name="Description" content="Laravel Tailwind CSS Responsive Admin Web Dashboard Template">
         <meta name="keywords" content="admin panel in laravel, tailwind, tailwind template admin, laravel admin panel, tailwind css dashboard, admin dashboard template, admin template, tailwind laravel, template dashboard, admin panel tailwind, tailwind css admin template, laravel tailwind template, laravel tailwind, tailwind admin dashboard">
-        
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+
         <!-- TITLE -->
 		<title> Ynex - Laravel Tailwind CSS Admin & Dashboard Template </title>
 

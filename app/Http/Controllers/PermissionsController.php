@@ -7,6 +7,8 @@ use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Arr;
+
 
 class PermissionsController extends Controller
 {
@@ -53,78 +55,94 @@ class PermissionsController extends Controller
         ]);
     }
     
-    
-/**
- * Update the user's permissions.
- */
-public function update(Request $request, User $user)
-{
-    Log::info('Received request to update user role and replace permissions.', [
-        'user_id' => $user->id,
-        'user_email' => $user->email,
-        'request_data' => $request->all(),
-    ]);
+    public function update(Request $request, $uuid)
+    {
+        $user = User::where('id', $uuid)->firstOrFail();
 
-    try {
-        // Step 1: Validate the role
-        $validatedRole = $request->validate([
-            'role' => 'required|string|exists:roles,name', // Ensure role exists
+        $roleName = $request->input('role'); // Role name
+        $permissions = $request->input('permissions', []); // Permissions array (default to empty array)
+
+        \Log::info('Updating user role and permissions', [
+            'user_id' => $user->id,
+            'requested_role' => $roleName,
+            'requested_permissions' => $permissions
         ]);
 
-        // Step 2: Update the user's role
-        $role = Role::where('name', $validatedRole['role'])->first();
-        $user->syncRoles([$role]);
-        Log::info('User role updated successfully.', ['user_id' => $user->id, 'role' => $validatedRole['role']]);
+        $this->updateRoleAndPermissions($user, $roleName, $permissions);
 
-        // Step 3: Fetch permissions assigned to the role
-        $rolePermissions = $role->permissions()
-            ->where('guard_name', 'web')
-            ->get(); // Fetch as models, not IDs
-        Log::info('Fetched role permissions.', ['role_permissions' => $rolePermissions->pluck('id')]);
+        return response()->json(['message' => 'User role and permissions updated successfully.'], 200);
+    }
 
-        // Step 4: Clear all existing permissions for the user
-        $user->syncPermissions([]); // Remove all existing permissions
-        Log::info('All existing permissions removed for user.', ['user_id' => $user->id]);
+    /**
+     * Update the user's role and permissions.
+     *
+     * @param \App\Models\User $user
+     * @param string|null $newRoleName
+     * @param array $permissions
+     * @return void
+     */
+    private function updateRoleAndPermissions(User $user, ?string $newRoleName, array $permissions)
+    {
+        $currentRole = $user->roles->pluck('name')->first();
+    
+        if ($currentRole !== $newRoleName) {
+            // Assign new role and reset permissions
+            $user->syncRoles([]); // Remove current roles
+            $newRole = Role::where('name', $newRoleName)->firstOrFail();
+            $user->assignRole($newRole);
+            $defaultPermissions = $newRole->permissions;
+            $user->syncPermissions($defaultPermissions);
+    
+            \Log::info('Role updated', [
+                'user_id' => $user->id,
+                'new_role' => $newRoleName,
+                'default_permissions' => $defaultPermissions->pluck('name')->toArray(),
+            ]);
+        } else {
+            // Update only custom permissions
+            $permissionObjects = Permission::whereIn('name', $permissions)->get();
+            $user->syncPermissions($permissionObjects);
+    
+            \Log::info('Permissions updated', [
+                'user_id' => $user->id,
+                'custom_permissions' => $permissionObjects->pluck('name')->toArray(),
+            ]);
+        }
+    }
+    
 
-        // Step 5: Resolve permissions explicitly and sync
-        $validPermissions = [];
-        foreach ($rolePermissions as $permission) {
-            try {
-                $resolvedPermission = Permission::findById($permission->id, 'web');
-                $validPermissions[] = $resolvedPermission;
-            } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist $e) {
-                Log::warning('Invalid permission encountered.', ['permission_id' => $permission->id]);
+    /**
+     * Update the user's permissions (custom overrides).
+     *
+     * @param \App\Models\User $user
+     * @param array $permissions
+     * @return void
+     */
+    private function updatePermissions(User $user, array $permissions)
+    {
+        // Step 1: Extract and flatten permissions correctly
+        $formattedPermissions = [];
+        foreach ($permissions as $module => $actions) {
+            foreach ($actions as $action => $granted) {
+                if ($granted) { // Only process checked permissions
+                    $formattedPermissions[] = "{$action} {$module}"; // Convert to "view users" format
+                }
             }
         }
-
-        // Sync valid permissions
-        $user->syncPermissions($validPermissions);
-        Log::info('Role permissions assigned to user.', [
+    
+        // Step 2: Fetch permission objects based on formatted names
+        $permissionObjects = Permission::whereIn('name', $formattedPermissions)->get();
+    
+        // Step 3: Sync only the specified permissions
+        $user->syncPermissions($permissionObjects);
+    
+        // Step 4: Log updated permissions
+        \Log::info('Permissions updated', [
             'user_id' => $user->id,
-            'permissions' => $validPermissions,
+            'custom_permissions' => $permissionObjects->pluck('name')->toArray(),
         ]);
-
-        // Step 6: Return a success response
-        return response()->json(['message' => 'User role and permissions updated successfully.']);
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        Log::error('Validation error occurred while updating user role and permissions.', [
-            'errors' => $e->errors(),
-            'user_id' => $user->id,
-        ]);
-
-        return response()->json(['errors' => $e->errors()], 422);
-    } catch (\Exception $e) {
-        Log::error('Error occurred while updating user role and permissions.', [
-            'error_message' => $e->getMessage(),
-            'user_id' => $user->id,
-        ]);
-
-        return response()->json(['message' => 'Failed to update user role and permissions.'], 500);
     }
-}
-
-
-
+    
     /**
      * Ensure the given user has a role assigned.
      */

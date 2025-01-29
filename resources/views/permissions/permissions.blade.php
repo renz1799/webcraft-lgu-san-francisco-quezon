@@ -57,10 +57,8 @@
             </td>
             <td>
                 <div class="hstack flex gap-3 text-[.9375rem]">
-                    <a aria-label="anchor" href="javascript:void(0);"
-                        class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full"
-                        data-hs-overlay="#permissionsModal"
-                        data-user-id="{{ $user->id }}">
+                    <a aria-label="anchor" href="{{ url('/set-user-role-permissions/' . $user->id) }}"
+                        class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full">
                         <i class="ri-edit-line"></i>
                     </a>
                     <a href="javascript:void(0);"
@@ -83,67 +81,6 @@
     </div>
 </div>
 
-<!-- Permissions Modal -->
-<div id="permissionsModal" class="hs-overlay hidden ti-modal [--overlay-backdrop:static]">
-    <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out">
-        <div class="ti-modal-content">
-            <!-- Modal Header -->
-            <div class="ti-modal-header">
-                <h6 class="modal-title text-[1rem] font-semibold">Edit Permissions</h6>
-                <button type="button" class="hs-dropdown-toggle !text-[1rem] !font-semibold !text-defaulttextcolor" 
-                        data-hs-overlay="#permissionsModal">
-                    <span class="sr-only">Close</span>
-                    <i class="ri-close-line"></i>
-                </button>
-            </div>
-
-            <!-- Modal Body -->
-            <div class="ti-modal-body px-4">
-                <form id="permissionsForm">
-                    <!-- Role Dropdown -->
-                    <div class="form-group mb-4">
-                        <label for="roleDropdown" class="font-medium text-defaulttextcolor">Role</label>
-                        <select id="roleDropdown" name="role" class="form-control w-full mt-2">
-                            <!-- Options will be dynamically populated -->
-                        </select>
-                    </div>
-
-                    <!-- Permissions Table -->
-                    <div class="table-responsive">
-                        <table class="table whitespace-nowrap min-w-full border border-primary/10">
-                            <!-- Table Header -->
-                            <thead class="bg-primary/10">
-                                <tr>
-                                    <th class="text-start p-3">Page</th>
-                                    <th class="text-center p-3">View</th>
-                                    <th class="text-center p-3">Modify</th>
-                                    <th class="text-center p-3">Delete</th>
-                                </tr>
-                            </thead>
-                            <tbody id="permissionsTable">
-                                <!-- Permissions will be dynamically loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="ti-modal-footer">
-                <!-- Feedback Message -->
-                <div id="feedbackMessage" class="hidden text-center text-[0.875rem] font-medium mb-4"></div>
-
-                <button type="button" class="hs-dropdown-toggle ti-btn btn-wave ti-btn-secondary-full align-middle" 
-                        data-hs-overlay="#permissionsModal">
-                    Close
-                </button>
-                <button type="button" class="ti-btn btn-wave bg-primary text-white !font-medium" id="submitPermissionsButton">
-                    Save Changes
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 
 <!-- Delete Confirmation Modal -->
@@ -251,7 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok) {
                     const result = await response.json();
-                  //  alert(result.message); // Success message
                     hideModal('deleteConfirmationModal'); // Hide modal
                     location.reload(); // Refresh page
                 } else {
@@ -273,119 +209,9 @@ document.addEventListener('DOMContentLoaded', () => {
             hideModal('deleteConfirmationModal');
         });
     });
-
-    // Permissions Modal Logic
-    document.querySelectorAll('[data-hs-overlay="#permissionsModal"]').forEach(button => {
-    button.addEventListener('click', async function () {
-        const userId = this.getAttribute('data-user-id');
-        
-        try {
-            const response = await fetch(`/permissions/${userId}/get`);
-            const { permissions, userPermissions, roles, currentRole } = await response.json();
-
-            // Populate permissions table (existing logic)
-            const permissionsTable = document.getElementById('permissionsTable');
-            permissionsTable.innerHTML = ''; // Clear previous content
-            Object.entries(permissions).forEach(([page, actions]) => {
-                let row = `<tr>
-                    <td class="p-3 text-start">${page}</td>`;
-                actions.forEach(permission => {
-                    const isChecked = userPermissions.includes(permission.name) ? 'checked' : '';
-                    row += `
-                        <td class="text-center">
-                            <input type="checkbox" 
-                                   name="permissions[${page}][${permission.name.split(' ')[0]}]"
-                                   value="${permission.name}"
-                                   class="ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4"
-                                   ${isChecked}>
-                        </td>`;
-                });
-                row += '</tr>';
-                permissionsTable.innerHTML += row;
-            });
-
-            // Populate roles dropdown
-            const roleDropdown = document.getElementById('roleDropdown');
-            roleDropdown.innerHTML = ''; // Clear previous options
-            roles.forEach(role => {
-                const isSelected = role === currentRole ? 'selected' : '';
-                roleDropdown.innerHTML += `<option value="${role}" ${isSelected}>${role}</option>`;
-            });
-
-            document.getElementById('permissionsForm').dataset.userId = userId; // Store user ID
-        } catch (error) {
-            console.error('Error fetching permissions:', error);
-        }
-    });
 });
-
-
-    // Submit Permissions Form
-    async function submitPermissionsForm() {
-    const form = document.getElementById('permissionsForm');
-    const userId = form.dataset.userId; // Get user ID from form
-    const formData = new FormData(form);
-
-    const permissions = {};
-    let role = null; // Initialize role variable
-
-    for (const [key, value] of formData.entries()) {
-        if (key === 'role') {
-            role = value; // Handle the role separately
-            continue; // Skip further processing for this key
-        }
-
-        const matches = key.match(/\[([^\]]+)\]\[([^\]]+)\]/); // Match keys like permissions[module][action]
-        if (!matches) {
-            console.error(`Key format invalid: ${key}`);
-            continue; // Skip this entry if it doesn't match the expected format
-        }
-
-        const [_, page, action] = matches; // Destructure match results
-        permissions[page] = permissions[page] || {};
-        permissions[page][action] = true;
-    }
-
-    const feedbackMessage = document.getElementById('feedbackMessage');
-    feedbackMessage.classList.add('hidden'); // Hide previous feedback
-
-    try {
-        const response = await fetch(`/permissions/${userId}/update`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            },
-            body: JSON.stringify({ permissions, role }), // Include role in the payload
-        });
-
-        if (response.ok) {
-            feedbackMessage.textContent = 'Permissions and role updated successfully.';
-            feedbackMessage.className = 'text-green-600 text-left text-[0.875rem] font-medium mb-4';
-        } else {
-            feedbackMessage.textContent = 'You do not have permission to update. Please contact the administrator.';
-            feedbackMessage.className = 'text-red-600 text-left text-[0.875rem] font-medium mb-4';
-        }
-    } catch (error) {
-        console.error('Error updating permissions:', error);
-        feedbackMessage.textContent = 'An error occurred while updating permissions.';
-        feedbackMessage.className = 'text-red-600 text-left text-[0.875rem] font-medium mb-4';
-    }
-
-    feedbackMessage.classList.remove('hidden'); // Display feedback
-}
-
-
-    // Add event listener to the "Save Changes" button
-    const submitPermissionsButton = document.getElementById('submitPermissionsButton');
-    if (submitPermissionsButton) {
-        submitPermissionsButton.addEventListener('click', submitPermissionsForm);
-    } else {
-        console.error('Submit Permissions Button not found.');
-    }
-});
-
 </script>
+
 
 <script>
     
