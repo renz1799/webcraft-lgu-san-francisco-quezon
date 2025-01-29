@@ -61,6 +61,15 @@ Route::middleware(['auth', 'role_or_permission:admin|view users|modify users|del
     Route::put('/permissions/{user}/update', [PermissionsController::class, 'update'])->name('permissions.update');
     Route::put('/users/{id}/status', [PermissionsController::class, 'updateStatus'])->name('users.updateStatus');
     Route::delete('/users/{user}/delete', [PermissionsController::class, 'deleteUser'])->name('users.delete');
+
+    Route::resource('roles', RolesController::class);
+    Route::get('/roles/create', [RolesController::class, 'create'])->name('roles.create');
+    Route::post('/roles', [RolesController::class, 'store'])->name('roles.store');
+    
+    Route::get('/set-user-role-permissions/{id}', [UserRolePermissionController::class, 'edit'])->name('permissions.edit');
+    Route::put('/permissions/{user}', [UserRolePermissionController::class, 'update'])->name('permissions.update');
+    Route::post('/permissions/change-role/{user}', [UserRolePermissionController::class, 'changeRole'])->name('permissions.changeRole');
+
 });
 
 // Permission Management Routes
@@ -83,15 +92,8 @@ Route::prefix('permissions')
         Route::get('/logs/data', [LoginLogController::class, 'getLogs'])->name('logs.data');
     });
 
-    Route::resource('roles', RolesController::class);
-    Route::get('/roles/create', [RolesController::class, 'create'])->name('roles.create');
-    Route::post('/roles', [RolesController::class, 'store'])->name('roles.store');
-    
-    Route::get('/set-user-role-permissions/{id}', [UserRolePermissionController::class, 'edit'])->name('permissions.edit');
-    Route::put('/permissions/{user}', [UserRolePermissionController::class, 'update'])->name('permissions.update');
-    Route::post('/permissions/change-role/{user}', [UserRolePermissionController::class, 'changeRole'])->name('permissions.changeRole');
 
-    
+
 
 // Password reset routes
 Route::get('forgot-password', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');

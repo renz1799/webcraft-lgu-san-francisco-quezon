@@ -35,7 +35,7 @@
                 <tr class="border-b border-primary/10">
                     <th scope="col" class="text-start">User Name</th>
                     <th scope="col" class="text-start">Email</th>
-                    <th scope="col" class="text-start">User Type</th>
+                    <th scope="col" class="text-start">Role</th>
                     <th scope="col" class="text-start">Created</th>
                     <th scope="col" class="text-start">Status</th>
                     <th scope="col" class="text-start">Actions</th>
@@ -46,7 +46,9 @@
         <tr class="border-b border-primary/10">
             <th scope="row" class="text-start">{{ $user->username }}</th>
             <td>{{ $user->email }}</td>
-            <td>{{ $user->user_type }}</td>
+            <td>
+                {{ optional($user->roles->first())->name ?? 'No Role Assigned' }} <!-- Fetching User Role -->
+            </td>
             <td>{{ $user->created_at->format('d M Y') }}</td>
             <td class="text-center">
                 <!-- Status Toggle Checkbox -->
