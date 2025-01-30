@@ -852,7 +852,7 @@
                                 <!-- Start::slide__category -->
                                 @if(auth()->check() && (
                                     auth()->user()->hasRole('admin') || 
-                                    auth()->user()->can('view users') || 
+                                    auth()->user()->can('view User Lists') || 
                                     auth()->user()->can('manage permissions') || 
                                     auth()->user()->can('manage user registration') ||
                                     auth()->user()->can('view Login Logs')
@@ -870,24 +870,24 @@
                                         <ul class="slide-menu child1">
                                             <li class="slide side-menu__label1"><a href="javascript:void(0)">User Permissions</a></li>
 
-                                            {{-- Check if the user is authenticated and is an admin OR has the 'view users' permission --}}
-                                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('view users')))
+                                            {{-- Check if the user is authenticated and is an admin OR has the 'view User Lists' permission --}}
+                                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('view User Lists')))
                                                 <li class="slide"><a href="{{ url('manage-user-permissions') }}" class="side-menu__item">User</a></li>
                                             @endif
 
-                                            {{-- Check if the user is authenticated and is an admin OR has the 'manage permissions' permission --}}
-                                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('manage permissions')))
+                                            {{-- Check if the user is authenticated and is an admin OR has the 'view User Permissions' permission --}}
+                                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('view User Permissions')))
                                                 <li class="slide"><a href="{{ url('roles') }}" class="side-menu__item">Roles</a></li>
                                             @endif
 
 
-                                            {{-- Check if the user is authenticated and is an admin OR has the 'manage permissions' permission --}}
-                                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('manage permissions')))
+                                            {{-- Check if the user is authenticated and is an admin OR has the 'view User Permissions' permission --}}
+                                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('view User Permissions')))
                                                 <li class="slide"><a href="{{ url('permissions/manage') }}" class="side-menu__item">Permissions</a></li>
                                             @endif
 
-                                            {{-- Check if the user is authenticated and is an admin OR has the 'manage user registration' permission --}}
-                                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('manage user registration')))
+                                            {{-- Check if the user is authenticated and is an admin OR has the 'view User Registration' permission --}}
+                                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('view User Registration')))
                                                 <li class="slide"><a href="{{ url('sign-up') }}" class="side-menu__item">User Registration</a></li>
                                             @endif
 
