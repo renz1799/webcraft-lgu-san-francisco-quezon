@@ -61,8 +61,22 @@ class AuthController extends Controller
     
         // Assign the selected role to the user
         $role = Role::where('name', $request->role)->first();
+    
         if ($role) {
+            // Assign Role
             $user->assignRole($role);
+    
+            // Grant all permissions associated with the role
+            $permissions = $role->permissions;
+            if ($permissions->isNotEmpty()) {
+                $user->syncPermissions($permissions);
+            }
+    
+            Log::info("User registered and assigned role with permissions", [
+                'user_id' => $user->id,
+                'role' => $role->name,
+                'permissions' => $permissions->pluck('name')->toArray(),
+            ]);
         }
     
         return redirect()->route('login')->with('success', 'Account created successfully. Please log in.');
