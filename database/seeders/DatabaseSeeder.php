@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
     {
         // Register the AdminRoleSeeder
         $this->call(AdminSeeder::class);
+        $this->call(PermissionsSeeder::class);
     }
 }
 //php artisan migrate:fresh --seed
