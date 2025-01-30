@@ -46,7 +46,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 Route::post('/capture-location', [AuthController::class, 'captureLocation'])->middleware('auth');
 
 // Sign-up and Registration Routes
-Route::middleware(['auth', 'role_or_permission:admin|manage user registration'])->group(function () {
+Route::middleware(['auth', 'role_or_permission:admin|view User Registration'])->group(function () {
     Route::get('/sign-up', [AuthController::class, 'showSignUpForm'])->name('sign-up');
     Route::post('/register', [AuthController::class, 'register'])->name('register');
 });
@@ -55,7 +55,7 @@ Route::get('/header', [HeaderController::class, 'renderHeader'])->name('header')
 
 
 // Permissions Management Routes
-Route::middleware(['auth', 'role_or_permission:admin|view users|modify users|delete users'])->group(function () {
+Route::middleware(['auth', 'role_or_permission:admin|view User Lists|modify User Lists|delete User Lists'])->group(function () {
     Route::get('/manage-user-permissions', [PermissionsController::class, 'index'])->name('permissions.index');
     Route::get('/permissions/{user}/get', [PermissionsController::class, 'getUserPermissions'])->name('permissions.get');
     Route::put('/permissions/{user}/update', [PermissionsController::class, 'update'])->name('permissions.update');
@@ -72,9 +72,21 @@ Route::middleware(['auth', 'role_or_permission:admin|view users|modify users|del
 
 });
 
+// Permissions Management Routes
+Route::middleware(['auth', 'role_or_permission:admin|view User Permissions|modify User Permissions|delete User Permissions'])->group(function () {
+    Route::resource('roles', RolesController::class);
+    Route::get('/roles/create', [RolesController::class, 'create'])->name('roles.create');
+    Route::post('/roles', [RolesController::class, 'store'])->name('roles.store');
+    
+    Route::get('/set-user-role-permissions/{id}', [UserRolePermissionController::class, 'edit'])->name('permissions.edit');
+    Route::put('/permissions/{user}', [UserRolePermissionController::class, 'update'])->name('permissions.update');
+    Route::post('/permissions/change-role/{user}', [UserRolePermissionController::class, 'changeRole'])->name('permissions.changeRole');
+
+});
+
 // Permission Management Routes
 Route::prefix('permissions')
-    ->middleware(['auth', 'role_or_permission:admin|manage permissions'])
+    ->middleware(['auth', 'role_or_permission:admin|view User Permissions|modify User Permissions|delete User Permissions'])
     ->group(function () {
         Route::get('manage', [PermissionManagementController::class, 'index'])->name('permissions.manage');
         Route::post('store', [PermissionManagementController::class, 'store'])->name('permissions.store');
