@@ -1,3 +1,4 @@
+import ApexCharts from 'apexcharts';
 
 var element = document.getElementById("earnings");
 if (element !== null) {

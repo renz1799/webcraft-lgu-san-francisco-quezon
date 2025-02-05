@@ -1,3 +1,9 @@
+import Waves from 'node-waves';
+import SimpleBar from 'simplebar';
+import 'simplebar/dist/simplebar.css'; // Include CSS for styling
+import Pickr from '@simonwep/pickr';
+import '@simonwep/pickr/dist/themes/classic.min.css'; // Pickr CSS
+
 (function () {
   "use strict";
 

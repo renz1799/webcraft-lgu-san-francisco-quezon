@@ -22,6 +22,10 @@
 
         <!-- Datatables CSS -->
         <link href="{{asset('build/assets/jquery.dataTables.min.css')}}" rel="stylesheet">
+
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600&display=swap">
+
         
         <!-- APP SCSS -->
         @vite(['resources/sass/app.scss'])
@@ -212,6 +216,27 @@ div.dataTables_processing > div:last-child > div:nth-child(4) {
         @include('layouts.components.scripts')
 
         @yield('scripts')
+        <!-- ApexCharts JS -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<!-- Your Custom Script (Must Load AFTER ApexCharts) -->
+<script src="/resources/assets/js/ecommerce-dashboard.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Popper.js -->
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="/resources/assets/js/custom-switcher.js"></script>
+<!-- Pickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css">
+<!-- Pickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr"></script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/node-waves/0.7.6/waves.min.js"></script>
+<!-- SimpleBar CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simplebar/6.2.6/simplebar.min.css">
+<!-- SimpleBar JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/simplebar/6.2.6/simplebar.min.js"></script>
+<script src="/resources/assets/js/custom.js"></script>
 
         <!-- Datatables JS -->
         <script src="{{asset('build/assets/jquery.dataTables.min.js')}}"></script>

@@ -17,6 +17,7 @@ import {targetReport, pageviews} from './widgets'
 import {ResizeMenu, toggleSidemenu, closedSidemenuFn, detachedFn, iconTextFn, doubletFn, menuClickFn, menuhoverFn, iconClickFn, iconHoverFn, setNavActive, clearNavDropdown, 
 checkHoriMenu, iconOverayFn} from './defaultmenu'
 
+
 let mainContent;
 (function () {
     let html = document.querySelector('html');

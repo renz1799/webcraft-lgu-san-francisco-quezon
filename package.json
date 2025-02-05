@@ -6,12 +6,26 @@
         "dev": "vite"
     },
     "devDependencies": {
+        "@tailwindcss/forms": "^0.5.10",
         "autoprefixer": "^10.4.20",
         "axios": "^1.7.4",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^1.0",
         "postcss": "^8.4.47",
+        "preline": "^2.7.0",
+        "sass": "^1.83.4",
+        "sass-embedded": "^1.83.4",
+        "tailwind-clip-path": "^1.0.0",
         "tailwindcss": "^3.4.13",
-        "vite": "^5.0"
+        "vite": "^5.0",
+        "vite-plugin-static-copy": "^2.2.0"
+    },
+    "dependencies": {
+        "@popperjs/core": "^2.11.8",
+        "@simonwep/pickr": "^1.9.1",
+        "apexcharts": "^4.4.0",
+        "chart.js": "^4.4.7",
+        "node-waves": "^0.7.6",
+        "simplebar": "^6.3.0"
     }
 }
