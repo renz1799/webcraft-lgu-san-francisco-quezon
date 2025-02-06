@@ -875,7 +875,9 @@
                       </div>
                     </div>
         
-          
+                    <div id="chart"></div>
+                    <div id="language"></div>
+
 @endsection
 
 @section('scripts')

@@ -105,7 +105,9 @@ Route::prefix('permissions')
     });
 
 
-
+    Route::get('/test', function () {
+        return view('test');
+    });
 
 // Password reset routes
 Route::get('forgot-password', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
