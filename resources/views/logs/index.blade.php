@@ -134,8 +134,6 @@ div.dataTables_processing > div:last-child > div:nth-child(4) {
 
 @section('scripts')
 
-
-
 <script>
     $(document).ready(function() {
         $('#logs-table').DataTable({

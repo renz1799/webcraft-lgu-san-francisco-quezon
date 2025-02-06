@@ -263,7 +263,7 @@ Route::get('widgets', [WidgetsController::class, 'widgets']);
 // APPS //
 Route::get('full-calendar', [AppsController::class, 'full_calendar']);
 Route::get('gallery', [AppsController::class, 'gallery']);
-Route::get('sweetalerts', [AppsController::class, 'sweetalerts']);
+Route::get('sweetalerts', [AppsController::class, 'sweetalerts'])->name('sweetalerts');
 Route::get('projects-list', [AppsController::class, 'projects_list']);
 Route::get('projects-overview', [AppsController::class, 'projects_overview']);
 Route::get('projects-create', [AppsController::class, 'projects_create']);

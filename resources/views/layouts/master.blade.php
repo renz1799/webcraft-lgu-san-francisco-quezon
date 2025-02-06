@@ -19,8 +19,6 @@
     <!-- ICONS CSS -->
     <link href="{{ asset('build/assets/iconfonts/icons.css') }}" rel="stylesheet">
 
-    <!-- Datatables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 
     <!-- Google Fonts -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
@@ -32,6 +30,7 @@
     @include('layouts.components.styles')
 
     @vite(['resources/js/app.js'])
+
 
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -85,16 +84,15 @@
     @include('layouts.components.scripts')
     @yield('scripts')
 
-    <!-- DataTables -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script>
-        $(document).ready(function () {
-            $('#your-table-id').DataTable();
-        });
-    </script>
+    @if(Route::is('sweetalerts'))
+    @vite(['resources/js/sweetalert.js'])
+    @endif
 
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    @if(Route::is('logs.index'))
+    @vite(['resources/js/datatables.css'])
+    @vite(['resources/js/datatables.js'])
+    @endif
+
 
     <!--
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
