@@ -1,61 +1,29 @@
-// Import your custom scripts
+// Import custom scripts
 import "../assets/js/custom";
-import ApexCharts from "apexcharts";
 
+// Import SweetAlert2 JavaScript
+import Swal from "sweetalert2";
 
-// Import Choices.js
-import Choices from "choices.js";
-window.Choices = Choices;
+// Import SweetAlert2 CSS (for styling)
+import "sweetalert2/dist/sweetalert2.min.css";
 
-// Import Preline.js
-import "preline";
+// Test SweetAlert2 popup
+let timerInterval;
 
-document.addEventListener("DOMContentLoaded", function () {
-    function initializeChoices(selector) {
-        const element = document.querySelector(selector);
-        if (element) {
-            new Choices(element, {
-                removeItemButton: true,
-                searchEnabled: true,
-            });
-        } else {
-            console.warn(`Choices.js: Element ${selector} not found.`);
-        }
+Swal.fire({
+    title: "Auto close alert!",
+    html: "I will close in <b></b> milliseconds.",
+    timer: 5000,  // Set the timer for 5 seconds
+    timerProgressBar: true,
+    showConfirmButton: false,
+    didOpen: () => {
+        const b = Swal.getHtmlContainer().querySelector("b");
+        timerInterval = setInterval(() => {
+            b.textContent = Swal.getTimerLeft();
+        }, 100);
+    },
+    willClose: () => {
+        clearInterval(timerInterval);
     }
-
-    // Ensure the element exists before initializing
-    initializeChoices("#language");
-
-    // Initialize Preline.js safely
-    if (window.HSStaticMethods) {
-        window.HSStaticMethods.autoInit();
-    }
-
-    // Initialize ApexCharts safely
-    function initializeChart(selector) {
-        const chartElement = document.querySelector(selector);
-        if (chartElement) {
-            const options = {
-                chart: {
-                    type: "line",
-                    height: 350
-                },
-                series: [{
-                    name: "Example",
-                    data: [10, 20, 30, 40, 50]
-                }],
-                xaxis: {
-                    categories: ["Jan", "Feb", "Mar", "Apr", "May"]
-                }
-            };
-
-            const chart = new ApexCharts(chartElement, options);
-            chart.render();
-        } else {
-            console.warn(`ApexCharts: Element ${selector} not found.`);
-        }
-    }
-
-    // Ensure the chart container exists before initializing
-    initializeChart("#chart");
 });
+

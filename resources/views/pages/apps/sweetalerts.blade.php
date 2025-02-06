@@ -2,11 +2,6 @@
 
 @section('styles')
  
-        <!-- Sweet Alert Css -->
-        <link rel="stylesheet" href="{{asset('build/assets/libs/sweetalert2/sweetalert2.min.css')}}">
-
-        <!-- Animate Css -->
-        <link rel="stylesheet" href="{{asset('build/assets/libs/animate.css/animate.min.css')}}">
       
 @endsection
 
@@ -236,9 +231,6 @@
 
 @section('scripts')
 
-        <!-- Sweetalert JS -->
-        <script src="{{asset('build/assets/libs/sweetalert2/sweetalert2.min.js')}}"></script>
-        @vite('resources/assets/js/swetalert.js')
-        
+
 
 @endsection

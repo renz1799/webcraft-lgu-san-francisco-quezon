@@ -31,6 +31,8 @@
 
     @include('layouts.components.styles')
 
+    @vite(['resources/js/app.js'])
+
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -134,7 +136,7 @@
     <script src="{{ asset('build/assets/delete-modal.js') }}"></script>
 
 <!-- Laravel Vite JS -->
-@vite(['resources/js/app.js', 'resources/assets/js/custom-switcher.js'])
+@vite(['resources/assets/js/custom-switcher.js'])
 
 
     <!-- END SCRIPTS -->
