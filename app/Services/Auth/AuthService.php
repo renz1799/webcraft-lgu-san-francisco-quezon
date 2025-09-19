@@ -10,6 +10,8 @@ use App\Services\Contracts\GeocodingServiceInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class AuthService implements AuthServiceInterface
 {
@@ -21,23 +23,52 @@ class AuthService implements AuthServiceInterface
 
     public function register(array $data): User
     {
-        $user = $this->users->create([
-            'username'  => $data['username'],
-            'email'     => $data['email'],
-            'password'  => Hash::make($data['password']),
-            'is_active' => true,
+        // add a correlation id for the whole flow
+        $reqId = (string) Str::uuid();
+        Log::withContext(['req_id' => $reqId, 'op' => 'auth.register']);
+
+        $roleInput = trim((string) ($data['role'] ?? ''));
+        $email     = mb_strtolower(trim($data['email']));
+        $username  = trim($data['username']);
+
+        Log::info('Register: incoming payload (sanitized)', [
+            'username'     => $username,
+            'email'        => $email,
+            'role_raw'     => $roleInput,
+            'role_is_uuid' => Str::isUuid($roleInput),
         ]);
 
-        $this->users->assignRoleAndSyncPermissions($user, $data['role']);
+        return DB::transaction(function () use ($username, $email, $data, $roleInput) {
+            $user = $this->users->create([
+                'username'  => $username,
+                'email'     => $email,
+                'password'  => Hash::make($data['password']), // never log
+                'is_active' => true,
+            ]);
 
-        Log::info('User registered with role + permissions', [
-            'user_id' => $user->id,
-            'role'    => $data['role'],
-        ]);
+            Log::info('Register: user created', [
+                'user_id'  => $user->id,
+                'key_type' => $user->getKeyType(), // should be "string"
+            ]);
 
-        return $user;
+            try {
+                $this->users->assignRoleAndSyncPermissions($user, $roleInput);
+                Log::info('Register: role assignment succeeded', [
+                    'user_id'   => $user->id,
+                    'role_input'=> $roleInput,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Register: role assignment failed', [
+                    'user_id'    => $user->id,
+                    'role_input' => $roleInput,
+                    'message'    => $e->getMessage(),
+                ]);
+                throw $e; // keep behavior the same
+            }
+
+            return $user;
+        });
     }
-
     public function attemptLogin(array $data): bool
     {
         $credentials = ['email' => $data['email'], 'password' => $data['password']];
