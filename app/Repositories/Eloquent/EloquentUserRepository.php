@@ -31,7 +31,7 @@ class EloquentUserRepository implements UserRepositoryInterface
             ? Role::findById($roleInput, 'web')     // <-- now returns App\Models\Role
             : Role::findByName($roleInput, 'web');
 
-        Log::info('Role resolved', [
+    /*     Log::info('Role resolved', [
             'user_id'       => $user->id,
             'input'         => $roleInput,
             'resolved_by'   => $resolvedBy,
@@ -41,8 +41,8 @@ class EloquentUserRepository implements UserRepositoryInterface
             'guard'         => $role->guard_name,
             'role_key_type' => $role->getKeyType(), // should be "string" now
             'role_class'    => get_class($role),    // should be App\Models\Role
-        ]);
-
+        ]); */
+ 
         // assigning by name avoids ever passing a mis-cast id
         $user->assignRole($role->name);
 

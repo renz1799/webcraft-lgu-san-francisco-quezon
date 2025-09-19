@@ -25,18 +25,18 @@ class AuthService implements AuthServiceInterface
     {
         // add a correlation id for the whole flow
         $reqId = (string) Str::uuid();
-        Log::withContext(['req_id' => $reqId, 'op' => 'auth.register']);
+      //  Log::withContext(['req_id' => $reqId, 'op' => 'auth.register']);
 
         $roleInput = trim((string) ($data['role'] ?? ''));
         $email     = mb_strtolower(trim($data['email']));
         $username  = trim($data['username']);
 
-        Log::info('Register: incoming payload (sanitized)', [
+    /*    Log::info('Register: incoming payload (sanitized)', [
             'username'     => $username,
             'email'        => $email,
             'role_raw'     => $roleInput,
             'role_is_uuid' => Str::isUuid($roleInput),
-        ]);
+        ]); */
 
         return DB::transaction(function () use ($username, $email, $data, $roleInput) {
             $user = $this->users->create([
@@ -46,23 +46,23 @@ class AuthService implements AuthServiceInterface
                 'is_active' => true,
             ]);
 
-            Log::info('Register: user created', [
+          /*  Log::info('Register: user created', [
                 'user_id'  => $user->id,
                 'key_type' => $user->getKeyType(), // should be "string"
-            ]);
+            ]); */
 
             try {
                 $this->users->assignRoleAndSyncPermissions($user, $roleInput);
-                Log::info('Register: role assignment succeeded', [
+                /* Log::info('Register: role assignment succeeded', [
                     'user_id'   => $user->id,
                     'role_input'=> $roleInput,
-                ]);
+                ]); */
             } catch (\Throwable $e) {
-                Log::error('Register: role assignment failed', [
+                /* Log::error('Register: role assignment failed', [
                     'user_id'    => $user->id,
                     'role_input' => $roleInput,
                     'message'    => $e->getMessage(),
-                ]);
+                ]);*/
                 throw $e; // keep behavior the same
             }
 
@@ -75,13 +75,13 @@ class AuthService implements AuthServiceInterface
         $remember = (bool) ($data['remember'] ?? false);
 
         if (! Auth::attempt($credentials, $remember)) {
-            Log::warning('Failed login attempt', [
+           /*  Log::warning('Failed login attempt', [
                 'email'     => $data['email'],
                 'ip'        => $data['ip'],
                 'lat'       => $data['latitude'],
                 'lng'       => $data['longitude'],
                 'device'    => $data['user_agent'],
-            ]);
+            ]); */
             return false;
         }
 
@@ -104,10 +104,10 @@ class AuthService implements AuthServiceInterface
             'longitude' => $data['longitude'],
         ]);
 
-        Log::info('User logged in', [
+      /*   Log::info('User logged in', [
             'user_id' => $user->id,
             'ip'      => $data['ip'],
-        ]);
+        ]); */
 
         return true;
     }
@@ -115,7 +115,7 @@ class AuthService implements AuthServiceInterface
     public function logout(): void
     {
         $userId = Auth::id();
-        Log::info('User logged out', ['user_id' => $userId]);
+      //  Log::info('User logged out', ['user_id' => $userId]);
 
         Auth::logout();
         request()->session()->invalidate();
