@@ -2,81 +2,71 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Jenssegers\Agent\Agent;
 
 class LoginDetail extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuid;
 
     protected $fillable = [
-        'id',
         'user_id',
         'ip_address',
         'device',
-        'location',
-        'address',
+        'location', // google maps url
+        'address',  // human readable (reverse geocoded)
+        'latitude',
+        'longitude',
     ];
 
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $casts = [
+        'latitude'  => 'decimal:8',
+        'longitude' => 'decimal:8',
+    ];
 
-        /**
-     * Get the detailed device name.
-     */
-    public function getDeviceDetailsAttribute()
+    protected static function boot()
+    {
+        parent::boot();
+        static::bootHasUuid();
+    }
+
+    // Accessors (kept for UI convenience)
+    public function getDeviceDetailsAttribute(): string
     {
         $agent = new Agent();
         $agent->setUserAgent($this->device);
 
-        $platform = $agent->platform();  // e.g., Windows, iOS, Android
-        $browser = $agent->browser();   // e.g., Chrome, Safari, Edge
-        $deviceType = $this->getDeviceType($agent);
+        $platform   = $agent->platform();
+        $browser    = $agent->browser();
+        $deviceType = $this->detectDeviceType($agent);
 
         return "{$deviceType} - {$platform} - {$browser}";
     }
 
-        /**
-     * Get the device type (mobile, desktop, tablet, etc.).
-     */
-    protected function getDeviceType(Agent $agent)
+    public function getDeviceIconAttribute(): string
     {
-        if ($agent->isMobile()) {
-            return 'Mobile';
-        } elseif ($agent->isTablet()) {
-            return 'Tablet';
-        } elseif ($agent->isDesktop()) {
-            return 'Desktop';
-        }
+        $agent = new Agent();
+        $agent->setUserAgent($this->device);
 
+        if ($agent->isMobile())  return 'bi-phone';
+        if ($agent->isTablet())  return 'bi-tablet';
+        if ($agent->isDesktop()) return 'bi-laptop';
+
+        return 'bi-device';
+    }
+
+    protected function detectDeviceType(Agent $agent): string
+    {
+        if ($agent->isMobile())  return 'Mobile';
+        if ($agent->isTablet())  return 'Tablet';
+        if ($agent->isDesktop()) return 'Desktop';
         return 'Unknown Device';
     }
 
-    public function getDeviceIconAttribute()
-{
-    $agent = new \Jenssegers\Agent\Agent();
-    $agent->setUserAgent($this->device);
-
-    if ($agent->isMobile()) {
-        return 'bi-phone'; // Icon for mobile devices
-    } elseif ($agent->isTablet()) {
-        return 'bi-tablet'; // Icon for tablets
-    } elseif ($agent->isDesktop()) {
-        return 'bi-laptop'; // Icon for desktops/laptops
-    }
-
-    return 'bi-device'; // Default icon
-}
-    /**
-     * Relationship to the user.
-     */
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
-
-    
-
-    
 }
