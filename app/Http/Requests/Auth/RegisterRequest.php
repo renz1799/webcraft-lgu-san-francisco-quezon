@@ -2,19 +2,30 @@
 
 namespace App\Http\Requests\Auth;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\BaseFormRequest;
+use Illuminate\Validation\Rule;
 
-class RegisterRequest extends FormRequest
+class RegisterRequest extends BaseFormRequest
 {
-    public function authorize(): bool { return true; }
+
+    //for public registration
+    //public function authorize(): bool { return true; }
+
+    public function authorize(): bool
+    {
+        $u = $this->user();
+        return $u && ($u->hasRole('admin') || $u->can('view User Registration'));
+    }
+
 
     public function rules(): array
     {
         return [
-            'username' => 'required|string|max:255|unique:users,username',
-            'email'    => 'required|email|max:255|unique:users,email',
-            'role'     => 'required|string|exists:roles,name',
-            'password' => 'required|string|min:8|confirmed',
+            'username' => ['bail', 'required', 'string', 'max:255', 'unique:users,username'],
+            'email'    => ['bail', 'required', 'email:rfc', 'max:255', 'unique:users,email'],
+            // UI sends role by NAME; scope to the proper guard
+            'role'     => ['bail', 'required', 'string', Rule::exists('roles', 'name')->where('guard_name', 'web')],
+            'password' => ['bail', 'required', 'string', 'min:8', 'confirmed'],
         ];
     }
 }
