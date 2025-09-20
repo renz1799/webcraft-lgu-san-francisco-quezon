@@ -55,12 +55,32 @@ Route::get('/header', [HeaderController::class, 'renderHeader'])->name('header')
 
 
 // Permissions Management Routes
+Route::middleware(['auth'])->group(function () {
+    // Page (nice UX gate at the door)
+    Route::get('/manage-user-permissions', [PermissionsController::class, 'index'])
+        ->middleware('role_or_permission:admin|view User Lists')
+        ->name('permissions.index');
+
+    // JSON endpoints (rely on FormRequest::authorize for fine-grained access)
+    Route::get('/permissions/{user}', [PermissionsController::class, 'getUserPermissions'])
+        ->whereUuid('user')
+        ->name('permissions.user'); // (was: permissions.get)
+
+    Route::patch('/permissions/{user}', [PermissionsController::class, 'update'])
+        ->whereUuid('user')
+        ->name('permissions.update');
+
+    Route::patch('/users/{user}/status', [PermissionsController::class, 'updateStatus'])
+        ->whereUuid('user')
+        ->name('users.status.update');
+
+    Route::delete('/users/{user}', [PermissionsController::class, 'deleteUser'])
+        ->whereUuid('user')
+        ->name('users.destroy');
+});
+
+
 Route::middleware(['auth', 'role_or_permission:admin|view User Lists|modify User Lists|delete User Lists'])->group(function () {
-    Route::get('/manage-user-permissions', [PermissionsController::class, 'index'])->name('permissions.index');
-    Route::get('/permissions/{user}/get', [PermissionsController::class, 'getUserPermissions'])->name('permissions.get');
-    Route::put('/permissions/{user}/update', [PermissionsController::class, 'update'])->name('permissions.update');
-    Route::put('/users/{id}/status', [PermissionsController::class, 'updateStatus'])->name('users.updateStatus');
-    Route::delete('/users/{user}/delete', [PermissionsController::class, 'deleteUser'])->name('users.delete');
 
     Route::resource('roles', RolesController::class);
     Route::get('/roles/create', [RolesController::class, 'create'])->name('roles.create');

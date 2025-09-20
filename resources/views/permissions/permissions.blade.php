@@ -52,10 +52,11 @@
             <td>{{ $user->created_at->format('d M Y') }}</td>
             <td class="text-center">
                 <!-- Status Toggle Checkbox -->
-                <input type="checkbox"
-                       class="ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4 toggle-status"
-                       data-user-id="{{ $user->id }}"
-                       {{ $user->is_active ? 'checked' : '' }}>
+                <input
+                type="checkbox"
+                class="ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4 toggle-status"
+                data-endpoint="{{ route('users.status.update', $user) }}"
+                {{ $user->is_active ? 'checked' : '' }}>
             </td>
             <td>
                 <div class="hstack flex gap-3 text-[.9375rem]">
@@ -218,37 +219,36 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
     
 document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.toggle-status').forEach(toggle => {
-        toggle.addEventListener('change', async function () {
-            const userId = this.getAttribute('data-user-id');
-            const isActive = this.checked;
+document.querySelectorAll('.toggle-status').forEach(toggle => {
+  toggle.addEventListener('change', async function () {
+    const endpoint = this.dataset.endpoint;           // from route()
+    const isActive = this.checked;
 
-            try {
-                const response = await fetch(`/users/${userId}/status`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    },
-                    body: JSON.stringify({ is_active: isActive }),
-                });
+    try {
+      const res = await fetch(endpoint, {
+        method: 'PATCH',                              // matches route
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': '{{ csrf_token() }}',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ is_active: isActive }),
+      });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log(`User status updated: ${result.message}`);
-                } else {
-                    const error = await response.json();
-                    console.error(`Failed to update status: ${error.message}`);
-                    alert(`Error: ${error.message}`);
-                    this.checked = !isActive; // Revert toggle state on failure
-                }
-            } catch (error) {
-                console.error('Error updating status:', error);
-                alert('An error occurred while updating status. Please try again.');
-                this.checked = !isActive; // Revert toggle state on failure
-            }
-        });
-    });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        this.checked = !isActive;                     // revert on failure
+        console.error('Failed to update status:', err.message || res.statusText);
+        alert(err.message || 'Failed to update status');
+      }
+    } catch (e) {
+      this.checked = !isActive;
+      console.error('Error updating status:', e);
+      alert('An error occurred while updating status.');
+    }
+  });
+});
+
 });
 </script>
 @endsection
