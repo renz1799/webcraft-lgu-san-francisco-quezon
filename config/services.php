@@ -34,5 +34,11 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    
+    'positionstack' => [
+        'key'      => env('POSITIONSTACK_API_KEY'),
+        'endpoint' => env('POSITIONSTACK_URL', 'http://api.positionstack.com/v1'),
+        'timeout'  => 5,
+    ],
 
 ];
