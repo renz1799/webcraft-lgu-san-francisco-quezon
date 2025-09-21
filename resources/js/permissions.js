@@ -1,4 +1,3 @@
-// resources/js/permissions.js
 import Swal from 'sweetalert2';
 
 function getCsrfToken() {
@@ -45,7 +44,21 @@ function toastError(message) {
   });
 }
 
-// --- Status toggle (PATCH /users/{user}/status) ---
+/* --- collect checked permissions into nested {page:{resource:[actions...]}} --- */
+function collectSelectedPermissions() {
+  const selected = {};
+  document.querySelectorAll('.permission-checkbox:checked').forEach(cb => {
+    const page = cb.getAttribute('data-page');
+    const action = cb.getAttribute('data-action');         // 'view' | 'modify' | 'delete'
+    const resource = cb.getAttribute('data-permission');   // e.g., 'Users'
+    if (!selected[page]) selected[page] = {};
+    if (!selected[page][resource]) selected[page][resource] = [];
+    selected[page][resource].push(action);
+  });
+  return selected;
+}
+
+/* ---------- STATUS TOGGLE (PATCH /users/{user}/status) ---------- */
 function bindStatusToggles() {
   document.addEventListener('change', async (e) => {
     const el = e.target;
@@ -53,19 +66,18 @@ function bindStatusToggles() {
 
     const endpoint = el.dataset.endpoint || (el.dataset.userId ? `/users/${el.dataset.userId}/status` : null);
     const isActive = el.checked;
+
     if (!endpoint) {
       toastError('Missing endpoint for status update.');
       el.checked = !isActive;
       return;
     }
 
-    // Prevent double-clicks while request in flight
     el.disabled = true;
     try {
       await apiJson(endpoint, { method: 'PATCH', body: { is_active: isActive } });
       toastSuccess(`User has been ${isActive ? 'activated' : 'deactivated'}.`);
     } catch (err) {
-      // revert UI on failure
       el.checked = !isActive;
       toastError(err.message);
     } finally {
@@ -74,7 +86,7 @@ function bindStatusToggles() {
   });
 }
 
-// --- Delete user (DELETE /users/{user}) ---
+/* ---------- DELETE USER (DELETE /users/{user}) ---------- */
 function bindDeleteButtons() {
   document.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-action="delete-user"]');
@@ -96,7 +108,6 @@ function bindDeleteButtons() {
       cancelButtonText: 'Cancel',
       confirmButtonColor: '#d33',
     });
-
     if (!res.isConfirmed) return;
 
     try {
@@ -109,7 +120,104 @@ function bindDeleteButtons() {
   });
 }
 
+/* ---------- SAVE PERMISSIONS (PATCH /users/{user}/permissions) ---------- */
+function bindSavePermissions() {
+  const btn = document.getElementById('savePermissionsButton');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const endpoint = btn.dataset.endpoint;
+    if (!endpoint) {
+      toastError('Missing endpoint for saving permissions.');
+      return;
+    }
+
+    const permissions = collectSelectedPermissions();
+    const totalSelected = Object.values(permissions)
+      .reduce((sum, group) => sum + Object.values(group).reduce((s, a) => s + a.length, 0), 0);
+
+    const res = await Swal.fire({
+      title: 'Apply changes?',
+      text: totalSelected > 0
+        ? `You are about to apply ${totalSelected} permission change(s).`
+        : 'No permissions selected. This will clear all direct permissions. Continue?',
+      icon: totalSelected > 0 ? 'question' : 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Save',
+      cancelButtonText: 'Cancel',
+    });
+    if (!res.isConfirmed) return;
+
+    btn.disabled = true;
+    try {
+      const data = await apiJson(endpoint, { method: 'PATCH', body: { permissions } });
+      const count = Number(data.count ?? 0);
+      toastSuccess(`Permissions updated${count ? ` (${count})` : ''}.`);
+      Object.keys(permissions).forEach(page => {
+        const span = document.getElementById(`feedback-${page.replace(/\s+/g, '-').toLowerCase()}`);
+        if (span) {
+          span.classList.remove('hidden');
+          span.textContent = '✔ Saved';
+          setTimeout(() => span.classList.add('hidden'), 2500);
+        }
+      });
+    } catch (err) {
+      toastError(err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+/* ---------- CHANGE ROLE (PATCH /users/{user}/permissions with role) ---------- */
+function bindRoleChange() {
+  const ddl = document.getElementById('role');
+  if (!ddl) return;
+
+  let current = ddl.value;
+
+  ddl.addEventListener('change', async () => {
+    const endpoint = ddl.dataset.endpoint;
+    const nextRole = ddl.value;
+
+    if (!endpoint) {
+      toastError('Missing endpoint for role change.');
+      ddl.value = current;
+      return;
+    }
+
+    const res = await Swal.fire({
+      title: 'Change role?',
+      text: 'Changing the role will reset permissions to the role defaults. Continue?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, change role',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#d33',
+    });
+    if (!res.isConfirmed) {
+      ddl.value = current;
+      return;
+    }
+
+    ddl.disabled = true;
+    try {
+      const data = await apiJson(endpoint, { method: 'PATCH', body: { role: nextRole, permissions: {} } });
+      await Swal.fire({ icon: 'success', title: 'Role updated', timer: 1200, showConfirmButton: false });
+      current = nextRole;
+      location.reload();
+    } catch (err) {
+      ddl.value = current; // revert on failure
+      toastError(err.message);
+    } finally {
+      ddl.disabled = false;
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   bindStatusToggles();
   bindDeleteButtons();
+  bindSavePermissions();
+  bindRoleChange();
 });

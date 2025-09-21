@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Requests\Permissions;
+namespace App\Http\Requests\Users;
 
 use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateUserRolePermissionsRequest extends BaseFormRequest
+class UserAccessRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {

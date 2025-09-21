@@ -13,8 +13,8 @@ use App\Services\Contracts\AuthServiceInterface;
 use App\Services\Contracts\GeocodingServiceInterface;
 use App\Services\Auth\AuthService;
 use App\Services\Geocoding\PositionstackGeocodingService;
-use App\Services\Contracts\UserPermissionsServiceInterface;
-use App\Services\UserPermissionsService;
+use App\Services\Contracts\UserAccessServiceInterface;
+use App\Services\UserAccessService;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -27,6 +27,6 @@ class RepositoryServiceProvider extends ServiceProvider
         // Services
         $this->app->bind(AuthServiceInterface::class, AuthService::class);
         $this->app->bind(GeocodingServiceInterface::class, PositionstackGeocodingService::class);
-        $this->app->bind(UserPermissionsServiceInterface::class, UserPermissionsService::class);
+        $this->app->bind(UserAccessServiceInterface::class, UserAccessService::class);
     }
 }

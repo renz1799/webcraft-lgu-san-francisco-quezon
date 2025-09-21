@@ -4,7 +4,7 @@ namespace App\Services\Contracts;
 
 use App\Models\User;
 
-interface UserPermissionsServiceInterface
+interface UserAccessServiceInterface
 {
     public function indexData(): array;
     public function getUserPermissions(User $user): array;

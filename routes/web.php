@@ -26,6 +26,7 @@ use App\Http\Controllers\LoginLogController;
 use App\Http\Controllers\HeaderController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\UserRolePermissionController;
+use App\Http\Controllers\UsersAccessController;
 
 // use App\Http\Controllers\Controller;
 
@@ -54,29 +55,44 @@ Route::middleware(['auth', 'role_or_permission:admin|view User Registration'])->
 Route::get('/header', [HeaderController::class, 'renderHeader'])->name('header');
 
 
-// Permissions Management Routes
+// UsersAccessController Routes
 Route::middleware(['auth'])->group(function () {
-    // Page (nice UX gate at the door)
-    Route::get('/manage-user-permissions', [PermissionsController::class, 'index'])
+    // Page gate: only those who can view the lists see the page
+    Route::get('/manage-user-permissions', [UsersAccessController::class, 'index'])
         ->middleware('role_or_permission:admin|view User Lists')
-        ->name('permissions.index');
+        ->name('users.permissions.index');
 
-    // JSON endpoints (rely on FormRequest::authorize for fine-grained access)
-    Route::get('/permissions/{user}', [PermissionsController::class, 'getUserPermissions'])
+    // JSON endpoints (Requests' authorize() will enforce fine-grained rules)
+    Route::get('/users/{user}/permissions', [UsersAccessController::class, 'show'])
         ->whereUuid('user')
-        ->name('permissions.user'); // (was: permissions.get)
+        ->name('users.permissions.show');
 
-    Route::patch('/permissions/{user}', [PermissionsController::class, 'update'])
+    Route::patch('/users/{user}/permissions', [UsersAccessController::class, 'update'])
         ->whereUuid('user')
-        ->name('permissions.update');
+        ->name('users.permissions.update');
 
-    Route::patch('/users/{user}/status', [PermissionsController::class, 'updateStatus'])
+    Route::patch('/users/{user}/status', [UsersAccessController::class, 'updateStatus'])
         ->whereUuid('user')
         ->name('users.status.update');
 
-    Route::delete('/users/{user}', [PermissionsController::class, 'deleteUser'])
+    Route::delete('/users/{user}', [UsersAccessController::class, 'destroy'])
         ->whereUuid('user')
         ->name('users.destroy');
+        
+        // Page to manage a single user's role/permissions (edit screen)
+    Route::get('/users/{user}/permissions/edit', [UsersAccessController::class, 'edit'])
+        ->whereUuid('user')
+        ->name('users.permissions.edit');
+
+    // Update role and/or permissions (AJAX or form submit)
+    Route::patch('/users/{user}/permissions', [UsersAccessController::class, 'updateModulePermissions'])
+        ->whereUuid('user')
+        ->name('users.permissions.update');
+
+    // Optional: keep your OLD URL as a temporary alias during migration
+    Route::get('/set-user-role-permissions/{user}', [UsersAccessController::class, 'edit'])
+        ->whereUuid('user');
+        
 });
 
 
@@ -97,11 +113,6 @@ Route::middleware(['auth', 'role_or_permission:admin|view User Permissions|modif
     Route::resource('roles', RolesController::class);
     Route::get('/roles/create', [RolesController::class, 'create'])->name('roles.create');
     Route::post('/roles', [RolesController::class, 'store'])->name('roles.store');
-    
-    Route::get('/set-user-role-permissions/{id}', [UserRolePermissionController::class, 'edit'])->name('permissions.edit');
-    Route::put('/permissions/{user}', [UserRolePermissionController::class, 'update'])->name('permissions.update');
-    Route::post('/permissions/change-role/{user}', [UserRolePermissionController::class, 'changeRole'])->name('permissions.changeRole');
-
 });
 
 // Permission Management Routes
