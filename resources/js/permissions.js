@@ -215,9 +215,76 @@ function bindRoleChange() {
   });
 }
 
+// --- Reset Password (POST /users/{user}/reset-password) ---
+function bindResetPassword() {
+  const btn = document.getElementById('resetPasswordButton');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const endpoint = btn.dataset.endpoint;
+    if (!endpoint) {
+      toastError('Missing endpoint for password reset.');
+      return;
+    }
+
+    const res = await Swal.fire({
+      title: 'Generate temporary password?',
+      text: 'This will immediately replace the user’s current password.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, generate',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#d33',
+    });
+    if (!res.isConfirmed) return;
+
+    btn.disabled = true;
+    try {
+      const data = await apiJson(endpoint, { method: 'POST' });
+
+      const temp = data.temporary_password || '';
+      if (!temp) {
+        toastError('No temporary password returned.');
+        return;
+      }
+
+      await Swal.fire({
+        title: 'Temporary Password',
+        html: `
+          <div style="font-size:1.5rem; font-weight:700; letter-spacing:2px; margin-bottom:8px;">${temp}</div>
+          <div class="text-sm text-gray-500">Copy this code and give it to the user. They should change it after login.</div>
+        `,
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonText: 'Copy',
+        cancelButtonText: 'Close',
+        didOpen: () => {
+          // auto-copy for convenience
+          try { navigator.clipboard.writeText(temp); } catch {}
+        },
+      }).then(async (choice) => {
+        if (choice.isConfirmed) {
+          try {
+            await navigator.clipboard.writeText(temp);
+            toastSuccess('Copied to clipboard.');
+          } catch {
+            toastError('Copy failed. Please copy manually.');
+          }
+        }
+      });
+    } catch (err) {
+      toastError(err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
   bindStatusToggles();
   bindDeleteButtons();
   bindSavePermissions();
   bindRoleChange();
+  bindResetPassword(); 
 });

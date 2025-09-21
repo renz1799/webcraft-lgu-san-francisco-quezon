@@ -32,7 +32,7 @@
         <div class="box-header sm:flex block !justify-start">
           <nav aria-label="Tabs" class="md:flex block !justify-start whitespace-nowrap" role="tablist">
             <a class="m-1 block w-full hs-tab-active:bg-primary/10 hs-tab-active:text-primary cursor-pointer text-defaulttextcolor dark:text-defaulttextcolor/70 py-2 px-3 flex-grow text-[0.75rem] font-medium rounded-md hover:text-primary active"
-               id="Roles-permission" data-hs-tab="#roles-permission" aria-controls="personal-info">
+               id="Roles-permission" data-hs-tab="#roles-permission" aria-controls="roles-permission">
               Roles and Permissions
             </a>
             <a class="m-1 block w-full hs-tab-active:bg-primary/10 hs-tab-active:text-primary cursor-pointer text-defaulttextcolor dark:text-defaulttextcolor/70 py-2 px-3 text-[0.75rem] flex-grow font-medium rounded-md hover:text-primary"
@@ -45,7 +45,7 @@
         <div class="box-body">
           <div class="tab-content">
             <div class="tab-pane show active dark:border-defaultborder/10" id="roles-permission" aria-labelledby="Roles-permission">
-              <div class="sm:p-4 p-0">
+                     <div class="sm:p-4 p-0">
 
                 <!-- Assign Role -->
                 <h6 class="font-semibold mb-4 text-[1rem]">Assign Role</h6>
@@ -148,8 +148,36 @@
                 </div>
                 <!-- /Permissions grid -->
 
+
+
               </div>
             </div>
+
+            <!-- Account Settings (NEW) -->
+<div class="tab-pane hidden dark:border-defaultborder/10" id="account-settings" aria-labelledby="account-item">
+  <div class="sm:p-4 p-0">
+    <h6 class="font-semibold mb-4 text-[1rem]">Account Settings</h6>
+
+    <div class="box p-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h6 class="font-semibold mb-1">Reset Account Password</h6>
+          <p class="text-sm text-muted">
+            Generates a one-time 6-digit password for this user. Share securely and have them change it after login.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="ti-btn btn-wave bg-danger text-white"
+          id="resetPasswordButton"
+          data-endpoint="{{ route('users.password.reset', $user) }}"
+        >
+          Generate Temporary Password
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
           </div>
         </div>
 

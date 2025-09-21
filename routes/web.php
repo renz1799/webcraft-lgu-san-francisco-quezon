@@ -92,6 +92,10 @@ Route::middleware(['auth'])->group(function () {
     // Optional: keep your OLD URL as a temporary alias during migration
     Route::get('/set-user-role-permissions/{user}', [UsersAccessController::class, 'edit'])
         ->whereUuid('user');
+
+    Route::post('/users/{user}/reset-password', [UsersAccessController::class, 'resetPassword'])
+        ->whereUuid('user')
+        ->name('users.password.reset');
         
 });
 

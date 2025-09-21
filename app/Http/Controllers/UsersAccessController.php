@@ -8,6 +8,7 @@ use App\Http\Requests\Users\UserAccessRequest;
 use App\Http\Requests\Users\DeleteUserRequest;
 use App\Http\Requests\Users\UpdateUserStatusRequest;
 use App\Http\Requests\Users\UpdateUserModulePermissionsRequest;
+use App\Http\Requests\Users\ResetUserPasswordRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
@@ -91,6 +92,16 @@ class UsersAccessController extends Controller
         ]);
 
         return response()->json(['message' => 'Permissions updated.', 'count' => $count], 200);
+    }
+    
+    public function resetPassword(ResetUserPasswordRequest $request, User $user): JsonResponse
+    {
+        $temp = $this->svc->resetPasswordToTemporary($user);
+
+        return response()->json([
+            'message'            => 'Temporary password generated.',
+            'temporary_password' => $temp, // displayed to admin via SweetAlert
+        ], 200);
     }
         
 }
