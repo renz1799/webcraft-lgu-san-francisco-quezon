@@ -1,4 +1,4 @@
-@extends('layouts.landing-master')
+@extends('layouts.master')
 
 @section('styles')
  
