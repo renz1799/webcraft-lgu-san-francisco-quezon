@@ -11,10 +11,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- TITLE -->
-    <title>Ynex - Laravel Tailwind CSS Admin & Dashboard Template</title>
+    <title>Webcraft</title>
 
     <!-- FAVICON -->
-    <link rel="icon" href="{{ asset('build/assets/images/brand-logos/favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" href="{{ asset('build/assets/images/brand-logos/favicon.png') }}" type="image/x-icon">
 
     <!-- ICONS CSS -->
     <link href="{{ asset('build/assets/iconfonts/icons.css') }}" rel="stylesheet">
