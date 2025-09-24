@@ -87,7 +87,5 @@
 @endsection
 
 @section('scripts')
-
-
-<script src="{{ Vite::asset('resources/js/permissions.js') }}"></script>
+  @vite('resources/js/permissions.js')
 @endsection
