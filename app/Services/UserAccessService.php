@@ -7,6 +7,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Services\Contracts\UserAccessServiceInterface;
 use App\Services\Contracts\AuditLogServiceInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use Spatie\Permission\PermissionRegistrar;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 class UserAccessService implements UserAccessServiceInterface
 {
     public function __construct(
+        private readonly UserRepositoryInterface $users, 
         private readonly AuditLogServiceInterface $audit
     ) {}
 
@@ -130,16 +132,16 @@ class UserAccessService implements UserAccessServiceInterface
         }
     }
 
-    /** Soft delete the user (requires User model to use SoftDeletes). */
+    /** Soft delete the user (via repository). */
     public function deleteUser(User $user): void
     {
         $snapshot = $user->only(['id', 'username', 'email', 'user_type', 'is_active']);
 
-        $user->delete(); // soft delete
+        $this->users->delete($user); // <— repo does soft delete
 
         $this->audit->record(
             'user.deleted',
-            $user,                       // subject (soft-deleted)
+            $user,
             $snapshot,
             ['deleted_at' => now()->toDateTimeString()],
             $this->meta(),
@@ -152,6 +154,54 @@ class UserAccessService implements UserAccessServiceInterface
         ]);
     }
 
+    /** Restore a soft-deleted user (returns true if restored). */
+    public function restoreUser(string|User $user): bool
+    {
+        $model = $user instanceof User ? $user : $this->users->findByIdWithTrashed($user);
+        if (! $model) {
+            return false;
+        }
+
+        $ok = $this->users->restore($model);
+
+        if ($ok) {
+            $this->audit->record(
+                'user.restored',
+                $model,
+                ['deleted_at' => $model->deleted_at?->toDateTimeString()],
+                ['restored_at' => now()->toDateTimeString()],
+                $this->meta(),
+                null
+            );
+        }
+
+        return $ok;
+    }
+
+    /** Permanently delete a user (returns true if hard-deleted). */
+    public function forceDeleteUser(string|User $user): bool
+    {
+        $model = $user instanceof User ? $user : $this->users->findByIdWithTrashed($user);
+        if (! $model) {
+            return false;
+        }
+
+        $snapshot = $model->only(['id', 'username', 'email', 'user_type', 'is_active']);
+        $ok = $this->users->forceDelete($model);
+
+        if ($ok) {
+            $this->audit->record(
+                'user.force_deleted',
+                $model, // still valid as an in-memory subject
+                $snapshot,
+                [],
+                $this->meta(),
+                'permanent removal'
+            );
+        }
+
+        return $ok;
+    }
     public function updateStatus(User $user, bool $isActive): void
     {
         $before = (bool) $user->is_active;

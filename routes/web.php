@@ -97,6 +97,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/users/{user}/reset-password', [UsersAccessController::class, 'resetPassword'])
         ->whereUuid('user')
         ->name('users.password.reset');
+
+    Route::patch('/users/{user}/restore', [UsersAccessController::class, 'restore'])->name('users.restore');
+    Route::delete('/users/{user}/force',  [UsersAccessController::class, 'forceDelete'])->name('users.forceDelete');
         
 });
 

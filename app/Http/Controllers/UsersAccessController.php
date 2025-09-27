@@ -57,6 +57,18 @@ class UsersAccessController extends Controller
         return response()->json(['message' => 'User account deleted successfully.'], 200);
     }
 
+    public function restore(User $user, UserAccessService $service)
+    {
+        $service->restoreUser($user);
+        return back()->with('success', 'User restored.');
+    }
+
+    public function forceDelete(User $user, UserAccessService $service)
+    {
+        $service->forceDeleteUser($user);
+        return back()->with('success', 'User permanently deleted.');
+    }
+
     public function edit(User $user)
     {
         // Render your existing "set-user-role-permissions" page with prepared data
