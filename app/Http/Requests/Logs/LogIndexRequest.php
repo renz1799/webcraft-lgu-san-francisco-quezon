@@ -8,7 +8,8 @@ class LogIndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check(); // adjust if you want to restrict further
+        $u = $this->user();
+        return $u && ($u->hasRole('admin') || $u->can('view Audit Logs'));
     }
 
     public function rules(): array

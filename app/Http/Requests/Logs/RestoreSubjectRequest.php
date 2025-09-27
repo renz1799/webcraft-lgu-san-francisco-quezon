@@ -29,11 +29,12 @@ class RestoreSubjectRequest extends FormRequest
             return false;
         }
 
-        // change 'admin' if your role is named differently
-        if (! $actor->hasRole('admin')) {
-            Log::warning('audit.restore: actor missing admin role', [
+        // ALLOW: admin role OR the specific permission
+        if (! ($actor->hasRole('admin') || $actor->can('modify Allow Data Restoration'))) {
+            Log::warning('audit.restore: actor not allowed', [
                 'actor_id' => $actor->id,
                 'roles'    => $actor->getRoleNames()->all(),
+                'perms'    => $actor->getAllPermissions()->pluck('name')->all(),
             ]);
             return false;
         }

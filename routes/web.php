@@ -148,7 +148,7 @@ Route::middleware(['auth', 'role_or_permission:admin|view User Permissions|modif
     });
 
 
-Route::middleware(['auth','role_or_permission:admin|restore Users|restore Permissions'])
+Route::middleware(['auth','role_or_permission:admin|modify Allow Data Restoration'])
   ->post('/audit/restore', [\App\Http\Controllers\AuditRestoreController::class, 'restore'])
   ->name('audit.restore');
 
