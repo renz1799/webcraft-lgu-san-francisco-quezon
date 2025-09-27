@@ -9,7 +9,7 @@ class DeleteUserRequest extends BaseFormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        return $u && ($u->hasRole('admin') || $u->can('delete users'));
+        return $u && ($u->hasRole('admin') || $u->can('delete User Lists'));
     }
 
     public function rules(): array

@@ -10,7 +10,7 @@ class UpdateUserModulePermissionsRequest extends BaseFormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        return $u && ($u->hasRole('admin') || $u->can('modify users'));
+        return $u && ($u->hasRole('admin') || $u->can('modify User Lists'));
     }
 
     public function rules(): array
