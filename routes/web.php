@@ -142,8 +142,11 @@ Route::middleware(['auth', 'role_or_permission:admin|view User Permissions|modif
         Route::get('/logs/data', [LoginLogController::class, 'getLogs'])->name('logs.data');
     });
 
-Route::get('/audit-logs', [AuditLogController::class, 'index'])
-    ->name('audit-logs.index');   // avoid colliding with other “index” routes
+
+    Route::middleware(['auth', 'role_or_permission:admin|view Audit Logs|modify Audit Logs|delete Audit Logs'])->group(function () {
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');   // avoid colliding with other “index” routes
+    });
+
 
 Route::middleware(['auth','role_or_permission:admin|restore Users|restore Permissions'])
   ->post('/audit/restore', [\App\Http\Controllers\AuditRestoreController::class, 'restore'])
