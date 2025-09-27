@@ -3,51 +3,110 @@
 namespace App\Repositories\Eloquent;
 
 use App\Models\User;
-use App\Models\Role; // <-- use YOUR model
+use App\Models\Role; // your App\Models\Role extends Spatie Role
 use App\Repositories\Contracts\UserRepositoryInterface;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 
 class EloquentUserRepository implements UserRepositoryInterface
 {
+    /** Create a user */
     public function create(array $data): User
     {
         return User::create($data);
     }
 
+    /** Update a user */
+    public function update(User $user, array $data): User
+    {
+        $user->fill($data)->save();
+        return $user->refresh();
+    }
+
+    /** Find by id (active only) */
+    public function findById(string $id): ?User
+    {
+        return User::find($id);
+    }
+
+    /** Find by id incl. soft-deleted */
+    public function findByIdWithTrashed(string $id): ?User
+    {
+        return User::withTrashed()->find($id);
+    }
+
+    /** Find by email */
     public function findByEmail(string $email): ?User
     {
         return User::where('email', $email)->first();
     }
 
+    /** List users (simple paginate) */
+    public function paginate(int $perPage = 30): LengthAwarePaginator
+    {
+        return User::paginate($perPage);
+    }
+
+    /** Soft-delete */
+    public function delete(User $user): void
+    {
+        $user->delete();
+    }
+
+    /** Restore soft-deleted */
+    public function restore(User $user): bool
+    {
+        // restore() returns int/bool; cast to bool for interface
+        return (bool) $user->restore();
+    }
+
+    /** Permanently delete */
+    public function forceDelete(User $user): bool
+    {
+        return (bool) $user->forceDelete();
+    }
+
+    /** Convenience: restore by id */
+    public function restoreById(string $id): bool
+    {
+        $user = User::withTrashed()->find($id);
+        return $user ? (bool) $user->restore() : false;
+    }
+
+    /** Convenience: force delete by id */
+    public function forceDeleteById(string $id): bool
+    {
+        $user = User::withTrashed()->find($id);
+        return $user ? (bool) $user->forceDelete() : false;
+    }
+
+    /**
+     * Assign a role (resolve by UUID or name) and sync default role permissions as directs.
+     * NOTE: Spatie already grants role permissions via Gate; syncing as directs keeps UI “toggles” in sync.
+     */
     public function assignRoleAndSyncPermissions(User $user, string $roleInput): void
     {
-        // clear stale cache
+        // clear cached permissions to avoid stale reads
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $resolvedBy = Str::isUuid($roleInput) ? 'id' : 'name';
-        $role = $resolvedBy === 'id'
-            ? Role::findById($roleInput, 'web')     // <-- now returns App\Models\Role
+        $role = Str::isUuid($roleInput)
+            ? Role::findById($roleInput, 'web')
             : Role::findByName($roleInput, 'web');
 
-    /*     Log::info('Role resolved', [
-            'user_id'       => $user->id,
-            'input'         => $roleInput,
-            'resolved_by'   => $resolvedBy,
-            'role_id'       => (string) $role->id,
-            'role_id_len'   => strlen((string) $role->id),
-            'role_name'     => $role->name,
-            'guard'         => $role->guard_name,
-            'role_key_type' => $role->getKeyType(), // should be "string" now
-            'role_class'    => get_class($role),    // should be App\Models\Role
-        ]); */
- 
-        // assigning by name avoids ever passing a mis-cast id
+        // assign by name to avoid id key-type surprises
+        $user->syncRoles([]);           // avoid mixed roles unless you support multi-role
         $user->assignRole($role->name);
 
+        // apply role defaults as direct permissions (optional but matches your UI)
         if ($role->permissions->isNotEmpty()) {
             $user->syncPermissions($role->permissions);
+        } else {
+            // if role has no defaults, clear directs to reflect “role only”
+            $user->syncPermissions([]);
         }
+
+        // refresh cache after changes
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

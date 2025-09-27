@@ -6,51 +6,52 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        // Create Users Table with UUID primary key
+        // USERS (UUID PK + soft deletes)
         Schema::create('users', function (Blueprint $table) {
-            $table->uuid('id')->primary(); // UUID instead of auto-increment ID
-            $table->string('username')->unique(); // Replacing 'name' with 'username'
+            $table->uuid('id')->primary();
+
+            $table->string('username')->unique();
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
+
             $table->string('password');
-            $table->string('user_type')->default('Viewer'); // Adding 'user_type' with default value
+
+            // business fields
+            $table->string('user_type')->default('Viewer');
+            $table->boolean('is_active')->default(true);
+
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();   // <— soft delete support
         });
 
-        // Create Password Reset Tokens Table
+        // PASSWORD RESET TOKENS (Laravel 11 default style)
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
-        // Create Sessions Table with proper UUID reference
+        // SESSIONS (FK to users.id (uuid))
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->uuid('user_id')->nullable()->index(); // Ensuring foreign key matches UUID
+            $table->uuid('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');
             $table->integer('last_activity')->index();
-        });
 
-        // Foreign Key Constraint (If needed)
-        Schema::table('sessions', function (Blueprint $table) {
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('user_id')
+                ->references('id')->on('users')
+                ->cascadeOnDelete();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        // Drop in FK-safe order
         Schema::dropIfExists('sessions');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('users');
