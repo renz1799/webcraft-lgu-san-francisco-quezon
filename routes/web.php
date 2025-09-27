@@ -19,7 +19,7 @@ use App\Http\Controllers\MapsController;
 use App\Http\Controllers\IconsController;
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\PermissionsController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PermissionManagementController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\LoginLogController;
@@ -120,14 +120,11 @@ Route::middleware(['auth', 'role_or_permission:admin|view User Permissions|modif
 });
 
 // Permission Management Routes
-Route::prefix('permissions')
-    ->middleware(['auth', 'role_or_permission:admin|view User Permissions|modify User Permissions|delete User Permissions'])
-    ->group(function () {
-        Route::get('manage', [PermissionManagementController::class, 'index'])->name('permissions.manage');
-        Route::post('store', [PermissionManagementController::class, 'store'])->name('permissions.store');
-        Route::delete('delete/{permission}', [PermissionManagementController::class, 'destroy'])->name('permissions.destroy');
+    Route::middleware(['auth', 'role_or_permission:admin|modify User Permissions'])->group(function () {
+        Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
+        Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
+        Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy');
     });
-
 
     Route::get('/mail-settings', [UserProfileController::class, 'index'])->name('profile.index');
     Route::put('/mail-settings', [UserProfileController::class, 'update'])->name('profile.update');

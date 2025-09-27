@@ -4,29 +4,62 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
-use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Repositories\Contracts\LoginDetailRepositoryInterface;
-use App\Repositories\Eloquent\EloquentUserRepository;
-use App\Repositories\Eloquent\EloquentLoginDetailRepository;
+// Repositories
+use App\Repositories\Contracts\{
+    UserRepositoryInterface,
+    LoginDetailRepositoryInterface,
+    PermissionRepositoryInterface
+};
+use App\Repositories\Eloquent\{
+    EloquentUserRepository,
+    EloquentLoginDetailRepository,
+    EloquentPermissionRepository
+};
 
-use App\Services\Contracts\AuthServiceInterface;
-use App\Services\Contracts\GeocodingServiceInterface;
+// Services
+use App\Services\Contracts\{
+    AuthServiceInterface,
+    GeocodingServiceInterface,
+    UserAccessServiceInterface,
+    PermissionServiceInterface
+};
 use App\Services\Auth\AuthService;
 use App\Services\Geocoding\PositionstackGeocodingService;
-use App\Services\Contracts\UserAccessServiceInterface;
 use App\Services\UserAccessService;
+use App\Services\PermissionService;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         // Repositories
-        $this->app->bind(UserRepositoryInterface::class, EloquentUserRepository::class);
-        $this->app->bind(LoginDetailRepositoryInterface::class, EloquentLoginDetailRepository::class);
+        $this->bindMany([
+            UserRepositoryInterface::class        => EloquentUserRepository::class,
+            LoginDetailRepositoryInterface::class => EloquentLoginDetailRepository::class,
+            PermissionRepositoryInterface::class  => EloquentPermissionRepository::class,
+        ]);
 
-        // Services
-        $this->app->bind(AuthServiceInterface::class, AuthService::class);
-        $this->app->bind(GeocodingServiceInterface::class, PositionstackGeocodingService::class);
-        $this->app->bind(UserAccessServiceInterface::class, UserAccessService::class);
+        // Services (singletons by default here)
+        $this->bindMany([
+            AuthServiceInterface::class        => AuthService::class,
+            GeocodingServiceInterface::class   => PositionstackGeocodingService::class,
+            UserAccessServiceInterface::class  => UserAccessService::class,
+            PermissionServiceInterface::class  => PermissionService::class,
+        ], true);
+    }
+
+    /**
+     * Bind a map of abstractions to concretes.
+     *
+     * @param  array<class-string, class-string>  $map
+     * @param  bool  $asSingleton
+     */
+    protected function bindMany(array $map, bool $asSingleton = false): void
+    {
+        foreach ($map as $abstract => $concrete) {
+            $asSingleton
+                ? $this->app->singleton($abstract, $concrete)
+                : $this->app->bind($abstract, $concrete);
+        }
     }
 }
