@@ -23,4 +23,44 @@ class AuditLogController extends Controller
         // ⬇️ updated view name
         return view('logs.audit-logs', compact('logs', 'filters'));
     }
+
+    public function restore(Request $request)
+    {
+        $data = $request->validate([
+            'type' => 'required|string',
+            'id'   => 'required|string',
+        ]);
+
+        // Whitelist restorable types
+        $map = [
+            User::class       => User::class,
+            Permission::class => Permission::class,
+            // add Role::class etc if needed
+        ];
+
+        abort_unless(isset($map[$data['type']]), 422, 'Unsupported subject type.');
+
+        $class = $map[$data['type']];
+        $model = $class::withTrashed()->findOrFail($data['id']);
+
+        // optional: policies/authorization
+        if (Gate::denies('restore', $model)) {
+            abort(403, 'You are not allowed to restore this resource.');
+        }
+
+        if (!method_exists($model, 'restore')) {
+            abort(422, 'Model cannot be restored.');
+        }
+
+        $model->restore();
+
+        // (optional) record an audit entry with your Audit service
+        // app(AuditLogServiceInterface::class)->record(
+        //   strtolower(class_basename($class)).'.restored', $model, [], ['restored' => true], [
+        //       'ip' => $request->ip(), 'ua' => $request->userAgent(),
+        //   ], null
+        // );
+
+        return response()->json(['ok' => true, 'message' => class_basename($class).' restored.']);
+    }
 }

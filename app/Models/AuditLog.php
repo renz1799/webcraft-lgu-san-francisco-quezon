@@ -41,6 +41,8 @@ class AuditLog extends Model
     // Already had subject() earlier; include if missing:
     public function subject(): MorphTo
     {
-        return $this->morphTo();
+        // allows resolving soft-deleted subjects
+        return $this->morphTo()->withTrashed();
     }
+
 }

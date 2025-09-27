@@ -70,57 +70,87 @@
 
     <td class="text-start">{{ $log->action }}</td>
 
-{{-- SUBJECT (what changed) --}}
-<td class="text-start">
-  @php
-    $sub   = $log->subject;                    // may be soft-deleted
-    $old   = (array) ($log->changes_old ?? []);
-    $new   = (array) ($log->changes_new ?? []);
-    $type  = $log->subject_type ? class_basename($log->subject_type) : null;
+    {{-- SUBJECT (what changed) --}}
+    <td class="text-start">
+      @php
+        // try to resolve the subject (will work if AuditLog::subject()->withTrashed())
+        $sub  = $log->subject;                       // may be null
+        $old  = (array) ($log->changes_old ?? []);
+        $new  = (array) ($log->changes_new ?? []);
+        $type = $log->subject_type ? class_basename($log->subject_type) : null;
 
-    // Try to get a human label from resolved model, else from snapshots
-    $name =
-        ($sub->name ?? null)
-        ?? ($old['name'] ?? null)
-        ?? ($new['name'] ?? null);
+        // human label pieces
+        $name = $sub->name
+            ?? ($old['name'] ?? null)
+            ?? ($new['name'] ?? null);
 
-    $page =
-        ($sub->page ?? null)
-        ?? ($old['page'] ?? null)
-        ?? ($new['page'] ?? null);
+        $page = $sub->page
+            ?? ($old['page'] ?? null)
+            ?? ($new['page'] ?? null);
 
-    // User-specific fallback if name missing
-    if ($type === 'User' && ! $name) {
-        $name = $sub->username ?? $sub->email ?? ($old['username'] ?? $old['email'] ?? ($new['username'] ?? $new['email'] ?? 'User'));
-    }
+        // User-specific fallbacks if 'name' is missing
+        if ($type === 'User' && ! $name) {
+            $name = $sub->username
+                ?? $sub->email
+                ?? ($old['username'] ?? $old['email'] ?? ($new['username'] ?? $new['email'] ?? 'User'));
+        }
 
-    $isDeleted = $sub && method_exists($sub, 'trashed') && $sub->trashed();
-  @endphp
+        // final label
+        $label = $type
+            ? trim($type . ($name ? ' : '.$name : '') . ($page ? ' — '.$page : ''))
+            : '—';
 
-  <span class="inline-flex items-center gap-2">
-    @if ($type)
-      <span>
-        {{ $type }}
-        @if ($name) : {{ $name }} @endif
-        @if ($page) — {{ $page }} @endif
-        @if ($isDeleted) <span class="text-red-500">(deleted)</span> @endif
-        @unless($name) #{{ $log->subject_id }} @endunless
+        // restore button logic
+        $isTrashed          = $sub && method_exists($sub, 'trashed') && $sub->trashed();
+        $maybeDeletedAction = str_ends_with($log->action ?? '', '.deleted'); // PHP 8 helper
+        $showRestore        = ($log->subject_type && $log->subject_id) && ($isTrashed || $maybeDeletedAction);
+      @endphp
+
+      <span class="inline-flex items-center gap-2">
+        <span>
+          {{ $label }}
+          @if ($isTrashed)
+            <span class="text-red-500">(deleted)</span>
+          @endif
+          @if ($type && ! $name && $log->subject_id)
+            #{{ $log->subject_id }}
+          @endif
+        </span>
+
+        @if ($log->subject_id)
+          <button type="button"
+                  class="ti-btn ti-btn-xs ti-btn-light !rounded-full"
+                  data-action="copy"
+                  data-copy="{{ $log->subject_id }}"
+                  title="Copy subject UUID">
+            <i class="ri-clipboard-line"></i>
+          </button>
+        @endif
+
+      @php
+        $typeShort = match($log->subject_type) {
+            \App\Models\User::class       => 'user',
+            \App\Models\Permission::class => 'permission',
+            \App\Models\Role::class       => 'role',
+            default => null,
+        };
+      @endphp
+
+      @if ($showRestore && $typeShort)
+        <button type="button"
+                class="ti-btn ti-btn-xs ti-btn-warning !rounded-full"
+                data-action="restore-subject"
+                data-endpoint="{{ route('audit.restore') }}"
+                data-type="{{ $typeShort }}"
+                data-id="{{ $log->subject_id }}"
+                title="Restore this {{ class_basename($log->subject_type) }}">
+          <i class="ri-history-line"></i>
+        </button>
+      @endif
       </span>
-    @else
-      —
-    @endif
+    </td>
 
-    @if ($log->subject_id)
-      <button type="button"
-              class="ti-btn ti-btn-xs ti-btn-light !rounded-full"
-              data-action="copy"
-              data-copy="{{ $log->subject_id }}"
-              title="Copy subject UUID">
-        <i class="ri-clipboard-line"></i>
-      </button>
-    @endif
-  </span>
-</td>
+
 
 
     <td class="text-start">{{ $log->request_method }} {{ str($log->request_url)->limit(48) }}</td>
