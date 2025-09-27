@@ -14,13 +14,14 @@ class AuditLogController extends Controller
         $this->middleware(['auth','role_or_permission:admin|view Audit Logs']);
     }
 
-    public function index(LogIndexRequest $request): View
+    public function index(LogIndexRequest $request): \Illuminate\View\View
     {
-        $filters = $request->validated();
-        $perPage = (int)($filters['per_page'] ?? 50);
-        $logs    = $this->audit->paginate($perPage, $filters);
+        $filters = $request->filters();
+        $perPage = $filters['per_page'];
+        unset($filters['per_page']);
 
-        // ⬇️ updated view name
+        $logs = $this->audit->paginate($perPage, $filters);
+
         return view('logs.audit-logs', compact('logs', 'filters'));
     }
 

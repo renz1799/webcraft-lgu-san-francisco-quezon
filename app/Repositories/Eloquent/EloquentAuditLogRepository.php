@@ -21,31 +21,27 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
     {
         $q = AuditLog::query()
             ->with([
-                // Only what the view needs
                 'actor:id,username,email',
-                // Load the polymorphic subject, including soft-deleted rows,
-                // and only select the columns you display in the table.
                 'subject' => function (MorphTo $morph) {
                     $morph->constrain([
-                        User::class => fn ($q) => $q->withTrashed()->select('id','username','email'),
-                        Permission::class => fn ($q) => $q->withTrashed()->select('id','name','page'),
-                        // Add other subject types here as needed...
+                        \App\Models\User::class        => fn ($q) => $q->withTrashed()->select('id','username','email'),
+                        \App\Models\Permission::class  => fn ($q) => $q->withTrashed()->select('id','name','page'),
                     ]);
                 },
             ])
             ->latest('created_at');
 
-        if (!empty($filters['action'])) {
+        if (!is_null($filters['action'] ?? null)) {
             $q->where('action', 'like', '%'.$filters['action'].'%');
         }
-        if (!empty($filters['actor_id'])) {
+        if (!is_null($filters['actor_id'] ?? null)) {
             $q->where('actor_id', $filters['actor_id']);
         }
-        if (!empty($filters['date_from'])) {
-            $q->whereDate('created_at', '>=', $filters['date_from']);
+        if (!is_null($filters['date_from'] ?? null)) {
+            $q->where('created_at', '>=', \Carbon\Carbon::parse($filters['date_from'])->startOfDay());
         }
-        if (!empty($filters['date_to'])) {
-            $q->whereDate('created_at', '<=', $filters['date_to']);
+        if (!is_null($filters['date_to'] ?? null)) {
+            $q->where('created_at', '<=', \Carbon\Carbon::parse($filters['date_to'])->endOfDay());
         }
 
         return $q->paginate($perPage)->withQueryString();
