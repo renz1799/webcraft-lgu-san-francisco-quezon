@@ -27,6 +27,10 @@ class PermissionsSeeder extends Seeder
             ['name' => 'view Login Logs', 'page' => 'Manage Log in Logs'],
             ['name' => 'modify Login Logs', 'page' => 'Manage Log in Logs'],
             ['name' => 'delete Login Logs', 'page' => 'Manage Log in Logs'],
+
+            ['name' => 'view Audit Logs', 'page' => 'Manage Audit Logs'],
+            ['name' => 'modify Audit Logs', 'page' => 'Manage Audit Logs'],
+            ['name' => 'delete Audit Logs', 'page' => 'Manage Audit Logs'],
         ];
 
         foreach ($permissions as $perm) {

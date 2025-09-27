@@ -27,6 +27,7 @@ use App\Http\Controllers\HeaderController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\UserRolePermissionController;
 use App\Http\Controllers\UsersAccessController;
+use App\Http\Controllers\AuditLogController;
 
 // use App\Http\Controllers\Controller;
 
@@ -124,6 +125,8 @@ Route::middleware(['auth', 'role_or_permission:admin|view User Permissions|modif
         Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
         Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
         Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy');
+        Route::post('permissions/{permission}/restore', [PermissionController::class, 'restore'])->name('permissions.restore');
+        Route::delete('permissions/{permission}/force', [PermissionController::class, 'forceDestroy'])->name('permissions.force');
     });
 
     Route::get('/mail-settings', [UserProfileController::class, 'index'])->name('profile.index');
@@ -135,6 +138,9 @@ Route::middleware(['auth', 'role_or_permission:admin|view User Permissions|modif
         Route::get('/logs', [LoginLogController::class, 'index'])->name('logs.index');
         Route::get('/logs/data', [LoginLogController::class, 'getLogs'])->name('logs.data');
     });
+
+Route::get('/audit-logs', [AuditLogController::class, 'index'])
+    ->name('audit-logs.index');   // avoid colliding with other “index” routes
 
 
     Route::get('/test', function () {

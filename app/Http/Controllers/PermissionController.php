@@ -48,4 +48,16 @@ class PermissionController extends Controller
 
         return back()->with('success', 'Permission deleted successfully.');
     }
+
+    public function restore(string $permission): RedirectResponse
+    {
+        $this->permissions->restore($permission);
+        return back()->with('success', 'Permission restored.');
+    }
+
+    public function forceDestroy(Permission $permission): RedirectResponse
+    {
+        $this->permissions->forceDelete($permission);
+        return back()->with('success', 'Permission permanently deleted.');
+    }
 }

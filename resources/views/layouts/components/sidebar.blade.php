@@ -855,7 +855,8 @@
                                     auth()->user()->can('view User Lists') || 
                                     auth()->user()->can('manage permissions') || 
                                     auth()->user()->can('manage user registration') ||
-                                    auth()->user()->can('view Login Logs')
+                                    auth()->user()->can('view Login Logs') ||
+                                    auth()->user()->can('view Audit Logs')
                                 ))
                                     <li class="slide__category"><span class="category-name">Users &amp; Permission</span></li>
                                     <!-- End::slide__category -->
@@ -883,7 +884,7 @@
 
                                             {{-- Check if the user is authenticated and is an admin OR has the 'view User Permissions' permission --}}
                                             @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('view User Permissions')))
-                                                <li class="slide"><a href="{{ url('permissions/manage') }}" class="side-menu__item">Permissions</a></li>
+                                                <li class="slide"><a href="{{ url('permissions') }}" class="side-menu__item">Permissions</a></li>
                                             @endif
 
                                             {{-- Check if the user is authenticated and is an admin OR has the 'view User Registration' permission --}}
@@ -893,6 +894,10 @@
 
                                             @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('view Login Logs')))
                                                 <li class="slide"><a href="{{ url('logs') }}" class="side-menu__item">Logged-in Logs</a></li>
+                                            @endif
+
+                                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('view Audit Logs')))
+                                                <li class="slide"><a href="{{ url('audit-logs') }}" class="side-menu__item">Audit Logs</a></li>
                                             @endif
                                         </ul>
                                     </li>

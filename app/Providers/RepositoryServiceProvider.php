@@ -8,12 +8,14 @@ use Illuminate\Support\ServiceProvider;
 use App\Repositories\Contracts\{
     UserRepositoryInterface,
     LoginDetailRepositoryInterface,
-    PermissionRepositoryInterface
+    PermissionRepositoryInterface,
+    AuditLogRepositoryInterface
 };
 use App\Repositories\Eloquent\{
     EloquentUserRepository,
     EloquentLoginDetailRepository,
-    EloquentPermissionRepository
+    EloquentPermissionRepository,
+    EloquentAuditLogRepository
 };
 
 // Services
@@ -21,12 +23,14 @@ use App\Services\Contracts\{
     AuthServiceInterface,
     GeocodingServiceInterface,
     UserAccessServiceInterface,
-    PermissionServiceInterface
+    PermissionServiceInterface,
+    AuditLogServiceInterface
 };
 use App\Services\Auth\AuthService;
 use App\Services\Geocoding\PositionstackGeocodingService;
 use App\Services\UserAccessService;
 use App\Services\PermissionService;
+use App\Services\Audit\AuditLogService;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -37,6 +41,7 @@ class RepositoryServiceProvider extends ServiceProvider
             UserRepositoryInterface::class        => EloquentUserRepository::class,
             LoginDetailRepositoryInterface::class => EloquentLoginDetailRepository::class,
             PermissionRepositoryInterface::class  => EloquentPermissionRepository::class,
+            AuditLogRepositoryInterface::class  => EloquentAuditLogRepository::class,
         ]);
 
         // Services (singletons by default here)
@@ -45,6 +50,7 @@ class RepositoryServiceProvider extends ServiceProvider
             GeocodingServiceInterface::class   => PositionstackGeocodingService::class,
             UserAccessServiceInterface::class  => UserAccessService::class,
             PermissionServiceInterface::class  => PermissionService::class,
+            AuditLogServiceInterface::class  => AuditLogService::class,
         ], true);
     }
 
