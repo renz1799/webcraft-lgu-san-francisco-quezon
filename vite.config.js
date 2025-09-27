@@ -20,7 +20,8 @@ export default defineConfig({
                 //
                 'resources/js/sweetalert.js',
                 'resources/js/permissions.js',
-                'resources/js/datatables.js',
+                'resources/js/permissions.js',
+                'resources/js/permissions-manage.js',
                 // Resources paths 
                 'resources/sass/app.scss', 
                 'resources/js/app.js',
