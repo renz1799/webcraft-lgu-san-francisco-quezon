@@ -14,9 +14,9 @@ class PermissionsSeeder extends Seeder
     public function run(): void
     {
         $permissions = [
-            ['name' => 'view User Permissions', 'page' => 'Manage Permissions'],
-            ['name' => 'modify User Permissions', 'page' => 'Manage Permissions'],
-            ['name' => 'delete User Permissions', 'page' => 'Manage Permissions'],
+            ['name' => 'view User Permissions', 'page' => 'Manage Roles/Permissions'],
+            ['name' => 'modify User Permissions', 'page' => 'Manage Roles/Permissions'],
+            ['name' => 'delete User Permissions', 'page' => 'Manage Roles/Permissions'],
 
             ['name' => 'view User Registration', 'page' => 'Manage User Registration'],
 

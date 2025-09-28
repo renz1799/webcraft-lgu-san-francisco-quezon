@@ -2,24 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuid;            
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Spatie\Permission\Models\Role as SpatieRole;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 class Role extends SpatieRole
 {
     use HasFactory;
     use SoftDeletes;
+    use HasUuid;                              
 
-    public $incrementing = false;
-    protected $keyType = 'string';
+    // No need to mass-assign 'id' anymore; let the trait set it
+    protected $fillable = ['name', 'guard_name'];
 
-    protected $fillable = ['id', 'name', 'guard_name'];
-
-    /**
-     * Override the permissions relationship to ensure correct UUID handling.
-     */
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(

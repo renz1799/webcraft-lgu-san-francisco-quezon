@@ -48,13 +48,36 @@
                 @forelse ($roles as $role)
                     <tr class="border-b border-primary/10">
                         <th scope="row" class="text-start">{{ $role->name }}</th>
-                        <td>
-                            @if ($role->permissions->isEmpty())
-                                <span class="text-muted">No permissions assigned</span>
-                            @else
-                                {{ $role->permissions->pluck('name')->join(', ') }}
-                            @endif
-                        </td>
+<td>
+  @php
+    $byPage   = $role->permissions->groupBy(fn($p) => $p->page ?: 'Uncategorized');
+    $chunks   = $byPage->map(fn($c,$page) => $page.' ('.$c->count().')')->values();
+    $preview  = $chunks->take(2)->join(', ');
+    $moreCnt  = max(0, $chunks->count() - 2);
+    $permList = $role->permissions
+      ->map(fn($p) => ['page' => $p->page ?: 'Uncategorized', 'name' => $p->name])
+      ->values();
+  @endphp
+
+  @if ($chunks->isEmpty())
+    <span class="text-muted">No permissions assigned</span>
+  @else
+    <span>{{ $preview }}</span>
+    @if($moreCnt > 0)
+      <span class="text-muted"> +{{ $moreCnt }} more</span>
+    @endif
+  @endif
+
+  <button type="button"
+          class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full ms-2"
+          title="View permissions"
+          data-action="view-role-perms"
+          data-role="{{ $role->name }}"
+          data-perms='@json($permList)'>
+    <i class="ri-eye-line"></i>
+  </button>
+</td>
+
                         <td>
                             <div class="hstack flex gap-3 text-[.9375rem]">
                                 <!-- Edit Button -->
@@ -63,17 +86,17 @@
                                     data-hs-overlay="#editRoleModal"
                                     data-role-id="{{ $role->id }}"
                                     data-role-name="{{ $role->name }}"
-                                    data-role-permissions="{{ $role->permissions->pluck('id') }}">
+                                    data-role-permissions='@json($role->permissions->pluck("id"))'>
                                     <i class="ri-edit-line"></i>
                                 </a>
 
                                 <!-- Delete Button -->
                                 <a aria-label="Delete Role" href="javascript:void(0);"
-                                    class="ti-btn btn-wave ti-btn-sm ti-btn-danger !rounded-full"
-                                    data-hs-overlay="#deleteRoleModal"
-                                    data-role-id="{{ $role->id }}"
-                                    data-role-name="{{ $role->name }}">
-                                    <i class="ri-delete-bin-line"></i>
+                                class="ti-btn btn-wave ti-btn-sm ti-btn-danger !rounded-full"
+                                data-action="delete-role"
+                                data-endpoint="{{ route('roles.destroy',$role) }}"
+                                data-name="{{ $role->name }}">
+                                <i class="ri-delete-bin-line"></i>
                                 </a>
                             </div>
                         </td>
@@ -90,163 +113,144 @@
 
 <!-- Add Role Modal -->
 <div id="addRoleModal" class="hs-overlay hidden ti-modal [--overlay-backdrop:static]">
-    <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out">
-        <div class="ti-modal-content">
-            <div class="ti-modal-header">
-                <h6 class="modal-title text-[1rem] font-semibold">Add New Role</h6>
-                <button type="button" class="hs-dropdown-toggle text-[1rem] font-semibold text-defaulttextcolor"
-                        data-hs-overlay="#addRoleModal">
-                    <i class="ri-close-line"></i>
-                </button>
+  <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out">
+    <div class="ti-modal-content">
+      <div class="ti-modal-header">
+        <h6 class="modal-title text-[1rem] font-semibold">Add New Role</h6>
+        <button type="button" class="hs-dropdown-toggle text-[1rem] font-semibold text-defaulttextcolor"
+                data-hs-overlay="#addRoleModal"><i class="ri-close-line"></i></button>
+      </div>
+
+      <div class="ti-modal-body px-4">
+        <form id="addRoleForm" method="POST" action="{{ route('roles.store') }}">
+          @csrf
+
+          <div class="mb-4">
+            <label for="roleName" class="form-label">Role Name</label>
+            <input type="text" id="roleName" name="name" class="form-control" placeholder="Enter role name" required>
+          </div>
+
+          @php
+            $permByPage = $permissions->groupBy(fn($p) => $p->page ?: 'Uncategorized')->sortKeys();
+          @endphp
+
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <h6 class="font-semibold">Assign Permissions</h6>
+            <div class="flex gap-2">
+              <button type="button" class="ti-btn ti-btn-xs ti-btn-light"
+                      data-bulk="check-all" data-scope="add">Check all</button>
+              <button type="button" class="ti-btn ti-btn-xs ti-btn-light"
+                      data-bulk="uncheck-all" data-scope="add">Uncheck all</button>
             </div>
-            <div class="ti-modal-body px-4">
-                <form id="addRoleForm" method="POST" action="{{ route('roles.store') }}">
-                    @csrf
-                    <div class="mb-4">
-                        <label for="roleName" class="form-label">Role Name</label>
-                        <input type="text" id="roleName" name="name" 
-                               class="form-control @error('name') is-invalid @enderror" 
-                               placeholder="Enter role name" required>
-                    </div>
-                    <div class="mb-4">
-                        <h6>Assign Permissions</h6>
-                        @foreach ($permissions as $permission)
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="permissions[]" 
-                                       value="{{ $permission->id }}" id="permission-{{ $permission->id }}">
-                                <label class="form-check-label" for="permission-{{ $permission->id }}">
-                                    {{ ucfirst($permission->name) }}
-                                </label>
-                            </div>
-                        @endforeach
-                    </div>
-                    <div class="text-end">
-                        <button type="submit" 
-                                class="ti-btn btn-wave bg-primary text-white !font-medium dark:border-defaultborder/10">
-                            Save Role
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+          </div>
+
+          <div class="space-y-3">
+            @foreach ($permByPage as $pageName => $items)
+              @php
+                $groupKey = Str::slug($pageName);
+              @endphp
+              <div class="border rounded-lg p-3">
+                <div class="flex items-center justify-between">
+                  <div class="font-medium">
+                    {{ $pageName }} <span class="text-xs text-muted">({{ $items->count() }})</span>
+                  </div>
+                </div>
+
+                <div id="add-group-{{ $groupKey }}"
+                     class="grid md:grid-cols-2 gap-x-6 gap-y-2 mt-3">
+                  @foreach ($items->sortBy('name') as $p)
+                    <label class="inline-flex items-center gap-2">
+                      <input type="checkbox" class="form-check-input"
+                             name="permissions[]" value="{{ $p->id }}">
+                      <span>{{ $p->name }}</span>
+                    </label>
+                  @endforeach
+                </div>
+              </div>
+            @endforeach
+          </div>
+
+          <div class="text-end mt-4">
+            <button type="submit" class="ti-btn btn-wave bg-primary text-white !font-medium">
+              Save Role
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Edit Role Modal -->
 <div id="editRoleModal" class="hs-overlay hidden ti-modal [--overlay-backdrop:static]">
-    <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out">
-        <div class="ti-modal-content">
-            <div class="ti-modal-header">
-                <h6 class="modal-title text-[1rem] font-semibold">Edit Role</h6>
-                <button type="button" class="hs-dropdown-toggle text-[1rem] font-semibold text-defaulttextcolor"
-                        data-hs-overlay="#editRoleModal">
-                    <i class="ri-close-line"></i>
-                </button>
-            </div>
-            <div class="ti-modal-body px-4">
-                <form id="editRoleForm" method="POST">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" id="editRoleId" name="role_id">
-                    <div class="mb-4">
-                        <label for="editRoleName" class="form-label">Role Name</label>
-                        <input type="text" id="editRoleName" name="name" 
-                               class="form-control @error('name') is-invalid @enderror" 
-                               placeholder="Enter role name" required>
-                    </div>
-                    <div class="mb-4">
-                        <h6>Assign Permissions</h6>
-                        @foreach ($permissions as $permission)
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="permissions[]" 
-                                       value="{{ $permission->id }}" id="edit-permission-{{ $permission->id }}">
-                                <label class="form-check-label" for="edit-permission-{{ $permission->id }}">
-                                    {{ ucfirst($permission->name) }}
-                                </label>
-                            </div>
-                        @endforeach
-                    </div>
-                    <div class="text-end">
-                        <button type="submit" 
-                                class="ti-btn btn-wave bg-primary text-white !font-medium dark:border-defaultborder/10">
-                            Update Role
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+  <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out">
+    <div class="ti-modal-content">
+      <div class="ti-modal-header">
+        <h6 class="modal-title text-[1rem] font-semibold">Edit Role</h6>
+        <button type="button" class="hs-dropdown-toggle text-[1rem] font-semibold text-defaulttextcolor"
+                data-hs-overlay="#editRoleModal"><i class="ri-close-line"></i></button>
+      </div>
 
-<!-- Delete Role Modal -->
-<div id="deleteRoleModal" class="hs-overlay hidden ti-modal [--overlay-backdrop:static]">
-    <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out">
-        <div class="ti-modal-content">
-            <div class="ti-modal-header">
-                <h6 class="modal-title text-[1rem] font-semibold">Delete Role</h6>
-                <button type="button" class="hs-dropdown-toggle text-[1rem] font-semibold text-defaulttextcolor"
-                        data-hs-overlay="#deleteRoleModal">
-                    <i class="ri-close-line"></i>
-                </button>
+      <div class="ti-modal-body px-4">
+        <form id="editRoleForm" method="POST">
+          @csrf
+          @method('PUT')
+          <input type="hidden" id="editRoleId" name="role_id">
+
+          <div class="mb-4">
+            <label for="editRoleName" class="form-label">Role Name</label>
+            <input type="text" id="editRoleName" name="name" class="form-control" required>
+          </div>
+
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <h6 class="font-semibold">Assign Permissions</h6>
+            <div class="flex gap-2">
+              <button type="button" class="ti-btn ti-btn-xs ti-btn-light"
+                      data-bulk="check-all" data-scope="edit">Check all</button>
+              <button type="button" class="ti-btn ti-btn-xs ti-btn-light"
+                      data-bulk="uncheck-all" data-scope="edit">Uncheck all</button>
             </div>
-            <div class="ti-modal-body px-4">
-                <p class="text-center">Are you sure you want to delete the role "<span id="deleteRoleName"></span>"?</p>
-            </div>
-            <div class="ti-modal-footer text-center">
-                <form id="deleteRoleForm" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <button type="button" 
-                            class="ti-btn btn-wave ti-btn-secondary-full align-middle"
-                            data-hs-overlay="#deleteRoleModal">
-                        Cancel
-                    </button>
-                    <button type="submit" 
-                            class="ti-btn btn-wave bg-danger text-white !font-medium">
-                        Delete Role
-                    </button>
-                </form>
-            </div>
-        </div>
+          </div>
+
+          <div class="space-y-3">
+            @foreach ($permByPage as $pageName => $items)
+              @php
+                $groupKey = Str::slug($pageName);
+              @endphp
+              <div class="border rounded-lg p-3">
+                <div class="flex items-center justify-between">
+                  <div class="font-medium">
+                    {{ $pageName }} <span class="text-xs text-muted">({{ $items->count() }})</span>
+                  </div>
+                </div>
+
+                <div id="edit-group-{{ $groupKey }}"
+                     class="grid md:grid-cols-2 gap-x-6 gap-y-2 mt-3">
+                  @foreach ($items->sortBy('name') as $p)
+                    <label class="inline-flex items-center gap-2">
+                      <input type="checkbox" class="form-check-input"
+                             name="permissions[]" value="{{ $p->id }}">
+                      <span>{{ $p->name }}</span>
+                    </label>
+                  @endforeach
+                </div>
+              </div>
+            @endforeach
+          </div>
+
+          <div class="text-end mt-4">
+            <button type="submit" class="ti-btn btn-wave bg-primary text-white !font-medium">
+              Update Role
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
 
 @endsection
 
 @section('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Handle Edit Role Modal
-    document.querySelectorAll('[data-hs-overlay="#editRoleModal"]').forEach(button => {
-        button.addEventListener('click', function () {
-            const roleId = this.getAttribute('data-role-id');
-            const roleName = this.getAttribute('data-role-name');
-            const rolePermissions = JSON.parse(this.getAttribute('data-role-permissions'));
-
-            document.getElementById('editRoleId').value = roleId;
-            document.getElementById('editRoleName').value = roleName;
-
-            // Update permissions
-            document.querySelectorAll('#editRoleForm input[name="permissions[]"]').forEach(input => {
-                const permissionId = input.value.toString(); // Convert to string
-                input.checked = rolePermissions.map(String).includes(permissionId); // Ensure both are strings
-            });
-
-            document.getElementById('editRoleForm').action = `/roles/${roleId}`;
-        });
-    });
-
-    // Handle Delete Role Modal
-    document.querySelectorAll('[data-hs-overlay="#deleteRoleModal"]').forEach(button => {
-        button.addEventListener('click', function () {
-            const roleId = this.getAttribute('data-role-id');
-            const roleName = this.getAttribute('data-role-name');
-
-            document.getElementById('deleteRoleName').textContent = roleName;
-            document.getElementById('deleteRoleForm').action = `/roles/${roleId}`;
-        });
-    });
-});
-
-</script>
+@vite(['resources/js/roles-page.js'])
 @endsection
