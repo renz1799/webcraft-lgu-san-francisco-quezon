@@ -138,8 +138,8 @@ Route::middleware(['auth', 'role_or_permission:admin|view User Permissions|modif
 
 
     Route::middleware(['auth', 'role_or_permission:admin|view Login Logs|modify Login Logs|delete Login Logs'])->group(function () {
-        Route::get('/logs', [LoginLogController::class, 'index'])->name('logs.index');
-        Route::get('/logs/data', [LoginLogController::class, 'getLogs'])->name('logs.data');
+        Route::get('/login-logs', [LoginLogController::class, 'index'])->name('logs.index');
+        Route::get('/login-logs/data', [LoginLogController::class, 'data'])->name('logs.data');
     });
 
 

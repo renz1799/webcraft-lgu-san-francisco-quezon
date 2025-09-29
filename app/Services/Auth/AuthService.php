@@ -71,46 +71,123 @@ class AuthService implements AuthServiceInterface
     }
     public function attemptLogin(array $data): bool
     {
-        $credentials = ['email' => $data['email'], 'password' => $data['password']];
-        $remember = (bool) ($data['remember'] ?? false);
+        // Normalize inputs
+        $email    = mb_strtolower(trim((string)($data['email'] ?? '')));
+        $password = (string)($data['password'] ?? '');
+        $remember = (bool)($data['remember'] ?? false);
 
-        if (! Auth::attempt($credentials, $remember)) {
-           /*  Log::warning('Failed login attempt', [
-                'email'     => $data['email'],
-                'ip'        => $data['ip'],
-                'lat'       => $data['latitude'],
-                'lng'       => $data['longitude'],
-                'device'    => $data['user_agent'],
-            ]); */
+        // Context (with sensible fallbacks)
+        $ip  = $data['ip']         ?? request()->ip();
+        $ua  = $data['user_agent'] ?? request()->userAgent();
+        $lat = $data['latitude']   ?? null;
+        $lng = $data['longitude']  ?? null;
+
+        // Build location fields once so we can attach them to ALL logs
+        $hasCoords   = is_numeric($lat) && is_numeric($lng);
+        $locationUrl = $hasCoords ? "https://www.google.com/maps?q={$lat},{$lng}" : null;
+
+        // If you also want a human address on failures, set this to true
+        $geocodeOnFailure = false;
+
+        $address = null;
+        if ($hasCoords && $geocodeOnFailure) {
+            try { $address = $this->geocoder->reverseGeocode((float)$lat, (float)$lng); } catch (\Throwable) {}
+        }
+
+        /** @var \App\Models\User|null $user */
+        $user = $this->users->findByEmail($email);
+
+        if (! $user) {
+            // Unknown email
+            $this->loginDetails->create([
+                'user_id'    => null,
+                'email'      => $email,
+                'ip_address' => $ip,
+                'device'     => $ua,
+                'location'   => $locationUrl,
+                'address'    => $address,
+                'latitude'   => $lat,
+                'longitude'  => $lng,
+                'success'    => false,
+                'reason'     => 'unknown_email',
+            ]);
             return false;
         }
 
+        if (! $user->is_active) {
+            $this->loginDetails->create([
+                'user_id'    => $user->id,
+                'email'      => $email,
+                'ip_address' => $ip,
+                'device'     => $ua,
+                'location'   => $locationUrl,
+                'address'    => $address,
+                'latitude'   => $lat,
+                'longitude'  => $lng,
+                'success'    => false,
+                'reason'     => 'inactive',
+            ]);
+            return false;
+        }
+
+        if (! \Illuminate\Support\Facades\Hash::check($password, $user->password)) {
+            $this->loginDetails->create([
+                'user_id'    => $user->id,
+                'email'      => $email,
+                'ip_address' => $ip,
+                'device'     => $ua,
+                'location'   => $locationUrl,
+                'address'    => $address,
+                'latitude'   => $lat,
+                'longitude'  => $lng,
+                'success'    => false,
+                'reason'     => 'invalid_password',
+            ]);
+            return false;
+        }
+
+        // Credentials valid — let Laravel log them in
+        if (! \Illuminate\Support\Facades\Auth::attempt(['email' => $email, 'password' => $password], $remember)) {
+            $this->loginDetails->create([
+                'user_id'    => $user->id,
+                'email'      => $email,
+                'ip_address' => $ip,
+                'device'     => $ua,
+                'location'   => $locationUrl,
+                'address'    => $address,
+                'latitude'   => $lat,
+                'longitude'  => $lng,
+                'success'    => false,
+                'reason'     => 'guard_reject',
+            ]);
+            return false;
+        }
+
+        // Logged in
         request()->session()->regenerate();
 
-        /** @var User $user */
-        $user = Auth::user();
-
-        // Map URL + address (keep fast; consider async job if API is slow)
-        $locationUrl = "https://www.google.com/maps?q={$data['latitude']},{$data['longitude']}";
-        $address     = $this->geocoder->reverseGeocode($data['latitude'], $data['longitude']);
+        // Optional: only now do a reverse-geocode to avoid slowing failures
+        if ($hasCoords) {
+            try { $address = $this->geocoder->reverseGeocode((float)$lat, (float)$lng); } catch (\Throwable) {}
+        }
 
         $this->loginDetails->create([
-            'user_id'   => $user->id,
-            'ip_address'=> $data['ip'],
-            'device'    => $data['user_agent'],
-            'location'  => $locationUrl,
-            'address'   => $address,
-            'latitude'  => $data['latitude'],
-            'longitude' => $data['longitude'],
+            'user_id'    => \Illuminate\Support\Facades\Auth::id(),
+            'email'      => $email,
+            'ip_address' => $ip,
+            'device'     => $ua,
+            'location'   => $locationUrl,
+            'address'    => $address,
+            'latitude'   => $lat,
+            'longitude'  => $lng,
+            'success'    => true,
+            'reason'     => 'ok',
         ]);
-
-      /*   Log::info('User logged in', [
-            'user_id' => $user->id,
-            'ip'      => $data['ip'],
-        ]); */
 
         return true;
     }
+
+
 
     public function logout(): void
     {

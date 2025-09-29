@@ -27,7 +27,9 @@ use App\Services\Contracts\{
     UserAccessServiceInterface,
     PermissionServiceInterface,
     AuditLogServiceInterface,
-    RoleServiceInterface
+    RoleServiceInterface,
+    LoginLogServiceInterface
+
 };
 use App\Services\Auth\AuthService;
 use App\Services\Geocoding\PositionstackGeocodingService;
@@ -35,6 +37,8 @@ use App\Services\UserAccessService;
 use App\Services\PermissionService;
 use App\Services\Audit\AuditLogService;
 use App\Services\RoleService;
+use App\Services\LoginLogService;
+
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -57,6 +61,7 @@ class RepositoryServiceProvider extends ServiceProvider
             PermissionServiceInterface::class  => PermissionService::class,
             AuditLogServiceInterface::class  => AuditLogService::class,
             RoleServiceInterface::class  => RoleService::class,
+            LoginLogServiceInterface::class  => LoginLogService::class,
         ], true);
     }
 

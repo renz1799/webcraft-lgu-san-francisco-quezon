@@ -98,7 +98,9 @@ div.dataTables_processing > div:last-child > div:nth-child(4) {
 <!-- Page Header -->
 <div class="block justify-between page-header md:flex">
     <div>
-        <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white dark:hover:text-white text-[1.125rem] font-semibold">Login Logs</h3>
+        <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white dark:hover:text-white text-[1.125rem] font-semibold">
+            Login Logs
+        </h3>
     </div>
     <ol class="flex items-center whitespace-nowrap min-w-0">
         <li class="text-[0.813rem] ps-[0.5rem]">
@@ -112,16 +114,19 @@ div.dataTables_processing > div:last-child > div:nth-child(4) {
         </li>
     </ol>
 </div>
-<!-- Page Header Close -->
+<!-- /Page Header -->
 
 <div class="box">
     <div class="box-body">
         <table id="logs-table" class="table table-striped table-bordered w-full">
             <thead>
                 <tr>
+                    <th>Status</th>
                     <th>User</th>
+                    <th>Email (attempted)</th>
                     <th>IP Address</th>
                     <th>Device</th>
+                    <th>Address</th>
                     <th>Location</th>
                     <th>Date</th>
                 </tr>
@@ -133,27 +138,67 @@ div.dataTables_processing > div:last-child > div:nth-child(4) {
 @endsection
 
 @section('scripts')
-
 <script>
-    $(document).ready(function() {
-        $('#logs-table').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: '{{ route('logs.data') }}',
-            columns: [
-                { data: 'user', name: 'user' },
-                { data: 'ip_address', name: 'ip_address' },
-                { data: 'device', name: 'device' },
-                { data: 'location', name: 'location', orderable: false }, // Enable searching for 'location'
-                { data: 'created_at', name: 'created_at' }
-            ],
-            pageLength: 20, // Limit to 20 records per page
-            lengthChange: false, // Disable length change dropdown
-            scrollX: false, // Enable horizontal scroll
-            autoWidth: false, // Disable auto width
-            responsive: true // Make it responsive
-        });
-    });
-</script>
+(function () {
+  const escapeHtml = (s) =>
+    String(s ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
 
+  const fmtDateTime = (iso) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? escapeHtml(iso) : d.toLocaleString();
+  };
+
+  const truncate = (s, n = 58) => {
+    if (!s) return '—';
+    const str = String(s);
+    return str.length > n ? escapeHtml(str.slice(0, n)) + '…' : escapeHtml(str);
+  };
+
+  $(document).ready(function () {
+$('#logs-table').DataTable({
+  processing: true,
+  serverSide: true,
+  ajax: '{{ route('logs.data') }}',
+  pageLength: 20,
+  lengthChange: false,
+  responsive: true,
+  autoWidth: false,
+
+  // ⬇️ make the initial request sorted by Date desc
+  order: [[7, 'desc']],
+
+  columns: [
+    { data: 'status', name: 'success', render: (val, t, row) =>
+        t !== 'display'
+          ? val
+          : (val === 'success'
+              ? '<span class="badge bg-success/15 text-success">Success</span>'
+              : `<span class="badge bg-danger/15 text-danger">Failed</span> <span class="text-xs text-muted">— ${row.reason || ''}</span>`
+            )
+    },
+    { data: 'user',       name: 'user' },
+    { data: 'email',      name: 'email' },
+    { data: 'ip_address', name: 'ip_address' },
+    { data: 'device',     name: 'device' },
+    { data: 'address',    name: 'address' },
+    {
+      data: null, name: 'location', orderable: false, searchable: false,
+      render: (_, type, row) =>
+        type !== 'display'
+          ? (row.location_url || '')
+          : (row.location_url
+              ? `<a href="${row.location_url}" target="_blank" rel="noopener" class="text-primary hover:underline">Map</a>`
+              : '—')
+    },
+    { data: 'created_at', name: 'created_at' }
+  ]
+});
+
+  });
+})();
+</script>
 @endsection

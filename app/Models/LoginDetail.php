@@ -12,17 +12,13 @@ class LoginDetail extends Model
     use HasFactory, HasUuid;
 
     protected $fillable = [
-        'user_id',
-        'ip_address',
-        'device',
-        'location', // google maps url
-        'address',  // human readable (reverse geocoded)
-        'latitude',
-        'longitude',
+        'user_id','email','ip_address','device','location','address',
+        'latitude','longitude','success','reason',
     ];
 
     protected $casts = [
-        'latitude'  => 'decimal:8',
+        'success' => 'boolean',
+        'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
     ];
 
