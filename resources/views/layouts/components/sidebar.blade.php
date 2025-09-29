@@ -893,7 +893,7 @@
                                             @endif
 
                                             @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('view Login Logs')))
-                                                <li class="slide"><a href="{{ url('logs') }}" class="side-menu__item">Logged-in Logs</a></li>
+                                                <li class="slide"><a href="{{ url('login-logs') }}" class="side-menu__item">Logged-in Logs</a></li>
                                             @endif
 
                                             @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->can('view Audit Logs')))
