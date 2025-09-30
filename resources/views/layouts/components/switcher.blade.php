@@ -1,5 +1,10 @@
 
-            <div id="hs-overlay-switcher" class="hs-overlay hidden ti-offcanvas ti-offcanvas-right" tabindex="-1">
+            <div id="hs-overlay-switcher"
+                data-theme-style='@json($themeStyle)'
+                data-update-style-url="{{ route('theme.style.update') }}"
+                data-update-colors-url="{{ route('theme.colors.update') }}"
+                class="hs-overlay hidden ti-offcanvas ti-offcanvas-right"
+                tabindex="-1">
                 <div class="ti-offcanvas-header z-10 relative">
                     <h5 class="ti-offcanvas-title">
                     Switcher
@@ -30,15 +35,15 @@
                     <div class="">
                         <p class="switcher-style-head">Theme Color Mode:</p>
                         <div class="grid grid-cols-3 switcher-style">
-                        <div class="flex items-center">
-                            <input type="radio" name="theme-style" class="ti-form-radio" id="switcher-light-theme" checked>
-                            <label for="switcher-light-theme"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Light</label>
+                         <div class="flex items-center">
+                            <input type="radio" name="theme_mode" value="light" class="ti-form-radio" id="switcher-light-theme"
+                                @checked(($themeStyle['mode'] ?? 'light') === 'light')>
+                            <label for="switcher-light-theme" class="ms-2 font-semibold">Light</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="radio" name="theme-style" class="ti-form-radio" id="switcher-dark-theme">
-                            <label for="switcher-dark-theme"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Dark</label>
+                            <input type="radio" name="theme_mode" value="dark" class="ti-form-radio" id="switcher-dark-theme"
+                                @checked(($themeStyle['mode'] ?? 'light') === 'dark')>
+                            <label for="switcher-dark-theme" class="ms-2 font-semibold">Dark</label>
                         </div>
                         </div>
                     </div>
@@ -46,27 +51,29 @@
                         <p class="switcher-style-head">Directions:</p>
                         <div class="grid grid-cols-3  switcher-style">
                         <div class="flex items-center">
-                            <input type="radio" name="direction" class="ti-form-radio" id="switcher-ltr" checked>
-                            <label for="switcher-ltr" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">LTR</label>
+                            <input type="radio" name="direction" value="ltr" class="ti-form-radio" id="switcher-ltr"
+                                @checked(($themeStyle['dir'] ?? 'ltr') === 'ltr')>
+                            <label for="switcher-ltr" class="ms-2 font-semibold">LTR</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="radio" name="direction" class="ti-form-radio" id="switcher-rtl">
-                            <label for="switcher-rtl" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">RTL</label>
+                            <input type="radio" name="direction" value="rtl" class="ti-form-radio" id="switcher-rtl"
+                                @checked(($themeStyle['dir'] ?? 'ltr') === 'rtl')>
+                            <label for="switcher-rtl" class="ms-2 font-semibold">RTL</label>
                         </div>
                         </div>
                     </div>
                     <div>
                         <p class="switcher-style-head">Navigation Styles:</p>
                         <div class="grid grid-cols-3  switcher-style">
-                        <div class="flex items-center">
-                            <input type="radio" name="navigation-style" class="ti-form-radio" id="switcher-vertical" checked>
-                            <label for="switcher-vertical"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Vertical</label>
+                          <div class="flex items-center">
+                            <input type="radio" name="nav_style" value="vertical" class="ti-form-radio" id="switcher-vertical"
+                                @checked(($themeStyle['nav'] ?? 'vertical') === 'vertical')>
+                            <label for="switcher-vertical" class="ms-2 font-semibold">Vertical</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="radio" name="navigation-style" class="ti-form-radio" id="switcher-horizontal">
-                            <label for="switcher-horizontal"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Horizontal</label>
+                            <input type="radio" name="nav_style" value="horizontal" class="ti-form-radio" id="switcher-horizontal"
+                                @checked(($themeStyle['nav'] ?? 'vertical') === 'horizontal')>
+                            <label for="switcher-horizontal" class="ms-2 font-semibold">Horizontal</label>
                         </div>
                         </div>
                     </div>
@@ -411,3 +418,5 @@
                     <a href="javascript:void(0);" id="reset-all" class="w-full ti-btn btn-wave ti-btn-danger-full m-1">Reset</a>
                 </div>
             </div>
+
+ @vite('resources/js/theme-switcher.js')

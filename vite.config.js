@@ -24,6 +24,7 @@ export default defineConfig({
                 'resources/js/datatables.js',
                 'resources/js/logs.js',
                 'resources/js/roles-page.js',
+                'resources/js/theme-switcher.js',
                 // Resources paths 
                 'resources/sass/app.scss', 
                 'resources/js/app.js',

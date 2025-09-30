@@ -148,10 +148,15 @@ Route::middleware('auth')->group(function () {
         ->name('audit.restore');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Removed demo/template routes
-|--------------------------------------------------------------------------
-| All routes below `/test` in the old file were theme/demo pages.
-| They've been intentionally removed to keep your app routes clean.
-*/
+    /*
+    |--------------------------------------------------------------------------
+    | Theme and Templates
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('auth')->group(function () {
+        Route::post('/theme/style',  [\App\Http\Controllers\ThemeController::class, 'updateStyle'])->name('theme.style.update');
+    });
+    Route::middleware(['auth','role:admin'])->group(function () {
+        Route::post('/theme/colors', [\App\Http\Controllers\ThemeController::class, 'updateColors'])->name('theme.colors.update');
+    });

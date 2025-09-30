@@ -1,6 +1,17 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" data-nav-layout="vertical" class="light" data-header-styles="light" data-menu-styles="dark">
-
+<html
+  lang="{{ str_replace('_','-',app()->getLocale()) }}"
+  dir="{{ $themeStyle['dir'] ?? 'ltr' }}"
+  @class([
+    'dark'  => ($themeStyle['mode'] ?? 'light') === 'dark',
+    'light' => ($themeStyle['mode'] ?? 'light') === 'light',
+  ])
+  data-nav-layout="{{ $themeStyle['nav'] ?? 'vertical' }}"
+  data-menu-hover="{{ ($themeStyle['menuHover'] ?? false) ? '1' : '0' }}"
+  {{-- keep these two if your template uses them --}}
+  data-header-styles="{{ ($themeStyle['mode'] ?? 'light') === 'dark' ? 'dark' : 'light' }}"
+  data-menu-styles="dark"
+>
 <head>
     <!-- META DATA -->
     <meta charset="UTF-8">
@@ -24,6 +35,15 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600&display=swap">
 
+    <style>
+    :root{
+        --color-primary: {{ $themeColors['primary'] }};
+        --color-success: {{ $themeColors['success'] }};
+        --color-warning: {{ $themeColors['warning'] }};
+        --color-danger:  {{ $themeColors['danger']  }};
+    }
+    </style>
+
     <!-- Tailwind SCSS -->
     @vite(['resources/sass/app.scss'])
 
@@ -36,7 +56,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <!-- Main JS -->
-    <script src="{{ asset('build/assets/main.js') }}"></script>
+    <!--   <script src="{{ asset('build/assets/main.js') }}"></script> --> 
 
     @yield('styles')
 </head>
@@ -106,7 +126,7 @@
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     
     <!-- Custom Scripts -->
-    <script src="{{ asset('resources/assets/js/custom-switcher.js') }}"></script>
+  <!--   <script src="{{ asset('resources/assets/js/custom-switcher.js') }}"></script> -->
     <script src="{{ asset('resources/assets/js/custom.js') }}"></script>
 
     <!-- Pickr -->
