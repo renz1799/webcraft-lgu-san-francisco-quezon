@@ -419,4 +419,4 @@
                 </div>
             </div>
 
- @vite('resources/js/theme-switcher.js')
+

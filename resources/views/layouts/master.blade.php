@@ -113,6 +113,7 @@
     @vite(['resources/js/datatables.js'])
     @endif
 
+  
 
     <!--
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -154,9 +155,11 @@
     <script src="{{ asset('build/assets/delete-modal.js') }}"></script>
 
 <!-- Laravel Vite JS -->
-@vite(['resources/assets/js/custom-switcher.js'])
+@vite(['resources/assets/js/custom-switcher.js']) 
 
 
     <!-- END SCRIPTS -->
 </body>
+  @vite(['resources/js/theme-switcher.js'])
+
 </html>
