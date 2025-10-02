@@ -77,7 +77,7 @@ Route::middleware('auth')->group(function () {
             ->name('users.permissions.edit');
 
         // Update role and/or direct permissions (one canonical endpoint)
-        Route::patch('{user}/permissions', [UsersAccessController::class, 'update'])
+        Route::patch('{user}/permissions', [UsersAccessController::class, 'updateModulePermissions'])
             ->name('users.permissions.update');
 
         // Update active status

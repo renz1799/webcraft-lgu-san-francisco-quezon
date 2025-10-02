@@ -60,7 +60,7 @@
             </td>
             <td>
                 <div class="hstack flex gap-3 text-[.9375rem]">
-                    <a aria-label="anchor" href="{{ url('/set-user-role-permissions/' . $user->id) }}"
+                    <a aria-label="anchor"  href="{{ route('users.permissions.edit', $user) }}"
                         class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full">
                         <i class="ri-edit-line"></i>
                     </a>
