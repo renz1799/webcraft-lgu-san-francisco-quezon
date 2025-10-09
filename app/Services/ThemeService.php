@@ -1,21 +1,34 @@
 <?php
-// app/Services/ThemeService.php
+
 namespace App\Services;
 
-use App\Models\AppSetting;
-use App\Models\UserPreference;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Support\Arr;
+use App\Repositories\Contracts\ThemePreferencesRepositoryInterface;
 
 class ThemeService
 {
-    public function __construct(private Cache $cache) {}
+    public function __construct(
+        private Cache $cache,
+        private ThemePreferencesRepositoryInterface $repo
+    ) {}
 
     public static function defaults(): array
     {
+        // NOTE: we keep menuStyle as canonical; we’ll still accept old menuHover on input
         return [
-            'style'  => ['mode' => 'light', 'dir' => 'ltr', 'nav' => 'vertical', 'menuHover' => true],
-            'colors' => ['primary' => '#635BFF', 'success' => '#22c55e', 'warning' => '#f59e0b', 'danger' => '#ef4444'],
+            'style'  => [
+                'mode'      => 'light',
+                'dir'       => 'ltr',
+                'nav'       => 'vertical',
+                'menuStyle' => 'menu-click',   // menu-click | menu-hover | icon-click | icon-hover
+            ],
+            'colors' => [
+                'primary' => '#635BFF',
+                'success' => '#22c55e',
+                'warning' => '#f59e0b',
+                'danger'  => '#ef4444',
+            ],
         ];
     }
 
@@ -23,18 +36,18 @@ class ThemeService
     public function getUserStyle(string $userId): array
     {
         return $this->cache->remember("theme:user:$userId", 3600, function () use ($userId) {
-            $row = UserPreference::where('user_id', $userId)->first();   // ← changed
-            return array_replace(self::defaults()['style'], (array) ($row?->theme_style ?? []));
+            $stored = $this->repo->getUserStyle($userId);
+            return array_replace(self::defaults()['style'], (array) $stored);
         });
     }
 
     public function saveUserStyle(string $userId, array $partial): array
     {
-        $allowed = Arr::only($partial, ['mode','dir','nav','menuHover']);
-        $current = $this->getUserStyle($userId);
-        $next    = array_replace($current, $allowed);
+        // accept only canonical keys
+        $allowed = Arr::only($partial, ['mode','dir','nav','menuStyle']);
+        $next = array_replace($this->getUserStyle($userId), $allowed);
 
-        UserPreference::updateOrCreate(['user_id' => $userId], ['theme_style' => $next]);
+        $this->repo->upsertUserStyle($userId, $next);
         $this->cache->forget("theme:user:$userId");
 
         return $next;
@@ -44,17 +57,17 @@ class ThemeService
     public function getGlobalColors(): array
     {
         return $this->cache->remember('theme:colors', 3600, function () {
-            $row = AppSetting::where('key', 'theme.colors')->first();     // ← changed
-            return array_replace(self::defaults()['colors'], (array) ($row?->value ?? []));
+            $stored = $this->repo->getGlobalColors();
+            return array_replace(self::defaults()['colors'], (array) $stored);
         });
     }
 
     public function saveGlobalColors(array $partial): array
     {
         $allowed = Arr::only($partial, ['primary','success','warning','danger']);
-        $next    = array_replace($this->getGlobalColors(), $allowed);
+        $next = array_replace($this->getGlobalColors(), $allowed);
 
-        AppSetting::updateOrCreate(['key' => 'theme.colors'], ['value' => $next]);
+        $this->repo->upsertGlobalColors($next);
         $this->cache->forget('theme:colors');
 
         return $next;

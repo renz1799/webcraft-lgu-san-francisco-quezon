@@ -7,11 +7,15 @@
     'light' => ($themeStyle['mode'] ?? 'light') === 'light',
   ])
   data-nav-layout="{{ $themeStyle['nav'] ?? 'vertical' }}"
-  data-menu-hover="{{ ($themeStyle['menuHover'] ?? false) ? '1' : '0' }}"
-  {{-- keep these two if your template uses them --}}
+  data-nav-style="{{ $themeStyle['menuStyle'] ?? 'menu-click' }}"
+  @if(!empty($themeStyle['sideMenuLayout']) && $themeStyle['sideMenuLayout'] !== 'default')
+    data-vertical-style="{{ $themeStyle['sideMenuLayout'] }}"
+  @endif
   data-header-styles="{{ ($themeStyle['mode'] ?? 'light') === 'dark' ? 'dark' : 'light' }}"
   data-menu-styles="dark"
 >
+
+
 <head>
     <!-- META DATA -->
     <meta charset="UTF-8">
@@ -54,9 +58,6 @@
 
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <!-- Main JS -->
-    <!--   <script src="{{ asset('build/assets/main.js') }}"></script> --> 
 
     @yield('styles')
 </head>
@@ -115,11 +116,6 @@
 
   
 
-    <!--
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <script src="{{ asset('resources/assets/js/ecommerce-dashboard.js') }}"></script>
-      -->
-
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -127,7 +123,6 @@
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     
     <!-- Custom Scripts -->
-  <!--   <script src="{{ asset('resources/assets/js/custom-switcher.js') }}"></script> -->
     <script src="{{ asset('resources/assets/js/custom.js') }}"></script>
 
     <!-- Pickr -->
@@ -153,6 +148,19 @@
 
     <!-- Delete modal JS -->
     <script src="{{ asset('build/assets/delete-modal.js') }}"></script>
+
+<script>
+  localStorage.setItem('ynexnavstyles', '{{ $themeStyle['menuStyle'] ?? 'menu-click' }}');
+  localStorage.setItem('Ynexnavstyles', '{{ $themeStyle['menuStyle'] ?? 'menu-click' }}');
+  localStorage.setItem('ynexlayout', '{{ $themeStyle['nav'] ?? 'vertical' }}');
+  localStorage.setItem('Ynexlayout', '{{ $themeStyle['nav'] ?? 'vertical' }}');
+
+  @if(!empty($themeStyle['sideMenuLayout']) && $themeStyle['sideMenuLayout'] !== 'default')
+    localStorage.setItem('ynexverticalstyles', '{{ $themeStyle['sideMenuLayout'] }}');
+  @else
+    localStorage.removeItem('ynexverticalstyles');
+  @endif
+</script>
 
 <!-- Laravel Vite JS -->
 @vite(['resources/assets/js/custom-switcher.js']) 

@@ -1,45 +1,47 @@
 <?php
-// app/Http/Controllers/ThemeController.php
+
 namespace App\Http\Controllers;
 
 use App\Services\ThemeService;
+use App\Http\Requests\Theme\UpdateThemeStyleRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ThemeController extends Controller
 {
-    public function __construct(private ThemeService $theme) {}
-
-    /** per-user style (any authenticated user) */
-    public function updateStyle(Request $request)
+    public function __construct(private ThemeService $theme)
     {
+        // Everyone must be logged in to hit these endpoints
         $this->middleware('auth');
 
-        $data = $request->validate([
-            'mode'      => 'in:light,dark',
-            'dir'       => 'in:ltr,rtl',
-            'nav'       => 'in:vertical,horizontal',
-            'menuHover' => 'boolean',
-        ]);
-
-        $result = $this->theme->saveUserStyle($request->user()->id, $data);
-
-        return response()->json(['ok' => true, 'style' => $result]);
+        // Colors are admin-only
+        $this->middleware('role:admin')->only('updateColors');
     }
 
-    /** admin-only colors, apply to everyone */
+    /** Per-user style (any authenticated user) */
+    public function updateStyle(UpdateThemeStyleRequest $request)
+    {
+        $userId = (string) $request->user()->id;
+
+        // $request already normalized (menuHover -> menuStyle, trimming, casing, etc.)
+        $next = $this->theme->saveUserStyle($userId, $request->validated());
+
+        // Return the resolved style (useful for debugging/clients)
+        return response()->json($next);
+    }
+
+    /** Admin-only colors, apply to everyone */
     public function updateColors(Request $request)
     {
-        $this->middleware(['auth','role:admin']);
-
         $data = $request->validate([
-            'primary' => 'regex:/^#([0-9a-f]{3}|[0-9a-f]{6})$/i',
-            'success' => 'regex:/^#([0-9a-f]{3}|[0-9a-f]{6})$/i',
-            'warning' => 'regex:/^#([0-9a-f]{3}|[0-9a-f]{6})$/i',
-            'danger'  => 'regex:/^#([0-9a-f]{3}|[0-9a-f]{6})$/i',
+            'primary' => ['sometimes','regex:/^#(?:[0-9a-f]{3}){1,2}$/i'],
+            'success' => ['sometimes','regex:/^#(?:[0-9a-f]{3}){1,2}$/i'],
+            'warning' => ['sometimes','regex:/^#(?:[0-9a-f]{3}){1,2}$/i'],
+            'danger'  => ['sometimes','regex:/^#(?:[0-9a-f]{3}){1,2}$/i'],
         ]);
 
         $colors = $this->theme->saveGlobalColors($data);
 
-        return response()->json(['ok' => true, 'colors' => $colors]);
+        return response()->json($colors);
     }
 }

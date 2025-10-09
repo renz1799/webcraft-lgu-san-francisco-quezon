@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use App\Repositories\Contracts\ThemePreferencesRepositoryInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,9 +16,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Make ThemeService a singleton (cached, cheap to resolve).
+        // ThemeService singleton with cache + repo
         $this->app->singleton(ThemeService::class, function ($app) {
-            return new ThemeService($app->make(CacheRepository::class));
+            return new ThemeService(
+                $app->make(CacheRepository::class),
+                $app->make(ThemePreferencesRepositoryInterface::class) // ← add
+            );
         });
     }
 
@@ -26,11 +30,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(ThemeService $theme): void
     {
-        // Share theme data with every Blade view
         View::composer('*', function ($view) use ($theme) {
-            $user        = Auth::user();
+            $user = Auth::user();
+
             $themeStyle  = $user
-                ? $theme->getUserStyle($user->id)
+                ? $theme->getUserStyle((string) $user->id)
                 : ThemeService::defaults()['style'];
 
             $themeColors = $theme->getGlobalColors();

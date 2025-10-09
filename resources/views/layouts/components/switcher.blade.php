@@ -77,35 +77,39 @@
                         </div>
                         </div>
                     </div>
-                    <div>
+                        <div>
                         <p class="switcher-style-head">Navigation Menu Style:</p>
                         <div class="grid grid-cols-2 gap-2 switcher-style">
-                        <div class="flex">
-                            <input type="radio" name="navigation-data-menu-styles" class="ti-form-radio" id="switcher-menu-click"
-                            checked>
-                            <label for="switcher-menu-click" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Menu
-                            Click</label>
+                            <div class="flex">
+                            <input type="radio" name="menu_style" value="menu-click" class="ti-form-radio"
+                                    id="switcher-menu-click"
+                                    @checked(($themeStyle['menuStyle'] ?? 'menu-click') === 'menu-click')>
+                            <label for="switcher-menu-click" class="ms-2 font-semibold">Menu Click</label>
+                            </div>
+
+                            <div class="flex">
+                            <input type="radio" name="menu_style" value="menu-hover" class="ti-form-radio"
+                                    id="switcher-menu-hover"
+                                    @checked(($themeStyle['menuStyle'] ?? 'menu-click') === 'menu-hover')>
+                            <label for="switcher-menu-hover" class="ms-2 font-semibold">Menu Hover</label>
+                            </div>
+
+                            <div class="flex">
+                            <input type="radio" name="menu_style" value="icon-click" class="ti-form-radio"
+                                    id="switcher-icon-click"
+                                    @checked(($themeStyle['menuStyle'] ?? 'menu-click') === 'icon-click')>
+                            <label for="switcher-icon-click" class="ms-2 font-semibold">Icon Click</label>
+                            </div>
+
+                            <div class="flex">
+                            <input type="radio" name="menu_style" value="icon-hover" class="ti-form-radio"
+                                    id="switcher-icon-hover"
+                                    @checked(($themeStyle['menuStyle'] ?? 'menu-click') === 'icon-hover')>
+                            <label for="switcher-icon-hover" class="ms-2 font-semibold">Icon Hover</label>
+                            </div>
                         </div>
-                        <div class="flex">
-                            <input type="radio" name="navigation-data-menu-styles" class="ti-form-radio" id="switcher-menu-hover">
-                            <label for="switcher-menu-hover" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Menu
-                            Hover</label>
+                        <div class="px-4 text-secondary text-xs"><b class="me-2">Note:</b>Works same for both Vertical and Horizontal</div>
                         </div>
-                        <div class="flex">
-                            <input type="radio" name="navigation-data-menu-styles" class="ti-form-radio" id="switcher-icon-click">
-                            <label for="switcher-icon-click" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Icon
-                            Click</label>
-                        </div>
-                        <div class="flex">
-                            <input type="radio" name="navigation-data-menu-styles" class="ti-form-radio" id="switcher-icon-hover">
-                            <label for="switcher-icon-hover" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Icon
-                            Hover</label>
-                        </div>
-                        </div>
-                        <div class="px-4 text-secondary text-xs"><b class="me-2">Note:</b>Works same for both Vertical and
-                        Horizontal
-                        </div>
-                    </div>
                     <div class=" sidemenu-layout-styles">
                         <p class="switcher-style-head">Sidemenu Layout Syles:</p>
                         <div class="grid grid-cols-2 gap-2 switcher-style">
