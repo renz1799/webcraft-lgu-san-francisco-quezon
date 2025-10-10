@@ -14,6 +14,7 @@ class ThemeService
         'nav'            => ['vertical','horizontal'],
         'menuStyle'      => ['menu-click','menu-hover','icon-click','icon-hover'],
         'sideMenuLayout' => ['default','closed','icontext','icon-overlay','detached','doublemenu'],
+        'pageStyle'      => ['regular','classic','modern'],
     ];
 
     public function __construct(
@@ -30,6 +31,7 @@ class ThemeService
                 'nav'            => 'vertical',
                 'menuStyle'      => 'menu-click',
                 'sideMenuLayout' => 'default',
+                'pageStyle'     => 'regular', 
             ],
             'colors' => [
                 'primary' => '#635BFF',
@@ -96,7 +98,7 @@ class ThemeService
     {
         $out = $in;
 
-        // legacy aliases -> canonical
+        // --- legacy aliases -> canonical
         if (isset($out['menu_style']) && !isset($out['menuStyle'])) {
             $out['menuStyle'] = $out['menu_style'];
         }
@@ -106,16 +108,23 @@ class ThemeService
                 $out['menuStyle'] = $hover ? 'menu-hover' : 'menu-click';
             }
         }
+        // ✅ pageStyle aliases (from vendor/UI)
+        if (isset($out['page_style']) && !isset($out['pageStyle'])) {
+            $out['pageStyle'] = $out['page_style'];
+        }
+        if (isset($out['data-page-styles']) && !isset($out['pageStyle'])) {
+            $out['pageStyle'] = $out['data-page-styles'];
+        }
 
         // drop aliases
-        unset($out['menu_style'], $out['menuHover']);
+        unset($out['menu_style'], $out['menuHover'], $out['page_style'], $out['data-page-styles']);
 
         // lowercase/trim strings
         foreach ($out as $k => $v) {
             if (is_string($v)) $out[$k] = strtolower(trim($v));
         }
 
-        // clamp values to allowed sets, fallback to defaults
+        // clamp to allowed sets
         $clean = [];
         foreach (self::ALLOWED_STYLE as $key => $allowedVals) {
             if (isset($out[$key]) && in_array($out[$key], $allowedVals, true)) {

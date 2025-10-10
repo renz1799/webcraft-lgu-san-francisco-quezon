@@ -179,24 +179,54 @@
 
                     <div>
                         <p class="switcher-style-head">Page Styles:</p>
-                        <div class="grid grid-cols-3  switcher-style">
-                        <div class="flex">
-                            <input type="radio" name="data-page-styles" class="ti-form-radio" id="switcher-regular" checked>
+                        <div class="grid grid-cols-3 switcher-style" id="page-style-group">
+                            <div class="flex">
+                            <input
+                                type="radio"
+                                name="data-page-styles"
+                                value="regular"
+                                id="switcher-regular"
+                                class="ti-form-radio"
+                                @checked(($themeStyle['pageStyle'] ?? 'regular') === 'regular')
+                            >
                             <label for="switcher-regular"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Regular</label>
-                        </div>
-                        <div class="flex">
-                            <input type="radio" name="data-page-styles" class="ti-form-radio" id="switcher-classic">
+                                    class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+                                Regular
+                            </label>
+                            </div>
+
+                            <div class="flex">
+                            <input
+                                type="radio"
+                                name="data-page-styles"
+                                value="classic"
+                                id="switcher-classic"
+                                class="ti-form-radio"
+                                @checked(($themeStyle['pageStyle'] ?? 'regular') === 'classic')
+                            >
                             <label for="switcher-classic"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Classic</label>
-                        </div>
-                        <div class="flex">
-                            <input type="radio" name="data-page-styles" class="ti-form-radio" id="switcher-modern">
+                                    class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+                                Classic
+                            </label>
+                            </div>
+
+                            <div class="flex">
+                            <input
+                                type="radio"
+                                name="data-page-styles"
+                                value="modern"
+                                id="switcher-modern"
+                                class="ti-form-radio"
+                                @checked(($themeStyle['pageStyle'] ?? 'regular') === 'modern')
+                            >
                             <label for="switcher-modern"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold"> Modern</label>
-                        </div>
+                                    class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+                                Modern
+                            </label>
+                            </div>
                         </div>
                     </div>
+
                     <div>
                         <p class="switcher-style-head">Layout Width Styles:</p>
                         <div class="grid grid-cols-3 switcher-style">

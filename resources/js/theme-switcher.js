@@ -64,20 +64,24 @@
     }
 
     if (Object.prototype.hasOwnProperty.call(patch, 'sideMenuLayout')) {
-  const v = String(patch.sideMenuLayout || 'default'); // default|closed|icontext|icon-overlay|detached|doublemenu
-  if (v === 'default') {
-    // important: remove the attribute so vendor won't wipe data-nav-style
-    document.documentElement.removeAttribute('data-vertical-style');
-    // localStorage for vendor
-    localStorage.removeItem('ynexverticalstyles');
-  } else {
-    document.documentElement.setAttribute('data-vertical-style', v);
-    // per vendor behavior, nav styles don't apply here; they’ll clear it in L()
-    // keeping localStorage in sync prevents vendor switcher from fighting us
-    localStorage.setItem('ynexverticalstyles', v);
+      const v = String(patch.sideMenuLayout || 'default'); // default|closed|icontext|icon-overlay|detached|doublemenu
+      if (v === 'default') {
+        // important: remove the attribute so vendor won't wipe data-nav-style
+        document.documentElement.removeAttribute('data-vertical-style');
+        // localStorage for vendor
+        localStorage.removeItem('ynexverticalstyles');
+      } else {
+        document.documentElement.setAttribute('data-vertical-style', v);
+        // per vendor behavior, nav styles don't apply here; they’ll clear it in L()
+        // keeping localStorage in sync prevents vendor switcher from fighting us
+        localStorage.setItem('ynexverticalstyles', v);
+      }
+      log(`apply sideMenuLayout -> ${v}`);
+    }
+  if (Object.prototype.hasOwnProperty.call(patch, 'pageStyle')) {
+    html.setAttribute('data-page-style', String(patch.pageStyle));
+    log(`apply pageStyle -> ${patch.pageStyle}`);
   }
-  log(`apply sideMenuLayout -> ${v}`);
-}
   };
 
   const post = async (url, payload) => {
@@ -137,6 +141,8 @@ document.addEventListener('change', async (e) => {
   if (t.name === 'direction')    return applyAndSave({ dir: t.value });
   if (t.name === 'nav_style')    return applyAndSave({ nav: t.value });
   if (t.name === 'menu_style')   return applyAndSave({ menuStyle: t.value });
+  if (!(t instanceof HTMLInputElement)) return;
+  if (!host.contains(t)) return;
 
   // ✅ NEW: vertical-only Sidemenu Layout Styles
   if (t.name === 'sidemenu_layout') {
@@ -144,6 +150,13 @@ document.addEventListener('change', async (e) => {
     const html = document.documentElement;
     if ((html.getAttribute('data-nav-layout') || 'vertical') !== 'vertical') return;
     return applyAndSave({ sideMenuLayout: t.value }); // default|closed|icontext|icon-overlay|detached|doublemenu
+  }
+
+    if (t.name === 'data-page-styles') {
+    const payload = { pageStyle: t.value }; // 'regular' | 'classic' | 'modern'
+    applyStyle(payload);
+    await post(STYLE_URL, payload);
+    return;
   }
 }, true);
 

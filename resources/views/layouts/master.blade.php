@@ -19,6 +19,7 @@
   {{-- keep these if your UI uses them --}}
   data-header-styles="{{ ($themeStyle['mode'] ?? 'light') === 'dark' ? 'dark' : 'light' }}"
   data-menu-styles="dark"
+  data-page-style="{{ $themeStyle['pageStyle'] ?? 'regular' }}"
 >
 
 

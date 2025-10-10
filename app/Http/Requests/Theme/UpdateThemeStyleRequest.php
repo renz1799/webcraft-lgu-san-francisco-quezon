@@ -11,6 +11,7 @@ class UpdateThemeStyleRequest extends FormRequest
         return (bool) $this->user();
     }
 
+
     public function rules(): array
     {
         return [
@@ -21,16 +22,24 @@ class UpdateThemeStyleRequest extends FormRequest
             // canonical
             'menuStyle'      => ['sometimes','in:menu-click,menu-hover,icon-click,icon-hover'],
             'sideMenuLayout' => ['sometimes','in:default,closed,icontext,icon-overlay,detached,doublemenu'],
+            'pageStyle'      => ['sometimes','in:regular,classic,modern'],
 
-            // legacy / alt names (these get mapped in prepareForValidation)
+            // legacy / alt names (mapped in prepareForValidation)
             'menu_style'               => ['sometimes','in:menu-click,menu-hover,icon-click,icon-hover'],
             'menuHover'                => ['sometimes','boolean'],
+
             'side_menu_layout'         => ['sometimes','in:default,closed,icontext,icon-overlay,detached,doublemenu'],
             'sidemenu_layout'          => ['sometimes','in:default,closed,icontext,icon-overlay,detached,doublemenu'],
             'sidemenu-layout'          => ['sometimes','in:default,closed,icontext,icon-overlay,detached,doublemenu'],
             'sidemenu-layout-styles'   => ['sometimes','in:default,closed,icontext,icon-overlay,detached,doublemenu'],
             'vertical_style'           => ['sometimes','in:default,closed,icontext,icon-overlay,detached,doublemenu'],
             'vertical-style'           => ['sometimes','in:default,closed,icontext,icon-overlay,detached,doublemenu'],
+
+            'page_style'               => ['sometimes','in:regular,classic,modern'],
+            'data_page_style'          => ['sometimes','in:regular,classic,modern'],
+            'data-page-style'          => ['sometimes','in:regular,classic,modern'],
+            'data_page_styles'         => ['sometimes','in:regular,classic,modern'],
+            'data-page-styles'         => ['sometimes','in:regular,classic,modern'],
         ];
     }
 
@@ -38,21 +47,22 @@ class UpdateThemeStyleRequest extends FormRequest
     {
         $data = $this->all();
 
-        // --- normalize casing/whitespace on simple string values
-        foreach (['mode','dir','nav','menuStyle','menu_style','sideMenuLayout','side_menu_layout','sidemenu_layout','sidemenu-layout','sidemenu-layout-styles','vertical_style','vertical-style'] as $k) {
+        // normalize casing/whitespace on string values
+        foreach ([
+            'mode','dir','nav',
+            'menuStyle','menu_style',
+            'sideMenuLayout','side_menu_layout','sidemenu_layout','sidemenu-layout','sidemenu-layout-styles','vertical_style','vertical-style',
+            'pageStyle','page_style','data_page_style','data-page-style','data_page_styles','data-page-styles',
+        ] as $k) {
             if (isset($data[$k]) && is_string($data[$k])) {
                 $data[$k] = strtolower(trim($data[$k]));
             }
         }
 
-        // --- map synonyms to canonical keys ------------------------------
-
-        // menuStyle: kebab alias
+        // ---- menuStyle mappings ----
         if (array_key_exists('menu_style', $data) && !isset($data['menuStyle'])) {
             $data['menuStyle'] = $data['menu_style'];
         }
-
-        // legacy boolean -> menuStyle (only if menuStyle not explicitly set)
         if (array_key_exists('menuHover', $data)) {
             $hover = filter_var($data['menuHover'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             if (!isset($data['menuStyle']) && $hover !== null) {
@@ -61,16 +71,20 @@ class UpdateThemeStyleRequest extends FormRequest
             unset($data['menuHover']);
         }
 
-        // sideMenuLayout: accept multiple aliases from the UI/vendor
-        $sideAliases = [
-            'side_menu_layout','sidemenu_layout','sidemenu-layout','sidemenu-layout-styles',
-            'vertical_style','vertical-style',
-        ];
-        foreach ($sideAliases as $alias) {
+        // ---- sideMenuLayout mappings ----
+        foreach (['side_menu_layout','sidemenu_layout','sidemenu-layout','sidemenu-layout-styles','vertical_style','vertical-style'] as $alias) {
             if (array_key_exists($alias, $data) && !isset($data['sideMenuLayout'])) {
                 $data['sideMenuLayout'] = $data[$alias];
             }
-            unset($data[$alias]); // drop alias keys either way
+            unset($data[$alias]);
+        }
+
+        // ---- pageStyle mappings ----
+        foreach (['page_style','data_page_style','data-page-style','data_page_styles','data-page-styles'] as $alias) {
+            if (array_key_exists($alias, $data) && !isset($data['pageStyle'])) {
+                $data['pageStyle'] = $data[$alias];
+            }
+            unset($data[$alias]);
         }
 
         $this->replace($data);
@@ -80,12 +94,10 @@ class UpdateThemeStyleRequest extends FormRequest
     {
         $v = parent::validated($key, $default);
 
-        // Only pass canonical keys across the service boundary
+        // only canonical keys are returned
         $out = [];
-        foreach (['mode','dir','nav','menuStyle','sideMenuLayout'] as $k) {
-            if (array_key_exists($k, $v)) {
-                $out[$k] = $v[$k];
-            }
+        foreach (['mode','dir','nav','menuStyle','sideMenuLayout','pageStyle'] as $k) {
+            if (array_key_exists($k, $v)) $out[$k] = $v[$k];
         }
         return $out;
     }
