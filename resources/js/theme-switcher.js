@@ -62,6 +62,22 @@
       html.dataset.menuKind  = v.startsWith('icon') ? 'icon' : 'menu';
       log(`apply menuStyle -> ${v} (hover=${html.dataset.menuHover}, kind=${html.dataset.menuKind})`);
     }
+
+    if (Object.prototype.hasOwnProperty.call(patch, 'sideMenuLayout')) {
+  const v = String(patch.sideMenuLayout || 'default'); // default|closed|icontext|icon-overlay|detached|doublemenu
+  if (v === 'default') {
+    // important: remove the attribute so vendor won't wipe data-nav-style
+    document.documentElement.removeAttribute('data-vertical-style');
+    // localStorage for vendor
+    localStorage.removeItem('ynexverticalstyles');
+  } else {
+    document.documentElement.setAttribute('data-vertical-style', v);
+    // per vendor behavior, nav styles don't apply here; they’ll clear it in L()
+    // keeping localStorage in sync prevents vendor switcher from fighting us
+    localStorage.setItem('ynexverticalstyles', v);
+  }
+  log(`apply sideMenuLayout -> ${v}`);
+}
   };
 
   const post = async (url, payload) => {
@@ -112,16 +128,24 @@
   check('menu_style',  state.menuStyle);
 
   // ---------------- listeners ----------------
-  document.addEventListener('change', async (e) => {
-    const t = e.target;
-    if (!(t instanceof HTMLInputElement)) return;
-    if (!host.contains(t)) return;
+document.addEventListener('change', async (e) => {
+  const t = e.target;
+  if (!(t instanceof HTMLInputElement)) return;
+  if (!host.contains(t)) return;
 
-    if (t.name === 'theme_mode')   return applyAndSave({ mode: t.value });
-    if (t.name === 'direction')    return applyAndSave({ dir: t.value });
-    if (t.name === 'nav_style')    return applyAndSave({ nav: t.value });
-    if (t.name === 'menu_style')   return applyAndSave({ menuStyle: t.value });
-  }, true);
+  if (t.name === 'theme_mode')   return applyAndSave({ mode: t.value });
+  if (t.name === 'direction')    return applyAndSave({ dir: t.value });
+  if (t.name === 'nav_style')    return applyAndSave({ nav: t.value });
+  if (t.name === 'menu_style')   return applyAndSave({ menuStyle: t.value });
+
+  // ✅ NEW: vertical-only Sidemenu Layout Styles
+  if (t.name === 'sidemenu_layout') {
+    // only act when layout is vertical (per design)
+    const html = document.documentElement;
+    if ((html.getAttribute('data-nav-layout') || 'vertical') !== 'vertical') return;
+    return applyAndSave({ sideMenuLayout: t.value }); // default|closed|icontext|icon-overlay|detached|doublemenu
+  }
+}, true);
 
   // admin color pickers (use inputs with data-theme-color="primary|success|warning|danger")
   document.addEventListener('input', async (e) => {

@@ -6,11 +6,17 @@
     'dark'  => ($themeStyle['mode'] ?? 'light') === 'dark',
     'light' => ($themeStyle['mode'] ?? 'light') === 'light',
   ])
+
+  {{-- layout axis --}}
   data-nav-layout="{{ $themeStyle['nav'] ?? 'vertical' }}"
+
+  {{-- vendor expects this for click/hover styles --}}
   data-nav-style="{{ $themeStyle['menuStyle'] ?? 'menu-click' }}"
-  @if(!empty($themeStyle['sideMenuLayout']) && $themeStyle['sideMenuLayout'] !== 'default')
-    data-vertical-style="{{ $themeStyle['sideMenuLayout'] }}"
-  @endif
+
+  {{-- IMPORTANT: always render this, even when "default" --}}
+  data-vertical-style="{{ $themeStyle['sideMenuLayout'] ?? 'default' }}"
+
+  {{-- keep these if your UI uses them --}}
   data-header-styles="{{ ($themeStyle['mode'] ?? 'light') === 'dark' ? 'dark' : 'light' }}"
   data-menu-styles="dark"
 >

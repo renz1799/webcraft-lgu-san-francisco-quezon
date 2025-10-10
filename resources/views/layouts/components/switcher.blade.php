@@ -110,45 +110,73 @@
                         </div>
                         <div class="px-4 text-secondary text-xs"><b class="me-2">Note:</b>Works same for both Vertical and Horizontal</div>
                         </div>
-                    <div class=" sidemenu-layout-styles">
-                        <p class="switcher-style-head">Sidemenu Layout Syles:</p>
-                        <div class="grid grid-cols-2 gap-2 switcher-style">
+                    {{-- Sidemenu Layout Styles (vertical only) --}}
+                    <div class="sidemenu-layout-styles">
+                    <p class="switcher-style-head">Sidemenu Layout Styles:</p>
+                    <div class="grid grid-cols-2 gap-2 switcher-style">
+
+                        @php $side = $themeStyle['sideMenuLayout'] ?? 'default'; @endphp
+
                         <div class="flex">
-                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-default-menu" checked>
-                            <label for="switcher-default-menu"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold ">Default
-                            Menu</label>
+                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
+                                id="switcher-default-menu" value="default"
+                                @checked($side === 'default')>
+                        <label for="switcher-default-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+                            Default Menu
+                        </label>
                         </div>
+
                         <div class="flex">
-                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-closed-menu">
-                            <label for="switcher-closed-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold ">
-                            Closed
-                            Menu</label>
+                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
+                                id="switcher-closed-menu" value="closed"
+                                @checked($side === 'closed')>
+                        <label for="switcher-closed-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+                            Closed Menu
+                        </label>
                         </div>
+
                         <div class="flex">
-                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-icontext-menu">
-                            <label for="switcher-icontext-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold ">Icon
-                            Text</label>
+                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
+                                id="switcher-icontext-menu" value="icontext"
+                                @checked($side === 'icontext')>
+                        <label for="switcher-icontext-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+                            Icon Text
+                        </label>
                         </div>
+
                         <div class="flex">
-                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-icon-overlay">
-                            <label for="switcher-icon-overlay" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold ">Icon
-                            Overlay</label>
+                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
+                                id="switcher-icon-overlay" value="icon-overlay"
+                                @checked($side === 'icon-overlay')>
+                        <label for="switcher-icon-overlay" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+                            Icon Overlay
+                        </label>
                         </div>
+
                         <div class="flex">
-                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-detached">
-                            <label for="switcher-detached"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold ">Detached</label>
+                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
+                                id="switcher-detached" value="detached"
+                                @checked($side === 'detached')>
+                        <label for="switcher-detached" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+                            Detached
+                        </label>
                         </div>
+
                         <div class="flex">
-                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-double-menu">
-                            <label for="switcher-double-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Double
-                            Menu</label>
+                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
+                                id="switcher-double-menu" value="doublemenu"
+                                @checked($side === 'doublemenu')>
+                        <label for="switcher-double-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+                            Double Menu
+                        </label>
                         </div>
-                        </div>
-                        <div class="px-4 text-secondary text-xs"><b class="me-2">Note:</b>Navigation menu styles won't work
-                        here.</div>
                     </div>
+
+                    <div class="px-4 text-secondary text-xs">
+                        <b class="me-2">Note:</b>Navigation menu styles won't work here.
+                    </div>
+                    </div>
+
                     <div>
                         <p class="switcher-style-head">Page Styles:</p>
                         <div class="grid grid-cols-3  switcher-style">
