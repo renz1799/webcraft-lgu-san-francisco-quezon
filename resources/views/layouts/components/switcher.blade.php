@@ -227,67 +227,126 @@
                         </div>
                     </div>
 
-                    <div>
-                        <p class="switcher-style-head">Layout Width Styles:</p>
-                        <div class="grid grid-cols-3 switcher-style">
-                        <div class="flex">
-                            <input type="radio" name="layout-width" class="ti-form-radio" id="switcher-full-width" checked>
-                            <label for="switcher-full-width"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">FullWidth</label>
-                        </div>
-                        <div class="flex">
-                            <input type="radio" name="layout-width" class="ti-form-radio" id="switcher-boxed">
-                            <label for="switcher-boxed" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Boxed</label>
-                        </div>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="switcher-style-head">Menu Positions:</p>
-                        <div class="grid grid-cols-3  switcher-style">
-                        <div class="flex">
-                            <input type="radio" name="data-menu-positions" class="ti-form-radio" id="switcher-menu-fixed" checked>
-                            <label for="switcher-menu-fixed"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Fixed</label>
-                        </div>
-                        <div class="flex">
-                            <input type="radio" name="data-menu-positions" class="ti-form-radio" id="switcher-menu-scroll">
-                            <label for="switcher-menu-scroll"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Scrollable </label>
-                        </div>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="switcher-style-head">Header Positions:</p>
-                        <div class="grid grid-cols-3 switcher-style">
-                        <div class="flex">
-                            <input type="radio" name="data-header-positions" class="ti-form-radio" id="switcher-header-fixed" checked>
-                            <label for="switcher-header-fixed" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">
-                            Fixed</label>
-                        </div>
-                        <div class="flex">
-                            <input type="radio" name="data-header-positions" class="ti-form-radio" id="switcher-header-scroll">
-                            <label for="switcher-header-scroll"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Scrollable
-                            </label>
-                        </div>
-                        </div>
-                    </div>
-                    <div class="">
-                        <p class="switcher-style-head">Loader:</p>
-                        <div class="grid grid-cols-3 switcher-style">
-                        <div class="flex">
-                            <input type="radio" name="page-loader" class="ti-form-radio" id="switcher-loader-enable" checked>
-                            <label for="switcher-loader-enable" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">
-                            Enable</label>
-                        </div>
-                        <div class="flex">
-                            <input type="radio" name="page-loader" class="ti-form-radio" id="switcher-loader-disable">
-                            <label for="switcher-loader-disable"
-                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Disable
-                            </label>
-                        </div>
-                        </div>
-                    </div>
+{{-- Layout Width Styles --}}
+<div>
+  <p class="switcher-style-head">Layout Width Styles:</p>
+  <div class="grid grid-cols-3 switcher-style">
+    <div class="flex">
+      <input
+        type="radio"
+        name="layout-width"
+        value="fullwidth"
+        id="switcher-full-width"
+        class="ti-form-radio"
+        @checked(($themeStyle['width'] ?? 'fullwidth') === 'fullwidth')
+      >
+      <label for="switcher-full-width" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+        FullWidth
+      </label>
+    </div>
+    <div class="flex">
+      <input
+        type="radio"
+        name="layout-width"
+        value="boxed"
+        id="switcher-boxed"
+        class="ti-form-radio"
+        @checked(($themeStyle['width'] ?? 'fullwidth') === 'boxed')
+      >
+      <label for="switcher-boxed" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
+        Boxed
+      </label>
+    </div>
+  </div>
+</div>
+
+{{-- Menu Positions --}}
+<div>
+  <p class="switcher-style-head">Menu Positions:</p>
+  <div class="grid grid-cols-3 switcher-style">
+    <div class="flex">
+      <input
+        type="radio"
+        name="data-menu-positions"
+        value="fixed"
+        id="switcher-menu-fixed"
+        class="ti-form-radio"
+        @checked(($themeStyle['menuPosition'] ?? 'fixed') === 'fixed')
+      >
+      <label for="switcher-menu-fixed" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Fixed</label>
+    </div>
+    <div class="flex">
+      <input
+        type="radio"
+        name="data-menu-positions"
+        value="scrollable"
+        id="switcher-menu-scroll"
+        class="ti-form-radio"
+        @checked(($themeStyle['menuPosition'] ?? 'fixed') === 'scrollable')
+      >
+      <label for="switcher-menu-scroll" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Scrollable</label>
+    </div>
+  </div>
+</div>
+
+{{-- Header Positions --}}
+<div>
+  <p class="switcher-style-head">Header Positions:</p>
+  <div class="grid grid-cols-3 switcher-style">
+    <div class="flex">
+      <input
+        type="radio"
+        name="data-header-positions"
+        value="fixed"
+        id="switcher-header-fixed"
+        class="ti-form-radio"
+        @checked(($themeStyle['headerPosition'] ?? 'fixed') === 'fixed')
+      >
+      <label for="switcher-header-fixed" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Fixed</label>
+    </div>
+    <div class="flex">
+      <input
+        type="radio"
+        name="data-header-positions"
+        value="scrollable"
+        id="switcher-header-scroll"
+        class="ti-form-radio"
+        @checked(($themeStyle['headerPosition'] ?? 'fixed') === 'scrollable')
+      >
+      <label for="switcher-header-scroll" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Scrollable</label>
+    </div>
+  </div>
+</div>
+
+{{-- Loader --}}
+<div>
+  <p class="switcher-style-head">Loader:</p>
+  <div class="grid grid-cols-3 switcher-style">
+    <div class="flex">
+      <input
+        type="radio"
+        name="page-loader"
+        value="enable"
+        id="switcher-loader-enable"
+        class="ti-form-radio"
+        @checked(($themeStyle['loader'] ?? 'enable') === 'enable')
+      >
+      <label for="switcher-loader-enable" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Enable</label>
+    </div>
+    <div class="flex">
+      <input
+        type="radio"
+        name="page-loader"
+        value="disable"
+        id="switcher-loader-disable"
+        class="ti-form-radio"
+        @checked(($themeStyle['loader'] ?? 'enable') === 'disable')
+      >
+      <label for="switcher-loader-disable" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Disable</label>
+    </div>
+  </div>
+</div>
+
                     </div>
                     <div id="switcher-2" class="hidden" role="tabpanel" aria-labelledby="switcher-item-2">
                     <div class="theme-colors">

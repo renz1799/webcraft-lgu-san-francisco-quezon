@@ -23,6 +23,10 @@ class UpdateThemeStyleRequest extends FormRequest
             'menuStyle'      => ['sometimes','in:menu-click,menu-hover,icon-click,icon-hover'],
             'sideMenuLayout' => ['sometimes','in:default,closed,icontext,icon-overlay,detached,doublemenu'],
             'pageStyle'      => ['sometimes','in:regular,classic,modern'],
+            'width'          => ['sometimes','in:fullwidth,boxed'],
+            'menuPosition'   => ['sometimes','in:fixed,scrollable'],
+            'headerPosition' => ['sometimes','in:fixed,scrollable'],
+            'loader'         => ['sometimes','in:enable,disable'],
 
             // legacy / alt names (mapped in prepareForValidation)
             'menu_style'               => ['sometimes','in:menu-click,menu-hover,icon-click,icon-hover'],
@@ -40,65 +44,66 @@ class UpdateThemeStyleRequest extends FormRequest
             'data-page-style'          => ['sometimes','in:regular,classic,modern'],
             'data_page_styles'         => ['sometimes','in:regular,classic,modern'],
             'data-page-styles'         => ['sometimes','in:regular,classic,modern'],
+
+            'layout-width'            => ['sometimes','in:fullwidth,boxed'],
+            'data-menu-positions'     => ['sometimes','in:fixed,scrollable'],
+            'data-header-positions'   => ['sometimes','in:fixed,scrollable'],
+            'page-loader'             => ['sometimes','in:enable,disable'],
         ];
     }
 
-    protected function prepareForValidation(): void
-    {
-        $data = $this->all();
+ protected function prepareForValidation(): void
+{
+    $data = $this->all();
 
-        // normalize casing/whitespace on string values
-        foreach ([
-            'mode','dir','nav',
-            'menuStyle','menu_style',
-            'sideMenuLayout','side_menu_layout','sidemenu_layout','sidemenu-layout','sidemenu-layout-styles','vertical_style','vertical-style',
-            'pageStyle','page_style','data_page_style','data-page-style','data_page_styles','data-page-styles',
-        ] as $k) {
-            if (isset($data[$k]) && is_string($data[$k])) {
-                $data[$k] = strtolower(trim($data[$k]));
-            }
-        }
-
-        // ---- menuStyle mappings ----
-        if (array_key_exists('menu_style', $data) && !isset($data['menuStyle'])) {
-            $data['menuStyle'] = $data['menu_style'];
-        }
-        if (array_key_exists('menuHover', $data)) {
-            $hover = filter_var($data['menuHover'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-            if (!isset($data['menuStyle']) && $hover !== null) {
-                $data['menuStyle'] = $hover ? 'menu-hover' : 'menu-click';
-            }
-            unset($data['menuHover']);
-        }
-
-        // ---- sideMenuLayout mappings ----
-        foreach (['side_menu_layout','sidemenu_layout','sidemenu-layout','sidemenu-layout-styles','vertical_style','vertical-style'] as $alias) {
-            if (array_key_exists($alias, $data) && !isset($data['sideMenuLayout'])) {
-                $data['sideMenuLayout'] = $data[$alias];
-            }
-            unset($data[$alias]);
-        }
-
-        // ---- pageStyle mappings ----
-        foreach (['page_style','data_page_style','data-page-style','data_page_styles','data-page-styles'] as $alias) {
-            if (array_key_exists($alias, $data) && !isset($data['pageStyle'])) {
-                $data['pageStyle'] = $data[$alias];
-            }
-            unset($data[$alias]);
-        }
-
-        $this->replace($data);
+    // normalize string casing
+    foreach (array_keys($data) as $k) {
+        if (is_string($data[$k])) $data[$k] = strtolower(trim($data[$k]));
     }
 
-    public function validated($key = null, $default = null)
-    {
-        $v = parent::validated($key, $default);
-
-        // only canonical keys are returned
-        $out = [];
-        foreach (['mode','dir','nav','menuStyle','sideMenuLayout','pageStyle'] as $k) {
-            if (array_key_exists($k, $v)) $out[$k] = $v[$k];
-        }
-        return $out;
+    // menuStyle aliases
+    if (isset($data['menu_style']) && !isset($data['menuStyle'])) $data['menuStyle'] = $data['menu_style'];
+    if (array_key_exists('menuHover', $data) && !isset($data['menuStyle'])) {
+        $hover = filter_var($data['menuHover'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($hover !== null) $data['menuStyle'] = $hover ? 'menu-hover' : 'menu-click';
+        unset($data['menuHover']);
     }
+
+    // sideMenuLayout aliases
+    foreach (['side_menu_layout','sidemenu_layout','sidemenu-layout','sidemenu-layout-styles','vertical_style','vertical-style'] as $a) {
+        if (isset($data[$a]) && !isset($data['sideMenuLayout'])) $data['sideMenuLayout'] = $data[$a];
+        unset($data[$a]);
+    }
+
+    // pageStyle aliases
+    foreach (['data-page-styles','page_style'] as $a) {
+        if (isset($data[$a]) && !isset($data['pageStyle'])) $data['pageStyle'] = $data[$a];
+        unset($data[$a]);
+    }
+
+    // width / positions / loader aliases
+    if (isset($data['layout-width']) && !isset($data['width'])) $data['width'] = $data['layout-width'];
+    unset($data['layout-width']);
+
+    if (isset($data['data-menu-positions']) && !isset($data['menuPosition'])) $data['menuPosition'] = $data['data-menu-positions'];
+    unset($data['data-menu-positions']);
+
+    if (isset($data['data-header-positions']) && !isset($data['headerPosition'])) $data['headerPosition'] = $data['data-header-positions'];
+    unset($data['data-header-positions']);
+
+    if (isset($data['page-loader']) && !isset($data['loader'])) $data['loader'] = $data['page-loader'];
+    unset($data['page-loader']);
+
+    $this->replace($data);
+}
+
+public function validated($key = null, $default = null)
+{
+    $v = parent::validated($key, $default);
+    // return only canonical keys
+    return array_intersect_key($v, array_flip([
+        'mode','dir','nav','menuStyle','sideMenuLayout','pageStyle',
+        'width','menuPosition','headerPosition','loader',
+    ]));
+}
 }

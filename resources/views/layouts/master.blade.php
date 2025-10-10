@@ -20,6 +20,12 @@
   data-header-styles="{{ ($themeStyle['mode'] ?? 'light') === 'dark' ? 'dark' : 'light' }}"
   data-menu-styles="dark"
   data-page-style="{{ $themeStyle['pageStyle'] ?? 'regular' }}"
+
+    {{-- ✅ new: width / positions / loader --}}
+  @if(!empty($themeStyle['width']))            data-width="{{ $themeStyle['width'] }}" @endif
+  @if(!empty($themeStyle['menuPosition']))     data-menu-position="{{ $themeStyle['menuPosition'] }}" @endif
+  @if(!empty($themeStyle['headerPosition']))   data-header-position="{{ $themeStyle['headerPosition'] }}" @endif
+  @if(!empty($themeStyle['loader']))           loader="{{ $themeStyle['loader'] }}" @endif
 >
 
 
@@ -159,15 +165,23 @@
 <script>
   localStorage.setItem('ynexnavstyles', '{{ $themeStyle['menuStyle'] ?? 'menu-click' }}');
   localStorage.setItem('Ynexnavstyles', '{{ $themeStyle['menuStyle'] ?? 'menu-click' }}');
-  localStorage.setItem('ynexlayout', '{{ $themeStyle['nav'] ?? 'vertical' }}');
-  localStorage.setItem('Ynexlayout', '{{ $themeStyle['nav'] ?? 'vertical' }}');
+  localStorage.setItem('ynexlayout',     '{{ $themeStyle['nav'] ?? 'vertical' }}');
+  localStorage.setItem('Ynexlayout',     '{{ $themeStyle['nav'] ?? 'vertical' }}');
 
   @if(!empty($themeStyle['sideMenuLayout']) && $themeStyle['sideMenuLayout'] !== 'default')
     localStorage.setItem('ynexverticalstyles', '{{ $themeStyle['sideMenuLayout'] }}');
   @else
     localStorage.removeItem('ynexverticalstyles');
   @endif
+
+  // optional defaults for instant paint parity:
+  localStorage.setItem('ynexfullwidth',  '{{ ($themeStyle['width'] ?? 'fullwidth') === 'boxed' ? 'false' : 'true' }}');
+  localStorage.setItem('ynexboxed',      '{{ ($themeStyle['width'] ?? 'fullwidth') === 'boxed' ? 'true' : 'false' }}');
+  localStorage.setItem('ynexmenufixed',  '{{ ($themeStyle['menuPosition'] ?? 'fixed') === 'fixed' ? 'true' : 'false' }}');
+  localStorage.setItem('ynexheadersfixed','{{ ($themeStyle['headerPosition'] ?? 'fixed') === 'fixed' ? 'true' : 'false' }}');
+  localStorage.setItem('loaderEnable',   '{{ ($themeStyle['loader'] ?? 'enable') === 'disable' ? 'false' : 'true' }}');
 </script>
+
 
 <!-- Laravel Vite JS -->
 @vite(['resources/assets/js/custom-switcher.js']) 
