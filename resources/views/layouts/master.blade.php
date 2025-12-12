@@ -210,7 +210,7 @@ div.dataTables_processing > div:last-child > div:nth-child(4) {
 
         @include('layouts.components.scripts')
 
-        @yield('scripts')
+        @stack('scripts')
 
         <!-- Datatables JS -->
         <script src="{{asset('build/assets/jquery.dataTables.min.js')}}"></script>

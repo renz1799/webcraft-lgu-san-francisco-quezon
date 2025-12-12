@@ -14,7 +14,7 @@ use App\Http\Controllers\PermissionController;    // permissions CRUD
 use App\Http\Controllers\LoginLogController;      // login logs (DataTables)
 use App\Http\Controllers\AuditLogController;      // audit logs (list)
 use App\Http\Controllers\AuditRestoreController;  // audit restore action
-
+use App\Http\Controllers\Notifications\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -147,6 +147,18 @@ Route::middleware('auth')->group(function () {
         ->middleware('role_or_permission:admin|modify Allow Data Restoration')
         ->name('audit.restore');
 });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tasks and Notifications
+    |--------------------------------------------------------------------------
+    */
+
+Route::middleware('auth')->group(function () {
+    Route::get('/notifications/header', [NotificationController::class, 'header']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+});
+
 
     /*
     |--------------------------------------------------------------------------

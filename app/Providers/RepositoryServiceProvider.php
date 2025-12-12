@@ -11,7 +11,8 @@ use App\Repositories\Contracts\{
     PermissionRepositoryInterface,
     AuditLogRepositoryInterface,
     RoleRepositoryInterface,
-    ThemePreferencesRepositoryInterface
+    ThemePreferencesRepositoryInterface,
+    NotificationRepositoryInterface
 };
 use App\Repositories\Eloquent\{
     EloquentUserRepository,
@@ -19,7 +20,8 @@ use App\Repositories\Eloquent\{
     EloquentPermissionRepository,
     EloquentAuditLogRepository,
     EloquentRoleRepository,
-    EloquentThemePreferencesRepository
+    EloquentThemePreferencesRepository,
+    EloquentNotificationRepository
 };
 
 // Services
@@ -55,6 +57,7 @@ class RepositoryServiceProvider extends ServiceProvider
             AuditLogRepositoryInterface::class  => EloquentAuditLogRepository::class,
             RoleRepositoryInterface::class  => EloquentRoleRepository::class,
             ThemePreferencesRepositoryInterface::class => EloquentThemePreferencesRepository::class,
+            NotificationRepositoryInterface::class => EloquentNotificationRepository::class,
         ]);
 
         // Services (singletons by default here)

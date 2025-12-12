@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         // Register the AdminRoleSeeder
         $this->call(AdminSeeder::class);
         $this->call(PermissionsSeeder::class);
+        $this->call(NotificationSeeder::class);
     }
 }
 //php artisan migrate:fresh --seed
