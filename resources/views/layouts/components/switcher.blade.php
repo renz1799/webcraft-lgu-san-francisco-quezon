@@ -1,10 +1,5 @@
 
-            <div id="hs-overlay-switcher"
-                data-theme-style='@json($themeStyle)'
-                data-update-style-url="{{ route('theme.style.update') }}"
-                data-update-colors-url="{{ route('theme.colors.update') }}"
-                class="hs-overlay hidden ti-offcanvas ti-offcanvas-right"
-                tabindex="-1">
+            <div id="hs-overlay-switcher" class="hs-overlay hidden ti-offcanvas ti-offcanvas-right" tabindex="-1">
                 <div class="ti-offcanvas-header z-10 relative">
                     <h5 class="ti-offcanvas-title">
                     Switcher
@@ -35,15 +30,15 @@
                     <div class="">
                         <p class="switcher-style-head">Theme Color Mode:</p>
                         <div class="grid grid-cols-3 switcher-style">
-                         <div class="flex items-center">
-                            <input type="radio" name="theme_mode" value="light" class="ti-form-radio" id="switcher-light-theme"
-                                @checked(($themeStyle['mode'] ?? 'light') === 'light')>
-                            <label for="switcher-light-theme" class="ms-2 font-semibold">Light</label>
+                        <div class="flex items-center">
+                            <input type="radio" name="theme-style" class="ti-form-radio" id="switcher-light-theme" checked>
+                            <label for="switcher-light-theme"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Light</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="radio" name="theme_mode" value="dark" class="ti-form-radio" id="switcher-dark-theme"
-                                @checked(($themeStyle['mode'] ?? 'light') === 'dark')>
-                            <label for="switcher-dark-theme" class="ms-2 font-semibold">Dark</label>
+                            <input type="radio" name="theme-style" class="ti-form-radio" id="switcher-dark-theme">
+                            <label for="switcher-dark-theme"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Dark</label>
                         </div>
                         </div>
                     </div>
@@ -51,302 +46,179 @@
                         <p class="switcher-style-head">Directions:</p>
                         <div class="grid grid-cols-3  switcher-style">
                         <div class="flex items-center">
-                            <input type="radio" name="direction" value="ltr" class="ti-form-radio" id="switcher-ltr"
-                                @checked(($themeStyle['dir'] ?? 'ltr') === 'ltr')>
-                            <label for="switcher-ltr" class="ms-2 font-semibold">LTR</label>
+                            <input type="radio" name="direction" class="ti-form-radio" id="switcher-ltr" checked>
+                            <label for="switcher-ltr" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">LTR</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="radio" name="direction" value="rtl" class="ti-form-radio" id="switcher-rtl"
-                                @checked(($themeStyle['dir'] ?? 'ltr') === 'rtl')>
-                            <label for="switcher-rtl" class="ms-2 font-semibold">RTL</label>
+                            <input type="radio" name="direction" class="ti-form-radio" id="switcher-rtl">
+                            <label for="switcher-rtl" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">RTL</label>
                         </div>
                         </div>
                     </div>
                     <div>
                         <p class="switcher-style-head">Navigation Styles:</p>
                         <div class="grid grid-cols-3  switcher-style">
-                          <div class="flex items-center">
-                            <input type="radio" name="nav_style" value="vertical" class="ti-form-radio" id="switcher-vertical"
-                                @checked(($themeStyle['nav'] ?? 'vertical') === 'vertical')>
-                            <label for="switcher-vertical" class="ms-2 font-semibold">Vertical</label>
+                        <div class="flex items-center">
+                            <input type="radio" name="navigation-style" class="ti-form-radio" id="switcher-vertical" checked>
+                            <label for="switcher-vertical"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Vertical</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="radio" name="nav_style" value="horizontal" class="ti-form-radio" id="switcher-horizontal"
-                                @checked(($themeStyle['nav'] ?? 'vertical') === 'horizontal')>
-                            <label for="switcher-horizontal" class="ms-2 font-semibold">Horizontal</label>
+                            <input type="radio" name="navigation-style" class="ti-form-radio" id="switcher-horizontal">
+                            <label for="switcher-horizontal"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Horizontal</label>
                         </div>
                         </div>
                     </div>
-                        <div>
+                    <div>
                         <p class="switcher-style-head">Navigation Menu Style:</p>
                         <div class="grid grid-cols-2 gap-2 switcher-style">
-                            <div class="flex">
-                            <input type="radio" name="menu_style" value="menu-click" class="ti-form-radio"
-                                    id="switcher-menu-click"
-                                    @checked(($themeStyle['menuStyle'] ?? 'menu-click') === 'menu-click')>
-                            <label for="switcher-menu-click" class="ms-2 font-semibold">Menu Click</label>
-                            </div>
-
-                            <div class="flex">
-                            <input type="radio" name="menu_style" value="menu-hover" class="ti-form-radio"
-                                    id="switcher-menu-hover"
-                                    @checked(($themeStyle['menuStyle'] ?? 'menu-click') === 'menu-hover')>
-                            <label for="switcher-menu-hover" class="ms-2 font-semibold">Menu Hover</label>
-                            </div>
-
-                            <div class="flex">
-                            <input type="radio" name="menu_style" value="icon-click" class="ti-form-radio"
-                                    id="switcher-icon-click"
-                                    @checked(($themeStyle['menuStyle'] ?? 'menu-click') === 'icon-click')>
-                            <label for="switcher-icon-click" class="ms-2 font-semibold">Icon Click</label>
-                            </div>
-
-                            <div class="flex">
-                            <input type="radio" name="menu_style" value="icon-hover" class="ti-form-radio"
-                                    id="switcher-icon-hover"
-                                    @checked(($themeStyle['menuStyle'] ?? 'menu-click') === 'icon-hover')>
-                            <label for="switcher-icon-hover" class="ms-2 font-semibold">Icon Hover</label>
-                            </div>
-                        </div>
-                        <div class="px-4 text-secondary text-xs"><b class="me-2">Note:</b>Works same for both Vertical and Horizontal</div>
-                        </div>
-                    {{-- Sidemenu Layout Styles (vertical only) --}}
-                    <div class="sidemenu-layout-styles">
-                    <p class="switcher-style-head">Sidemenu Layout Styles:</p>
-                    <div class="grid grid-cols-2 gap-2 switcher-style">
-
-                        @php $side = $themeStyle['sideMenuLayout'] ?? 'default'; @endphp
-
                         <div class="flex">
-                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
-                                id="switcher-default-menu" value="default"
-                                @checked($side === 'default')>
-                        <label for="switcher-default-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-                            Default Menu
-                        </label>
+                            <input type="radio" name="navigation-data-menu-styles" class="ti-form-radio" id="switcher-menu-click"
+                            checked>
+                            <label for="switcher-menu-click" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Menu
+                            Click</label>
                         </div>
-
                         <div class="flex">
-                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
-                                id="switcher-closed-menu" value="closed"
-                                @checked($side === 'closed')>
-                        <label for="switcher-closed-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-                            Closed Menu
-                        </label>
+                            <input type="radio" name="navigation-data-menu-styles" class="ti-form-radio" id="switcher-menu-hover">
+                            <label for="switcher-menu-hover" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Menu
+                            Hover</label>
                         </div>
-
                         <div class="flex">
-                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
-                                id="switcher-icontext-menu" value="icontext"
-                                @checked($side === 'icontext')>
-                        <label for="switcher-icontext-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-                            Icon Text
-                        </label>
+                            <input type="radio" name="navigation-data-menu-styles" class="ti-form-radio" id="switcher-icon-click">
+                            <label for="switcher-icon-click" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Icon
+                            Click</label>
                         </div>
-
                         <div class="flex">
-                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
-                                id="switcher-icon-overlay" value="icon-overlay"
-                                @checked($side === 'icon-overlay')>
-                        <label for="switcher-icon-overlay" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-                            Icon Overlay
-                        </label>
+                            <input type="radio" name="navigation-data-menu-styles" class="ti-form-radio" id="switcher-icon-hover">
+                            <label for="switcher-icon-hover" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Icon
+                            Hover</label>
                         </div>
-
-                        <div class="flex">
-                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
-                                id="switcher-detached" value="detached"
-                                @checked($side === 'detached')>
-                        <label for="switcher-detached" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-                            Detached
-                        </label>
                         </div>
-
-                        <div class="flex">
-                        <input type="radio" name="sidemenu_layout" class="ti-form-radio"
-                                id="switcher-double-menu" value="doublemenu"
-                                @checked($side === 'doublemenu')>
-                        <label for="switcher-double-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-                            Double Menu
-                        </label>
+                        <div class="px-4 text-secondary text-xs"><b class="me-2">Note:</b>Works same for both Vertical and
+                        Horizontal
                         </div>
                     </div>
-
-                    <div class="px-4 text-secondary text-xs">
-                        <b class="me-2">Note:</b>Navigation menu styles won't work here.
+                    <div class=" sidemenu-layout-styles">
+                        <p class="switcher-style-head">Sidemenu Layout Syles:</p>
+                        <div class="grid grid-cols-2 gap-2 switcher-style">
+                        <div class="flex">
+                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-default-menu" checked>
+                            <label for="switcher-default-menu"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold ">Default
+                            Menu</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-closed-menu">
+                            <label for="switcher-closed-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold ">
+                            Closed
+                            Menu</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-icontext-menu">
+                            <label for="switcher-icontext-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold ">Icon
+                            Text</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-icon-overlay">
+                            <label for="switcher-icon-overlay" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold ">Icon
+                            Overlay</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-detached">
+                            <label for="switcher-detached"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold ">Detached</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="sidemenu-layout-styles" class="ti-form-radio" id="switcher-double-menu">
+                            <label for="switcher-double-menu" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Double
+                            Menu</label>
+                        </div>
+                        </div>
+                        <div class="px-4 text-secondary text-xs"><b class="me-2">Note:</b>Navigation menu styles won't work
+                        here.</div>
                     </div>
-                    </div>
-
                     <div>
                         <p class="switcher-style-head">Page Styles:</p>
-                        <div class="grid grid-cols-3 switcher-style" id="page-style-group">
-                            <div class="flex">
-                            <input
-                                type="radio"
-                                name="data-page-styles"
-                                value="regular"
-                                id="switcher-regular"
-                                class="ti-form-radio"
-                                @checked(($themeStyle['pageStyle'] ?? 'regular') === 'regular')
-                            >
+                        <div class="grid grid-cols-3  switcher-style">
+                        <div class="flex">
+                            <input type="radio" name="data-page-styles" class="ti-form-radio" id="switcher-regular" checked>
                             <label for="switcher-regular"
-                                    class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-                                Regular
-                            </label>
-                            </div>
-
-                            <div class="flex">
-                            <input
-                                type="radio"
-                                name="data-page-styles"
-                                value="classic"
-                                id="switcher-classic"
-                                class="ti-form-radio"
-                                @checked(($themeStyle['pageStyle'] ?? 'regular') === 'classic')
-                            >
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Regular</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="data-page-styles" class="ti-form-radio" id="switcher-classic">
                             <label for="switcher-classic"
-                                    class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-                                Classic
-                            </label>
-                            </div>
-
-                            <div class="flex">
-                            <input
-                                type="radio"
-                                name="data-page-styles"
-                                value="modern"
-                                id="switcher-modern"
-                                class="ti-form-radio"
-                                @checked(($themeStyle['pageStyle'] ?? 'regular') === 'modern')
-                            >
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Classic</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="data-page-styles" class="ti-form-radio" id="switcher-modern">
                             <label for="switcher-modern"
-                                    class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-                                Modern
-                            </label>
-                            </div>
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold"> Modern</label>
+                        </div>
                         </div>
                     </div>
-
-{{-- Layout Width Styles --}}
-<div>
-  <p class="switcher-style-head">Layout Width Styles:</p>
-  <div class="grid grid-cols-3 switcher-style">
-    <div class="flex">
-      <input
-        type="radio"
-        name="layout-width"
-        value="fullwidth"
-        id="switcher-full-width"
-        class="ti-form-radio"
-        @checked(($themeStyle['width'] ?? 'fullwidth') === 'fullwidth')
-      >
-      <label for="switcher-full-width" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-        FullWidth
-      </label>
-    </div>
-    <div class="flex">
-      <input
-        type="radio"
-        name="layout-width"
-        value="boxed"
-        id="switcher-boxed"
-        class="ti-form-radio"
-        @checked(($themeStyle['width'] ?? 'fullwidth') === 'boxed')
-      >
-      <label for="switcher-boxed" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">
-        Boxed
-      </label>
-    </div>
-  </div>
-</div>
-
-{{-- Menu Positions --}}
-<div>
-  <p class="switcher-style-head">Menu Positions:</p>
-  <div class="grid grid-cols-3 switcher-style">
-    <div class="flex">
-      <input
-        type="radio"
-        name="data-menu-positions"
-        value="fixed"
-        id="switcher-menu-fixed"
-        class="ti-form-radio"
-        @checked(($themeStyle['menuPosition'] ?? 'fixed') === 'fixed')
-      >
-      <label for="switcher-menu-fixed" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Fixed</label>
-    </div>
-    <div class="flex">
-      <input
-        type="radio"
-        name="data-menu-positions"
-        value="scrollable"
-        id="switcher-menu-scroll"
-        class="ti-form-radio"
-        @checked(($themeStyle['menuPosition'] ?? 'fixed') === 'scrollable')
-      >
-      <label for="switcher-menu-scroll" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Scrollable</label>
-    </div>
-  </div>
-</div>
-
-{{-- Header Positions --}}
-<div>
-  <p class="switcher-style-head">Header Positions:</p>
-  <div class="grid grid-cols-3 switcher-style">
-    <div class="flex">
-      <input
-        type="radio"
-        name="data-header-positions"
-        value="fixed"
-        id="switcher-header-fixed"
-        class="ti-form-radio"
-        @checked(($themeStyle['headerPosition'] ?? 'fixed') === 'fixed')
-      >
-      <label for="switcher-header-fixed" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Fixed</label>
-    </div>
-    <div class="flex">
-      <input
-        type="radio"
-        name="data-header-positions"
-        value="scrollable"
-        id="switcher-header-scroll"
-        class="ti-form-radio"
-        @checked(($themeStyle['headerPosition'] ?? 'fixed') === 'scrollable')
-      >
-      <label for="switcher-header-scroll" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Scrollable</label>
-    </div>
-  </div>
-</div>
-
-{{-- Loader --}}
-<div>
-  <p class="switcher-style-head">Loader:</p>
-  <div class="grid grid-cols-3 switcher-style">
-    <div class="flex">
-      <input
-        type="radio"
-        name="page-loader"
-        value="enable"
-        id="switcher-loader-enable"
-        class="ti-form-radio"
-        @checked(($themeStyle['loader'] ?? 'enable') === 'enable')
-      >
-      <label for="switcher-loader-enable" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Enable</label>
-    </div>
-    <div class="flex">
-      <input
-        type="radio"
-        name="page-loader"
-        value="disable"
-        id="switcher-loader-disable"
-        class="ti-form-radio"
-        @checked(($themeStyle['loader'] ?? 'enable') === 'disable')
-      >
-      <label for="switcher-loader-disable" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2 font-semibold">Disable</label>
-    </div>
-  </div>
-</div>
-
+                    <div>
+                        <p class="switcher-style-head">Layout Width Styles:</p>
+                        <div class="grid grid-cols-3 switcher-style">
+                        <div class="flex">
+                            <input type="radio" name="layout-width" class="ti-form-radio" id="switcher-full-width" checked>
+                            <label for="switcher-full-width"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">FullWidth</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="layout-width" class="ti-form-radio" id="switcher-boxed">
+                            <label for="switcher-boxed" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Boxed</label>
+                        </div>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="switcher-style-head">Menu Positions:</p>
+                        <div class="grid grid-cols-3  switcher-style">
+                        <div class="flex">
+                            <input type="radio" name="data-menu-positions" class="ti-form-radio" id="switcher-menu-fixed" checked>
+                            <label for="switcher-menu-fixed"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Fixed</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="data-menu-positions" class="ti-form-radio" id="switcher-menu-scroll">
+                            <label for="switcher-menu-scroll"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Scrollable </label>
+                        </div>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="switcher-style-head">Header Positions:</p>
+                        <div class="grid grid-cols-3 switcher-style">
+                        <div class="flex">
+                            <input type="radio" name="data-header-positions" class="ti-form-radio" id="switcher-header-fixed" checked>
+                            <label for="switcher-header-fixed" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">
+                            Fixed</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="data-header-positions" class="ti-form-radio" id="switcher-header-scroll">
+                            <label for="switcher-header-scroll"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Scrollable
+                            </label>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="">
+                        <p class="switcher-style-head">Loader:</p>
+                        <div class="grid grid-cols-3 switcher-style">
+                        <div class="flex">
+                            <input type="radio" name="page-loader" class="ti-form-radio" id="switcher-loader-enable" checked>
+                            <label for="switcher-loader-enable" class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">
+                            Enable</label>
+                        </div>
+                        <div class="flex">
+                            <input type="radio" name="page-loader" class="ti-form-radio" id="switcher-loader-disable">
+                            <label for="switcher-loader-disable"
+                            class="text-defaultsize text-defaulttextcolor dark:text-defaulttextcolor/70 ms-2  font-semibold">Disable
+                            </label>
+                        </div>
+                        </div>
+                    </div>
                     </div>
                     <div id="switcher-2" class="hidden" role="tabpanel" aria-labelledby="switcher-item-2">
                     <div class="theme-colors">
@@ -539,5 +411,3 @@
                     <a href="javascript:void(0);" id="reset-all" class="w-full ti-btn btn-wave ti-btn-danger-full m-1">Reset</a>
                 </div>
             </div>
-
-

@@ -1,194 +1,236 @@
 <!DOCTYPE html>
-<html
-  lang="{{ str_replace('_','-',app()->getLocale()) }}"
-  dir="{{ $themeStyle['dir'] ?? 'ltr' }}"
-  @class([
-    'dark'  => ($themeStyle['mode'] ?? 'light') === 'dark',
-    'light' => ($themeStyle['mode'] ?? 'light') === 'light',
-  ])
+<html lang="en" dir="ltr" data-nav-layout="vertical" class="light" data-header-styles="light" data-menu-styles="dark">
 
-  {{-- layout axis --}}
-  data-nav-layout="{{ $themeStyle['nav'] ?? 'vertical' }}"
+    <head>
 
-  {{-- vendor expects this for click/hover styles --}}
-  data-nav-style="{{ $themeStyle['menuStyle'] ?? 'menu-click' }}"
+        <!-- META DATA -->
+		<meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="Author" content="Spruko Technologies Private Limited">
+        <meta name="Description" content="Laravel Tailwind CSS Responsive Admin Web Dashboard Template">
+        <meta name="keywords" content="admin panel in laravel, tailwind, tailwind template admin, laravel admin panel, tailwind css dashboard, admin dashboard template, admin template, tailwind laravel, template dashboard, admin panel tailwind, tailwind css admin template, laravel tailwind template, laravel tailwind, tailwind admin dashboard">
+        
+        <!-- TITLE -->
+		<title> Ynex - Laravel Tailwind CSS Admin & Dashboard Template </title>
 
-  {{-- IMPORTANT: always render this, even when "default" --}}
-  data-vertical-style="{{ $themeStyle['sideMenuLayout'] ?? 'default' }}"
+        <!-- FAVICON -->
+        <link rel="icon" href="{{asset('build/assets/images/brand-logos/favicon.ico')}}" type="image/x-icon">
 
-  {{-- keep these if your UI uses them --}}
-  data-header-styles="{{ ($themeStyle['mode'] ?? 'light') === 'dark' ? 'dark' : 'light' }}"
-  data-menu-styles="dark"
-  data-page-style="{{ $themeStyle['pageStyle'] ?? 'regular' }}"
+        <!-- ICONS CSS -->
+        <link href="{{asset('build/assets/iconfonts/icons.css')}}" rel="stylesheet">
 
-    {{-- ✅ new: width / positions / loader --}}
-  @if(!empty($themeStyle['width']))            data-width="{{ $themeStyle['width'] }}" @endif
-  @if(!empty($themeStyle['menuPosition']))     data-menu-position="{{ $themeStyle['menuPosition'] }}" @endif
-  @if(!empty($themeStyle['headerPosition']))   data-header-position="{{ $themeStyle['headerPosition'] }}" @endif
-  @if(!empty($themeStyle['loader']))           loader="{{ $themeStyle['loader'] }}" @endif
->
+        <!-- Datatables CSS -->
+        <link href="{{asset('build/assets/jquery.dataTables.min.css')}}" rel="stylesheet">
+        
+        <!-- APP SCSS -->
+        @vite(['resources/sass/app.scss'])
 
+        @include('layouts.components.styles')
 
-<head>
-    <!-- META DATA -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="Author" content="Spruko Technologies Private Limited">
-    <meta name="Description" content="Laravel Tailwind CSS Responsive Admin Web Dashboard Template">
-    <meta name="keywords" content="admin panel in laravel, tailwind, admin template, laravel tailwind, dashboard">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+        <!-- Include jQuery -->
+        <script src="{{asset('build/assets/jquery-3.6.0.min.js')}}"></script>
+        
+        <!-- MAIN JS -->
+        <script src="{{asset('build/assets/main.js')}}"></script>
 
-    <!-- TITLE -->
-    <title>Webcraft</title>
+        @yield('styles')
 
-    <!-- FAVICON -->
-    <link rel="icon" href="{{ asset('build/assets/images/brand-logos/favicon.png') }}" type="image/x-icon">
+        <style>
+            #deleteConfirmationModal {
+    visibility: hidden; /* Start hidden */
+    opacity: 0; /* Fully transparent */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1050;
 
-    <!-- ICONS CSS -->
-    <link href="{{ asset('build/assets/iconfonts/icons.css') }}" rel="stylesheet">
+    transition: opacity 0.3s ease, visibility 0.3s ease; /* Smooth transitions */
+}
 
+#deleteConfirmationModal.active {
+    visibility: visible; /* Show the modal */
+    opacity: 1; /* Fully opaque */
+}
 
-    <!-- Google Fonts -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600&display=swap">
+    /* Add spacing between the search bar and the table */
+/* General styling for all DataTables */
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 15px; /* Adjust the spacing here */
+}
+    /* Customize the processing container */
+div.dataTables_processing {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200px;
+    margin-left: -100px;
+    margin-top: -26px;
+    text-align: center;
+    padding: 2px;
+    background: transparent; /* Remove any default background */
+}
 
-    <style>
-    :root{
-        --color-primary: {{ $themeColors['primary'] }};
-        --color-success: {{ $themeColors['success'] }};
-        --color-warning: {{ $themeColors['warning'] }};
-        --color-danger:  {{ $themeColors['danger']  }};
+/* Target the loading dots container */
+div.dataTables_processing > div:last-child {
+    position: relative;
+    width: 80px;
+    height: 15px;
+    margin: 1em auto;
+}
+
+/* Style individual dots */
+div.dataTables_processing > div:last-child > div {
+    position: absolute;
+    top: 0;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: black; /* Change the dots to black */
+    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+/* Apply animations for the dots */
+div.dataTables_processing > div:last-child > div:nth-child(1) {
+    left: 8px;
+    animation: datatables-loader-1 0.6s infinite;
+}
+
+div.dataTables_processing > div:last-child > div:nth-child(2) {
+    left: 8px;
+    animation: datatables-loader-2 0.6s infinite;
+}
+
+div.dataTables_processing > div:last-child > div:nth-child(3) {
+    left: 32px;
+    animation: datatables-loader-2 0.6s infinite;
+}
+
+div.dataTables_processing > div:last-child > div:nth-child(4) {
+    left: 56px;
+    animation: datatables-loader-3 0.6s infinite;
+}
+
+/* Keyframes for the dots animations */
+@keyframes datatables-loader-1 {
+    0% {
+        transform: scale(0);
     }
-    </style>
+    100% {
+        transform: scale(1);
+    }
+}
 
-    <!-- Tailwind SCSS -->
-    @vite(['resources/sass/app.scss'])
+@keyframes datatables-loader-3 {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(0);
+    }
+}
 
-    @include('layouts.components.styles')
+@keyframes datatables-loader-2 {
+    0% {
+        transform: translate(0, 0);
+    }
+    100% {
+        transform: translate(24px, 0);
+    }
+}
+/* Generic Modal Backdrop */
+.modal-backdrop {
+    opacity: 0.5; /* Standard opacity */
+}
 
-    @vite(['resources/js/app.js'])
+.hidden {
+    display: none !important;
+}
+        </style>
 
+        
+	</head>
 
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<body>
 
-    @yield('styles')
-</head>
+        <!-- SWITCHER -->
 
-<body>
-    <!-- SWITCHER -->
-    @include('layouts.components.switcher')
-    <!-- END SWITCHER -->
+        @include('layouts.components.switcher')
 
-    <!-- LOADER -->
-    <div id="loader">
-        <img src="{{ asset('build/assets/images/media/loader.svg') }}" alt="">
-    </div>
-    <!-- END LOADER -->
+        <!-- END SWITCHER -->
 
-    <!-- PAGE -->
-    <div class="page">
-        <!-- HEADER -->
-        @include('layouts.components.header')
-        <!-- END HEADER -->
+        <!-- LOADER -->
+		<div id="loader">
+			<img src="{{asset('build/assets/images/media/loader.svg')}}" alt="">
+		</div>
+		<!-- END LOADER -->
 
-        <!-- SIDEBAR -->
-        @include('layouts.components.sidebar')
-        <!-- END SIDEBAR -->
+        <!-- PAGE -->
+		<div class="page">
 
-        <!-- MAIN-CONTENT -->
-        <div class="content">
-            <div class="main-content">
-                @yield('content')
+            <!-- HEADER -->
+
+            @include('layouts.components.header')
+
+            <!-- END HEADER -->
+
+            <!-- SIDEBAR -->
+
+            @include('layouts.components.sidebar')
+
+            <!-- END SIDEBAR -->
+
+            <!-- MAIN-CONTENT -->
+            <div class="content">
+                <div class="main-content">
+            
+                    @yield('content')
+
+                </div>
             </div>
-        </div>
-        <!-- END MAIN-CONTENT -->
 
-        <!-- SEARCH-MODAL -->
-        @include('layouts.components.search-modal')
-        <!-- END SEARCH-MODAL -->
+            <!-- END MAIN-CONTENT -->
 
-        <!-- FOOTER -->
-        @include('layouts.components.footer')
-        <!-- END FOOTER -->
-    </div>
-    <!-- END PAGE -->
+            <!-- SEARCH-MODAL -->
 
-    <!-- SCRIPTS -->
-    @include('layouts.components.scripts')
-    @yield('scripts')
+            @include('layouts.components.search-modal')
 
-    @if(Route::is('sweetalerts'))
-    @vite(['resources/js/sweetalert.js'])
-    @endif
+            <!-- END SEARCH-MODAL -->
 
-    @if(Route::is('logs.index'))
-    @vite(['resources/js/datatables.css'])
-    @vite(['resources/js/datatables.js'])
-    @endif
+            <!-- FOOTER -->
+            
+            @include('layouts.components.footer')
 
-  
+            <!-- END FOOTER -->
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		</div>
+        <!-- END PAGE-->
 
-    <!-- Popper.js -->
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    
-    <!-- Custom Scripts -->
-    <script src="{{ asset('resources/assets/js/custom.js') }}"></script>
+        <!-- SCRIPTS -->
 
-    <!-- Pickr -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr"></script>
+        @include('layouts.components.scripts')
 
-    <!-- Waves -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/node-waves/0.7.6/waves.min.js"></script>
+        @yield('scripts')
 
-    <!-- SimpleBar -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simplebar/6.2.6/simplebar.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplebar/6.2.6/simplebar.min.js"></script>
+        <!-- Datatables JS -->
+        <script src="{{asset('build/assets/jquery.dataTables.min.js')}}"></script>
+        <script src="{{asset('build/assets/dataTables.bootstrap5.min.js')}}"></script>
 
-    <!-- Choices.js -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+        <!-- STICKY JS -->
+		<script src="{{asset('build/assets/sticky.js')}}"></script>
+                
+        <!-- Delete modal JS -->
+         <script src="{{asset('build/assets/delete-modal.js')}}"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/preline@1.0.0/dist/preline.js"></script>
+        <!-- APP JS -->
+		@vite('resources/js/app.js')
 
 
-    <!-- Sticky JS -->
-    <script src="{{ asset('build/assets/sticky.js') }}"></script>
+        <!-- CUSTOM-SWITCHER JS -->
+        @vite('resources/assets/js/custom-switcher.js')
 
-    <!-- Delete modal JS -->
-    <script src="{{ asset('build/assets/delete-modal.js') }}"></script>
+        
+        <!-- END SCRIPTS -->
 
-<script>
-  localStorage.setItem('ynexnavstyles', '{{ $themeStyle['menuStyle'] ?? 'menu-click' }}');
-  localStorage.setItem('Ynexnavstyles', '{{ $themeStyle['menuStyle'] ?? 'menu-click' }}');
-  localStorage.setItem('ynexlayout',     '{{ $themeStyle['nav'] ?? 'vertical' }}');
-  localStorage.setItem('Ynexlayout',     '{{ $themeStyle['nav'] ?? 'vertical' }}');
-
-  @if(!empty($themeStyle['sideMenuLayout']) && $themeStyle['sideMenuLayout'] !== 'default')
-    localStorage.setItem('ynexverticalstyles', '{{ $themeStyle['sideMenuLayout'] }}');
-  @else
-    localStorage.removeItem('ynexverticalstyles');
-  @endif
-
-  // optional defaults for instant paint parity:
-  localStorage.setItem('ynexfullwidth',  '{{ ($themeStyle['width'] ?? 'fullwidth') === 'boxed' ? 'false' : 'true' }}');
-  localStorage.setItem('ynexboxed',      '{{ ($themeStyle['width'] ?? 'fullwidth') === 'boxed' ? 'true' : 'false' }}');
-  localStorage.setItem('ynexmenufixed',  '{{ ($themeStyle['menuPosition'] ?? 'fixed') === 'fixed' ? 'true' : 'false' }}');
-  localStorage.setItem('ynexheadersfixed','{{ ($themeStyle['headerPosition'] ?? 'fixed') === 'fixed' ? 'true' : 'false' }}');
-  localStorage.setItem('loaderEnable',   '{{ ($themeStyle['loader'] ?? 'enable') === 'disable' ? 'false' : 'true' }}');
-</script>
-
-
-<!-- Laravel Vite JS -->
-@vite(['resources/assets/js/custom-switcher.js']) 
-
-
-    <!-- END SCRIPTS -->
-</body>
-  @vite(['resources/js/theme-switcher.js'])
-
+	</body>
 </html>
