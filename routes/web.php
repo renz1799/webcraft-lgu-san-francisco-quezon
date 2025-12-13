@@ -14,7 +14,9 @@ use App\Http\Controllers\PermissionController;    // permissions CRUD
 use App\Http\Controllers\LoginLogController;      // login logs (DataTables)
 use App\Http\Controllers\AuditLogController;      // audit logs (list)
 use App\Http\Controllers\AuditRestoreController;  // audit restore action
-use App\Http\Controllers\Notifications\NotificationController;
+use App\Http\Controllers\Tasks\NotificationController;
+use App\Http\Controllers\Tasks\TaskController;
+use App\Http\Controllers\Tasks\TaskActionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -159,7 +161,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 });
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
+    Route::get('/tasks/{id}', [TaskController::class, 'show'])->name('tasks.show');
+    
 
+    Route::post('/tasks', [TaskActionController::class, 'store'])->name('tasks.store');
+    Route::post('/tasks/{id}/status', [TaskActionController::class, 'changeStatus'])->name('tasks.status.update');
+    Route::post('/tasks/{id}/comment', [TaskActionController::class, 'comment'])->name('tasks.comment.store');
+    Route::post('/tasks/{id}/reassign', [TaskActionController::class, 'reassign'])->name('tasks.reassign');
+    Route::post('/tasks/{id}/claim', [TaskActionController::class, 'claim'])->name('tasks.claim');
+
+});
     /*
     |--------------------------------------------------------------------------
     | Theme and Templates

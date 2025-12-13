@@ -12,7 +12,9 @@ use App\Repositories\Contracts\{
     AuditLogRepositoryInterface,
     RoleRepositoryInterface,
     ThemePreferencesRepositoryInterface,
-    NotificationRepositoryInterface
+    NotificationRepositoryInterface,
+    TaskRepositoryInterface,
+    TaskEventRepositoryInterface
 };
 use App\Repositories\Eloquent\{
     EloquentUserRepository,
@@ -21,7 +23,9 @@ use App\Repositories\Eloquent\{
     EloquentAuditLogRepository,
     EloquentRoleRepository,
     EloquentThemePreferencesRepository,
-    EloquentNotificationRepository
+    EloquentNotificationRepository,
+    EloquentTaskRepository,
+    EloquentTaskEventRepository
 };
 
 // Services
@@ -32,7 +36,8 @@ use App\Services\Contracts\{
     PermissionServiceInterface,
     AuditLogServiceInterface,
     RoleServiceInterface,
-    LoginLogServiceInterface
+    LoginLogServiceInterface,
+    TaskServiceInterface
     
 
 };
@@ -43,6 +48,7 @@ use App\Services\PermissionService;
 use App\Services\Audit\AuditLogService;
 use App\Services\RoleService;
 use App\Services\LoginLogService;
+use App\Services\Tasks\TaskService;
 
 
 class RepositoryServiceProvider extends ServiceProvider
@@ -58,6 +64,8 @@ class RepositoryServiceProvider extends ServiceProvider
             RoleRepositoryInterface::class  => EloquentRoleRepository::class,
             ThemePreferencesRepositoryInterface::class => EloquentThemePreferencesRepository::class,
             NotificationRepositoryInterface::class => EloquentNotificationRepository::class,
+            TaskRepositoryInterface::class => EloquentTaskRepository::class,
+            TaskEventRepositoryInterface::class => EloquentTaskEventRepository::class,
         ]);
 
         // Services (singletons by default here)
@@ -69,6 +77,7 @@ class RepositoryServiceProvider extends ServiceProvider
             AuditLogServiceInterface::class  => AuditLogService::class,
             RoleServiceInterface::class  => RoleService::class,
             LoginLogServiceInterface::class  => LoginLogService::class,
+            TaskServiceInterface::class  => TaskService::class,
         ], true);
     }
 

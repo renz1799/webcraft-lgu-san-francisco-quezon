@@ -25,6 +25,7 @@ export default defineConfig({
                 'resources/js/logs.js',
                 'resources/js/roles-page.js',
                 'resources/js/theme-switcher.js',
+                'resources/js/tasks/show.js',
                 // Resources paths 
                 'resources/sass/app.scss', 
                 'resources/js/app.js',

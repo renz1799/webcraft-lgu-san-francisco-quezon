@@ -249,8 +249,9 @@
   </div>
 </div>
 
-@endsection
 
-@section('scripts')
+
+@push('scripts')
 @vite(['resources/js/roles-page.js'])
+@endpush
 @endsection

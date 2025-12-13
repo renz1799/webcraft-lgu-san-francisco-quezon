@@ -878,9 +878,9 @@
                     <div id="chart"></div>
                     <div id="language"></div>
 
-@endsection
 
-@section('scripts')
+
+@push('scripts')
 
         <!-- JSVector Maps JS -->
         <script src="{{asset('build/assets/libs/jsvectormap/js/jsvectormap.min.js')}}"></script>
@@ -898,4 +898,5 @@
         @vite('resources/assets/js/crm-dashboard.js')
 
 
+@endpush
 @endsection

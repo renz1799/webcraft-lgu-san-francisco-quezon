@@ -5,3 +5,4 @@ import './permissions-manage';
 import './logs';
 import './roles-page';
 import './theme-switcher';
+import './tasks/show';

@@ -182,9 +182,8 @@
   </div>
 </div>
 
-@endsection
-
-@section('scripts')
+@push('scripts')
   @vite('resources/js/permissions-manage.js')
-@endsection
+@endpush
 
+@endsection

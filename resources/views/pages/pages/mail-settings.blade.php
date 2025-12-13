@@ -301,16 +301,15 @@
                     <!--End::row-1 -->
 
                   </div>
-      
-@endsection
+ 
 
-@section('scripts')
+@push('scripts')
 
         <!-- Choices JS -->
         <script src="{{asset('build/assets/libs/choices.js/public/assets/scripts/choices.min.js')}}"></script>
 
         <!-- Mail Settings -->
         @vite('resources/assets/js/mail-settings.js')
-
+@endpush
    
 @endsection 

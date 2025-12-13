@@ -182,8 +182,9 @@
     <div class="mt-4">{{ $logs->links() }}</div>
   </div>
 </div>
-@endsection
 
-@section('scripts')
+
+@push('scripts')
 @vite('resources/js/logs.js')
+@endpush
 @endsection

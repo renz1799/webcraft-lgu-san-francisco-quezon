@@ -135,10 +135,11 @@ div.dataTables_processing > div:last-child > div:nth-child(4) {
     </div>
 </div>
 
-@endsection
 
-@section('scripts')
+
+@push('scripts')
 <script>
+     console.log('login logs script loaded');
 (function () {
   const escapeHtml = (s) =>
     String(s ?? '')
@@ -201,4 +202,5 @@ $('#logs-table').DataTable({
   });
 })();
 </script>
+@endpush
 @endsection
