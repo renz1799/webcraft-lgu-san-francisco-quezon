@@ -6,6 +6,7 @@ use App\Models\Task;
 use App\Models\TaskEvent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\Notification;
 
 class TaskSeeder extends Seeder
 {
@@ -18,6 +19,7 @@ class TaskSeeder extends Seeder
             // Optional: clear old data (ONLY for local dev)
             TaskEvent::query()->delete();
             Task::query()->delete();
+            Notification::query()->delete(); // ✅ add this for clean local dev seeding
 
             // ----------------------------
             // 1) Assigned tasks (My Tasks)
@@ -32,7 +34,7 @@ class TaskSeeder extends Seeder
                 'created_by_user_id' => $adminUserId,
                 'assigned_to_user_id' => $adminUserId,
                 'subject_type' => 'inventory_items',
-                'subject_id' => null, // you can put real UUID later
+                'subject_id' => null,
                 'data' => [
                     'subject_url' => '/inventory/items/demo-item-uuid',
                 ],
@@ -44,6 +46,8 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'created', 'note' => 'Task created.', 'at' => now()->subDays(2)],
                 ['event_type' => 'assigned', 'note' => 'Assigned to admin.', 'meta' => ['to_user_id' => $adminUserId], 'at' => now()->subDays(2)],
             ]);
+
+            $this->seedNotificationForTask($t1, $adminUserId, $adminUserId, 'assigned'); // ✅
 
             $t2 = Task::create([
                 'title' => 'Print WeBill',
@@ -67,6 +71,8 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'status_changed', 'from' => 'pending', 'to' => 'in_progress', 'note' => 'Started printing.', 'at' => now()->subDay()],
                 ['event_type' => 'comment', 'note' => 'Need signature from officer-in-charge.', 'at' => now()->subHours(18)],
             ]);
+
+            $this->seedNotificationForTask($t2, $adminUserId, $adminUserId, 'assigned'); // ✅
 
             $t3 = Task::create([
                 'title' => 'Release Documents (DV/ORS)',
@@ -92,6 +98,9 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'status_changed', 'from' => 'in_progress', 'to' => 'done', 'note' => 'Ready to pick up.', 'at' => now()->subDays(4)],
             ]);
 
+            // Optional: usually no need to notify for done tasks, but for testing it's fine:
+            $this->seedNotificationForTask($t3, $adminUserId, $adminUserId, 'assigned'); // ✅
+
             // -----------------------------------------
             // 2) Available tasks (Role-based / pooled)
             // -----------------------------------------
@@ -116,6 +125,8 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'created', 'note' => 'Pooled task created.', 'at' => now()->subHours(10)],
             ]);
 
+            $this->seedNotificationForTask($p1, $adminUserId, $adminUserId, 'pooled'); // ✅
+
             $p2 = Task::create([
                 'title' => 'Pooled: Print Gate Pass (Admin/Staff)',
                 'description' => 'Visible to admin and staff roles.',
@@ -138,7 +149,8 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'comment', 'note' => 'Waiting for supporting document.', 'at' => now()->subHours(2)],
             ]);
 
-            // This one will NOT show for admin if your available query checks eligible_roles strictly
+            $this->seedNotificationForTask($p2, $adminUserId, $adminUserId, 'pooled'); // ✅
+
             $p3 = Task::create([
                 'title' => 'Pooled: Staff-only Task (should not show for admin if strict)',
                 'description' => 'Visible only to staff role.',
@@ -157,6 +169,9 @@ class TaskSeeder extends Seeder
             $this->seedEventsForTask($p3, $adminUserId, [
                 ['event_type' => 'created', 'note' => 'Staff-only pooled task created.', 'at' => now()->subHours(1)],
             ]);
+
+            // ❗ For admin account, I would NOT notify this staff-only one.
+            // $this->seedNotificationForTask($p3, $adminUserId, $adminUserId, 'pooled');
         });
     }
 
@@ -176,4 +191,37 @@ class TaskSeeder extends Seeder
             ]);
         }
     }
+
+        private function seedNotificationForTask(Task $task, string $recipientUserId, string $actorUserId, string $kind = 'assigned'): void
+        {
+            $type = match ($kind) {
+                'assigned' => 'task.assigned',
+                'pooled'   => 'task.available',
+                default    => 'task.updated',
+            };
+
+            Notification::create([
+                'notifiable_user_id' => $recipientUserId,
+                'actor_user_id'      => $actorUserId,
+                'type'               => $type,
+
+                'title'   => $kind === 'pooled' ? 'New Task Available' : 'New Task Assigned',
+                'message' => $task->title,
+
+                'entity_type' => 'task',
+                'entity_id'   => $task->id,
+
+                // IMPORTANT: your header dropdown should read this URL
+                'data' => [
+                    'url'     => route('tasks.show', $task->id), // better than hardcoded
+                    'task_id' => $task->id,
+                    'status'  => $task->status,
+                ],
+
+                'read_at' => null,
+            ]);
+        }
+
+
+
 }

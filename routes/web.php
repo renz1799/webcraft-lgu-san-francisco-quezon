@@ -14,7 +14,7 @@ use App\Http\Controllers\PermissionController;    // permissions CRUD
 use App\Http\Controllers\LoginLogController;      // login logs (DataTables)
 use App\Http\Controllers\AuditLogController;      // audit logs (list)
 use App\Http\Controllers\AuditRestoreController;  // audit restore action
-use App\Http\Controllers\Tasks\NotificationController;
+use App\Http\Controllers\Notifications\NotificationController;
 use App\Http\Controllers\Tasks\TaskController;
 use App\Http\Controllers\Tasks\TaskActionController;
 
