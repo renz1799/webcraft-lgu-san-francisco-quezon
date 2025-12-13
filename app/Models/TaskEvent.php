@@ -32,4 +32,10 @@ class TaskEvent extends Model
     {
         return $this->belongsTo(Task::class, 'task_id');
     }
+
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_user_id', 'id');
+    }
+
 }

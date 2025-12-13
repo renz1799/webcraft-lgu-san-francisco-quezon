@@ -31,4 +31,12 @@ class UserProfile extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
+
+    public function getFullNameAttribute(): string
+    {
+        return trim(
+            "{$this->first_name} {$this->middle_name} {$this->last_name} {$this->name_extension}"
+        );
+    }
+
 }

@@ -29,7 +29,7 @@
             <div class="mb-3">
                 <div class="text-sm text-[#8c9097]">Assigned To</div>
                 <div class="font-semibold text-defaulttextcolor dark:text-white">
-                    {{ $task->assigned_to_user_id ? $task->assigned_to_user_id : 'Unassigned (Claimable)' }}
+                    {{ $task->assignedTo->profile->full_name ?? 'Unassigned' }}
                 </div>
             </div>
 
@@ -128,7 +128,7 @@
                                 @endif
 
                                 <div class="mt-2 text-xs text-[#8c9097]">
-                                    Actor: {{ $event->actor_user_id }}
+                                    Actor: {{ $event->actor->profile->full_name ?? 'System' }}
                                 </div>
                             </div>
                         @endforeach
