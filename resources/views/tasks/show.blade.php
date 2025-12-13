@@ -1,7 +1,8 @@
 @extends('layouts.master')
 
 @section('content')
-<div class="container mx-auto px-4 py-4">
+<div class="w-full px-4 py-4 max-w-[1600px]">
+
 
     <div class="flex items-center justify-between mb-4">
         <div>
