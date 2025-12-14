@@ -21,14 +21,13 @@ class TaskController extends Controller
 
         $myTasks = $this->tasks->paginateForAssignee($userId, 20);
 
-        // "Available" pooled tasks: assigned_to_user_id is null and user has eligible role (from data->eligible_roles)
-        // For v1, we’ll fetch pooled tasks via query inside repo later.
-        // For now, simplest: show none until we add repo method (recommended below).
-        $availableTasks = collect(); // placeholder
+        // IMPORTANT: use role NAMES (strings), not Role models
+        $roles = $user->getRoleNames()->all(); // e.g. ['staff'] or ['admin']
+
+        $availableTasks = $this->tasks->getAvailableForRoles($roles, 20);
 
         return view('tasks.index', compact('myTasks', 'availableTasks'));
     }
-
     public function show(Request $request, string $id)
     {
         $task = $this->tasks->findOrFail($id);
