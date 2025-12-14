@@ -29,11 +29,6 @@ Route::get('/login',  [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
 
 // Password reset (keep these public)
-Route::get('forgot-password',        [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-Route::post('forgot-password',       [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
-Route::get('reset-password/{token}', [\App\Http\Controllers\Auth\ResetPasswordController::class, 'showResetForm'])->name('password.reset');
-Route::post('reset-password',        [\App\Http\Controllers\Auth\ResetPasswordController::class, 'reset'])->name('password.update');
-
 
 /*
 |--------------------------------------------------------------------------
@@ -170,7 +165,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tasks/{id}/status', [TaskActionController::class, 'changeStatus'])->name('tasks.status.update');
     Route::post('/tasks/{id}/comment', [TaskActionController::class, 'comment'])->name('tasks.comment.store');
     Route::post('/tasks/{id}/reassign', [TaskActionController::class, 'reassign'])->name('tasks.reassign');
-    Route::post('/tasks/{id}/claim', [TaskActionController::class, 'claim'])->name('tasks.claim');
+    Route::post('/tasks/{id}/claim', [TaskController::class, 'claim'])->name('tasks.claim');
 
 });
     /*

@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use Illuminate\Http\Request;
+use App\Services\Contracts\TaskServiceInterface;
 
 class TaskController extends Controller
 {
     public function __construct(
         private readonly TaskRepositoryInterface $tasks,
         private readonly TaskEventRepositoryInterface $taskEvents,
+        private readonly TaskServiceInterface $taskService,
     ) {}
 
     public function index(Request $request)
@@ -28,6 +30,7 @@ class TaskController extends Controller
 
         return view('tasks.index', compact('myTasks', 'availableTasks'));
     }
+
     public function show(Request $request, string $id)
     {
         $task = $this->tasks->findOrFail($id);
@@ -49,4 +52,20 @@ class TaskController extends Controller
             default => null,
         };
     }
+
+    public function claim(Request $request, string $id)
+    {
+        $userId = (string) $request->user()->id;
+
+        $this->taskService->claim(
+            actorUserId: $userId,
+            taskId: $id,
+            note: 'Task claimed via UI.'
+        );
+
+        return redirect()
+            ->route('tasks.show', $id)
+            ->with('success', 'Task claimed successfully.');
+    }
+
 }
