@@ -43,14 +43,15 @@
             @endif
 
             {{-- Claim (if pooled) --}}
-            @if(empty($task->assigned_to_user_id))
+            @can('claim', $task)
                 <form method="POST" action="{{ route('tasks.claim', $task->id) }}" class="mb-3">
                     @csrf
                     <button type="submit" class="ti-btn ti-btn-primary w-full">Claim Task</button>
                 </form>
-            @endif
+            @endcan
 
             {{-- Status Actions --}}
+            @can('updateStatus', $task)
             <div class="border-t pt-3 mt-3">
                 <div class="font-semibold text-defaulttextcolor dark:text-white mb-2">Actions</div>
 
@@ -71,8 +72,10 @@
                     <button type="submit" class="ti-btn ti-btn-secondary w-full">Update Status</button>
                 </form>
             </div>
+            @endcan
 
             {{-- Comment --}}
+            @can('comment', $task)
             <div class="border-t pt-3 mt-3">
                 <div class="font-semibold text-defaulttextcolor dark:text-white mb-2">Add Comment</div>
 
@@ -86,6 +89,8 @@
                 </form>
             </div>
         </div>
+        @endcan
+        
 
             {{-- Right: Timeline --}}
             <div class="lg:col-span-2 bg-white dark:bg-bgdark rounded-lg border border-defaultborder p-4 flex flex-col">
@@ -122,7 +127,7 @@
                                 </div>
 
                                 @if($event->note)
-                                    <div class="mt-2 text-sm text-defaulttextcolor dark:text-white whitespace-pre-line">
+                                    <div class="mt-2 text-sm text-defaulttextcolor dark:text-white">
                                         {{ $event->note }}
                                     </div>
                                 @endif

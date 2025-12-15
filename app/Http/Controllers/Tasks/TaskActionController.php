@@ -2,21 +2,29 @@
 
 namespace App\Http\Controllers\Tasks;
 
+use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tasks\StoreTaskRequest;
 use App\Http\Requests\Tasks\ChangeTaskStatusRequest;
 use App\Http\Requests\Tasks\AddTaskCommentRequest;
 use App\Http\Requests\Tasks\ReassignTaskRequest;
 use App\Services\Contracts\TaskServiceInterface;
+use App\Repositories\Contracts\TaskRepositoryInterface;
+use App\Models\Task;
 
 class TaskActionController extends Controller
 {
     public function __construct(
-        private readonly TaskServiceInterface $taskService
+        private readonly TaskServiceInterface $taskService,
+        private readonly TaskRepositoryInterface $tasks,
     ) {}
 
     public function store(StoreTaskRequest $request)
     {
+        // If StoreTaskRequest::authorize() already calls policy, this is optional.
+        // Keeping it here makes it explicit and consistent.
+        $this->authorize('create', Task::class);
+
         $actorUserId = (string) $request->user()->id;
 
         $task = $this->taskService->createAndAssign(
@@ -38,6 +46,11 @@ class TaskActionController extends Controller
 
     public function changeStatus(ChangeTaskStatusRequest $request, string $id)
     {
+        $task = $this->tasks->findOrFail($id);
+
+        // ✅ Only admin OR assignee can update status
+        $this->authorize('updateStatus', $task);
+
         $actorUserId = (string) $request->user()->id;
 
         $task = $this->taskService->changeStatus(
@@ -55,6 +68,11 @@ class TaskActionController extends Controller
 
     public function comment(AddTaskCommentRequest $request, string $id)
     {
+        $task = $this->tasks->findOrFail($id);
+
+        // ✅ Everyone who can view can comment (per your gov flow rule)
+        $this->authorize('comment', $task);
+
         $actorUserId = (string) $request->user()->id;
 
         $this->taskService->addComment(
@@ -70,6 +88,11 @@ class TaskActionController extends Controller
 
     public function reassign(ReassignTaskRequest $request, string $id)
     {
+        $task = $this->tasks->findOrFail($id);
+
+        // ✅ Admin-only (or capability-based) – policy decides
+        $this->authorize('reassign', $task);
+
         $actorUserId = (string) $request->user()->id;
 
         $task = $this->taskService->reassign(
@@ -87,16 +110,21 @@ class TaskActionController extends Controller
 
     public function claim(Request $request, string $id)
     {
-        $actorUserId = (string) $request->user()->id;
+        $task = $this->tasks->findOrFail($id);
 
-        $task = $this->taskService->claim(
-            actorUserId: $actorUserId,
+        // ✅ Only pooled + eligible role can claim
+        $this->authorize('claim', $task);
+
+        $userId = (string) $request->user()->id;
+
+        $this->taskService->claim(
+            actorUserId: $userId,
             taskId: $id,
-            note: $request->input('note')
+            note: 'Task claimed via UI.'
         );
 
-        return redirect()->route('tasks.show', $task->id)
-            ->with('success', 'Task claimed.');
+        return redirect()
+            ->route('tasks.show', $id)
+            ->with('success', 'Task claimed successfully.');
     }
-
 }
