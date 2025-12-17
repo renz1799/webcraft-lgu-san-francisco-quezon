@@ -141,6 +141,20 @@ class TaskService implements TaskServiceInterface
                 'note' => $note,
             ]);
 
+            // ✅ notify: admin + creator + assignee + participants (no spam on comments)
+            $this->notificationService->notifyTaskParticipants(
+                task: $task,
+                actorUserId: $actorUserId,
+                type: 'task_status_changed',
+                title: 'Task Status Updated',
+                message: "Task \"{$task->title}\" changed from {$fromStatus} to {$toStatus}.",
+                data: [
+                    'from_status' => $fromStatus,
+                    'to_status' => $toStatus,
+                ]
+            );
+
+
             return $task;
         });
     }
@@ -184,7 +198,15 @@ class TaskService implements TaskServiceInterface
                 ],
             ]);
 
-            // notify new assignee
+            $this->notificationService->notifyTaskParticipants(
+                task: $task,
+                actorUserId: $actorUserId,
+                type: 'task_reassigned',
+                title: 'Task Reassigned',
+                message: "Task \"{$task->title}\" was reassigned."
+            );
+
+            // notify new assignee (direct)
             $this->notificationService->notifyTaskAssigned(
                 assigneeUserId: $newAssigneeUserId,
                 actorUserId: $actorUserId,
@@ -193,6 +215,7 @@ class TaskService implements TaskServiceInterface
             );
 
             return $task;
+
         });
     }
 
@@ -217,6 +240,15 @@ class TaskService implements TaskServiceInterface
                     'claimed_by_user_id' => $actorUserId,
                 ],
             ]);
+
+            $this->notificationService->notifyTaskParticipants(
+            task: $task,
+            actorUserId: $actorUserId,
+            type: 'task_claimed',
+            title: 'Task Claimed',
+            message: "Task \"{$task->title}\" was claimed."
+        );
+
 
             return $task;
         });
