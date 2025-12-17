@@ -83,9 +83,10 @@
         <div class="dropdown-divider"></div>
 
        {{-- dynamic list --}}
-        <div class="max-h-[360px] overflow-y-auto" id="header-notification-scroll-wrap">
+        <div class="max-h-[360px] overflow-y-auto overscroll-contain" id="header-notification-scroll-wrap">
             <ul class="list-none !m-0 !p-0 end-0" id="header-notification-scroll"></ul>
         </div>
+
 
 
         <div class="p-4 empty-header-item1 border-t mt-2">
