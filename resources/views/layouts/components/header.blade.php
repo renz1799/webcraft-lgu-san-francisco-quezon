@@ -71,27 +71,38 @@
     <div class="main-header-dropdown !-mt-3 !p-0 hs-dropdown-menu ti-dropdown-menu bg-white !w-[22rem] border-0 border-defaultborder hidden !m-0"
         aria-labelledby="dropdown-notification">
 
-        <div class="ti-dropdown-header !m-0 !p-4 !bg-transparent flex justify-between items-center">
-            <p class="mb-0 text-[1.0625rem] text-defaulttextcolor font-semibold dark:text-[#8c9097] dark:text-white/50">
-                Notifications
-            </p>
+        <div class="ti-dropdown-header !m-0 !p-4 !bg-transparent flex justify-between items-center gap-3">
+            <div class="min-w-0">
+                <p class="mb-0 text-[1.0625rem] text-defaulttextcolor font-semibold dark:text-[#8c9097] dark:text-white/50">
+                    Notifications
+                </p>
+                <span class="text-[0.75em] py-[0.25rem/2] px-[0.45rem] font-[600] rounded-sm bg-secondary/10 text-secondary"
+                    id="notification-unread-text">0 Unread</span>
+            </div>
 
-            <span class="text-[0.75em] py-[0.25rem/2] px-[0.45rem] font-[600] rounded-sm bg-secondary/10 text-secondary"
-                id="notification-unread-text">0 Unread</span>
+            <div class="shrink-0 flex items-center gap-2">
+                <button
+                    type="button"
+                    class="ti-btn ti-btn-xs ti-btn-light !rounded-full"
+                    id="notification-mark-all"
+                    title="Mark all as read">
+                    <i class="ri-check-double-line"></i>
+                    <span class="hidden sm:inline">Mark all</span>
+                </button>
+            </div>
         </div>
 
         <div class="dropdown-divider"></div>
 
-       {{-- dynamic list --}}
+        {{-- dynamic list --}}
         <div class="max-h-[360px] overflow-y-auto overscroll-contain" id="header-notification-scroll-wrap">
             <ul class="list-none !m-0 !p-0 end-0" id="header-notification-scroll"></ul>
         </div>
 
-
-
         <div class="p-4 empty-header-item1 border-t mt-2">
             <div class="grid">
-                <a href="{{ route('notifications.index') }}" class="ti-btn ti-btn-primary-full !m-0 w-full p-2">View All</a>
+                {{-- NOTE: make sure this route exists later. If not yet, temporarily use url('/notifications') --}}
+                <a href="{{ url('/notifications') }}" class="ti-btn ti-btn-primary-full !m-0 w-full p-2">View All</a>
             </div>
         </div>
 
@@ -107,16 +118,19 @@
     </div>
 </div>
 <!--End Header Notifictaion -->
+
 @push('scripts')
 <script>
   window.__notifEndpoints = {
     header: "{{ url('/notifications/header') }}",
-    markRead: "{{ url('/notifications') }}",
+    markRead: "{{ url('/notifications') }}",      // POST /notifications/{id}/read
+    markAllRead: "{{ url('/notifications/read-all') }}", // POST /notifications/read-all
   };
 </script>
 
 @vite('resources/js/notifications/header.js')
 @endpush
+
 
 
 

@@ -42,6 +42,7 @@ class NotificationController extends Controller
                     'title' => $n->title,
                     'message' => $n->message,
                     'read_at' => $n->read_at,
+                    'created_at' => optional($n->created_at)->toISOString(),
                     'url' => data_get($n->data, 'url', '#'),
                 ];
             }),

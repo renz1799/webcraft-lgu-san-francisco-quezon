@@ -168,6 +168,7 @@ Route::middleware('auth')->group(function () {
     // Existing
     Route::get('/notifications/header', [NotificationController::class, 'header']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 });
 
 
