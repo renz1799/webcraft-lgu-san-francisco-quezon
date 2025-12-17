@@ -157,9 +157,19 @@ Route::middleware('auth')->group(function () {
     */
 
 Route::middleware('auth')->group(function () {
+    // View All page (Blade)
+    Route::get('/notifications', [NotificationController::class, 'page'])
+        ->name('notifications.index');
+
+    // Optional: Mark all as read (web action)
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsReadWeb'])
+        ->name('notifications.readAll');
+
+    // Existing
     Route::get('/notifications/header', [NotificationController::class, 'header']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 });
+
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');

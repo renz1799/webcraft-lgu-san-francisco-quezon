@@ -225,3 +225,4 @@ class TaskSeeder extends Seeder
 
 
 }
+//php artisan db:seed --class=TaskSeeder

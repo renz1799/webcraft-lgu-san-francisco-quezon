@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquent;
 use App\Models\Notification;
 use App\Repositories\Contracts\NotificationRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 
 class EloquentNotificationRepository implements NotificationRepositoryInterface
 {
@@ -15,11 +16,11 @@ class EloquentNotificationRepository implements NotificationRepositoryInterface
 
     public function paginateForUser(string $userId, int $perPage = 20): LengthAwarePaginator
     {
-        return Notification::query()
-            ->where('notifiable_user_id', $userId)
+        return $this->queryForUser($userId)
             ->orderByDesc('created_at')
             ->paginate($perPage);
     }
+
 
     public function markAsRead(string $notificationId, string $userId): bool
     {
@@ -44,5 +45,11 @@ class EloquentNotificationRepository implements NotificationRepositoryInterface
             ->where('notifiable_user_id', $userId)
             ->whereNull('read_at')
             ->count();
+    }
+
+    public function queryForUser(string $userId): Builder
+    {
+        return Notification::query()
+            ->where('notifiable_user_id', $userId);
     }
 }

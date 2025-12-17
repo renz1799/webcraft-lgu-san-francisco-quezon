@@ -91,7 +91,7 @@
 
         <div class="p-4 empty-header-item1 border-t mt-2">
             <div class="grid">
-                <a href="{{ url('notifications') }}" class="ti-btn ti-btn-primary-full !m-0 w-full p-2">View All</a>
+                <a href="{{ route('notifications.index') }}" class="ti-btn ti-btn-primary-full !m-0 w-full p-2">View All</a>
             </div>
         </div>
 
