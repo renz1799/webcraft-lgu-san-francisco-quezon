@@ -26,7 +26,10 @@ use App\Http\Controllers\Tasks\TaskActionController;
 Route::get('/', [DashboardsController::class, 'index']);
 
 Route::get('/login',  [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:login')
+    ->name('login.attempt');
+
 
 // Password reset (keep these public)
 Route::get('forgot-password',        [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
