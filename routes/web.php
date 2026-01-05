@@ -66,38 +66,56 @@ Route::middleware('auth')->group(function () {
     | Users: per-user role & permission management
     |--------------------------------------------------------------------------
     */
-    Route::prefix('users')->whereUuid(['user'])->group(function () {
+    Route::prefix('users')
+        ->whereUuid(['user'])
+        ->group(function () {
 
-        // Page: manage all users' permissions (index list)
-        Route::get('/permissions', [UsersAccessController::class, 'index'])
-            ->middleware('role_or_permission:admin|view User Lists')
-            ->name('users.permissions.index');
+            // Page: manage all users' permissions (index list)
+            Route::get('/permissions', [UsersAccessController::class, 'index'])
+                ->middleware('role_or_permission:admin|view User Lists')
+                ->name('users.permissions.index');
 
-        // Single user: view current role/permissions (JSON)
-        Route::get('{user}/permissions', [UsersAccessController::class, 'show'])
-            ->name('users.permissions.show');
+            // Single user: view current role/permissions (JSON)
+            Route::get('{user}/permissions', [UsersAccessController::class, 'show'])
+                ->middleware('role_or_permission:admin|view User Lists')
+                ->name('users.permissions.show');
 
-        // Edit page for a single user
-        Route::get('{user}/permissions/edit', [UsersAccessController::class, 'edit'])
-            ->name('users.permissions.edit');
+            // Edit page for a single user
+            Route::get('{user}/permissions/edit', [UsersAccessController::class, 'edit'])
+                ->middleware('role_or_permission:admin|view User Lists')
+                ->name('users.permissions.edit');
 
-        // Update role and/or direct permissions (one canonical endpoint)
-        Route::patch('{user}/permissions', [UsersAccessController::class, 'updateModulePermissions'])
-            ->name('users.permissions.update');
+            // Update role and/or direct permissions (mutating)
+            Route::patch('{user}/permissions', [UsersAccessController::class, 'updateModulePermissions'])
+                ->middleware('role_or_permission:admin|modify User Lists')
+                ->name('users.permissions.update');
 
-        // Update active status
-        Route::patch('{user}/status', [UsersAccessController::class, 'updateStatus'])
-            ->name('users.status.update');
+            // Update active status (mutating)
+            Route::patch('{user}/status', [UsersAccessController::class, 'updateStatus'])
+                ->middleware('role_or_permission:admin|modify User Lists')
+                ->name('users.status.update');
 
-        // Reset password (temporary)
-        Route::post('{user}/reset-password', [UsersAccessController::class, 'resetPassword'])
-            ->name('users.password.reset');
+            // Reset password (mutating)
+            Route::post('{user}/reset-password', [UsersAccessController::class, 'resetPassword'])
+                ->middleware('role_or_permission:admin|modify User Lists')
+                ->name('users.password.reset');
 
-        // Soft delete / restore / force delete
-        Route::delete('{user}',            [UsersAccessController::class, 'destroy'])->name('users.destroy');
-        Route::patch('{user}/restore',     [UsersAccessController::class, 'restore'])->name('users.restore');
-        Route::delete('{user}/force',      [UsersAccessController::class, 'forceDelete'])->name('users.forceDelete');
-    });
+            // Soft delete (mutating)
+            Route::delete('{user}', [UsersAccessController::class, 'destroy'])
+                ->middleware('role_or_permission:admin|delete User Lists')
+                ->name('users.destroy');
+
+            // Restore (sensitive)
+            Route::patch('{user}/restore', [UsersAccessController::class, 'restore'])
+                ->middleware('role_or_permission:admin|modify Allow Data Restoration')
+                ->name('users.restore');
+
+            // Force delete (highest risk — recommend admin only)
+            Route::delete('{user}/force', [UsersAccessController::class, 'forceDelete'])
+                ->middleware('role:admin')
+                ->name('users.forceDelete');
+        });
+
 
     /*
     |--------------------------------------------------------------------------
@@ -175,18 +193,33 @@ Route::middleware('auth')->group(function () {
 });
 
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
-    Route::get('/tasks/{id}', [TaskController::class, 'show'])->name('tasks.show');
-    
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
 
-    Route::post('/tasks', [TaskActionController::class, 'store'])->name('tasks.store');
-    Route::post('/tasks/{id}/status', [TaskActionController::class, 'changeStatus'])->name('tasks.status.update');
-    Route::post('/tasks/{id}/comment', [TaskActionController::class, 'comment'])->name('tasks.comment.store');
-    Route::post('/tasks/{id}/reassign', [TaskActionController::class, 'reassign'])->name('tasks.reassign');
-    Route::post('/tasks/{id}/claim', [TaskActionController::class, 'claim'])->name('tasks.claim');
+        Route::get('/tasks/{id}', [TaskController::class, 'show'])
+            ->whereUuid('id')
+            ->name('tasks.show');
 
-});
+        Route::post('/tasks', [TaskActionController::class, 'store'])
+            ->name('tasks.store');
+
+        Route::post('/tasks/{id}/status', [TaskActionController::class, 'changeStatus'])
+            ->whereUuid('id')
+            ->name('tasks.status.update');
+
+        Route::post('/tasks/{id}/comment', [TaskActionController::class, 'comment'])
+            ->whereUuid('id')
+            ->name('tasks.comment.store');
+
+        Route::post('/tasks/{id}/reassign', [TaskActionController::class, 'reassign'])
+            ->whereUuid('id')
+            ->name('tasks.reassign');
+
+        Route::post('/tasks/{id}/claim', [TaskActionController::class, 'claim'])
+            ->whereUuid('id')
+            ->name('tasks.claim');
+    });
+
     /*
     |--------------------------------------------------------------------------
     | Theme and Templates
