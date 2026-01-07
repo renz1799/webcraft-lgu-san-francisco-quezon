@@ -9,6 +9,7 @@ use App\Http\Requests\Users\DeleteUserRequest;
 use App\Http\Requests\Users\UpdateUserStatusRequest;
 use App\Http\Requests\Users\UpdateUserModulePermissionsRequest;
 use App\Http\Requests\Users\ResetUserPasswordRequest;
+use App\Http\Requests\Users\ViewUserPermissionsRequest ;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
@@ -24,23 +25,10 @@ class UsersAccessController extends Controller
         return view('permissions.permissions', $data);
     }
 
-    /** JSON: a single user's role/permissions */
-    public function show(User $user): JsonResponse
+        /** JSON: a single user's role/permissions */
+    public function show(ViewUserPermissionsRequest $request, User $user): JsonResponse
     {
         return response()->json($this->svc->getUserPermissions($user));
-    }
-
-    /** JSON: update a user's role and/or custom permissions */
-    public function update(UserAccessRequest $request, User $user): JsonResponse
-    {
-        $payload = $request->validated();
-        $this->svc->updateUserRoleAndPermissions(
-            $user,
-            $payload['role'] ?? null,
-            $payload['permissions'] ?? []
-        );
-
-        return response()->json(['message' => 'User role and permissions updated successfully.'], 200);
     }
 
     /** JSON: toggle active status */
@@ -57,16 +45,16 @@ class UsersAccessController extends Controller
         return response()->json(['message' => 'User account deleted successfully.'], 200);
     }
 
-    public function restore(User $user, UserAccessService $service)
+    public function restore(User $user)
     {
-        $service->restoreUser($user);
-        return back()->with('success', 'User restored.');
+        $this->svc->restoreUser($user);
+        return response()->json(['message' => 'User restored successfully.'], 200);
     }
 
-    public function forceDelete(User $user, UserAccessService $service)
+    public function forceDelete(User $user)
     {
-        $service->forceDeleteUser($user);
-        return back()->with('success', 'User permanently deleted.');
+        $this->svc->forceDeleteUser($user);
+        return response()->json(['message' => 'User permanently deleted.'], 200);
     }
 
     public function edit(User $user)
@@ -80,7 +68,7 @@ class UsersAccessController extends Controller
     {
         $payload = $request->validated();
 
-        // HIGH-SIGNAL: what did the UI actually send?
+        /* HIGH-SIGNAL: what did the UI actually send?
         Log::info('perm.update: incoming payload', [
             'user_id'        => $user->id,
             'role_provided'  => array_key_exists('role', $payload) ? ($payload['role'] ?? null) : '__absent__',
@@ -90,7 +78,7 @@ class UsersAccessController extends Controller
                     return collect($actions)->map(fn($a) => strtolower(trim($a)))->values()->all();
                 });
             }),
-        ]);
+        ]); */
 
         $count = $this->svc->syncNestedPermissions(
             $user,
@@ -98,10 +86,10 @@ class UsersAccessController extends Controller
             $payload['role'] ?? null
         );
 
-        Log::info('perm.update: applied', [
+      /*  Log::info('perm.update: applied', [
             'user_id' => $user->id,
             'count'   => $count,
-        ]);
+        ]); */
 
         return response()->json(['message' => 'Permissions updated.', 'count' => $count], 200);
     }

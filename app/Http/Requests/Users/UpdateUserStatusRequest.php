@@ -9,7 +9,8 @@ class UpdateUserStatusRequest extends BaseFormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        return $u && ($u->hasRole('admin') || $u->can('modify User Lists'));
+        return (bool) $this->user()?->hasRole('admin');
+
     }
 
     public function rules(): array

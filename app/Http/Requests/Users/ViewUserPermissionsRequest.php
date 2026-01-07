@@ -4,7 +4,7 @@ namespace App\Http\Requests\Users;
 
 use App\Http\Requests\BaseFormRequest;
 
-class DeleteUserRequest extends BaseFormRequest
+class ViewUserPermissionsRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {
@@ -14,6 +14,6 @@ class DeleteUserRequest extends BaseFormRequest
 
     public function rules(): array
     {
-        return []; // no body payload needed
+        return []; // GET request, no payload validation needed
     }
 }

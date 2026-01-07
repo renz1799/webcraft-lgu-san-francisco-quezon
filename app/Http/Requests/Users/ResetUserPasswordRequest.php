@@ -11,7 +11,7 @@ class ResetUserPasswordRequest extends BaseFormRequest
     {
         $u = $this->user();
         // Allow admins or anyone with your chosen permission
-        return $u && ($u->hasRole('admin') || $u->can('reset users') || $u->can('reset passwords'));
+        return (bool) $this->user()?->hasRole('admin');
     }
 
     public function rules(): array

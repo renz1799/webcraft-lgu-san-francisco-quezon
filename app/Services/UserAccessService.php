@@ -248,6 +248,11 @@ class UserAccessService implements UserAccessServiceInterface
      */
     public function syncNestedPermissions(User $user, array $nested, ?string $roleName = null): int
     {
+        $actor = auth()->user();
+        if (! $actor || ! $actor->hasRole('admin')) {
+            abort(403, 'Only administrators may manage user roles and permissions.');
+        }
+
         return DB::transaction(function () use ($user, $nested, $roleName) {
             // Snapshot before
             $beforeRole  = $user->roles()->pluck('name')->first();
@@ -295,7 +300,7 @@ class UserAccessService implements UserAccessServiceInterface
             }
 
             // 2) Build dictionary [page][resource][action] => id
-            $pagesRequested = array_keys($nested);
+            $pagesRequested = array_slice(array_keys($nested), 0, 50);
             $pool = Permission::whereIn('page', $pagesRequested)->get();
 
             Log::info('perm.update: pool summary', [
@@ -372,6 +377,7 @@ class UserAccessService implements UserAccessServiceInterface
             return count($ids);
         });
     }
+
 
     /** Generate a cryptographically secure alphanumeric string (8 chars). */
     public function resetPasswordToTemporary(User $user): string

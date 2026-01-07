@@ -68,53 +68,46 @@ Route::middleware('auth')->group(function () {
     */
     Route::prefix('users')
         ->whereUuid(['user'])
+        ->middleware(['auth', 'role:admin'])
         ->group(function () {
 
             // Page: manage all users' permissions (index list)
             Route::get('/permissions', [UsersAccessController::class, 'index'])
-                ->middleware('role_or_permission:admin|view User Lists')
                 ->name('users.permissions.index');
 
             // Single user: view current role/permissions (JSON)
             Route::get('{user}/permissions', [UsersAccessController::class, 'show'])
-                ->middleware('role_or_permission:admin|view User Lists')
                 ->name('users.permissions.show');
 
             // Edit page for a single user
             Route::get('{user}/permissions/edit', [UsersAccessController::class, 'edit'])
-                ->middleware('role_or_permission:admin|view User Lists')
                 ->name('users.permissions.edit');
 
-            // Update role and/or direct permissions (mutating)
+            // Update role and/or direct permissions
             Route::patch('{user}/permissions', [UsersAccessController::class, 'updateModulePermissions'])
-                ->middleware('role_or_permission:admin|modify User Lists')
                 ->name('users.permissions.update');
 
-            // Update active status (mutating)
+            // Update active status
             Route::patch('{user}/status', [UsersAccessController::class, 'updateStatus'])
-                ->middleware('role_or_permission:admin|modify User Lists')
                 ->name('users.status.update');
 
-            // Reset password (mutating)
+            // Reset password (temporary)
             Route::post('{user}/reset-password', [UsersAccessController::class, 'resetPassword'])
-                ->middleware('role_or_permission:admin|modify User Lists')
                 ->name('users.password.reset');
 
-            // Soft delete (mutating)
+            // Soft delete
             Route::delete('{user}', [UsersAccessController::class, 'destroy'])
-                ->middleware('role_or_permission:admin|delete User Lists')
                 ->name('users.destroy');
 
-            // Restore (sensitive)
+            // Restore
             Route::patch('{user}/restore', [UsersAccessController::class, 'restore'])
-                ->middleware('role_or_permission:admin|modify Allow Data Restoration')
                 ->name('users.restore');
 
-            // Force delete (highest risk — recommend admin only)
+            // Force delete (highest risk)
             Route::delete('{user}/force', [UsersAccessController::class, 'forceDelete'])
-                ->middleware('role:admin')
                 ->name('users.forceDelete');
         });
+
 
 
     /*
