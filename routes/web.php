@@ -7,13 +7,14 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HeaderController;
 use App\Http\Controllers\UserProfileController;
 
-use App\Http\Controllers\UsersAccessController;   // user role/perm management (per-user)
-use App\Http\Controllers\RolesController;         // roles CRUD
-use App\Http\Controllers\PermissionController;    // permissions CRUD
+use App\Http\Controllers\UsersAccessController;
+use App\Http\Controllers\RolesController;
+use App\Http\Controllers\PermissionController;
 
-use App\Http\Controllers\LoginLogController;      // login logs (DataTables)
-use App\Http\Controllers\AuditLogController;      // audit logs (list)
-use App\Http\Controllers\AuditRestoreController;  // audit restore action
+use App\Http\Controllers\LoginLogController;
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\AuditRestoreController;
+
 use App\Http\Controllers\Notifications\NotificationController;
 use App\Http\Controllers\Tasks\TaskController;
 use App\Http\Controllers\Tasks\TaskActionController;
@@ -23,15 +24,14 @@ use App\Http\Controllers\Tasks\TaskActionController;
 | Public / Guest
 |--------------------------------------------------------------------------
 */
-Route::get('/', [DashboardsController::class, 'index']);
+Route::get('/', [DashboardsController::class, 'index']); // leave public (placeholder)
 
 Route::get('/login',  [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:login')
     ->name('login.attempt');
 
-
-// Password reset (keep these public)
+// Password reset (public)
 Route::get('forgot-password',        [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('forgot-password',       [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
 Route::get('reset-password/{token}', [\App\Http\Controllers\Auth\ResetPasswordController::class, 'showResetForm'])->name('password.reset');
@@ -40,10 +40,10 @@ Route::post('reset-password',        [\App\Http\Controllers\Auth\ResetPasswordCo
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated
+| Authenticated + Enforced Password Change
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'password.changed'])->group(function () {
 
     // logout + small utilities
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -55,7 +55,11 @@ Route::middleware('auth')->group(function () {
     Route::put('/mail-settings',  [UserProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [UserProfileController::class, 'updatePassword'])->name('profile.updatePassword');
 
-    // Sign-up / Registration (page + action) — gated
+    /*
+    |--------------------------------------------------------------------------
+    | Sign-up / Registration (gated)
+    |--------------------------------------------------------------------------
+    */
     Route::middleware('role_or_permission:admin|view User Registration')->group(function () {
         Route::get('/sign-up',   [AuthController::class, 'showSignUpForm'])->name('sign-up');
         Route::post('/register', [AuthController::class, 'register'])->name('register');
@@ -63,64 +67,50 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Users: per-user role & permission management
+    | Users: admin only (your latest decision)
     |--------------------------------------------------------------------------
     */
     Route::prefix('users')
         ->whereUuid(['user'])
-        ->middleware(['auth', 'role:admin'])
+        ->middleware('role:admin')
         ->group(function () {
 
-            // Page: manage all users' permissions (index list)
             Route::get('/permissions', [UsersAccessController::class, 'index'])
                 ->name('users.permissions.index');
 
-            // Single user: view current role/permissions (JSON)
             Route::get('{user}/permissions', [UsersAccessController::class, 'show'])
                 ->name('users.permissions.show');
 
-            // Edit page for a single user
             Route::get('{user}/permissions/edit', [UsersAccessController::class, 'edit'])
                 ->name('users.permissions.edit');
 
-            // Update role and/or direct permissions
             Route::patch('{user}/permissions', [UsersAccessController::class, 'updateModulePermissions'])
                 ->name('users.permissions.update');
 
-            // Update active status
             Route::patch('{user}/status', [UsersAccessController::class, 'updateStatus'])
                 ->name('users.status.update');
 
-            // Reset password (temporary)
             Route::post('{user}/reset-password', [UsersAccessController::class, 'resetPassword'])
                 ->name('users.password.reset');
 
-            // Soft delete
             Route::delete('{user}', [UsersAccessController::class, 'destroy'])
                 ->name('users.destroy');
 
-            // Restore
             Route::patch('{user}/restore', [UsersAccessController::class, 'restore'])
                 ->name('users.restore');
 
-            // Force delete (highest risk)
             Route::delete('{user}/force', [UsersAccessController::class, 'forceDelete'])
                 ->name('users.forceDelete');
         });
 
-
-
     /*
     |--------------------------------------------------------------------------
-    | Roles CRUD
+    | Roles CRUD (keep as-is or admin-only; up to you)
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role_or_permission:admin|view User Lists|modify User Lists|delete User Lists')
-        ->group(function () {
-            // If your Role IDs are UUIDs, constrain the parameter:
-            Route::resource('roles', RolesController::class)
-                ->whereUuid(['role']);
-        });
+    Route::middleware('role_or_permission:admin|view User Lists|modify User Lists|delete User Lists')->group(function () {
+        Route::resource('roles', RolesController::class)->whereUuid(['role']);
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -128,11 +118,10 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('role_or_permission:admin|modify User Permissions')->group(function () {
-        Route::get('/permissions',                     [PermissionController::class, 'index'])->name('permissions.index');
-        Route::post('/permissions',                    [PermissionController::class, 'store'])->name('permissions.store');
-        Route::delete('/permissions/{permission}',     [PermissionController::class, 'destroy'])->whereUuid('permission')->name('permissions.destroy');
+        Route::get('/permissions',                 [PermissionController::class, 'index'])->name('permissions.index');
+        Route::post('/permissions',                [PermissionController::class, 'store'])->name('permissions.store');
+        Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->whereUuid('permission')->name('permissions.destroy');
 
-        // Soft delete helpers
         Route::post('/permissions/{permission}/restore', [PermissionController::class, 'restore'])->whereUuid('permission')->name('permissions.restore');
         Route::delete('/permissions/{permission}/force',  [PermissionController::class, 'forceDestroy'])->whereUuid('permission')->name('permissions.force');
     });
@@ -142,86 +131,77 @@ Route::middleware('auth')->group(function () {
     | Login Logs
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role_or_permission:admin|view Login Logs|modify Login Logs|delete Login Logs')
-        ->group(function () {
-            Route::get('/login-logs',       [LoginLogController::class, 'index'])->name('logs.index');
-            Route::get('/login-logs/data',  [LoginLogController::class, 'data'])->name('logs.data');
-        });
+    Route::middleware('role_or_permission:admin|view Login Logs|modify Login Logs|delete Login Logs')->group(function () {
+        Route::get('/login-logs',      [LoginLogController::class, 'index'])->name('logs.index');
+        Route::get('/login-logs/data', [LoginLogController::class, 'data'])->name('logs.data');
+    });
 
     /*
     |--------------------------------------------------------------------------
     | Audit Logs + Restore
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role_or_permission:admin|view Audit Logs|modify Audit Logs|delete Audit Logs')
-        ->group(function () {
-            Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
-        });
+    Route::middleware('role_or_permission:admin|view Audit Logs|modify Audit Logs|delete Audit Logs')->group(function () {
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    });
 
-    // Generic restore endpoint (protected by request authorize + permission)
     Route::post('/audit/restore', [AuditRestoreController::class, 'restore'])
         ->middleware('role_or_permission:admin|modify Allow Data Restoration')
         ->name('audit.restore');
-});
 
     /*
     |--------------------------------------------------------------------------
-    | Tasks and Notifications
+    | Notifications
     |--------------------------------------------------------------------------
     */
-
-Route::middleware('auth')->group(function () {
-    // View All page (Blade)
     Route::get('/notifications', [NotificationController::class, 'page'])
         ->name('notifications.index');
 
-    // Optional: Mark all as read (web action)
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsReadWeb'])
         ->name('notifications.readAll');
 
-    // Existing
-    Route::get('/notifications/header', [NotificationController::class, 'header']);
-    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
-});
-
-
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
-
-        Route::get('/tasks/{id}', [TaskController::class, 'show'])
-            ->whereUuid('id')
-            ->name('tasks.show');
-
-        Route::post('/tasks', [TaskActionController::class, 'store'])
-            ->name('tasks.store');
-
-        Route::post('/tasks/{id}/status', [TaskActionController::class, 'changeStatus'])
-            ->whereUuid('id')
-            ->name('tasks.status.update');
-
-        Route::post('/tasks/{id}/comment', [TaskActionController::class, 'comment'])
-            ->whereUuid('id')
-            ->name('tasks.comment.store');
-
-        Route::post('/tasks/{id}/reassign', [TaskActionController::class, 'reassign'])
-            ->whereUuid('id')
-            ->name('tasks.reassign');
-
-        Route::post('/tasks/{id}/claim', [TaskActionController::class, 'claim'])
-            ->whereUuid('id')
-            ->name('tasks.claim');
-    });
+    Route::get('/notifications/header', [NotificationController::class, 'header'])->name('notifications.header');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 
     /*
     |--------------------------------------------------------------------------
-    | Theme and Templates
+    | Tasks (uuid constrained)
     |--------------------------------------------------------------------------
     */
+    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
 
-    Route::middleware('auth')->group(function () {
-        Route::post('/theme/style',  [\App\Http\Controllers\ThemeController::class, 'updateStyle'])->name('theme.style.update');
-    });
-    Route::middleware(['auth','role:admin'])->group(function () {
-        Route::post('/theme/colors', [\App\Http\Controllers\ThemeController::class, 'updateColors'])->name('theme.colors.update');
-    });
+    Route::get('/tasks/{id}', [TaskController::class, 'show'])
+        ->whereUuid('id')
+        ->name('tasks.show');
+
+    Route::post('/tasks', [TaskActionController::class, 'store'])
+        ->name('tasks.store');
+
+    Route::post('/tasks/{id}/status', [TaskActionController::class, 'changeStatus'])
+        ->whereUuid('id')
+        ->name('tasks.status.update');
+
+    Route::post('/tasks/{id}/comment', [TaskActionController::class, 'comment'])
+        ->whereUuid('id')
+        ->name('tasks.comment.store');
+
+    Route::post('/tasks/{id}/reassign', [TaskActionController::class, 'reassign'])
+        ->whereUuid('id')
+        ->name('tasks.reassign');
+
+    Route::post('/tasks/{id}/claim', [TaskActionController::class, 'claim'])
+        ->whereUuid('id')
+        ->name('tasks.claim');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Theme
+    |--------------------------------------------------------------------------
+    */
+    Route::post('/theme/style', [\App\Http\Controllers\ThemeController::class, 'updateStyle'])
+        ->name('theme.style.update');
+
+    Route::post('/theme/colors', [\App\Http\Controllers\ThemeController::class, 'updateColors'])
+        ->middleware('role:admin')
+        ->name('theme.colors.update');
+});

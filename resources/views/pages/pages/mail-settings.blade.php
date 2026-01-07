@@ -11,6 +11,13 @@
 @endsection
 
 @section('content')
+
+@if (session('force_password_change'))
+    <meta name="force-password-change" content="1">
+@else
+    <meta name="force-password-change" content="0">
+@endif
+
  
                   <div class="container">
 
@@ -310,6 +317,10 @@
 
         <!-- Mail Settings -->
         @vite('resources/assets/js/mail-settings.js')
+
+        @vite('resources/js/force-password-change.js')
+
+
 @endpush
    
 @endsection 

@@ -100,8 +100,10 @@ class UsersAccessController extends Controller
 
         return response()->json([
             'message'            => 'Temporary password generated.',
-            'temporary_password' => $temp, // displayed to admin via SweetAlert
-        ], 200);
+            'temporary_password' => $temp,
+        ], 200)
+        ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+        ->header('Pragma', 'no-cache');
     }
         
 }

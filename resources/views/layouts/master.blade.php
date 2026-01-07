@@ -9,6 +9,7 @@
         <meta name="Author" content="Spruko Technologies Private Limited">
         <meta name="Description" content="Laravel Tailwind CSS Responsive Admin Web Dashboard Template">
         <meta name="keywords" content="admin panel in laravel, tailwind, tailwind template admin, laravel admin panel, tailwind css dashboard, admin dashboard template, admin template, tailwind laravel, template dashboard, admin panel tailwind, tailwind css admin template, laravel tailwind template, laravel tailwind, tailwind admin dashboard">
+        <meta name="force-password-change" content="{{ auth()->check() && auth()->user()->must_change_password ? '1' : '0' }}">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <!-- TITLE -->
 		<title> Ynex - Laravel Tailwind CSS Admin & Dashboard Template </title>
@@ -152,7 +153,6 @@ div.dataTables_processing > div:last-child > div:nth-child(4) {
 	</head>
 
 	<body>
-
         <!-- SWITCHER -->
 
         @include('layouts.components.switcher')
@@ -228,6 +228,9 @@ div.dataTables_processing > div:last-child > div:nth-child(4) {
 
         <!-- CUSTOM-SWITCHER JS -->
         @vite('resources/assets/js/custom-switcher.js')
+        @if (auth()->check() && auth()->user()->must_change_password)
+            @vite('resources/js/force-password-change.js')
+        @endif
 
         
         <!-- END SCRIPTS -->

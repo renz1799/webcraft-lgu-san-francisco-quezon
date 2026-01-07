@@ -18,6 +18,7 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
+        'must_change_password',
         'user_type',
         'is_active',
         'email_verified_at',
@@ -28,6 +29,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
+        'must_change_password' => 'boolean',
         'is_active'         => 'boolean',
     ];
 

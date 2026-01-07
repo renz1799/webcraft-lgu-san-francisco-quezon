@@ -382,12 +382,14 @@ class UserAccessService implements UserAccessServiceInterface
     /** Generate a cryptographically secure alphanumeric string (8 chars). */
     public function resetPasswordToTemporary(User $user): string
     {
+
         $temp = $this->generateAlphaNum(8);
 
         $user->forceFill([
             'password' => Hash::make($temp),
-            // 'must_change_password' => true, // optional
+            'must_change_password' => true,
         ])->save();
+
 
         $this->audit->record(
             'user.password.reset',

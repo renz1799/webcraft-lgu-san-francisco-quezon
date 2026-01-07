@@ -7,11 +7,11 @@
 
         <!-- Tom Select Css -->
         <link rel="stylesheet" href="{{asset('build/assets/libs/tom-select/css/tom-select.default.min.css')}}">
-      
+
 @endsection
 
 @section('content')
- 
+
                   <div class="container">
 
                     <!-- Page Header -->
@@ -197,7 +197,7 @@
                             </div>
                             <div>
                                 <label for="confirm-password" class="form-label">Confirm Password</label>
-                                <input type="password" name="confirm_password" class="form-control w-full !rounded-md" id="confirm-password" placeholder="Confirm Password" required>
+                                <input type="password" name="new_password_confirmation" class="form-control w-full !rounded-md" id="confirm-password" placeholder="Confirm Password" required>
                             </div>
                         </div>
 
@@ -272,15 +272,15 @@
 
                   </div>
       
-@endsection
 
-@section('scripts')
+@push('scripts')
 
         <!-- Choices JS -->
         <script src="{{asset('build/assets/libs/choices.js/public/assets/scripts/choices.min.js')}}"></script>
 
         <!-- Mail Settings -->
         @vite('resources/assets/js/mail-settings.js')
+      
 
         <script>
     function previewImage(event) {
@@ -293,9 +293,7 @@
     }
     
 </script>
-
-
-
-
    
-@endsection 
+@endpush
+
+@endsection

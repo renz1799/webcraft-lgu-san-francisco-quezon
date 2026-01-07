@@ -39,11 +39,20 @@ class AuthController extends Controller
 
         if (! $this->auth->attemptLogin($payload)) {
             return back()->withErrors(['email' => 'The provided credentials do not match our records.'])
-                         ->onlyInput('email');
+                        ->onlyInput('email');
+        }
+
+        $user = auth()->user();
+        if ($user && (bool) $user->must_change_password) {
+            return redirect()
+                ->to(url('/mail-settings?tab=account-settings'))
+                ->with('force_password_change', true);
         }
 
         return redirect()->intended('/');
     }
+
+
 
     public function logout()
     {

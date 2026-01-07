@@ -37,7 +37,8 @@ use App\Services\Contracts\{
     AuditLogServiceInterface,
     RoleServiceInterface,
     LoginLogServiceInterface,
-    TaskServiceInterface
+    TaskServiceInterface,
+    UserProfileServiceInterface
     
 
 };
@@ -49,6 +50,7 @@ use App\Services\Audit\AuditLogService;
 use App\Services\RoleService;
 use App\Services\LoginLogService;
 use App\Services\Tasks\TaskService;
+use App\Services\UserProfileService;
 
 
 class RepositoryServiceProvider extends ServiceProvider
@@ -78,6 +80,7 @@ class RepositoryServiceProvider extends ServiceProvider
             RoleServiceInterface::class  => RoleService::class,
             LoginLogServiceInterface::class  => LoginLogService::class,
             TaskServiceInterface::class  => TaskService::class,
+            UserProfileServiceInterface::class  => UserProfileService::class,
         ], true);
     }
 
