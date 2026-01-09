@@ -10,30 +10,47 @@ return new class extends Migration {
         Schema::create('task_events', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
+            // Core relations
             $table->uuid('task_id');
             $table->uuid('actor_user_id');
 
-            // event types: created, assigned, reassigned, status_changed, comment, escalated (later)
+            // 🔐 Immutable human-readable snapshots (for audit)
+            $table->string('actor_name_snapshot', 255);
+            $table->string('actor_username_snapshot', 255)->nullable();
+
+            // Event classification
+            // examples: created, assigned, reassigned, status_changed, comment
             $table->string('event_type');
 
-            // only used for status events (nullable for comment-only events)
+            // Status transitions (nullable for non-status events)
             $table->string('from_status')->nullable();
             $table->string('to_status')->nullable();
 
-            // note / reason / comment
+            // Comment / reason / explanation
             $table->text('note')->nullable();
 
-            // future-proof meta (reassign info, escalation level, etc.)
+            // Flexible metadata (IP, UA, reassignment info, etc.)
             $table->json('meta')->nullable();
 
             $table->timestamps();
-            $table->softDeletes();
+            $table->softDeletes(); // optional but acceptable if protected
 
+            // Indexes
             $table->index(['task_id', 'created_at']);
-            $table->index(['event_type']);
+            $table->index('actor_user_id');
+            $table->index('event_type');
 
-            // If you want FK constraints (recommended)
-            $table->foreign('task_id')->references('id')->on('tasks')->cascadeOnDelete();
+            // Foreign keys
+            $table->foreign('task_id')
+                ->references('id')
+                ->on('tasks')
+                ->cascadeOnDelete();
+
+            // 🔒 Restrict deletion of users with audit history
+            $table->foreign('actor_user_id')
+                ->references('id')
+                ->on('users')
+                ->restrictOnDelete();
         });
     }
 

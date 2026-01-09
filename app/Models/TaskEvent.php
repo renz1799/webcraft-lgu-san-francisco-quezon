@@ -17,6 +17,8 @@ class TaskEvent extends Model
     protected $fillable = [
         'task_id',
         'actor_user_id',
+        'actor_name_snapshot',
+        'actor_username_snapshot',
         'event_type',
         'from_status',
         'to_status',
@@ -37,5 +39,4 @@ class TaskEvent extends Model
     {
         return $this->belongsTo(User::class, 'actor_user_id', 'id');
     }
-
 }

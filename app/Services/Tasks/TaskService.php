@@ -3,6 +3,7 @@
 namespace App\Services\Tasks;
 
 use App\Models\Task;
+use App\Models\User;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Services\Contracts\TaskServiceInterface;
@@ -17,6 +18,48 @@ class TaskService implements TaskServiceInterface
         private readonly TaskEventRepositoryInterface $taskEvents,
         private readonly NotificationService $notificationService, // keep as concrete for now; can be interface later
     ) {}
+
+    /**
+     * Cache actor snapshots per request so we don't re-query multiple times.
+     * @var array<string, array{actor_name_snapshot: string, actor_username_snapshot: ?string}>
+     */
+    private array $actorSnapshotCache = [];
+
+    /**
+     * Build immutable actor "snapshot" fields for audit/history.
+     */
+    private function actorSnapshots(string $actorUserId): array
+    {
+        if (isset($this->actorSnapshotCache[$actorUserId])) {
+            return $this->actorSnapshotCache[$actorUserId];
+        }
+
+        $actor = User::with('profile')->find($actorUserId);
+
+        $actorName = $actor?->profile?->full_name
+            ?: ($actor?->username ?: 'Unknown User');
+
+        return $this->actorSnapshotCache[$actorUserId] = [
+            'actor_name_snapshot' => $actorName,
+            'actor_username_snapshot' => $actor?->username,
+        ];
+    }
+
+    /**
+     * Always create TaskEvent with snapshot columns included.
+     */
+    private function createEvent(array $payload): void
+    {
+        $actorUserId = (string) ($payload['actor_user_id'] ?? '');
+        if ($actorUserId === '') {
+            throw new InvalidArgumentException('actor_user_id is required when creating task events.');
+        }
+
+        $this->taskEvents->create(array_merge(
+            $payload,
+            $this->actorSnapshots($actorUserId)
+        ));
+    }
 
     public function createAndAssign(
         string $actorUserId,
@@ -51,7 +94,7 @@ class TaskService implements TaskServiceInterface
             ]);
 
             // event: created
-            $this->taskEvents->create([
+            $this->createEvent([
                 'task_id' => $task->id,
                 'actor_user_id' => $actorUserId,
                 'event_type' => 'created',
@@ -59,7 +102,7 @@ class TaskService implements TaskServiceInterface
             ]);
 
             // event: assigned
-            $this->taskEvents->create([
+            $this->createEvent([
                 'task_id' => $task->id,
                 'actor_user_id' => $actorUserId,
                 'event_type' => 'assigned',
@@ -106,7 +149,7 @@ class TaskService implements TaskServiceInterface
             if ($fromStatus === $toStatus) {
                 // still allow a note-only event even if status unchanged
                 if ($note) {
-                    $this->taskEvents->create([
+                    $this->createEvent([
                         'task_id' => $task->id,
                         'actor_user_id' => $actorUserId,
                         'event_type' => 'comment',
@@ -132,7 +175,7 @@ class TaskService implements TaskServiceInterface
 
             $this->tasks->save($task);
 
-            $this->taskEvents->create([
+            $this->createEvent([
                 'task_id' => $task->id,
                 'actor_user_id' => $actorUserId,
                 'event_type' => 'status_changed',
@@ -154,7 +197,6 @@ class TaskService implements TaskServiceInterface
                 ]
             );
 
-
             return $task;
         });
     }
@@ -164,7 +206,7 @@ class TaskService implements TaskServiceInterface
         DB::transaction(function () use ($actorUserId, $taskId, $note) {
             $task = $this->tasks->findOrFail($taskId);
 
-            $this->taskEvents->create([
+            $this->createEvent([
                 'task_id' => $task->id,
                 'actor_user_id' => $actorUserId,
                 'event_type' => 'comment',
@@ -187,7 +229,7 @@ class TaskService implements TaskServiceInterface
             $task->assigned_to_user_id = $newAssigneeUserId;
             $this->tasks->save($task);
 
-            $this->taskEvents->create([
+            $this->createEvent([
                 'task_id' => $task->id,
                 'actor_user_id' => $actorUserId,
                 'event_type' => 'reassigned',
@@ -215,7 +257,6 @@ class TaskService implements TaskServiceInterface
             );
 
             return $task;
-
         });
     }
 
@@ -231,7 +272,7 @@ class TaskService implements TaskServiceInterface
             $task->assigned_to_user_id = $actorUserId;
             $this->tasks->save($task);
 
-            $this->taskEvents->create([
+            $this->createEvent([
                 'task_id' => $task->id,
                 'actor_user_id' => $actorUserId,
                 'event_type' => 'claimed',
@@ -242,16 +283,14 @@ class TaskService implements TaskServiceInterface
             ]);
 
             $this->notificationService->notifyTaskParticipants(
-            task: $task,
-            actorUserId: $actorUserId,
-            type: 'task_claimed',
-            title: 'Task Claimed',
-            message: "Task \"{$task->title}\" was claimed."
-        );
-
+                task: $task,
+                actorUserId: $actorUserId,
+                type: 'task_claimed',
+                title: 'Task Claimed',
+                message: "Task \"{$task->title}\" was claimed."
+            );
 
             return $task;
         });
     }
-
 }

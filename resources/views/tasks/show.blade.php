@@ -133,8 +133,28 @@
                                 @endif
 
                                 <div class="mt-2 text-xs text-[#8c9097]">
-                                    Actor: {{ $event->actor->profile->full_name ?? 'System' }}
+                                    Actor:
+                                    <span class="font-medium text-defaulttextcolor dark:text-white">
+                                        {{ 
+                                            $event->actor_name_snapshot
+                                            ?? $event->actor_username_snapshot
+                                            ?? optional($event->actor?->profile)->full_name
+                                            ?? 'System'
+                                        }}
+                                    </span>
+
+                                    {{-- Optional: show current username if different --}}
+                                    @if(
+                                        $event->actor
+                                        && $event->actor_username_snapshot
+                                        && $event->actor_username_snapshot !== $event->actor->username
+                                    )
+                                        <span class="italic text-[0.65rem] text-[#8c9097]">
+                                            (now {{ $event->actor->username }})
+                                        </span>
+                                    @endif
                                 </div>
+
                             </div>
                         @endforeach
                     </div>
