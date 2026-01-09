@@ -22,18 +22,29 @@ class UserAccessService implements UserAccessServiceInterface
 
     /* ----------------------------- Queries ------------------------------ */
 
-    public function indexData(): array
+    public function indexData(?string $q = null): array
     {
-        // Eager-load roles to avoid N+1
-        $users = User::with('roles')->where('user_type', '!=', 'Administrator')->get();
+        $query = User::with('roles')
+            ->where('user_type', '!=', 'Administrator');
+
+        if ($q) {
+            $q = trim($q);
+            $query->where(function ($sub) use ($q) {
+                $sub->where('email', 'like', "%{$q}%")
+                    ->orWhere('username', 'like', "%{$q}%");
+            });
+        }
+
+        // if you want pagination (recommended), use paginate instead of get
+        $users = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
 
         $permissions = Permission::all()->groupBy(function ($p) {
-            // Expects names like "view Users", "edit Users"
             return explode(' ', $p->name, 2)[1] ?? 'others';
         });
 
-        return compact('users', 'permissions');
+        return compact('users', 'permissions', 'q');
     }
+
 
     public function getUserPermissions(User $user): array
     {

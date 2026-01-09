@@ -19,9 +19,12 @@ class UsersAccessController extends Controller
     public function __construct(private readonly UserAccessServiceInterface $svc) {}
 
     /** Page: list users + grouped permissions */
+
     public function index(): View
     {
-        $data = $this->svc->indexData();
+        $q = request()->string('q')->toString(); // Laravel 11 string helper
+        $data = $this->svc->indexData($q ?: null);
+
         return view('permissions.permissions', $data);
     }
 

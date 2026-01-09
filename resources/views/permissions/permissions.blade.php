@@ -29,6 +29,33 @@
 
 <!-- Permissions Table -->
 <div class="container mt-5">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+    <form method="GET" action="{{ route('users.permissions.index') }}" class="flex gap-2 w-full sm:w-auto">
+        <input
+            type="text"
+            name="q"
+            value="{{ request('q') }}"
+            placeholder="Search by email or username..."
+            class="form-control w-full sm:w-[320px] !rounded-md"
+        />
+        <button type="submit" class="ti-btn btn-wave bg-primary text-white">
+            <i class="ri-search-line align-middle"></i> Search
+        </button>
+
+        @if(request()->filled('q'))
+            <a href="{{ route('users.permissions.index') }}" class="ti-btn btn-wave ti-btn-light">
+                Clear
+            </a>
+        @endif
+    </form>
+
+    @if(isset($users) && method_exists($users, 'total'))
+        <div class="text-[0.75rem] text-[#8c9097] dark:text-white/50">
+            Showing {{ $users->count() }} of {{ $users->total() }} users
+        </div>
+    @endif
+</div>
+
     <div class="table-responsive">
         <table class="table whitespace-nowrap min-w-full">
             <thead class="bg-primary/10">
@@ -42,7 +69,7 @@
                 </tr>
             </thead>
             <tbody>
-    @forelse ($users as $user)
+     @forelse ($users as $user)
         <tr class="border-b border-primary/10">
             <th scope="row" class="text-start">{{ $user->username }}</th>
             <td>{{ $user->email }}</td>
@@ -73,14 +100,20 @@
                 </div>
             </td>
         </tr>
-    @empty
-        <tr>
-            <td colspan="6" class="text-center text-muted">No users found.</td>
-        </tr>
-    @endforelse
-</tbody>
+        @empty
+            <tr>
+                <td colspan="6" class="text-center text-muted">No users found.</td>
+            </tr>
+        @endforelse
+     </tbody>
 
-        </table>
+            </table>
+            @if(isset($users) && method_exists($users, 'links'))
+    <div class="mt-4">
+        {{ $users->links() }}
+    </div>
+@endif
+
     </div>
 </div>
 
