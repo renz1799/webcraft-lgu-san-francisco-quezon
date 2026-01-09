@@ -142,17 +142,17 @@
                                             ?? 'System'
                                         }}
                                     </span>
-
-                                    {{-- Optional: show current username if different --}}
-                                    @if(
-                                        $event->actor
-                                        && $event->actor_username_snapshot
-                                        && $event->actor_username_snapshot !== $event->actor->username
-                                    )
-                                        <span class="italic text-[0.65rem] text-[#8c9097]">
-                                            (now {{ $event->actor->username }})
-                                        </span>
-                                    @endif
+                                        {{-- Optional: show current name if different --}}
+                                        @if(
+                                            $event->actor
+                                            && $event->actor_name_snapshot
+                                            && $event->actor->profile
+                                            && trim($event->actor_name_snapshot) !== trim($event->actor->profile->full_name)
+                                        )
+                                            <span class="italic text-[0.65rem] text-[#8c9097]">
+                                                (now {{ $event->actor->profile->full_name }})
+                                            </span>
+                                        @endif
                                 </div>
 
                             </div>
