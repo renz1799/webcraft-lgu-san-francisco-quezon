@@ -23,52 +23,51 @@ class AuthService implements AuthServiceInterface
 
     public function register(array $data): User
     {
-        // add a correlation id for the whole flow
+        // ✅ Defense-in-depth: enforce server-side authorization even if routes/requests are gated
+        $actor = auth()->user();
+        if (! $actor || ! $actor->hasRole('admin')) {
+            abort(403, 'Only administrators may create users.');
+        }
+
+        // Add a correlation id for the whole flow (optional)
         $reqId = (string) Str::uuid();
-      //  Log::withContext(['req_id' => $reqId, 'op' => 'auth.register']);
 
         $roleInput = trim((string) ($data['role'] ?? ''));
-        $email     = mb_strtolower(trim($data['email']));
-        $username  = trim($data['username']);
+        $email     = mb_strtolower(trim((string) ($data['email'] ?? '')));
+        $username  = trim((string) ($data['username'] ?? ''));
 
-    /*    Log::info('Register: incoming payload (sanitized)', [
-            'username'     => $username,
-            'email'        => $email,
-            'role_raw'     => $roleInput,
-            'role_is_uuid' => Str::isUuid($roleInput),
-        ]); */
+        // ✅ Optional: prevent creating/assigning admin role unless actor is admin (already true here)
+        // Keeps this safe if you later relax request/route gating.
+        if ($roleInput === 'admin' && ! $actor->hasRole('admin')) {
+            abort(403, 'You may not assign the admin role.');
+        }
 
-        return DB::transaction(function () use ($username, $email, $data, $roleInput) {
+        return DB::transaction(function () use ($username, $email, $data, $roleInput, $reqId, $actor) {
             $user = $this->users->create([
-                'username'  => $username,
-                'email'     => $email,
-                'password'  => Hash::make($data['password']), // never log
-                'is_active' => true,
+                'username'              => $username,
+                'email'                 => $email,
+                'password'              => Hash::make((string) $data['password']), // never log
+                'is_active'             => true,
+                'must_change_password'  => true, // ✅ strongly recommended for admin-created accounts
             ]);
 
-          /*  Log::info('Register: user created', [
-                'user_id'  => $user->id,
-                'key_type' => $user->getKeyType(), // should be "string"
-            ]); */
+            // ✅ Assign role + sync role defaults (repo handles it)
+            $this->users->assignRoleAndSyncPermissions($user, $roleInput);
 
-            try {
-                $this->users->assignRoleAndSyncPermissions($user, $roleInput);
-                /* Log::info('Register: role assignment succeeded', [
-                    'user_id'   => $user->id,
-                    'role_input'=> $roleInput,
-                ]); */
-            } catch (\Throwable $e) {
-                /* Log::error('Register: role assignment failed', [
-                    'user_id'    => $user->id,
-                    'role_input' => $roleInput,
-                    'message'    => $e->getMessage(),
-                ]);*/
-                throw $e; // keep behavior the same
-            }
+            // Optional audit/log (sanitized)
+            /*
+            Log::info('auth.register: user created', [
+                'req_id'     => $reqId,
+                'actor_id'   => $actor->id,
+                'user_id'    => $user->id,
+                'role'       => $roleInput,
+            ]);
+            */
 
             return $user;
         });
     }
+
     public function attemptLogin(array $data): bool
     {
         // Normalize inputs

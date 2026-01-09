@@ -14,7 +14,7 @@ class RegisterRequest extends BaseFormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        return $u && ($u->hasRole('admin') || $u->can('view User Registration'));
+        return $u && $u->hasRole('admin');
     }
 
 

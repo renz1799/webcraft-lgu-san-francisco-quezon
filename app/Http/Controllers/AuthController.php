@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Services\Contracts\AuthServiceInterface;
-use Spatie\Permission\Models\Role;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
+use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
@@ -15,7 +14,13 @@ class AuthController extends Controller
 
     public function showSignUpForm()
     {
-        $roles = Role::all(); // Spatie Role
+        // Safer: avoid exposing/admin-assigning admin role in UI
+        $roles = Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', '!=', 'admin')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return view('auth.sign-up', compact('roles'));
     }
 
@@ -34,25 +39,23 @@ class AuthController extends Controller
     {
         $payload = array_merge($request->validated(), [
             'ip'         => $request->ip(),
-            'user_agent' => $request->header('User-Agent', ''),
+            'user_agent' => Str::limit((string) $request->header('User-Agent', ''), 255, ''),
         ]);
 
         if (! $this->auth->attemptLogin($payload)) {
-            return back()->withErrors(['email' => 'The provided credentials do not match our records.'])
-                        ->onlyInput('email');
+            return back()
+                ->withErrors(['email' => 'The provided credentials do not match our records.'])
+                ->onlyInput('email');
         }
 
         $user = auth()->user();
         if ($user && (bool) $user->must_change_password) {
-            return redirect()
-                ->to(url('/mail-settings?tab=account-settings'))
+            return redirect('/mail-settings?tab=account-settings')
                 ->with('force_password_change', true);
         }
 
         return redirect()->intended('/');
     }
-
-
 
     public function logout()
     {
