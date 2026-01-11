@@ -30,6 +30,7 @@ export default defineConfig({
                 // Resources paths 
                 'resources/sass/app.scss', 
                 'resources/js/app.js',
+                'resources/js/login-logs.js',
                 'resources/js/notifications/header.js',
 
                 // Resources assets js file paths

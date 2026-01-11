@@ -1,96 +1,8 @@
 @extends('layouts.master')
 
 @section('styles')
-
-
-<style>
-    /* Add spacing between the search bar and the table */
-    #logs-table_wrapper .dataTables_filter {
-        margin-bottom: 15px; /* Adjust the spacing here */
-    }
-    /* Customize the processing container */
-div.dataTables_processing {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 200px;
-    margin-left: -100px;
-    margin-top: -26px;
-    text-align: center;
-    padding: 2px;
-    background: transparent; /* Remove any default background */
-}
-
-/* Target the loading dots container */
-div.dataTables_processing > div:last-child {
-    position: relative;
-    width: 80px;
-    height: 15px;
-    margin: 1em auto;
-}
-
-/* Style individual dots */
-div.dataTables_processing > div:last-child > div {
-    position: absolute;
-    top: 0;
-    width: 13px;
-    height: 13px;
-    border-radius: 50%;
-    background: black; /* Change the dots to black */
-    animation-timing-function: cubic-bezier(0, 1, 1, 0);
-}
-
-/* Apply animations for the dots */
-div.dataTables_processing > div:last-child > div:nth-child(1) {
-    left: 8px;
-    animation: datatables-loader-1 0.6s infinite;
-}
-
-div.dataTables_processing > div:last-child > div:nth-child(2) {
-    left: 8px;
-    animation: datatables-loader-2 0.6s infinite;
-}
-
-div.dataTables_processing > div:last-child > div:nth-child(3) {
-    left: 32px;
-    animation: datatables-loader-2 0.6s infinite;
-}
-
-div.dataTables_processing > div:last-child > div:nth-child(4) {
-    left: 56px;
-    animation: datatables-loader-3 0.6s infinite;
-}
-
-/* Keyframes for the dots animations */
-@keyframes datatables-loader-1 {
-    0% {
-        transform: scale(0);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-
-@keyframes datatables-loader-3 {
-    0% {
-        transform: scale(1);
-    }
-    100% {
-        transform: scale(0);
-    }
-}
-
-@keyframes datatables-loader-2 {
-    0% {
-        transform: translate(0, 0);
-    }
-    100% {
-        transform: translate(24px, 0);
-    }
-}
-
-    
-</style>
+    {{-- Tabulator Css (already in your template reference) --}}
+    <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
 @endsection
 
 @section('content')
@@ -117,90 +29,125 @@ div.dataTables_processing > div:last-child > div:nth-child(4) {
 <!-- /Page Header -->
 
 <div class="box">
+    <div class="flex items-center justify-between mb-4">
+    <h5 class="box-title">Recent Login Attempts</h5>
+
+    <div class="flex items-center gap-2">
+        <input
+        id="loginlog-search"
+        type="text"
+        class="form-control w-[320px] !rounded-md"
+        placeholder="Search user/email/ip/device..."
+        />
+        <button id="loginlog-clear" type="button" class="ti-btn ti-btn-light">
+        Clear
+        </button>
+    </div>
+    </div>
+
     <div class="box-body">
-        <table id="logs-table" class="table table-striped table-bordered w-full">
-            <thead>
-                <tr>
-                    <th>Status</th>
-                    <th>User</th>
-                    <th>Email (attempted)</th>
-                    <th>IP Address</th>
-                    <th>Device</th>
-                    <th>Address</th>
-                    <th>Location</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-        </table>
+        <div class="overflow-auto table-bordered">
+            <div id="login-logs-table" class="ti-custom-table ti-striped-table ti-custom-table-hover"></div>
+        </div>
+
+        <div class="mt-2 text-xs text-[#8c9097]">
+            Tip: Type to search (debounced). Sorting is server-side.
+        </div>
     </div>
 </div>
 
-
+@push('scripts')
+<script src="{{ asset('build/assets/libs/tabulator-tables/js/tabulator.min.js') }}"></script>
 
 @push('scripts')
 <script>
-     console.log('login logs script loaded');
 (function () {
-  const escapeHtml = (s) =>
-    String(s ?? '')
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-      .replace(/'/g,'&#39;');
+  "use strict";
 
-  const fmtDateTime = (iso) => {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? escapeHtml(iso) : d.toLocaleString();
-  };
+  function debounce(fn, wait = 350) {
+    let t = null;
+    return function (...args) {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, args), wait);
+    };
+  }
 
-  const truncate = (s, n = 58) => {
-    if (!s) return '—';
-    const str = String(s);
-    return str.length > n ? escapeHtml(str.slice(0, n)) + '…' : escapeHtml(str);
-  };
+  document.addEventListener("DOMContentLoaded", function () {
+    const el = document.getElementById("login-logs-table");
+    if (!el) return;
 
-  $(document).ready(function () {
-$('#logs-table').DataTable({
-  processing: true,
-  serverSide: true,
-  ajax: '{{ route('logs.data') }}',
-  pageLength: 20,
-  lengthChange: false,
-  responsive: true,
-  autoWidth: false,
+    const ajaxUrl = @json(route('logs.data'));
 
-  // ⬇️ make the initial request sorted by Date desc
-  order: [[7, 'desc']],
+    let currentFilters = { q: "" };
 
-  columns: [
-    { data: 'status', name: 'success', render: (val, t, row) =>
-        t !== 'display'
-          ? val
-          : (val === 'success'
-              ? '<span class="badge bg-success/15 text-success">Success</span>'
-              : `<span class="badge bg-danger/15 text-danger">Failed</span> <span class="text-xs text-muted">— ${row.reason || ''}</span>`
-            )
-    },
-    { data: 'user',       name: 'user' },
-    { data: 'email',      name: 'email' },
-    { data: 'ip_address', name: 'ip_address' },
-    { data: 'device',     name: 'device' },
-    { data: 'address',    name: 'address' },
-    {
-      data: null, name: 'location', orderable: false, searchable: false,
-      render: (_, type, row) =>
-        type !== 'display'
-          ? (row.location_url || '')
-          : (row.location_url
-              ? `<a href="${row.location_url}" target="_blank" rel="noopener" class="text-primary hover:underline">Map</a>`
-              : '—')
-    },
-    { data: 'created_at', name: 'created_at' }
-  ]
-});
+    const table = new Tabulator(el, {
+      layout: "fitColumns",
+      responsiveLayout: "collapse",
+      placeholder: "No logs found.",
 
+      pagination: "remote",
+      paginationSize: 20,
+      paginationSizeSelector: [10, 20, 50, 100],
+
+      ajaxURL: ajaxUrl,
+      ajaxConfig: "GET",
+
+      paginationDataSent: { page: "page", size: "size" },
+      paginationDataReceived: { last_page: "last_page", data: "data", total: "total" },
+
+      ajaxParams: function () {
+        return { ...currentFilters };
+      },
+
+      ajaxResponse: function (url, params, response) {
+        return response?.data ?? [];
+      },
+
+      initialSort: [{ column: "created_at", dir: "desc" }],
+
+      columns: [
+        { title: "Status", field: "success" },
+        { title: "User", field: "user" },
+        { title: "Email (attempted)", field: "attempted" },
+        { title: "IP Address", field: "ip_address" },
+        { title: "Device", field: "device" },
+        { title: "Address", field: "address" },
+        { title: "Location", field: "location_url" },
+        { title: "Date", field: "created_at_human" },
+      ],
+    });
+
+    // ✅ force reload even when already on page 1
+    function reload() {
+      const page = table.getPage();
+      if (page && page !== 1) {
+        table.setPage(1); // triggers ajax
+      } else {
+        table.setData();  // forces ajax even if still on page 1
+      }
+    }
+
+    const searchInput = document.getElementById("loginlog-search");
+    const clearBtn = document.getElementById("loginlog-clear");
+
+    const applySearch = debounce(function () {
+      currentFilters.q = (searchInput?.value || "").trim();
+      reload();
+    }, 350);
+
+    searchInput?.addEventListener("input", applySearch);
+
+    clearBtn?.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (searchInput) searchInput.value = "";
+      currentFilters.q = "";
+      reload();
+    });
   });
 })();
 </script>
 @endpush
+
+@endpush
+
 @endsection

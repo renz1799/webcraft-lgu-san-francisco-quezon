@@ -1,5 +1,4 @@
 <?php
-// app/Http/Requests/Logs/LoginLogsDataRequest.php
 
 namespace App\Http\Requests\Logs;
 
@@ -9,43 +8,40 @@ class LoginLogsDataRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $u = $this->user();
-        return $u && ($u->hasRole('admin') || $u->can('view Login Logs'));
+        return true; // middleware handles access
     }
 
     public function rules(): array
     {
         return [
-            'start'                 => ['sometimes','integer','min:0'],
-            'length'                => ['sometimes','integer','min:1','max:100'],
-            'search.value'          => ['nullable','string','max:255'],
-            'order.0.column'        => ['nullable','integer'],
-            'order.0.dir'           => ['nullable','in:asc,desc'],
-            'columns'               => ['nullable','array'],
-            'columns.*.name'        => ['nullable','string','max:64'],
+            // Tabulator remote pagination params
+            'page' => ['nullable', 'integer', 'min:1'],
+            'size' => ['nullable', 'integer', 'min:1', 'max:200'],
+
+            // Our own search box
+            'q' => ['nullable', 'string', 'max:200'],
+
+            // Tabulator remote sorting params: sorters[0][field], sorters[0][dir]
+            'sorters' => ['nullable', 'array'],
+            'sorters.*.field' => ['nullable', 'string', 'max:100'],
+            'sorters.*.dir' => ['nullable', 'in:asc,desc'],
+
+            // optional: Tabulator filters if you use them later
+            'filters' => ['nullable', 'array'],
+            'filters.*.field' => ['nullable', 'string', 'max:100'],
+            'filters.*.type' => ['nullable', 'string', 'max:50'],
+            'filters.*.value' => ['nullable'],
         ];
     }
 
     public function validated($key = null, $default = null)
     {
-        $v = parent::validated();
+        $data = parent::validated($key, $default);
 
-        $v['start']  = (int)($v['start']  ?? 0);
-        $v['length'] = (int)($v['length'] ?? 20);
-        $v['search'] = $v['search']['value'] ?? null;
+        // sensible defaults
+        $data['page'] = (int)($data['page'] ?? 1);
+        $data['size'] = (int)($data['size'] ?? 20);
 
-        // Resolve order column name from DataTables format
-        $orderIdx  = $this->input('order.0.column');
-        $orderName = 'created_at';
-        if ($orderIdx !== null) {
-            $cols = $this->input('columns', []);
-            if (!empty($cols[$orderIdx]['name'])) {
-                $orderName = $cols[$orderIdx]['name'];
-            }
-        }
-        $v['order_by']  = $orderName;
-        $v['order_dir'] = $this->input('order.0.dir', 'desc');
-
-        return $v;
+        return $data;
     }
 }

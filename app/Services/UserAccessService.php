@@ -24,23 +24,37 @@ class UserAccessService implements UserAccessServiceInterface
 
     public function indexData(?string $q = null): array
     {
-        $query = User::with('roles')
+        $q = $q ? trim($q) : null;
+        if ($q === '') $q = null;
+
+        $query = User::query()
+            ->with(['roles', 'profile'])
             ->where('user_type', '!=', 'Administrator');
 
         if ($q) {
-            $q = trim($q);
             $query->where(function ($sub) use ($q) {
                 $sub->where('email', 'like', "%{$q}%")
-                    ->orWhere('username', 'like', "%{$q}%");
+                    ->orWhere('username', 'like', "%{$q}%")
+                    // optional: search full name parts
+                    ->orWhereHas('profile', function ($p) use ($q) {
+                        $p->where('first_name', 'like', "%{$q}%")
+                        ->orWhere('middle_name', 'like', "%{$q}%")
+                        ->orWhere('last_name', 'like', "%{$q}%")
+                        ->orWhere('name_extension', 'like', "%{$q}%");
+                    });
             });
         }
 
-        // if you want pagination (recommended), use paginate instead of get
-        $users = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
+        $users = $query->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString();
 
-        $permissions = Permission::all()->groupBy(function ($p) {
-            return explode(' ', $p->name, 2)[1] ?? 'others';
-        });
+        $permissions = Permission::query()
+            ->orderBy('name')
+            ->get()
+            ->groupBy(function ($p) {
+                return explode(' ', $p->name, 2)[1] ?? 'others';
+            });
 
         return compact('users', 'permissions', 'q');
     }

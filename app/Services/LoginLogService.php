@@ -1,97 +1,111 @@
 <?php
-// app/Services/LoginLogService.php
 
 namespace App\Services;
 
 use App\Repositories\Contracts\LoginDetailRepositoryInterface;
 use App\Services\Contracts\LoginLogServiceInterface;
+use Illuminate\Support\Facades\Log;
 
 class LoginLogService implements LoginLogServiceInterface
 {
     public function __construct(
-        private readonly LoginDetailRepositoryInterface $repo
+        private readonly LoginDetailRepositoryInterface $loginDetails
     ) {}
 
-    public function datatable(array $p): array
+    public function datatable(array $params): array
     {
-        $start    = (int) ($p['start']     ?? 0);
-        $length   = (int) ($p['length']    ?? 20);
-        $search   = (string)($p['search']  ?? '');
-        $orderBy  = (string)($p['order_by'] ?? 'created_at');
-        $orderDir = in_array(($p['order_dir'] ?? 'desc'), ['asc','desc'], true) ? $p['order_dir'] : 'desc';
+        Log::info('LoginLogService@datatable incoming', ['params' => $params]);
 
-        // allow ordering on these “column names” coming from DataTables
-        $orderMap = [
-            'status'     => 'login_details.success',   // if first column is named 'success'/'status'
+        $page = (int)($params['page'] ?? 1);
+        $size = (int)($params['size'] ?? 20);
+        $q    = trim((string)($params['q'] ?? ''));
+
+        // joinUsers = true so we can search/sort username if needed
+        $base = $this->loginDetails->datatableBaseQuery(joinUsers: true);
+
+        $recordsTotal = $this->loginDetails->countAll();
+
+        if ($q !== '') {
+            $base->where(function ($sub) use ($q) {
+                $sub->where('login_details.email', 'like', "%{$q}%")
+                    ->orWhere('login_details.ip_address', 'like', "%{$q}%")
+                    ->orWhere('login_details.device', 'like', "%{$q}%")
+                    ->orWhere('login_details.address', 'like', "%{$q}%")
+                    ->orWhere('users.username', 'like', "%{$q}%");
+            });
+        }
+
+        $recordsFiltered = (clone $base)->count();
+
+        // sorting (Tabulator sends sorters[0][field], sorters[0][dir])
+        $sortField = $params['sorters'][0]['field'] ?? null;
+        $sortDir   = $params['sorters'][0]['dir'] ?? 'desc';
+
+        // Map tabulator field -> DB column (important when joined)
+        $sortMap = [
+            'created_at' => 'login_details.created_at',
             'success'    => 'login_details.success',
-            'user'       => 'user',                   // special (users.username)
-            'email'      => 'login_details.email',
+            'attempted'  => 'login_details.email',
             'ip_address' => 'login_details.ip_address',
             'device'     => 'login_details.device',
             'address'    => 'login_details.address',
             'location'   => 'login_details.location',
-            'created_at' => 'login_details.created_at',
+            'user'       => 'users.username',
         ];
-        [$orderCol, $userSort] = $this->resolveOrder($orderBy, $orderMap);
 
-        // join users only if we need to sort/search by it
-        $base = $this->repo->datatableBaseQuery(joinUsers: ($userSort || $search !== ''));
-
-        $recordsTotal = $this->repo->countAll();
-
-        // search
-        if ($search !== '') {
-            $like = '%'.str_replace('%','\%',$search).'%';
-            $base->where(function ($q) use ($like) {
-                $q->orWhere('login_details.email', 'like', $like)
-                  ->orWhere('login_details.ip_address', 'like', $like)
-                  ->orWhere('login_details.device', 'like', $like)
-                  ->orWhere('login_details.address', 'like', $like)
-                  ->orWhere('users.username', 'like', $like);
-            });
-        }
-
-        // filtered count (distinct because of join)
-        $recordsFiltered = (clone $base)->distinct('login_details.id')->count('login_details.id');
-
-        // ordering
-        if ($userSort) {
-            $base->orderBy('users.username', $orderDir);
+        if ($sortField && isset($sortMap[$sortField])) {
+            $base->orderBy($sortMap[$sortField], $sortDir === 'asc' ? 'asc' : 'desc');
         } else {
-            $base->orderBy($orderCol, $orderDir);
+            $base->orderBy('login_details.created_at', 'desc');
         }
 
-        // page + minimal eager load
-        $rows = $base->with(['user:id,username,email'])
-                     ->skip($start)->take($length)->get();
+        // paginate manually (Builder paginate works)
+        $paginator = $base->paginate($size, ['*'], 'page', $page);
 
-        // map to the exact fields the DataTable expects (NO HTML here)
-        $data = $rows->map(function ($r) {
-            // pretty device if you have an accessor; fall back to raw
-            $device = method_exists($r, 'getDeviceDetailsAttribute')
-                ? ($r->device_details ?? $r->device)
-                : $r->device;
+        $rows = collect($paginator->items())->map(function ($row) {
+            // $row is stdClass because of join/select - safe access via ->field
+            $lat = $row->latitude ?? null;
+            $lng = $row->longitude ?? null;
+
+            $locationUrl = ($lat !== null && $lng !== null)
+                ? "https://www.google.com/maps?q={$lat},{$lng}"
+                : null;
+
+            $createdAt = $row->created_at ?? null;
+            $createdHuman = $createdAt ? \Carbon\Carbon::parse($createdAt)->format('M d, Y h:i A') : '—';
 
             return [
-                'status'       => $r->success ? 'success' : 'failed',
-                'reason'       => $r->reason, // unknown_email, invalid_password, inactive, ok
-                'user'         => $r->user->username ?? '—',
-                'email'        => $r->email ?: '—',      // attempted email for failures; empty on success
-                'ip_address'   => $r->ip_address ?: '—',
-                'device'       => $device ?: '—',
-                'address'      => $r->address ?: '—',
-                'location_url' => $r->location ?: null,  // plain URL; JS builds the <a>
-                'created_at'   => optional($r->created_at)->format('M d, Y h:i A'),
+                'id'               => (string)($row->id ?? ''),
+                'success'          => (bool)($row->success ?? false),
+                'reason'           => $row->reason ?? null,
+                'user'             => $row->username ?? '—',
+                'attempted'        => $row->email ?? '—',
+                'ip_address'       => $row->ip_address ?? '—',
+                'device'           => $row->device ?? '—',
+                'address'          => $row->address ?? '—',
+                'location'         => $row->location ?? '—',
+                'location_url'     => $locationUrl,
+                'created_at'       => $createdAt,
+                'created_at_human' => $createdHuman,
             ];
-        })->all();
+        })->values()->all();
 
-        return compact('recordsTotal','recordsFiltered','data');
-    }
+        $result = [
+            'data'            => $rows,
+            'last_page'       => $paginator->lastPage(),
+            'total'           => $recordsFiltered,
+            'recordsTotal'    => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+        ];
 
-    private function resolveOrder(string $orderBy, array $map): array
-    {
-        $userSort = $orderBy === 'user';
-        $key      = $map[$orderBy] ?? $map['created_at'];
-        return [$key, $userSort];
+        Log::info('LoginLogService@datatable result', [
+            'rows' => count($rows),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'page' => $page,
+            'size' => $size,
+        ]);
+
+        return $result;
     }
 }
