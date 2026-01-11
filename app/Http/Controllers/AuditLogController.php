@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Logs\LogIndexRequest;
 use App\Services\Contracts\AuditLogServiceInterface;
+use App\Services\Contracts\AuditLogTableServiceInterface;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AuditLogController extends Controller
 {
     public function __construct(
-        private readonly AuditLogServiceInterface $audit
+        private readonly AuditLogServiceInterface $audit,
+        private readonly AuditLogTableServiceInterface $auditTable
     ) {
         $this->middleware(['auth','role_or_permission:admin|view Audit Logs']);
     }
@@ -63,5 +66,21 @@ class AuditLogController extends Controller
         // );
 
         return response()->json(['ok' => true, 'message' => class_basename($class).' restored.']);
+    }
+
+        public function data(LogIndexRequest $request)
+    {
+        $filters = $request->filters();
+
+        // Tabulator uses "size" not "per_page"
+        $page = (int) $request->input('page', 1);
+        $size = (int) $request->input('size', 20);
+
+        // remove per_page so it doesn't interfere with repo filtering
+        unset($filters['per_page']);
+
+        return response()->json(
+            $this->auditTable->tableData($filters, $page, $size)
+        );
     }
 }

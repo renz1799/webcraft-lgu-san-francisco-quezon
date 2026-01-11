@@ -35,10 +35,12 @@ use App\Services\Contracts\{
     UserAccessServiceInterface,
     PermissionServiceInterface,
     AuditLogServiceInterface,
+    AuditLogTableServiceInterface,
     RoleServiceInterface,
     LoginLogServiceInterface,
     TaskServiceInterface,
     UserProfileServiceInterface
+
     
 
 };
@@ -47,10 +49,12 @@ use App\Services\Geocoding\PositionstackGeocodingService;
 use App\Services\UserAccessService;
 use App\Services\PermissionService;
 use App\Services\Audit\AuditLogService;
+use App\Services\Audit\AuditLogTableService;
 use App\Services\RoleService;
 use App\Services\LoginLogService;
 use App\Services\Tasks\TaskService;
 use App\Services\UserProfileService;
+
 
 
 class RepositoryServiceProvider extends ServiceProvider
@@ -77,10 +81,12 @@ class RepositoryServiceProvider extends ServiceProvider
             UserAccessServiceInterface::class  => UserAccessService::class,
             PermissionServiceInterface::class  => PermissionService::class,
             AuditLogServiceInterface::class  => AuditLogService::class,
+            AuditLogTableServiceInterface::class  => AuditLogTableService::class,
             RoleServiceInterface::class  => RoleService::class,
             LoginLogServiceInterface::class  => LoginLogService::class,
             TaskServiceInterface::class  => TaskService::class,
             UserProfileServiceInterface::class  => UserProfileService::class,
+           
         ], true);
     }
 

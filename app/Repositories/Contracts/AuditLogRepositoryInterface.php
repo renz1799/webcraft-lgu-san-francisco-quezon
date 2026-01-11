@@ -14,4 +14,6 @@ interface AuditLogRepositoryInterface
         int $perPage = 50,
         array $filters = []
     ): LengthAwarePaginator;
+
+    public function paginateForTable(array $filters, int $page, int $size): LengthAwarePaginator;
 }

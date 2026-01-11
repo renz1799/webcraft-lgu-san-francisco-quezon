@@ -151,6 +151,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::middleware(['role:admin'])->group(function () {
             Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 
+            // ✅ NEW: Tabulator remote data endpoint
+            Route::get('/audit-logs/data', [AuditLogController::class, 'data'])->name('audit-logs.data');
+
             Route::post('/audit/restore', [AuditRestoreController::class, 'restore'])
                 ->name('audit.restore');
         });
