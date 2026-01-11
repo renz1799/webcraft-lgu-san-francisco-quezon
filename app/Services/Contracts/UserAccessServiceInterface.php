@@ -7,6 +7,7 @@ use App\Models\User;
 interface UserAccessServiceInterface
 {
     public function indexData(): array;
+    public function paginateForPermissionsTable(?string $q, int $page, int $size);
     public function getUserPermissions(User $user): array;
     public function updateUserRoleAndPermissions(User $user, ?string $roleName, array $permissionNames): void;
     public function ensureDefaultRole(User $user, string $defaultRole = 'User'): void;

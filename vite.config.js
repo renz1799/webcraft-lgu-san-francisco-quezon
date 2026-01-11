@@ -32,6 +32,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/login-logs.js',
                 'resources/js/logs-tabulator.js',
+                'resources/js/permissions-tabulator.js',
                 'resources/js/notifications/header.js',
 
                 // Resources assets js file paths

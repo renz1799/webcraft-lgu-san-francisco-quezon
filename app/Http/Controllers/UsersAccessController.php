@@ -10,6 +10,8 @@ use App\Http\Requests\Users\UpdateUserStatusRequest;
 use App\Http\Requests\Users\UpdateUserModulePermissionsRequest;
 use App\Http\Requests\Users\ResetUserPasswordRequest;
 use App\Http\Requests\Users\ViewUserPermissionsRequest ;
+use App\Http\Requests\Users\UserPermissionsTableRequest;
+use Illuminate\Support\Str;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
@@ -26,6 +28,41 @@ class UsersAccessController extends Controller
         $data = $this->svc->indexData($q ?: null);
 
         return view('permissions.permissions', $data);
+    }
+
+    public function data(UserPermissionsTableRequest $request): JsonResponse
+    {
+        $f = $request->filters();
+
+        $page = $f['page'];
+        $size = $f['size'];
+        $q    = $f['q'] ?: null;
+
+        // You already have svc->indexData($q) for blade.
+        // For tabulator, add svc method: paginateForPermissionsTable($q, $page, $size)
+        $p = $this->svc->paginateForPermissionsTable($q, $page, $size);
+
+        $rows = $p->getCollection()->map(function (User $u) {
+            return [
+                'id'        => $u->id,
+                'username'  => $u->username,
+                'email'     => $u->email,
+                'role'      => optional($u->roles->first())->name ?? 'No Role Assigned',
+                'created'   => optional($u->created_at)?->format('d M Y'),
+                'is_active' => (bool) $u->is_active,
+
+                // endpoints your existing JS already uses
+                'edit_url'   => route('users.permissions.edit', $u),
+                'status_url' => route('users.status.update', $u),
+                'delete_url' => route('users.destroy', $u),
+            ];
+        })->values();
+
+        return response()->json([
+            'data'      => $rows,
+            'total'     => $p->total(),
+            'last_page' => $p->lastPage(),
+        ]);
     }
 
         /** JSON: a single user's role/permissions */

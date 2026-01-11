@@ -109,4 +109,21 @@ class EloquentUserRepository implements UserRepositoryInterface
         // refresh cache after changes
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
+
+    public function paginateForPermissionsTable(?string $q, int $page, int $size): LengthAwarePaginator
+    {
+        $query = User::query()
+            ->with(['roles:id,name'])
+            ->select(['id','username','email','is_active','created_at'])
+            ->latest('created_at');
+
+        if ($q) {
+            $query->where(function ($qq) use ($q) {
+                $qq->where('username', 'like', "%{$q}%")
+                ->orWhere('email', 'like', "%{$q}%");
+            });
+        }
+
+        return $query->paginate($size, ['*'], 'page', $page);
+    }
 }

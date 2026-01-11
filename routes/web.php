@@ -75,6 +75,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->middleware('role:admin')
         ->group(function () {
 
+            Route::get('/permissions/data', [UsersAccessController::class, 'data'])
+             ->name('users.permissions.data');
+
             Route::get('/permissions', [UsersAccessController::class, 'index'])
                 ->name('users.permissions.index');
 

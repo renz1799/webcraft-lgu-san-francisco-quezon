@@ -12,6 +12,8 @@ use Spatie\Permission\PermissionRegistrar;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+
 
 class UserAccessService implements UserAccessServiceInterface
 {
@@ -59,6 +61,10 @@ class UserAccessService implements UserAccessServiceInterface
         return compact('users', 'permissions', 'q');
     }
 
+    public function paginateForPermissionsTable(?string $q, int $page, int $size): LengthAwarePaginator
+    {
+        return $this->users->paginateForPermissionsTable($q, $page, $size);
+    }
 
     public function getUserPermissions(User $user): array
     {
