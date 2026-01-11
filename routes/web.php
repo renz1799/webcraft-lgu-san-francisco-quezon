@@ -103,51 +103,58 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                 ->name('users.forceDelete');
         });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Roles CRUD (keep as-is or admin-only; up to you)
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware('role_or_permission:admin|view User Lists|modify User Lists|delete User Lists')->group(function () {
-        Route::resource('roles', RolesController::class)->whereUuid(['role']);
-    });
+        /*
+        |--------------------------------------------------------------------------
+        | Roles CRUD (ADMIN ONLY)
+        |--------------------------------------------------------------------------
+        */
+        Route::middleware(['role:admin'])->group(function () {
+            Route::resource('roles', RolesController::class)->whereUuid(['role']);
+        });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Permissions CRUD
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware('role_or_permission:admin|modify User Permissions')->group(function () {
-        Route::get('/permissions',                 [PermissionController::class, 'index'])->name('permissions.index');
-        Route::post('/permissions',                [PermissionController::class, 'store'])->name('permissions.store');
-        Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->whereUuid('permission')->name('permissions.destroy');
+        /*
+        |--------------------------------------------------------------------------
+        | Permissions CRUD (ADMIN ONLY)
+        |--------------------------------------------------------------------------
+        */
+        Route::middleware(['role:admin'])->group(function () {
+            Route::get('/permissions',                 [PermissionController::class, 'index'])->name('permissions.index');
+            Route::post('/permissions',                [PermissionController::class, 'store'])->name('permissions.store');
+            Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])
+                ->whereUuid('permission')
+                ->name('permissions.destroy');
 
-        Route::post('/permissions/{permission}/restore', [PermissionController::class, 'restore'])->whereUuid('permission')->name('permissions.restore');
-        Route::delete('/permissions/{permission}/force',  [PermissionController::class, 'forceDestroy'])->whereUuid('permission')->name('permissions.force');
-    });
+            Route::post('/permissions/{permission}/restore', [PermissionController::class, 'restore'])
+                ->whereUuid('permission')
+                ->name('permissions.restore');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Login Logs
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware('role_or_permission:admin|view Login Logs|modify Login Logs|delete Login Logs')->group(function () {
-        Route::get('/login-logs',      [LoginLogController::class, 'index'])->name('logs.index');
-        Route::get('/login-logs/data', [LoginLogController::class, 'data'])->name('logs.data');
-    });
+            Route::delete('/permissions/{permission}/force', [PermissionController::class, 'forceDestroy'])
+                ->whereUuid('permission')
+                ->name('permissions.force');
+        });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Audit Logs + Restore
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware('role_or_permission:admin|view Audit Logs|modify Audit Logs|delete Audit Logs')->group(function () {
-        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
-    });
+        /*
+        |--------------------------------------------------------------------------
+        | Login Logs (ADMIN ONLY)
+        |--------------------------------------------------------------------------
+        */
+        Route::middleware(['role:admin'])->group(function () {
+            Route::get('/login-logs',      [LoginLogController::class, 'index'])->name('logs.index');
+            Route::get('/login-logs/data', [LoginLogController::class, 'data'])->name('logs.data');
+        });
 
-    Route::post('/audit/restore', [AuditRestoreController::class, 'restore'])
-        ->middleware('role_or_permission:admin|modify Allow Data Restoration')
-        ->name('audit.restore');
+        /*
+        |--------------------------------------------------------------------------
+        | Audit Logs + Restore (ADMIN ONLY)
+        |--------------------------------------------------------------------------
+        */
+        Route::middleware(['role:admin'])->group(function () {
+            Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+
+            Route::post('/audit/restore', [AuditRestoreController::class, 'restore'])
+                ->name('audit.restore');
+        });
+
 
     /*
     |--------------------------------------------------------------------------

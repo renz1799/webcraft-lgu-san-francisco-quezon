@@ -20,73 +20,70 @@
         </svg>
       </div>
 
-      @php
-        $u = auth()->user();
-        $isAdmin = $u?->hasRole('admin');
-        // keep permission names consistent with what you used in middleware
-        $canUsers        = $u && ($isAdmin || $u->can('view User Lists'));
-        $canRoles        = $u && ($isAdmin || $u->can('view User Permissions'));
-        $canPermissions  = $u && ($isAdmin || $u->can('view User Permissions'));
-        $canRegistration = $u && ($isAdmin || $u->can('view User Registration'));
-        $canLoginLogs    = $u && ($isAdmin || $u->can('view Login Logs'));
-        $canAuditLogs    = $u && ($isAdmin || $u->can('view Audit Logs'));
+@php
+  $u = auth()->user();
+  $isAdmin = $u && $u->hasRole('admin');
+@endphp
 
-        $showUsersMenu = $u && ($isAdmin || $canUsers || $canRoles || $canPermissions || $canRegistration || $canLoginLogs || $canAuditLogs);
-      @endphp
+<ul class="main-menu">
+  @if ($isAdmin)
+    <li class="slide__category">
+      <span class="category-name">Users &amp; Permission</span>
+    </li>
 
-      <ul class="main-menu">
-        @if ($showUsersMenu)
-          <li class="slide__category"><span class="category-name">Users &amp; Permission</span></li>
+    <li class="slide has-sub">
+      <a href="javascript:void(0);" class="side-menu__item">
+        <i class="bi bi-people side-menu__icon"></i>
+        <span class="side-menu__label">User / Permissions</span>
+        <i class="fe fe-chevron-right side-menu__angle"></i>
+      </a>
 
-          <li class="slide has-sub">
-            <a href="javascript:void(0);" class="side-menu__item">
-              <i class="bi bi-people side-menu__icon"></i>
-              <span class="side-menu__label">User/Permissions</span>
-              <i class="fe fe-chevron-right side-menu__angle"></i>
-            </a>
+      <ul class="slide-menu child1">
+        <li class="slide side-menu__label1">
+          <a href="javascript:void(0)">User Permissions</a>
+        </li>
 
-            <ul class="slide-menu child1">
-              <li class="slide side-menu__label1"><a href="javascript:void(0)">User Permissions</a></li>
+        <li class="slide">
+          <a href="{{ route('users.permissions.index') }}" class="side-menu__item">
+            Users
+          </a>
+        </li>
 
-              @if($canUsers)
-                <li class="slide">
-                  <a href="{{ route('users.permissions.index') }}" class="side-menu__item">User</a>
-                </li>
-              @endif
+        <li class="slide">
+          <a href="{{ route('roles.index') }}" class="side-menu__item">
+            Roles
+          </a>
+        </li>
 
-              @if($canRoles)
-                <li class="slide">
-                  <a href="{{ route('roles.index') }}" class="side-menu__item">Roles</a>
-                </li>
-              @endif
+        <li class="slide">
+          <a href="{{ route('permissions.index') }}" class="side-menu__item">
+            Permissions
+          </a>
+        </li>
 
-              @if($canPermissions)
-                <li class="slide">
-                  <a href="{{ route('permissions.index') }}" class="side-menu__item">Permissions</a>
-                </li>
-              @endif
+        <li class="slide">
+          <a href="{{ route('sign-up') }}" class="side-menu__item">
+            User Registration
+          </a>
+        </li>
 
-              @if($canRegistration)
-                <li class="slide">
-                  <a href="{{ route('sign-up') }}" class="side-menu__item">User Registration</a>
-                </li>
-              @endif
+        <li class="slide">
+          <a href="{{ route('logs.index') }}" class="side-menu__item">
+            Login Logs
+          </a>
+        </li>
 
-              @if($canLoginLogs)
-                <li class="slide">
-                  <a href="{{ route('logs.index') }}" class="side-menu__item">Login Logs</a>
-                </li>
-              @endif
-
-              @if($canAuditLogs)
-                <li class="slide">
-                  <a href="{{ route('audit-logs.index') }}" class="side-menu__item">Audit Logs</a>
-                </li>
-              @endif
-            </ul>
-          </li>
-        @endif
+        <li class="slide">
+          <a href="{{ route('audit-logs.index') }}" class="side-menu__item">
+            Audit Logs
+          </a>
+        </li>
       </ul>
+    </li>
+  @endif
+</ul>
+
+
 
       <div class="slide-right" id="slide-right">
         <svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191" width="24" height="24" viewBox="0 0 24 24">
