@@ -85,6 +85,13 @@
         <div class="mt-2 text-xs text-[#8c9097]">
             Tip: Type to search (debounced). Sorting is server-side.
         </div> Tip part -->
+
+        <div class="mt-2 flex items-center justify-between text-xs text-[#8c9097]">
+    <div id="loginlog-info">
+        <!-- filled by JS -->
+    </div>
+</div>
+
     </div>
 </div>
 
@@ -112,19 +119,25 @@
         const ajaxUrl = @json(route('logs.data'));
         let currentFilters = { q: "" };
 
+        // info text element
+        const infoEl = document.getElementById("loginlog-info");
+
+        // store last known total from server (remote pagination)
+        let lastTotal = 0;
+
         const table = new Tabulator(el, {
           layout: "fitColumns",
           responsiveLayout: "collapse",
           placeholder: "No logs found.",
 
           pagination: "remote",
-          paginationSize: 20,
+          paginationSize: 15,
           paginationSizeSelector: [10, 20, 50, 100],
 
           ajaxURL: ajaxUrl,
           ajaxConfig: "GET",
 
-          // ✅ prevent Tabulator built-in loader
+          // keep as you want (no tabulator loader)
           ajaxLoader: false,
 
           paginationDataSent: { page: "page", size: "size" },
@@ -134,12 +147,14 @@
             return { ...currentFilters };
           },
 
-          ajaxResponse: function (url, params, response) {
-            // IMPORTANT: tabulator expects an array of rows here
-            return response?.data ?? [];
-          },
+          // ✅ IMPORTANT for remote pagination:
+          // Return the full response so Tabulator can read last_page/total/etc.
+        ajaxResponse: function (url, params, response) {
+        lastTotal = Number(response?.total ?? 0);
+        return response?.data ?? []; // ✅ must be array
+        },
 
-          // If your backend sorts via request params, keep this.
+
           initialSort: [{ column: "created_at", dir: "desc" }],
 
           columns: [
@@ -155,7 +170,6 @@
                   return `<span class="badge bg-success/15 text-success">Success</span>`;
                 }
 
-                // show reason if present (Tabulator row data)
                 const row = cell.getRow().getData();
                 const reason = row?.reason ? ` <span class="text-xs text-muted">— ${escapeHtml(row.reason)}</span>` : "";
 
@@ -180,14 +194,10 @@
             },
             {
               title: "Date",
-              field: "created_at_human",
-              // If you want server-side sorting by created_at, keep a separate raw field in your API,
-              // or just let the server ignore Tabulator sorting.
+              field: "created_at",
             },
           ],
         });
-
-        
 
         function escapeHtml(s) {
           return String(s ?? "")
@@ -199,12 +209,44 @@
         }
 
         function escapeAttr(s) {
-          // also ok for URLs
           return escapeHtml(s);
+        }
+
+        function setInfoText(text) {
+          if (!infoEl) return;
+          infoEl.textContent = text;
+        }
+
+        function updateInfo() {
+          if (!infoEl) return;
+
+          const page = table.getPage() || 1;
+          const pageSize = table.getPageSize ? (table.getPageSize() || 0) : 0;
+          const total = lastTotal || 0;
+
+          // total unknown or 0
+          if (!total) {
+            // show based on currently loaded rows if any
+            const rowsCount = table.getDataCount ? table.getDataCount("active") : 0;
+            setInfoText(rowsCount ? `Showing 1–${rowsCount} records` : "No records found");
+            return;
+          }
+
+          const start = (page - 1) * pageSize + 1;
+          const end = Math.min(start + pageSize - 1, total);
+
+          // handle edge case where page is out of range after filtering
+          if (start > total) {
+            setInfoText(`Showing 0 of ${total} records`);
+            return;
+          }
+
+          setInfoText(`Showing ${start}–${end} of ${total} records`);
         }
 
         function reload() {
           el.classList.add("is-loading");
+          setInfoText("Updating…");
 
           const page = table.getPage();
           if (page && page !== 1) {
@@ -216,6 +258,11 @@
 
         table.on("dataLoaded", function () {
           el.classList.remove("is-loading");
+          updateInfo();
+        });
+
+        table.on("pageLoaded", function () {
+          updateInfo();
         });
 
         const searchInput = document.getElementById("loginlog-search");
