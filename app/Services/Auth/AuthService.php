@@ -25,8 +25,8 @@ class AuthService implements AuthServiceInterface
     {
         // ✅ Defense-in-depth: enforce server-side authorization even if routes/requests are gated
         $actor = auth()->user();
-        if (! $actor || ! $actor->hasRole('admin')) {
-            abort(403, 'Only administrators may create users.');
+        if (! $actor || ! $actor->hasRole('Administrator')) {
+            abort(403, 'Only Administratoristrators may create users.');
         }
 
         // Add a correlation id for the whole flow (optional)
@@ -36,10 +36,10 @@ class AuthService implements AuthServiceInterface
         $email     = mb_strtolower(trim((string) ($data['email'] ?? '')));
         $username  = trim((string) ($data['username'] ?? ''));
 
-        // ✅ Optional: prevent creating/assigning admin role unless actor is admin (already true here)
+        // ✅ Optional: prevent creating/assigning Administrator role unless actor is Administrator (already true here)
         // Keeps this safe if you later relax request/route gating.
-        if ($roleInput === 'admin' && ! $actor->hasRole('admin')) {
-            abort(403, 'You may not assign the admin role.');
+        if ($roleInput === 'Administrator' && ! $actor->hasRole('Administrator')) {
+            abort(403, 'You may not assign the Administrator role.');
         }
 
         return DB::transaction(function () use ($username, $email, $data, $roleInput, $reqId, $actor) {
@@ -48,7 +48,7 @@ class AuthService implements AuthServiceInterface
                 'email'                 => $email,
                 'password'              => Hash::make((string) $data['password']), // never log
                 'is_active'             => true,
-                'must_change_password'  => true, // ✅ strongly recommended for admin-created accounts
+                'must_change_password'  => true, // ✅ strongly recommended for Administrator-created accounts
             ]);
 
             // ✅ Assign role + sync role defaults (repo handles it)

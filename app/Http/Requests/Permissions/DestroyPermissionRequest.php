@@ -10,7 +10,7 @@ class DestroyPermissionRequest extends BaseFormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        return $u && ($u->hasRole('admin') || $u->can('delete User Permissions') || $u->can('delete permissions'));
+        return $u && ($u->hasRole('Administrator'));
     }
 
     public function rules(): array

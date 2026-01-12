@@ -280,7 +280,7 @@ class UserAccessService implements UserAccessServiceInterface
     public function syncNestedPermissions(User $user, array $nested, ?string $roleName = null): int
     {
         $actor = auth()->user();
-        if (! $actor || ! $actor->hasRole('admin')) {
+        if (! $actor || ! $actor->hasRole('Administrator')) {
             abort(403, 'Only administrators may manage user roles and permissions.');
         }
 

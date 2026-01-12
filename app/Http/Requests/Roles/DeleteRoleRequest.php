@@ -9,7 +9,7 @@ class DeleteRoleRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
-        return $user && ($user->hasRole('admin') || $user->can('delete User Permissions'));
+        return $user && ($user->hasRole('Administrator'));
     }
 
     public function rules(): array

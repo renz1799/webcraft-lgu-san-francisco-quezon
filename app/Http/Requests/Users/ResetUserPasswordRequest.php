@@ -10,8 +10,8 @@ class ResetUserPasswordRequest extends BaseFormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        // Allow admins or anyone with your chosen permission
-        return (bool) $this->user()?->hasRole('admin');
+        // Allow Administrators or anyone with your chosen permission
+        return (bool) $this->user()?->hasRole('Administrator');
     }
 
     public function rules(): array

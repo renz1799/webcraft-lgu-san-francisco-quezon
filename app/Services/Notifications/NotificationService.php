@@ -77,7 +77,7 @@ class NotificationService
         )));
 
         // 3) Include admins (Spatie roles)
-        $adminIds = User::role('admin')->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $adminIds = User::role('Administrator')->pluck('id')->map(fn ($id) => (string) $id)->all();
 
         // 4) Final recipients: merge + dedupe + exclude actor
         $recipients = array_values(array_diff(

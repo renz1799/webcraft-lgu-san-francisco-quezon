@@ -16,8 +16,8 @@ class UserSeeder extends Seeder
         DB::transaction(function () {
 
             // Ensure roles exist
-            $adminRole = Role::firstOrCreate(['name' => 'admin']);
-            $staffRole = Role::firstOrCreate(['name' => 'staff']);
+            $adminRole = Role::firstOrCreate(['name' => 'Administrator']);
+            $staffRole = Role::firstOrCreate(['name' => 'Staff']);
 
             /**
              * ADMIN

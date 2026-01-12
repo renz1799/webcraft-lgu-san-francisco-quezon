@@ -19,7 +19,7 @@ class TaskPolicy
 
     public function updateStatus(User $user, Task $task): bool
     {
-        if ($user->hasRole('admin')) return true;
+        if ($user->hasRole('Administrator')) return true;
 
         return (string) $task->assigned_to_user_id === (string) $user->id;
     }
@@ -36,13 +36,13 @@ class TaskPolicy
 
     public function reassign(User $user, Task $task): bool
     {
-        // v1: admin-only
-        return $user->hasRole('admin');
+        // v1: Administrator-only
+        return $user->hasRole('Administrator');
     }
 
     public function create(User $user): bool
     {
-        // v1: admin-only (later you can switch to permission-based)
-        return $user->hasRole('admin');
+        // v1: Administrator-only (later you can switch to permission-based)
+        return $user->hasRole('Administrator');
     }
 }

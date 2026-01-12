@@ -10,7 +10,7 @@ class StorePermissionRequest extends BaseFormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        return $u && ($u->hasRole('admin') || $u->can('modify User Permissions'));
+        return $u && ($u->hasRole('Administrator'));
     }
 
     public function rules(): array

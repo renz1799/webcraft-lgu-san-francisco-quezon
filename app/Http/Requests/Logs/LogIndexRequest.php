@@ -9,7 +9,7 @@ class LogIndexRequest extends FormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        return $u && ($u->hasRole('admin') || $u->can('view Audit Logs'));
+        return $u && ($u->hasRole('Administrator') || $u->can('view Audit Logs'));
     }
 
     public function rules(): array

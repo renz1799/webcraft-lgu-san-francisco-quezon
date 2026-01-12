@@ -18,20 +18,6 @@ class PermissionsSeeder extends Seeder
             ['name' => 'modify User Permissions', 'page' => 'Manage Roles/Permissions'],
             ['name' => 'delete User Permissions', 'page' => 'Manage Roles/Permissions'],
 
-            ['name' => 'view User Registration', 'page' => 'Manage User Registration'],
-
-            ['name' => 'view User Lists', 'page' => 'Manage Users'],
-            ['name' => 'modify User Lists', 'page' => 'Manage Users'],
-            ['name' => 'delete User Lists', 'page' => 'Manage Users'],
-
-            ['name' => 'view Login Logs', 'page' => 'Manage Log in Logs'],
-            ['name' => 'modify Login Logs', 'page' => 'Manage Log in Logs'],
-            ['name' => 'delete Login Logs', 'page' => 'Manage Log in Logs'],
-
-            ['name' => 'view Audit Logs', 'page' => 'Manage Audit Logs'],
-            ['name' => 'delete Audit Logs', 'page' => 'Manage Audit Logs'],
-
-             ['name' => 'modify Allow Data Restoration', 'page' => 'Manage Data Restoration'],
         ];
 
         foreach ($permissions as $perm) {

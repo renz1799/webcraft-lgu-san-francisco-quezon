@@ -58,19 +58,19 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     | Sign-up / Registration (gated)
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role_or_permission:admin|view User Registration')->group(function () {
+    Route::middleware('role_or_permission:Administrator|view User Registration')->group(function () {
         Route::get('/sign-up',   [AuthController::class, 'showSignUpForm'])->name('sign-up');
         Route::post('/register', [AuthController::class, 'register'])->name('register');
     });
 
     /*
     |--------------------------------------------------------------------------
-    | Users: admin only (your latest decision)
+    | Users: Administrator only (your latest decision)
     |--------------------------------------------------------------------------
     */
     Route::prefix('users')
         ->whereUuid(['user'])
-        ->middleware('role:admin')
+        ->middleware('role:Administrator')
         ->group(function () {
 
             Route::get('/permissions/data', [UsersAccessController::class, 'data'])
@@ -106,19 +106,19 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Roles CRUD (ADMIN ONLY)
+        | Roles CRUD (Administrator ONLY)
         |--------------------------------------------------------------------------
         */
-        Route::middleware(['role:admin'])->group(function () {
+        Route::middleware(['role:Administrator'])->group(function () {
             Route::resource('roles', RolesController::class)->whereUuid(['role']);
         });
 
         /*
         |--------------------------------------------------------------------------
-        | Permissions CRUD (ADMIN ONLY)
+        | Permissions CRUD (Administrator ONLY)
         |--------------------------------------------------------------------------
         */
-        Route::middleware(['role:admin'])->group(function () {
+        Route::middleware(['role:Administrator'])->group(function () {
             Route::get('/permissions',                 [PermissionController::class, 'index'])->name('permissions.index');
             Route::post('/permissions',                [PermissionController::class, 'store'])->name('permissions.store');
             Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])
@@ -136,20 +136,20 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Login Logs (ADMIN ONLY)
+        | Login Logs (Administrator ONLY)
         |--------------------------------------------------------------------------
         */
-        Route::middleware(['role:admin'])->group(function () {
+        Route::middleware(['role:Administrator'])->group(function () {
             Route::get('/login-logs',      [LoginLogController::class, 'index'])->name('logs.index');
             Route::get('/login-logs/data', [LoginLogController::class, 'data'])->name('logs.data');
         });
 
         /*
         |--------------------------------------------------------------------------
-        | Audit Logs + Restore (ADMIN ONLY)
+        | Audit Logs + Restore (Administrator ONLY)
         |--------------------------------------------------------------------------
         */
-        Route::middleware(['role:admin'])->group(function () {
+        Route::middleware(['role:Administrator'])->group(function () {
             Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 
             // ✅ NEW: Tabulator remote data endpoint
@@ -213,6 +213,6 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->name('theme.style.update');
 
     Route::post('/theme/colors', [\App\Http\Controllers\ThemeController::class, 'updateColors'])
-        ->middleware('role:admin')
+        ->middleware('role:Administrator')
         ->name('theme.colors.update');
 });

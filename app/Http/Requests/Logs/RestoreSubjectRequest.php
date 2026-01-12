@@ -29,8 +29,8 @@ class RestoreSubjectRequest extends FormRequest
             return false;
         }
 
-        // ALLOW: admin role OR the specific permission
-        if (! ($actor->hasRole('admin') || $actor->can('modify Allow Data Restoration'))) {
+        // ALLOW: Administrator role OR the specific permission
+        if (! ($actor->hasRole('Administrator') || $actor->can('modify Allow Data Restoration'))) {
             Log::warning('audit.restore: actor not allowed', [
                 'actor_id' => $actor->id,
                 'roles'    => $actor->getRoleNames()->all(),

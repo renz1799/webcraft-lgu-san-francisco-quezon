@@ -8,8 +8,8 @@ class UserPermissionsTableRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // your route group is role:admin already, but keep this consistent
-        return $this->user()?->hasRole('admin') === true;
+        // your route group is role:Administrator already, but keep this consistent
+        return $this->user()?->hasRole('Administrator') === true;
     }
 
     public function rules(): array
