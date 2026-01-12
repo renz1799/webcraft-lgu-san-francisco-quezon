@@ -236,6 +236,8 @@
 
         @stack('scripts')
 
+                <!-- APP JS -->
+		@vite('resources/js/app.js')
         <!-- Datatables JS -->
         <script src="{{asset('build/assets/jquery.dataTables.min.js')}}"></script>
         <script src="{{asset('build/assets/dataTables.bootstrap5.min.js')}}"></script>
@@ -246,8 +248,7 @@
         <!-- Delete modal JS -->
          <script src="{{asset('build/assets/delete-modal.js')}}"></script>
 
-        <!-- APP JS -->
-		@vite('resources/js/app.js')
+
 
 
         <!-- CUSTOM-SWITCHER JS -->

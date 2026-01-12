@@ -1,278 +1,177 @@
 import Waves from 'node-waves';
 import SimpleBar from 'simplebar';
-import 'simplebar/dist/simplebar.css'; // Include CSS for styling
+import 'simplebar/dist/simplebar.css';
 import Pickr from '@simonwep/pickr';
-import '@simonwep/pickr/dist/themes/classic.min.css'; // Pickr CSS
+import '@simonwep/pickr/dist/themes/classic.min.css';
 
 (function () {
   "use strict";
 
-  /* page loader */
+  // page loader
   function hideLoader() {
     const loader = document.getElementById("loader");
-    loader.classList.add("!hidden");
+    if (loader) loader.classList.add("!hidden");
   }
   window.addEventListener("load", hideLoader);
-  /* page loader */
 
-  /* footer year */
-  document.getElementById("year").innerHTML = new Date().getFullYear();
-  /* footer year */
+  // footer year
+  const yearEl = document.getElementById("year");
+  if (yearEl) yearEl.innerHTML = new Date().getFullYear();
 
-  /* node waves */
-  Waves.attach('.btn-wave', ['waves-light']);
-  Waves.init();
-  /* node waves */
-    
-  /*Start Sidemenu Scroll */
-  var myElement = document.getElementById("sidebar-scroll");
-  new SimpleBar(myElement, { autoHide: true });
-  /*End Sidemenu Scroll */
+  // waves
+  try {
+    Waves.attach('.btn-wave', ['waves-light']);
+    Waves.init();
+  } catch (e) {
+    // ignore if Waves fails on some pages
+  }
 
-  /*Start Sidemenu Scroll */
-  var myElement = document.getElementById("header-notification-scroll");
-  new SimpleBar(myElement, { autoHide: true });
-  /*End Sidemenu Scroll */
+  // SimpleBar - sidebar
+  const sidebarScroll = document.getElementById("sidebar-scroll");
+  if (sidebarScroll) new SimpleBar(sidebarScroll, { autoHide: true });
 
-  /* header dropdowns scroll */
-  var myHeaderShortcut = document.getElementById("header-shortcut-scroll");
-  new SimpleBar(myHeaderShortcut, { autoHide: true });
-  /*End header dropdowns scroll */
-  /* Choices JS */
+  // SimpleBar - notifications
+  const notifScroll = document.getElementById("header-notification-scroll");
+  if (notifScroll) new SimpleBar(notifScroll, { autoHide: true });
+
+  // SimpleBar - shortcuts
+  const shortcutScroll = document.getElementById("header-shortcut-scroll");
+  if (shortcutScroll) new SimpleBar(shortcutScroll, { autoHide: true });
+
+  // Choices (only if Choices exists globally)
   document.addEventListener("DOMContentLoaded", function () {
-    var genericExamples = document.querySelectorAll("[data-trigger]");
-    for (let i = 0; i < genericExamples.length; ++i) {
-      var element = genericExamples[i];
-      new Choices(element, {
+    if (typeof window.Choices === "undefined") return;
+
+    const genericExamples = document.querySelectorAll("[data-trigger]");
+    genericExamples.forEach((element) => {
+      new window.Choices(element, {
         allowHTML: true,
         placeholderValue: "This is a placeholder set in the config",
         searchPlaceholderValue: "Search",
       });
-    }
-  });
-  /* Choices JS */
-
-  /* box with close button */
-  let DIV_Box = ".box";
-  let boxRemoveBtn = document.querySelectorAll(".box-remove");
-  boxRemoveBtn.forEach((ele) => {
-    ele.addEventListener("click", function (e) {
-      e.preventDefault();
-      let $this = this;
-      let box = $this.closest(DIV_Box);
-      box.remove();
-      return false;
     });
   });
-  /* box with close button */
 
-  /* box with fullscreen */
-  let boxFullscreenBtn = document.querySelectorAll(".box-fullscreen");
-  boxFullscreenBtn.forEach((ele) => {
+  // box remove
+  document.querySelectorAll(".box-remove").forEach((ele) => {
     ele.addEventListener("click", function (e) {
-      let $this = this;
-      let box = $this.closest(DIV_Box);
+      e.preventDefault();
+      const box = ele.closest(".box");
+      if (box) box.remove();
+    });
+  });
+
+  // box fullscreen (template “box fullscreen”, not browser fullscreen)
+  document.querySelectorAll(".box-fullscreen").forEach((ele) => {
+    ele.addEventListener("click", function (e) {
+      e.preventDefault();
+      const box = ele.closest(".box");
+      if (!box) return;
       box.classList.toggle("box-fullscreen");
       box.classList.remove("box-collapsed");
-      e.preventDefault();
-      return false;
     });
   });
-  /* box with fullscreen */ /* back to top */
 
-  /* card with close button */
-
+  // back to top (guard if not present)
   const scrollToTop = document.querySelector(".scrollToTop");
-  const $rootElement = document.documentElement;
-  const $body = document.body;
-  window.onscroll = () => {
-    const scrollTop = window.scrollY || window.pageYOffset;
-    const clientHt = $rootElement.scrollHeight - $rootElement.clientHeight;
-    if (window.scrollY > 100) {
-      scrollToTop.style.display = "flex";
-    } else {
-      scrollToTop.style.display = "none";
-    }
-  };
-  scrollToTop.onclick = () => {
-    window.scrollTo(0, 0);
-    // window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  /* back to top */
+  if (scrollToTop) {
+    window.onscroll = () => {
+      const scrollTop = window.scrollY || window.pageYOffset;
+      scrollToTop.style.display = scrollTop > 100 ? "flex" : "none";
+    };
 
-  /*header-remove */
-  const headerbtn2 = document.querySelectorAll(".header-remove-btn");
+    scrollToTop.onclick = () => window.scrollTo(0, 0);
+  }
 
-  headerbtn2.forEach((button, index) => {
+  // header remove buttons (guard missing containers)
+  document.querySelectorAll(".header-remove-btn").forEach((button) => {
     button.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      button.parentNode.remove();
-      if (document.getElementById("allCartsContainer")) {
-        document.getElementById("cart-data").innerText = `${
-          document.getElementById("allCartsContainer").children.length
-        } Items`;
-        document.getElementById("cart-data2").innerText = `${
-          document.getElementById("allCartsContainer").children.length
-        }`;
-      }
-      if (document.getElementById("allNotifyContainer")) {
-        document.getElementById("notify-data").innerText = `${
-          document.getElementById("allNotifyContainer").children.length
-        }`;
-      }
-
-      if (document.getElementById("allCartsContainer")) {
-        if (document.getElementById("allCartsContainer").children.length == 0) {
-          document.getElementById("allCartsContainer").parentNode.innerHTML = `
-                        <div class="p-6 pb-8 text-center">
-                          <div>
-                            <i class="ri ri-shopping-cart-2-line leading-none text-4xl avatar avatar-lg bg-primary/20 text-primary rounded-full p-3 align-middle flex justify-center mx-auto"></i>
-                            <div class="mt-5">
-                              <p class="text-base font-semibold text-gray-800 dark:text-white mb-1">
-                                No Items In Cart
-                              </p>
-                              <p class="text-xs text-gray-500 dark:text-white/70">
-                              When you have Items added here , they will appear here.
-                              </p>
-                              <a href="javascript:void(0);" class="m-0 ti-btn ti-btn-primary py-1 mt-5"><i class="ti ti-arrow-right text-base leading-none"></i>Continue Shopping</a>
-                            </div>
-                          </div>
-                        </div>`;
-        }
-      }
-      if (document.getElementById("allNotifyContainer")) {
-        if (
-          document.getElementById("allNotifyContainer").children.length == 0
-        ) {
-          document.getElementById("allNotifyContainer").parentNode.innerHTML = `
-          <div class="p-6 pb-8 text-center">
-          <div>
-            <i class="ri ri-notification-off-line leading-none text-4xl avatar avatar-lg bg-secondary/20 text-secondary rounded-full p-3 align-middle flex justify-center mx-auto"></i>
-            <div class="mt-5">
-              <p class="text-base font-semibold text-gray-800 dark:text-white mb-1">
-                No Notifications Found
-              </p>
-              <p class="text-xs text-gray-500 dark:text-white/70">
-              When you have notifications added here , they will appear here.
-              </p>
-            </div>
-          </div>
-        </div>`;
-        }
-      }
+      if (button.parentNode) button.parentNode.remove();
     });
   });
-  /*header-remove */
 
-  /* for cart dropdown */
-  const headerbtn = document.querySelectorAll(".dropdown-item-close");
-  headerbtn.forEach((button) => {
+  // cart dropdown remove
+  document.querySelectorAll(".dropdown-item-close").forEach((button) => {
     button.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      button.parentNode.parentNode.parentNode.parentNode.parentNode.remove();
-      document.getElementById("cart-data").innerText = `${
-        document.querySelectorAll(".dropdown-item-close").length
-      } Items`;
-      document.getElementById("cart-icon-badge").innerText = `${
-        document.querySelectorAll(".dropdown-item-close").length
-      }`;
-      console.log(
-        document.getElementById("header-cart-items-scroll").children.length
-      );
-      if (document.querySelectorAll(".dropdown-item-close").length == 0) {
-        let elementHide = document.querySelector(".empty-header-item");
-        let elementShow = document.querySelector(".empty-item");
-        elementHide.classList.add("hidden");
-        elementShow.classList.remove("hidden");
-      }
+      const item = button.closest("li") || button.parentNode;
+      if (item) item.remove();
     });
   });
-  /* for cart dropdown */
 
-  /* for notifications dropdown */
-  const headerbtn1 = document.querySelectorAll(".dropdown-item-close1");
-  headerbtn1.forEach((button) => {
+  // notifications dropdown remove
+  document.querySelectorAll(".dropdown-item-close1").forEach((button) => {
     button.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      button.parentNode.parentNode.parentNode.parentNode.remove();
-      document.getElementById("notifiation-data").innerText = `${
-        document.querySelectorAll(".dropdown-item-close1").length
-      } Unread`;
-      document.getElementById("notification-icon-badge").innerText = `${
-        document.querySelectorAll(".dropdown-item-close1").length
-      }`;
-      if (document.querySelectorAll(".dropdown-item-close1").length == 0) {
-        let elementHide1 = document.querySelector(".empty-header-item1");
-        let elementShow1 = document.querySelector(".empty-item1");
-        elementHide1.classList.add("hidden");
-        elementShow1.classList.remove("hidden");
-      }
+      const item = button.closest("li") || button.parentNode;
+      if (item) item.remove();
     });
   });
-  /* for notifications dropdown */
 
 })();
 
-/* full screen */
-var elem = document.documentElement;
-window.openFullscreen = function() {
-  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-    requestFullscreen();
+
+// ✅ Browser fullscreen (THIS is what your header uses)
+const elem = document.documentElement;
+
+window.openFullscreen = function () {
+  const isFs =
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.msFullscreenElement;
+
+  if (!isFs) {
+    if (elem.requestFullscreen) return elem.requestFullscreen();
+    if (elem.webkitRequestFullscreen) return elem.webkitRequestFullscreen();
+    if (elem.msRequestFullscreen) return elem.msRequestFullscreen();
   } else {
-    exitFullscreen();
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    if (document.msExitFullscreen) return document.msExitFullscreen();
   }
-}
-function requestFullscreen() {
-  if (elem.requestFullscreen) {
-    elem.requestFullscreen();
-  } else if (elem.webkitRequestFullscreen) {
-    elem.webkitRequestFullscreen();
-  } else if (elem.msRequestFullscreen) {
-    elem.msRequestFullscreen();
-  }
-}
-function exitFullscreen() {
-  if (document.exitFullscreen) {
-    document.exitFullscreen();
-  } else if (document.webkitExitFullscreen) {
-    document.webkitExitFullscreen();
-  } else if (document.msExitFullscreen) {
-    document.msExitFullscreen();
-  }
-}
-// Listen for fullscreen change event
-document.addEventListener("fullscreenchange", handleFullscreenChange);
+};
+
+// icon sync (support webkit too)
 function handleFullscreenChange() {
+  const open = document.querySelector(".full-screen-open");
+  const close = document.querySelector(".full-screen-close");
+  if (!open || !close) return;
 
-  let open = document.querySelector(".full-screen-open");
-  let close = document.querySelector(".full-screen-close");
+  const isFs =
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.msFullscreenElement;
 
-  if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
-    // Update icon for fullscreen mode
-    close.classList.add("block");
+  if (isFs) {
     close.classList.remove("hidden");
+    close.classList.add("block");
     open.classList.add("hidden");
+    open.classList.remove("block");
   } else {
-    // Update icon for non-fullscreen mode
+    close.classList.add("hidden");
     close.classList.remove("block");
     open.classList.remove("hidden");
-    close.classList.add("hidden");
     open.classList.add("block");
   }
 }
-/* full screen */
 
-/* count-up */
-var i = 1;
+document.addEventListener("fullscreenchange", handleFullscreenChange);
+document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
+
+// count-up (guard query)
+let i = 1;
 setInterval(() => {
   document.querySelectorAll(".count-up").forEach((ele) => {
-    if (ele.getAttribute("data-count") >= i) {
-      i = i + 1;
+    const target = Number(ele.getAttribute("data-count") || 0);
+    if (target >= i) {
+      i++;
       ele.innerText = i;
     }
   });
 }, 10);
-/* count-up */
