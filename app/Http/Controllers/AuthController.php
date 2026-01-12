@@ -14,10 +14,10 @@ class AuthController extends Controller
 
     public function showSignUpForm()
     {
-        // Safer: avoid exposing/admin-assigning admin role in UI
+        // Safer: avoid exposing/Administrator-assigning Administrator role in UI
         $roles = Role::query()
             ->where('guard_name', 'web')
-            ->where('name', '!=', 'admin')
+            ->where('name', '!=', 'Administrator')
             ->orderBy('name')
             ->get(['id', 'name']);
 

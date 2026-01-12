@@ -22,7 +22,7 @@ class CheckAdminOrPermission
         $user = Auth::user();
 
         // Check if the user has the 'admin' role or the specified permission
-        if (!$user || (!$user->hasRole('admin') && !$user->can($permission))) {
+        if (!$user || (!$user->hasRole('Administrator') && !$user->can($permission))) {
             // Log the failure for debugging
             Log::info('User failed middleware check', [
                 'user_id' => Auth::id(),

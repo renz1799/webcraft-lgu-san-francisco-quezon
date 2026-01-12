@@ -14,7 +14,7 @@ class RolesController extends Controller
 {
     public function __construct(private readonly RoleServiceInterface $roles)
     {
-        $this->middleware(['auth','role_or_permission:admin|view User Roles|modify User Roles']);
+        $this->middleware(['auth','role_or_permission:Administrator']);
     }
 
     public function index(): View

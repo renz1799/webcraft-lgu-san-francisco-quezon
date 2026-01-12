@@ -14,8 +14,8 @@ class ThemeController extends Controller
         // Everyone must be logged in to hit these endpoints
         $this->middleware('auth');
 
-        // Colors are admin-only
-        $this->middleware('role:admin')->only('updateColors');
+        // Colors are Administrator-only
+        $this->middleware('role:Administrator')->only('updateColors');
     }
 
     /** Per-user style (any authenticated user) */
@@ -30,7 +30,7 @@ class ThemeController extends Controller
         return response()->json($next);
     }
 
-    /** Admin-only colors, apply to everyone */
+    /** Administrator-only colors, apply to everyone */
     public function updateColors(Request $request)
     {
         $data = $request->validate([

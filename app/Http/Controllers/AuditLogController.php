@@ -14,7 +14,7 @@ class AuditLogController extends Controller
         private readonly AuditLogServiceInterface $audit,
         private readonly AuditLogTableServiceInterface $auditTable
     ) {
-        $this->middleware(['auth','role_or_permission:admin|view Audit Logs']);
+        $this->middleware(['auth','role_or_permission:Administrator']);
     }
 
     public function index(LogIndexRequest $request): \Illuminate\View\View

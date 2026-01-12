@@ -22,7 +22,7 @@
 
 @php
   $u = auth()->user();
-  $isAdmin = $u && $u->hasRole('admin');
+  $isAdmin = $u && $u->hasRole('Administrator');
 @endphp
 
 <ul class="main-menu">

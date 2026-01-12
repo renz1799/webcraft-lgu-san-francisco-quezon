@@ -12,7 +12,7 @@ class LoginLogController extends Controller
     public function __construct(
         private readonly LoginLogServiceInterface $logs
     ) {
-        $this->middleware(['auth', 'role_or_permission:admin|view Login Logs']);
+        $this->middleware(['auth', 'role_or_permission:Administrator']);
     }
 
     /** Page */

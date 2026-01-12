@@ -22,7 +22,7 @@ class TaskController extends Controller
         $myTasks = $this->tasks->paginateForAssignee($userId, 20);
 
         // IMPORTANT: use role NAMES (strings), not Role models
-        $roles = $user->getRoleNames()->all(); // e.g. ['staff'] or ['admin']
+        $roles = $user->getRoleNames()->all(); // e.g. ['staff'] or ['Administrator']
 
         $availableTasks = $this->tasks->getAvailableForRoles($roles, 20);
 
