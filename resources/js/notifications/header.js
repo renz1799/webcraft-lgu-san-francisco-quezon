@@ -84,37 +84,45 @@ console.log('[Notifications] Header script loaded');
     return `
       <li class="ti-dropdown-item dropdown-item !block ${unreadClass}" data-notification-id="${id}">
         <div class="flex items-start">
-          <div class="pe-2">
-            <span class="inline-flex text-secondary justify-center items-center !w-[2.5rem] !h-[2.5rem] !leading-[2.5rem] !text-[0.8rem] bg-secondary/10 rounded-[50%]">
-              <i class="ti ti-bell text-[1.125rem]"></i>
-            </span>
-          </div>
+          <!-- ✅ Whole row clickable -->
+          <a href="${url}"
+            class="header-notification-link flex items-start grow min-w-0"
+            data-notification-id="${id}"
+            style="text-decoration:none;">
+            
+            <div class="pe-2">
+              <span class="inline-flex text-secondary justify-center items-center !w-[2.5rem] !h-[2.5rem] !leading-[2.5rem] !text-[0.8rem] bg-secondary/10 rounded-[50%]">
+                <i class="ti ti-bell text-[1.125rem]"></i>
+              </span>
+            </div>
 
-          <div class="grow flex items-start justify-between gap-2">
-            <div class="min-w-0">
+            <div class="grow min-w-0">
               <p class="mb-0 text-defaulttextcolor dark:text-white text-[0.8125rem] font-semibold truncate">
-                <a href="${url}" class="header-notification-link" data-notification-id="${id}">
-                  ${title}
-                </a>
+                ${title}
               </p>
 
-              <span class="block text-[#8c9097] dark:text-white/50 font-normal text-[0.75rem] header-notification-text">
+              <span class="block text-[#8c9097] dark:text-white/50 font-normal text-[0.75rem] header-notification-text truncate">
                 ${message}
               </span>
 
               ${timeText ? `<span class="block mt-1 text-[0.70rem] text-[#8c9097] dark:text-white/50">${timeText}</span>` : ''}
             </div>
+          </a>
 
-            <div class="shrink-0">
-              <a aria-label="anchor" href="javascript:void(0);" class="min-w-fit text-[#8c9097] dark:text-white/50 me-1 header-notification-close" data-notification-id="${id}">
-                <i class="ti ti-x text-[1rem]"></i>
-              </a>
-            </div>
+          <!-- ✅ Close stays separate (not inside the anchor) -->
+          <div class="shrink-0 ps-2">
+            <a aria-label="anchor"
+              href="javascript:void(0);"
+              class="min-w-fit text-[#8c9097] dark:text-white/50 me-1 header-notification-close"
+              data-notification-id="${id}">
+              <i class="ti ti-x text-[1rem]"></i>
+            </a>
           </div>
         </div>
       </li>
     `;
   }
+
 
   async function fetchHeaderNotifications() {
     const res = await fetch(endpoints.header, {
@@ -177,17 +185,20 @@ console.log('[Notifications] Header script loaded');
   });
 
   // mark as read when clicking link (don’t block navigation)
-  document.addEventListener('click', async (e) => {
-    const link = e.target.closest('.header-notification-link');
-    if (!link) return;
+document.addEventListener('click', async (e) => {
+  // ✅ if user clicked the X button, let the other handler handle it
+  if (e.target.closest('.header-notification-close')) return;
 
-    const id = link.getAttribute('data-notification-id');
-    if (!id) return;
+  const link = e.target.closest('.header-notification-link');
+  if (!link) return;
 
-    markAsRead(id).finally(() => {
-      refreshHeaderNotifications();
-    });
-  });
+  const id = link.getAttribute('data-notification-id');
+  if (!id) return;
+
+  // don't block navigation; fire-and-forget
+  markAsRead(id).finally(() => refreshHeaderNotifications());
+});
+
 
   // close icon: mark as read + refresh
   document.addEventListener('click', async (e) => {
