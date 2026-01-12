@@ -12,5 +12,6 @@ class ViewServiceProvider extends ServiceProvider
     {
         // Assign the HeaderComposer to the header view
         View::composer('layouts.components.header', HeaderComposer::class);
+        View::composer('layouts.partials.header', HeaderComposer::class);
     }
 }

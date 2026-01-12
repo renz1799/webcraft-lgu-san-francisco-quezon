@@ -1,5 +1,11 @@
 
             <header class="app-header">
+            <!--      <div style="position:fixed; top:70px; right:20px; z-index:999999; background:#fff; padding:6px 10px; border:1px solid #ddd; border-radius:8px; font-size:12px;">
+    composer: {{ $user?->cache_busted_photo_url ? 'yes' : 'no' }}
+    @if($user?->profile?->profile_photo_path)
+      <div>path: {{ $user->profile->profile_photo_path }}</div>
+    @endif
+  </div>  For debugging if image wont appear --> 
                 <nav class="main-header !h-[3.75rem]" aria-label="Global">
                     <div class="main-header-container ps-[0.725rem] pe-[1rem] ">
 
@@ -135,21 +141,28 @@
 
 
                            <!-- Header Profile -->
-<div class="header-element md:!px-[0.65rem] px-2 hs-dropdown !items-center ti-dropdown [--placement:bottom-left]">
-    <button id="dropdown-profile" type="button"
+    <div class="header-element md:!px-[0.65rem] px-2 hs-dropdown !items-center ti-dropdown [--placement:bottom-left]">
+        @php
+        // extra safety: if composer fails, still fallback cleanly
+        $photo = $user?->cache_busted_photo_url ?: asset('build/assets/images/default-profile.png');
+        @endphp
+
+        <button id="dropdown-profile" type="button"
         class="hs-dropdown-toggle ti-dropdown-toggle !gap-2 !p-0 flex-shrink-0 sm:me-2 me-0 !rounded-full !shadow-none text-xs align-middle !border-0 !shadow-transparent">
         <img class="inline-block rounded-full"
-            src="{{ $user?->cache_busted_photo_url ?? asset('build/assets/images/default-profile.png') }}"
+            src="{{ $photo }}"
             width="32" height="32" alt="{{ $user?->username ?? 'Guest' }}">
-    </button>
-    <div class="md:block hidden dropdown-profile">
+        </button>
+
+        <div class="md:block hidden dropdown-profile">
         <p class="font-semibold mb-0 leading-none text-[#536485] text-[0.813rem]">
             {{ $user?->username ?? 'Guest' }}
         </p>
         <span class="opacity-[0.7] font-normal text-[#536485] block text-[0.6875rem]">
             {{ $user?->user_type ?? 'N/A' }}
         </span>
-    </div>
+        </div>
+
 
     <div
         class="hs-dropdown-menu ti-dropdown-menu !-mt-3 border-0 w-[11rem] !p-0 border-defaultborder hidden main-header-dropdown  pt-0 overflow-hidden header-profile-dropdown dropdown-menu-end"

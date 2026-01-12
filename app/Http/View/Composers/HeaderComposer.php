@@ -4,32 +4,32 @@ namespace App\Http\View\Composers;
 
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class HeaderComposer
 {
-    public function compose(View $view)
+    public function compose(View $view): void
     {
-        $user = Auth::user(); // Fetch the authenticated user
-        if ($user) {
-            $user->load('profile'); // Load the profile relationship
+        $user = Auth::user();
 
-            // Cache-busted URL for profile photo
-            if ($user->profile && $user->profile->profile_photo_path) {
-                $photoPath = public_path('storage/' . $user->profile->profile_photo_path);
-                if (file_exists($photoPath)) {
-                    $photoUrl = asset('storage/' . $user->profile->profile_photo_path) . '?v=' . filemtime($photoPath);
-                } else {
-                    $photoUrl = asset('default-avatar.png'); // Fallback if the file doesn't exist
+        if ($user) {
+            $user->loadMissing('profile');
+
+            $default = asset('build/assets/images/default-profile.png');
+            $photoUrl = $default;
+
+            $relPath = $user->profile?->profile_photo_path; // e.g. "profiles/abc.jpg"
+            if ($relPath) {
+                $abs = public_path('storage/' . ltrim($relPath, '/'));
+
+                if (is_file($abs)) {
+                    $photoUrl = asset('storage/' . ltrim($relPath, '/')) . '?v=' . filemtime($abs);
                 }
-            } else {
-                $photoUrl = asset('default-avatar.png'); // Fallback if no profile photo is set
             }
 
-            // Add the cache-busted photo URL to the user object
+            // attach computed url
             $user->cache_busted_photo_url = $photoUrl;
         }
 
-        $view->with('user', $user); // Pass user data to the view
+        $view->with('user', $user);
     }
 }

@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\DashboardsController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\HeaderController;
 use App\Http\Controllers\UserProfileController;
 
 use App\Http\Controllers\UsersAccessController;
@@ -48,7 +47,6 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     // logout + small utilities
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/capture-location', [AuthController::class, 'captureLocation']); // if still used
-    Route::get('/header', [HeaderController::class, 'renderHeader'])->name('header');
 
     // Profile / Mail settings
     Route::get('/mail-settings',  [UserProfileController::class, 'index'])->name('profile.index');
