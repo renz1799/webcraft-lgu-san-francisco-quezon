@@ -24,7 +24,7 @@ class EloquentTaskEventRepository implements TaskEventRepositoryInterface
     {
         return TaskEvent::query()
             ->where('task_id', $taskId)
-            ->orderBy('created_at')
+            ->orderByDesc('created_at')
             ->get();
     }
 

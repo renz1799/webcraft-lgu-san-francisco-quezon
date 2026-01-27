@@ -17,4 +17,13 @@ interface TaskRepositoryInterface
 
     public function getAvailableForRoles(array $roles, int $limit = 20);
 
+    // ✅ NEW: uniform tabulator data source
+    public function paginateForTable(
+        string $userId,
+        array $roles,
+        array $filters,
+        int $page = 1,
+        int $size = 15
+    ): LengthAwarePaginator;
+     public function countsForSidebar(string $userId, array $roles): array;
 }

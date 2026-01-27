@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use App\Repositories\Contracts\ThemePreferencesRepositoryInterface;
+use App\Repositories\Contracts\TaskRepositoryInterface;
+use Illuminate\Support\Facades\Cache;
 
 // ✅ add these imports
 use Illuminate\Cache\RateLimiting\Limit;
@@ -58,8 +60,23 @@ class AppServiceProvider extends ServiceProvider
 
             $themeColors = $theme->getGlobalColors();
 
+            // ✅ TASK COUNTS (cached, safe)
+            $taskCounts = null;
+
+            if ($user) {
+                $cacheKey = 'task_counts:' . $user->id;
+
+                $taskCounts = Cache::remember($cacheKey, now()->addSeconds(20), function () use ($user) {
+                    $roles = $user->getRoleNames()->all();
+
+                    return app(TaskRepositoryInterface::class)
+                        ->countsForSidebar((string) $user->id, $roles);
+                });
+            }
+
             $view->with('themeStyle', $themeStyle)
-                 ->with('themeColors', $themeColors);
+                ->with('themeColors', $themeColors)
+                ->with('taskCounts', $taskCounts);
         });
     }
 }

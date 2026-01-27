@@ -142,7 +142,7 @@ class TaskSeeder extends Seeder
                 'created_by_user_id' => $admin->id,
                 'assigned_to_user_id' => null,
                 'data' => [
-                    'eligible_roles' => ['admin'],
+                    'eligible_roles' => ['Administrator'],
                     'subject_url' => '/inventory/items/demo-item-uuid-2',
                 ],
                 'created_at' => now()->subHours(10),
@@ -165,7 +165,7 @@ class TaskSeeder extends Seeder
                 'assigned_to_user_id' => null,
                 'due_at' => now()->addDay(),
                 'data' => [
-                    'eligible_roles' => ['admin', 'staff'],
+                    'eligible_roles' => ['Administrator', 'Staff'],
                     'subject_url' => '/gatepass/demo',
                 ],
                 'created_at' => now()->subHours(3),
@@ -192,7 +192,7 @@ class TaskSeeder extends Seeder
                 'created_by_user_id' => $admin->id,
                 'assigned_to_user_id' => null,
                 'data' => [
-                    'eligible_roles' => ['staff'],
+                    'eligible_roles' => ['Staff'],
                 ],
                 'created_at' => now()->subHours(1),
                 'updated_at' => now()->subHours(1),

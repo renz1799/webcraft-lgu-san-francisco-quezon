@@ -181,6 +181,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     */
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
 
+    Route::get('/tasks/data', [TaskController::class, 'data'])
+    ->name('tasks.data');
+
     Route::get('/tasks/{id}', [TaskController::class, 'show'])
         ->whereUuid('id')
         ->name('tasks.show');

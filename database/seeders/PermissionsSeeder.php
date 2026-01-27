@@ -14,9 +14,9 @@ class PermissionsSeeder extends Seeder
     public function run(): void
     {
         $permissions = [
-            ['name' => 'view User Permissions', 'page' => 'Manage Roles/Permissions'],
-            ['name' => 'modify User Permissions', 'page' => 'Manage Roles/Permissions'],
-            ['name' => 'delete User Permissions', 'page' => 'Manage Roles/Permissions'],
+            ['name' => 'view Tasks', 'page' => 'Manage Tasks'],
+            ['name' => 'modify Tasks', 'page' => 'Manage Tasks'],
+            ['name' => 'delete Tasks', 'page' => 'Manage Tasks'],
 
         ];
 
@@ -30,3 +30,4 @@ class PermissionsSeeder extends Seeder
         echo "✅ Permissions seeded successfully!\n";
     }
 }
+//php artisan db:seed --class=PermissionsSeeder
