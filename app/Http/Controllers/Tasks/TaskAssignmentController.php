@@ -11,7 +11,10 @@ class TaskAssignmentController extends Controller
 {
     public function __construct(
         private readonly TaskAssignmentService $assignmentService
-    ) {}
+    ) {
+            $this->middleware('role_or_permission:Administrator|Staff')
+            ->only(['assign']);
+    }
 
     public function assign(AssignTaskRequest $request): JsonResponse
     {

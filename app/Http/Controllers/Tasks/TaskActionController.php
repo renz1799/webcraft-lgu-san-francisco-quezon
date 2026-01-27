@@ -17,7 +17,10 @@ class TaskActionController extends Controller
     public function __construct(
         private readonly TaskServiceInterface $taskService,
         private readonly TaskRepositoryInterface $tasks,
-    ) {}
+    ) {
+            $this->middleware('role_or_permission:Administrator|Staff')
+            ->only(['store', 'changeStatus', 'comment', 'reassign', 'claim']);
+    }
 
     public function store(StoreTaskRequest $request)
     {

@@ -14,7 +14,7 @@ class TaskController extends Controller
         private readonly TaskRepositoryInterface $tasks,
         private readonly TaskEventRepositoryInterface $taskEvents,
     ) {
-        $this->middleware('role_or_permission:Administrator|view Tasks')
+        $this->middleware('role_or_permission:Administrator|Staff')
             ->only(['index', 'data']);
     }
 
