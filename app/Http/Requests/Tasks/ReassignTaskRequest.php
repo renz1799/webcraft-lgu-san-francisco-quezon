@@ -8,8 +8,10 @@ class ReassignTaskRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // later: return $this->user()->can('modify Task Assignments');
-        return true;
+        $u = $this->user();
+
+        return $u
+            && ($u->hasAnyRole(['Administrator', 'Staff']));
     }
 
     public function rules(): array

@@ -8,7 +8,10 @@ class AddTaskCommentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $u = $this->user();
+
+        return $u
+            && ($u->hasAnyRole(['Administrator', 'Staff']));
     }
 
     public function rules(): array

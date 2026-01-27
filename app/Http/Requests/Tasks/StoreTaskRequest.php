@@ -8,8 +8,10 @@ class StoreTaskRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // later: return $this->user()->can('create Tasks');
-        return true;
+        $u = $this->user();
+
+        return $u
+            && ($u->hasAnyRole(['Administrator', 'Staff']));
     }
 
     public function rules(): array

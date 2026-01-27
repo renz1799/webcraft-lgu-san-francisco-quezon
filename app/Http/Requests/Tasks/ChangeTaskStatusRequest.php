@@ -8,8 +8,10 @@ class ChangeTaskStatusRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // later: permission or policy checks
-        return true;
+        $u = $this->user();
+
+        return $u
+            && ($u->hasAnyRole(['Administrator', 'Staff']));
     }
 
     public function rules(): array
