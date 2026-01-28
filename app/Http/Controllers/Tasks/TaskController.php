@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Tasks;
 
+use App\Models\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tasks\TaskTableDataRequest;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Services\Contracts\TaskServiceInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -57,15 +59,37 @@ class TaskController extends Controller
         }
     }
 
-    public function show(Request $request, string $id)
-    {
-        $task = $this->tasks->findOrFail($id);
+        public function show(Request $request, string $id)
+        {
+            $task = $this->tasks->findOrFail($id);
+            $this->authorize('view', $task);
 
-        $this->authorize('view', $task);
+            $events = $this->taskEvents->getForTask($id);
+            $subjectUrl = data_get($task->data, 'subject_url');
 
-        $events = $this->taskEvents->getForTask($id);
-        $subjectUrl = data_get($task->data, 'subject_url');
+            $canReassign = $request->user()?->hasRole('Administrator')
+                || $request->user()?->can('modify Reassign Tasks');
 
-        return view('tasks.show', compact('task', 'events', 'subjectUrl'));
-    }
+            $assignees = [];
+
+            if ($canReassign) {
+                $assignees = User::query()
+                    ->with(['profile'])
+                    ->where('is_active', true)
+                    ->orderBy('username')
+                    ->get(['id', 'username'])
+                    ->map(function (User $u) {
+                        $name = $u->profile?->full_name ?: ($u->username ?: 'Unknown User');
+                        return [
+                            'id' => (string) $u->id,
+                            'name' => trim((string) $name),
+                        ];
+                    })
+                    ->values()
+                    ->all();
+            }
+
+            return view('tasks.show', compact('task', 'events', 'subjectUrl', 'assignees'));
+        }
+        
 }

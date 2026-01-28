@@ -32,4 +32,6 @@ interface UserRepositoryInterface
     public function assignRoleAndSyncPermissions(User $user, string $roleName): void;
 
     public function paginateForPermissionsTable(?string $q, int $page, int $size): LengthAwarePaginator;
+
+    public function listForTaskReassign(): array;
 }

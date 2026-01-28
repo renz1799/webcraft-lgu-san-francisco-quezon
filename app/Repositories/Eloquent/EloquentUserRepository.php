@@ -126,4 +126,24 @@ class EloquentUserRepository implements UserRepositoryInterface
 
         return $query->paginate($size, ['*'], 'page', $page);
     }
+
+        public function listForTaskReassign(): array
+    {
+        return User::query()
+            ->with(['profile:id,user_id,first_name,middle_name,last_name,name_extension'])
+            ->whereNull('deleted_at')
+            ->where('is_active', true)
+            ->orderBy('username')
+            ->get(['id', 'username'])
+            ->map(function (User $u) {
+                $name = $u->profile?->full_name ?: ($u->username ?: 'Unknown User');
+                return [
+                    'id' => (string) $u->id,
+                    'name' => trim((string) $name),
+                ];
+            })
+            ->values()
+            ->all();
+    }
 }
+

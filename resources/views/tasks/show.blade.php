@@ -74,6 +74,38 @@
             </div>
             @endcan
 
+            {{-- Reassign (Admin + permission only) --}}
+        @php($canReassign = auth()->user()?->hasRole('Administrator') || auth()->user()?->can('modify Reassign Tasks'))
+
+        @if($canReassign)
+        <div class="border-t pt-3 mt-3">
+            <div class="font-semibold text-defaulttextcolor dark:text-white mb-2">Reassign Task</div>
+
+            <form method="POST"
+                action="{{ route('tasks.reassign', $task->id) }}"
+                class="space-y-2 js-task-reassign-form">
+            @csrf
+
+            <select name="assignee_user_id" class="ti-form-select w-full" required>
+                <option value="" disabled selected>Select new assignee…</option>
+
+                @foreach(($assignees ?? []) as $u)
+                @php($isCurrent = (string) $task->assigned_to_user_id === (string) $u['id'])
+                <option value="{{ $u['id'] }}" @disabled($isCurrent)>
+                    {{ $u['name'] }} @if($isCurrent) (current) @endif
+                </option>
+                @endforeach
+            </select>
+
+            <textarea name="note" rows="3" class="ti-form-input w-full"
+                placeholder="Optional note (reason / instructions)"></textarea>
+
+            <button type="submit" class="ti-btn ti-btn-warning w-full">Reassign</button>
+            </form>
+        </div>
+        @endif
+
+
             {{-- Comment --}}
             @can('comment', $task)
             <div class="border-t pt-3 mt-3">
@@ -109,7 +141,7 @@
                 @else
                     {{-- Scrollable area --}}
                     <div class="space-y-3 overflow-y-auto pr-2"
-                        style="max-height: 520px;">
+                        style="max-height: 800px;">
                         @foreach($events as $event)
                             <div class="p-3 rounded border border-defaultborder">
                                 <div class="flex items-center justify-between">
@@ -125,10 +157,9 @@
                                         {{ $event->created_at->format('M d, Y h:i A') }}
                                     </div>
                                 </div>
-
                                 @if($event->note)
-                                    <div class="mt-2 text-sm text-defaulttextcolor dark:text-white">
-                                        {{ $event->note }}
+                                    <div class="mt-2 text-sm text-defaulttextcolor dark:text-white whitespace-normal">
+                                        {!! nl2br(e($event->note)) !!}
                                     </div>
                                 @endif
 

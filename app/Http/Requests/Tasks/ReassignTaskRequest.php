@@ -9,16 +9,17 @@ class ReassignTaskRequest extends FormRequest
     public function authorize(): bool
     {
         $u = $this->user();
+        if (!$u) return false;
 
-        return $u
-            && ($u->hasAnyRole(['Administrator', 'Staff']));
+        // ✅ must be Admin AND have permission
+        return $u->hasRole('Administrator') || $u->can('modify Reassign Tasks');
     }
 
     public function rules(): array
     {
         return [
             'assignee_user_id' => ['required', 'uuid'],
-            'note' => ['nullable', 'string'],
+            'note' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

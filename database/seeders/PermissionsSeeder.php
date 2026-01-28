@@ -14,9 +14,9 @@ class PermissionsSeeder extends Seeder
     public function run(): void
     {
         $permissions = [
-            ['name' => 'view Tasks', 'page' => 'Manage Tasks'],
-            ['name' => 'modify Tasks', 'page' => 'Manage Tasks'],
-            ['name' => 'delete Tasks', 'page' => 'Manage Tasks'],
+            ['name' => 'modify Reassign Tasks', 'page' => 'Manage Tasks'],
+          //  ['name' => 'modify Tasks', 'page' => 'Manage Tasks'],
+          //  ['name' => 'delete Tasks', 'page' => 'Manage Tasks'],
 
         ];
 

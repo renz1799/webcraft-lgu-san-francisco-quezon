@@ -215,50 +215,111 @@ class TaskService implements TaskServiceInterface
         });
     }
 
-    public function reassign(
-        string $actorUserId,
-        string $taskId,
-        string $newAssigneeUserId,
-        ?string $note = null
-    ): Task {
-        return DB::transaction(function () use ($actorUserId, $taskId, $newAssigneeUserId, $note) {
-            $task = $this->tasks->findOrFail($taskId);
+public function reassign(
+    string $actorUserId,
+    string $taskId,
+    string $newAssigneeUserId,
+    ?string $note = null
+): Task {
+    return DB::transaction(function () use (
+        $actorUserId,
+        $taskId,
+        $newAssigneeUserId,
+        $note
+    ) {
+        $task = $this->tasks->findOrFail($taskId);
 
-            $oldAssignee = $task->assigned_to_user_id;
+        // -------------------------
+        // Resolve FROM / TO users
+        // -------------------------
+        $fromUserId = $task->assigned_to_user_id;
 
-            $task->assigned_to_user_id = $newAssigneeUserId;
-            $this->tasks->save($task);
+        $fromUser = $fromUserId
+            ? User::with('profile')->find($fromUserId)
+            : null;
 
-            $this->createEvent([
-                'task_id' => $task->id,
-                'actor_user_id' => $actorUserId,
-                'event_type' => 'reassigned',
-                'note' => $note,
-                'meta' => [
-                    'from_user_id' => $oldAssignee,
-                    'to_user_id' => $newAssigneeUserId,
-                ],
-            ]);
+        $toUser = User::with('profile')->find($newAssigneeUserId);
 
-            $this->notificationService->notifyTaskParticipants(
-                task: $task,
-                actorUserId: $actorUserId,
-                type: 'task_reassigned',
-                title: 'Task Reassigned',
-                message: "Task \"{$task->title}\" was reassigned."
-            );
+        $fromName = $fromUser?->profile?->full_name
+            ?? $fromUser?->username
+            ?? 'Unassigned';
 
-            // notify new assignee (direct)
-            $this->notificationService->notifyTaskAssigned(
-                assigneeUserId: $newAssigneeUserId,
-                actorUserId: $actorUserId,
-                taskId: (string) $task->id,
-                taskTitle: $task->title
-            );
+        $toName = $toUser?->profile?->full_name
+            ?? $toUser?->username
+            ?? 'Unassigned';
 
-            return $task;
-        });
-    }
+        // -------------------------
+        // Update task (source of truth)
+        // -------------------------
+        $task->assigned_to_user_id = $newAssigneeUserId;
+        $this->tasks->save($task);
+
+        // -------------------------
+        // Build timeline note
+        // -------------------------
+        // -------------------------
+        // Build timeline note (strict format)
+        // -------------------------
+        $customNote = trim((string) $note);
+
+        // Resolve actor name
+        $actorUser = User::with('profile')->find($actorUserId);
+
+        $actorName = $actorUser?->profile?->full_name
+            ?? $actorUser?->username
+            ?? 'System';
+
+        // Line 1: action
+        $lines = [];
+        $lines[] = "Task reassigned: {$fromName} → {$toName}.";
+
+        // Line 3+: optional note
+        if ($customNote !== '') {
+            $lines[] = "Note: {$customNote}";
+        }
+
+        $finalNote = implode("\n", $lines);
+
+
+        // -------------------------
+        // Timeline event
+        // -------------------------
+        $this->createEvent([
+            'task_id'       => (string) $task->id,
+            'actor_user_id' => $actorUserId,
+            'event_type'    => 'task_reassigned',
+            'from_status'   => (string) $task->status,
+            'to_status'     => (string) $task->status,
+            'note'          => $finalNote,
+            'meta'          => [
+                'from_user_id' => $fromUserId,
+                'to_user_id'   => $newAssigneeUserId,
+                'custom_note'  => $customNote !== '' ? $customNote : null,
+            ],
+        ]);
+
+        // -------------------------
+        // Notifications
+        // -------------------------
+        $this->notificationService->notifyTaskParticipants(
+            task: $task,
+            actorUserId: $actorUserId,
+            type: 'task_reassigned',
+            title: 'Task Reassigned',
+            message: "Task \"{$task->title}\" was reassigned."
+        );
+
+        $this->notificationService->notifyTaskAssigned(
+            assigneeUserId: $newAssigneeUserId,
+            actorUserId: $actorUserId,
+            taskId: (string) $task->id,
+            taskTitle: $task->title
+        );
+
+        return $task;
+    });
+}
+
 
     public function claim(string $actorUserId, string $taskId, ?string $note = null): Task
     {
