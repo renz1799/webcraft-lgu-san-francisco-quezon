@@ -293,4 +293,23 @@ class TaskService implements TaskServiceInterface
             return $task;
         });
     }
+
+    public function tableData(string $actorUserId, array $roles, array $filters, int $page, int $size): array
+    {
+        $paginator = $this->tasks->paginateForTable(
+            userId: $actorUserId,
+            roles: $roles,
+            filters: $filters,
+            page: $page,
+            size: $size
+        );
+
+        return [
+            'ok' => true,
+            'data' => $paginator->items(),
+            'total' => $paginator->total(),
+            'last_page' => $paginator->lastPage(),
+        ];
+    }
+
 }

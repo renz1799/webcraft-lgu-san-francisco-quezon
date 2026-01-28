@@ -20,53 +20,65 @@
         </svg>
       </div>
 
+
 @php
   $u = auth()->user();
   $isAdmin = $u && $u->hasRole('Administrator');
+  $canInventoryInspection = $u && $u->hasAnyRole(['Administrator', 'Inspector', 'Staff']);
+  $canTasks = $u && $u->hasAnyRole(['Administrator', 'Staff']);
 @endphp
 
 <ul class="main-menu">
 
-                        <li class="slide__category">
-                          <span class="category-name">Tasks</span>
-                        </li>
+  @if($canTasks)
+    <li class="slide__category">
+      <span class="category-name">Tasks</span>
+    </li>
 
-                            <!-- Start::slide -->
-                            <li class="slide has-sub">
-                                <a href="javascript:void(0);" class="side-menu__item">
-                                    <i class="bx bx-task side-menu__icon"></i>
-                                    <span class="side-menu__label">Tasks</span>
-                                    <i class="fe fe-chevron-right side-menu__angle"></i>
-                                </a>
-                                <ul class="slide-menu child1">
-                @php($canAll = auth()->user()?->hasRole('Administrator') || auth()->user()?->can('view All Tasks'))
+    <!-- Start::slide -->
+    <li class="slide has-sub">
+      <a href="javascript:void(0);" class="side-menu__item">
+        <i class="bx bx-task side-menu__icon"></i>
+        <span class="side-menu__label">Tasks</span>
+        <i class="fe fe-chevron-right side-menu__angle"></i>
+      </a>
 
-                @if($canAll)
-                  <li class="slide">
-                    <a href="{{ route('tasks.index', ['scope' => 'all']) }}" class="side-menu__item">All Tasks</a>
-                  </li>
-                @endif
-                  <li class="slide">
-                    <a href="{{ route('tasks.index', ['scope' => 'mine']) }}" class="side-menu__item">
-                      My Tasks
-                      @if(($taskCounts['my'] ?? 0) > 0)
-                        <span class="text-success text-[0.75em] badge !py-[0.25rem] !px-[0.45rem] rounded-sm bg-success/10 ms-2">{{ $taskCounts['my'] }}</span>
-                      @endif
-                    </a>
-                  </li>
+      <ul class="slide-menu child1">
+        @php($canAll = auth()->user()?->hasRole('Administrator'))
 
-                  <li class="slide">
-                    <a href="{{ route('tasks.index', ['scope' => 'available']) }}" class="side-menu__item">
-                      Claimable Tasks
-                      @if(($taskCounts['claimable'] ?? 0) > 0)
-                        <span class="text-success text-[0.75em] badge !py-[0.25rem] !px-[0.45rem] rounded-sm bg-success/10 ms-2">{{ $taskCounts['claimable'] }}</span>
-                      @endif
-                    </a>
-                  </li>
+        @if($canAll)
+          <li class="slide">
+            <a href="{{ route('tasks.index', ['scope' => 'all']) }}" class="side-menu__item">
+              All (Admininstrator)
+            </a>
+          </li>
+        @endif
 
-                                </ul>
-                            </li>
-                            <!-- End::slide -->
+        <li class="slide">
+          <a href="{{ route('tasks.index', ['scope' => 'mine']) }}" class="side-menu__item">
+            Assigned to Me
+            @if(($taskCounts['my'] ?? 0) > 0)
+              <span class="text-success text-[0.75em] badge !py-[0.25rem] !px-[0.45rem] rounded-sm bg-success/10 ms-2">
+                {{ $taskCounts['my'] }}
+              </span>
+            @endif
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ route('tasks.index', ['scope' => 'available']) }}" class="side-menu__item">
+            Available to Claim
+            @if(($taskCounts['claimable'] ?? 0) > 0)
+              <span class="text-success text-[0.75em] badge !py-[0.25rem] !px-[0.45rem] rounded-sm bg-success/10 ms-2">
+                {{ $taskCounts['claimable'] }}
+              </span>
+            @endif
+          </a>
+        </li>
+      </ul>
+    </li>
+    <!-- End::slide -->
+  @endif
                              
   @if ($isAdmin)
     <li class="slide__category">

@@ -43,6 +43,10 @@ class Task extends Model
         'cancelled_at' => 'datetime',
     ];
 
+        protected $appends = [
+        'assigned_to_name',
+    ];
+
     public function events(): HasMany
     {
         return $this->hasMany(TaskEvent::class, 'task_id')->orderBy('created_at');
@@ -56,5 +60,23 @@ class Task extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id', 'id');
+    }
+
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to_user_id');
+    }
+
+    public function getAssignedToNameAttribute(): string
+    {
+        $user = $this->assignee;
+
+        if (!$user) {
+            return '—';
+        }
+
+        // Prefer profile full name, fallback to username
+        return $user->profile?->full_name
+            ?: ($user->username ?: '—');
     }
 }

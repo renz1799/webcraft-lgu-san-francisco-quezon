@@ -79,10 +79,37 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
   function fmtDate(dateStr) {
     if (!dateStr) return "";
-    // Expecting ISO-ish from Laravel (e.g., 2026-01-26 10:00:00)
     const d = new Date(String(dateStr).replace(" ", "T"));
     if (Number.isNaN(d.getTime())) return String(dateStr);
-    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+    return d.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
+  }
+
+  // "2d ago" / "3h ago" / "just now" / fallback date
+  function timeAgo(dateStr) {
+    if (!dateStr) return "";
+    const d = new Date(String(dateStr).replace(" ", "T"));
+    if (Number.isNaN(d.getTime())) return String(dateStr);
+
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const future = diffMs < 0;
+    const abs = Math.abs(diffMs);
+
+    const sec = Math.floor(abs / 1000);
+    const min = Math.floor(sec / 60);
+    const hr = Math.floor(min / 60);
+    const day = Math.floor(hr / 24);
+
+    if (sec < 20) return future ? "in a few seconds" : "just now";
+    if (min < 60) return future ? `in ${min}m` : `${min}m ago`;
+    if (hr < 24) return future ? `in ${hr}h` : `${hr}h ago`;
+    if (day < 14) return future ? `in ${day}d` : `${day}d ago`;
+
+    return fmtDate(dateStr);
   }
 
   function upper(s) {
@@ -92,6 +119,38 @@ import "sweetalert2/dist/sweetalert2.min.css";
   function buildUrlTemplate(tpl, id) {
     if (!tpl || !id) return "";
     return tpl.replace("__ID__", encodeURIComponent(String(id)));
+  }
+
+  function statusBadgeHtml(statusRaw) {
+    const s = String(statusRaw ?? "").trim();
+
+    let cls = "bg-outline-secondary";
+    let label = upper(s);
+
+    switch (s) {
+      case "pending":
+        cls = "bg-outline-warning";
+        label = "PENDING";
+        break;
+      case "in_progress":
+        cls = "bg-outline-info";
+        label = "IN PROGRESS";
+        break;
+      case "done":
+        cls = "bg-outline-success";
+        label = "DONE";
+        break;
+      case "cancelled":
+        cls = "bg-outline-danger";
+        label = "CANCELLED";
+        break;
+      default:
+        cls = "bg-outline-secondary";
+        label = upper(s || "UNKNOWN");
+        break;
+    }
+
+    return `<span class="badge ${cls}">${escapeHtml(label)}</span>`;
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -113,15 +172,68 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
     let filters = {
       q: "",
-      scope: (scopeSel?.value || "mine").trim(), // mine | available
-      status: (statusSel?.value || "").trim(),   // '' = all
+      scope: (scopeSel?.value || "mine").trim(), // mine | available | all
+      status: (statusSel?.value || "").trim(), // '' = all
     };
 
     let lastTotal = 0;
+    let tableRef = null;
 
     function setInfo(text) {
       if (!infoEl) return;
       infoEl.textContent = text;
+    }
+
+    function hasActiveFilters() {
+      return (
+        (filters.q || "").trim() !== "" ||
+        (filters.status || "").trim() !== "" ||
+        ((filters.scope || "mine").trim() !== "mine")
+      );
+    }
+
+    function buildEmptyStateHtml() {
+      const scope = (filters.scope || "mine").trim();
+      const status = (filters.status || "").trim();
+      const q = (filters.q || "").trim();
+
+      const parts = [];
+      if (scope !== "mine") parts.push(`Scope: <b>${escapeHtml(scope)}</b>`);
+      if (status !== "") parts.push(`Status: <b>${escapeHtml(status)}</b>`);
+      if (q !== "") parts.push(`Search: <b>${escapeHtml(q)}</b>`);
+
+      const subtitle =
+        parts.length > 0
+          ? `No tasks match your filters. ${parts.join(" • ")}`
+          : "No tasks found yet.";
+
+    const clearBtn = hasActiveFilters()
+      ? `<div class="mt-2">
+          <button type="button"
+            class="ti-btn ti-btn-light ti-btn-sm !py-1 !px-2 !text-[0.70rem] !leading-tight"
+            data-action="empty-clear">
+            Clear filters
+          </button>
+        </div>`
+      : "";
+
+
+      return `
+        <div class="p-4 text-center">
+          <div class="text-sm font-semibold text-defaulttextcolor dark:text-white/80">Nothing to show</div>
+          <div class="text-xs text-[#8c9097] mt-1">${subtitle}</div>
+          ${clearBtn}
+        </div>
+      `;
+    }
+
+    function refreshPlaceholder() {
+      if (!tableRef) return;
+
+      // ✅ Tabulator-supported method (fixes your setOptions error)
+      if (typeof tableRef.setPlaceholder === "function") {
+        tableRef.setPlaceholder(buildEmptyStateHtml());
+      }
     }
 
     function updateInfo(table) {
@@ -139,7 +251,8 @@ import "sweetalert2/dist/sweetalert2.min.css";
       }
 
       const count = table.getDataCount ? table.getDataCount("active") : 0;
-      setInfo(count ? `Showing ${count} record(s)` : "No records found");
+      if (count) setInfo(`Showing ${count} record(s)`);
+      else setInfo(hasActiveFilters() ? "No records match your current filters" : "No records found");
     }
 
     function reload(table) {
@@ -148,10 +261,29 @@ import "sweetalert2/dist/sweetalert2.min.css";
       else table.setData();
     }
 
-    const table = new Tabulator(el, {
+    function safeShowHideAssignedCol() {
+      if (!tableRef) return;
+
+      const scope = (filters.scope || "mine").trim();
+      const shouldShow = scope === "all";
+
+      // Avoid noisy "No matching column found" logs by only calling when methods exist
+      // and catching any internal issues.
+      try {
+        if (shouldShow) {
+          if (typeof tableRef.showColumn === "function") tableRef.showColumn("assigned_to_name");
+        } else {
+          if (typeof tableRef.hideColumn === "function") tableRef.hideColumn("assigned_to_name");
+        }
+      } catch (e) {
+        // do nothing (don’t break UX because of column toggling)
+      }
+    }
+
+    tableRef = new Tabulator(el, {
       layout: "fitColumns",
       responsiveLayout: "collapse",
-      placeholder: "No tasks found.",
+      placeholder: buildEmptyStateHtml(),
 
       pagination: "remote",
       paginationSize: 15,
@@ -167,10 +299,34 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
       ajaxResponse: (_, __, res) => {
         lastTotal = Number(res?.total ?? res?.meta?.total ?? 0);
+        refreshPlaceholder();
         return res?.data ?? [];
       },
 
       initialSort: [{ column: "created_at", dir: "desc" }],
+
+      // ✅ Row click open (with safeguards)
+      rowClick: (e, row) => {
+        const t = e.target;
+
+        if (
+          t.closest("a") ||
+          t.closest("button") ||
+          t.closest('[data-action]') ||
+          t.closest("input") ||
+          t.closest("select") ||
+          t.closest("textarea")
+        ) {
+          return;
+        }
+
+        const data = row.getData() || {};
+        const id = data?.id;
+        const url = buildUrlTemplate(cfg.showUrlTemplate, id);
+        if (!url) return;
+
+        window.location.href = url;
+      },
 
       columns: [
         {
@@ -193,17 +349,47 @@ import "sweetalert2/dist/sweetalert2.min.css";
             `;
           },
         },
-        { title: "Status", field: "status", width: 140, formatter: (cell) => escapeHtml(upper(cell.getValue())) },
+
         {
-          title: "Due",
-          field: "due_at",
+          title: "Status",
+          field: "status",
           width: 160,
+          formatter: (cell) => statusBadgeHtml(cell.getValue()),
+        },
+
+        {
+          title: "Assigned To",
+          field: "assigned_to_name",
+          minWidth: 180,
+          visible: (filters.scope || "mine").trim() === "all",
           formatter: (cell) => {
-            const v = cell.getValue();
-            return v ? escapeHtml(fmtDate(v)) : `<span class="text-[#8c9097]">—</span>`;
+            const v = String(cell.getValue() ?? "").trim();
+            return v && v !== "—"
+              ? escapeHtml(v)
+              : `<span class="text-[#8c9097]">—</span>`;
           },
         },
-        { title: "Created", field: "created_at", width: 180 },
+
+        // ✅ Created: show time context + tooltip exact date
+        {
+          title: "Created",
+          field: "created_at",
+          width: 170,
+          tooltip: (e, cell) => {
+            const v = cell.getValue();
+            return v ? `Created: ${fmtDate(v)}` : "";
+          },
+          formatter: (cell) => {
+            const v = cell.getValue();
+            if (!v) return `<span class="text-[#8c9097]">—</span>`;
+
+            const rel = timeAgo(v);
+            const exact = fmtDate(v);
+
+            return `<span>${escapeHtml(rel)}</span>`;
+
+          },
+        },
 
         {
           title: "",
@@ -216,10 +402,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
             if (!id) return "";
 
             const scope = (filters.scope || "mine").trim();
-
-            // Buttons:
-            // - "Open" always available
-            // - "Claim" only when scope=available
             const showUrl = buildUrlTemplate(cfg.showUrlTemplate, id);
 
             const openBtn = `
@@ -234,13 +416,9 @@ import "sweetalert2/dist/sweetalert2.min.css";
               return `<div class="hstack flex gap-2 justify-end">${openBtn}</div>`;
             }
 
-            // IMPORTANT: claimUrlTemplate must be generated with ['id' => '__ID__'] in Blade
-            const claimUrl = buildUrlTemplate(cfg.claimUrlTemplate, id);
-
             return `
               <div class="hstack flex gap-2 justify-end">
                 ${openBtn}
-
                 <a class="ti-btn ti-btn-sm ti-btn-primary !rounded-full"
                    href="javascript:void(0);"
                    data-action="claim"
@@ -256,17 +434,24 @@ import "sweetalert2/dist/sweetalert2.min.css";
       ],
     });
 
-    table.on("dataLoaded", () => updateInfo(table));
-    table.on("pageLoaded", () => updateInfo(table));
+    tableRef.on("dataLoaded", () => updateInfo(tableRef));
+    tableRef.on("pageLoaded", () => updateInfo(tableRef));
+
+    // Initial column visibility + placeholder
+    safeShowHideAssignedCol();
+    refreshPlaceholder();
 
     const applyFilters = debounce(() => {
       filters.q = (search?.value || "").trim();
       filters.scope = (scopeSel?.value || "mine").trim();
       filters.status = (statusSel?.value || "").trim();
-      reload(table);
+
+      safeShowHideAssignedCol();
+      refreshPlaceholder();
+      reload(tableRef);
     }, 350);
 
-    window.__tasksReload = () => reload(table);
+    window.__tasksReload = () => reload(tableRef);
 
     search?.addEventListener("input", applyFilters);
     scopeSel?.addEventListener("change", applyFilters);
@@ -274,13 +459,25 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
     clear?.addEventListener("click", (e) => {
       e.preventDefault();
+
       if (search) search.value = "";
       if (scopeSel) scopeSel.value = "mine";
       if (statusSel) statusSel.value = "";
+
       filters.q = "";
       filters.scope = "mine";
       filters.status = "";
-      reload(table);
+
+      safeShowHideAssignedCol();
+      refreshPlaceholder();
+      reload(tableRef);
+    });
+
+    // Empty-state "Clear filters" button
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest('[data-action="empty-clear"]');
+      if (!btn) return;
+      clear?.click();
     });
 
     // Claim action
@@ -343,14 +540,14 @@ import "sweetalert2/dist/sweetalert2.min.css";
         return;
       }
 
-      // If your claim endpoint returns redirect HTML sometimes, we still treat it as ok.
       await swalSuccess("Claimed", "");
 
-      // After claim: switch to "mine" so user sees it immediately (optional)
       if (scopeSel) scopeSel.value = "mine";
       filters.scope = "mine";
 
-      reload(table);
+      safeShowHideAssignedCol();
+      refreshPlaceholder();
+      reload(tableRef);
     });
   });
 })();

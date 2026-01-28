@@ -45,7 +45,7 @@
       <div class="tasks-actions">
         <input id="tasks-search" type="text" class="form-control w-[320px] !rounded-md"
                placeholder="Search title..." />
- @php($canAll = auth()->user()?->hasRole('Administrator') || auth()->user()?->can('view All Tasks'))
+        @php($canAll = auth()->user()?->hasRole('Administrator') || auth()->user()?->can('view All Tasks'))
               @php($scope = request('scope', 'mine'))
               <select id="tasks-scope" class="form-control w-[180px] !rounded-md">
                 <option value="mine" {{ $scope === 'mine' ? 'selected' : '' }}>My Tasks</option>
@@ -71,6 +71,7 @@
       </div>
     </div>
   </div>
+  
 
   <div class="box-body">
     <div class="overflow-auto table-bordered">
