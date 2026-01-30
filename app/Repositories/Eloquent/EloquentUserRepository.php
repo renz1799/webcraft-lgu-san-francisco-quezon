@@ -145,5 +145,15 @@ class EloquentUserRepository implements UserRepositoryInterface
             ->values()
             ->all();
     }
+
+        public function getUserIdsByRoles(array $roleNames): array
+    {
+        return User::role($roleNames)
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->filter()
+            ->values()
+            ->all();
+    }
 }
 

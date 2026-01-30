@@ -34,4 +34,6 @@ interface UserRepositoryInterface
     public function paginateForPermissionsTable(?string $q, int $page, int $size): LengthAwarePaginator;
 
     public function listForTaskReassign(): array;
+
+    public function getUserIdsByRoles(array $roleNames): array;
 }

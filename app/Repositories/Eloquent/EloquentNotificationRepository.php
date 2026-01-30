@@ -52,4 +52,11 @@ class EloquentNotificationRepository implements NotificationRepositoryInterface
         return Notification::query()
             ->where('notifiable_user_id', $userId);
     }
+
+        public function insertMany(array $rows): void
+    {
+        if (empty($rows)) return;
+
+        Notification::query()->insert($rows);
+    }
 }

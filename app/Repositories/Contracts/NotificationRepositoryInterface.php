@@ -19,4 +19,6 @@ interface NotificationRepositoryInterface
     public function markAllAsRead(string $userId): int;
 
     public function unreadCount(string $userId): int;
+
+    public function insertMany(array $rows): void;
 }
