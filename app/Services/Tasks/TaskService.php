@@ -310,10 +310,11 @@ public function reassign(
         );
 
         $this->notificationService->notifyTaskAssigned(
-            assigneeUserId: $newAssigneeUserId,
+            assigneeUserId: (string) $newAssigneeUserId,
             actorUserId: $actorUserId,
             taskId: (string) $task->id,
-            taskTitle: $task->title
+            taskTitle: (string) $task->title,
+            url: route('tasks.show', (string) $task->id)
         );
 
         return $task;

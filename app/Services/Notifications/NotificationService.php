@@ -23,7 +23,8 @@ class NotificationService implements NotificationServiceInterface
         string $assigneeUserId,
         string $actorUserId,
         string $taskId,
-        string $taskTitle
+        string $taskTitle,
+        string $url
     ): Notification {
         return $this->notifications->create([
             'notifiable_user_id' => $assigneeUserId,
@@ -36,7 +37,7 @@ class NotificationService implements NotificationServiceInterface
             'data'               => [
                 'task_id'    => $taskId,
                 'task_title' => $taskTitle,
-                'url'        => route('tasks.show', $taskId),
+                'url'        => $url,
             ],
         ]);
     }

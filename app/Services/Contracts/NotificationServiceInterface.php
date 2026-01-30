@@ -12,7 +12,8 @@ interface NotificationServiceInterface
         string $assigneeUserId,
         string $actorUserId,
         string $taskId,
-        string $taskTitle
+        string $taskTitle,
+        string $url
     ): Notification;
 
     public function notifyTaskParticipants(
