@@ -17,6 +17,7 @@ use App\Http\Controllers\AuditRestoreController;
 use App\Http\Controllers\Notifications\NotificationController;
 use App\Http\Controllers\Tasks\TaskController;
 use App\Http\Controllers\Tasks\TaskActionController;
+use App\Http\Controllers\DriveTestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -206,6 +207,18 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::post('/tasks/{id}/claim', [TaskActionController::class, 'claim'])
         ->whereUuid('id')
         ->name('tasks.claim');
+
+        /*
+    |--------------------------------------------------------------------------
+    | Test Drive Upload
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/drive/test', [DriveTestController::class, 'index'])
+        ->name('drive.test.index');
+
+    Route::post('/drive/test', [DriveTestController::class, 'store'])
+        ->name('drive.test.store');
 
     /*
     |--------------------------------------------------------------------------

@@ -39,7 +39,8 @@ use App\Services\Contracts\{
     RoleServiceInterface,
     LoginLogServiceInterface,
     TaskServiceInterface,
-    UserProfileServiceInterface
+    UserProfileServiceInterface,
+    GoogleDriveServiceInterface
 
     
 
@@ -54,6 +55,7 @@ use App\Services\RoleService;
 use App\Services\LoginLogService;
 use App\Services\Tasks\TaskService;
 use App\Services\UserProfileService;
+use App\Services\GoogleDrive\GoogleDriveService;
 
 
 
@@ -86,6 +88,7 @@ class RepositoryServiceProvider extends ServiceProvider
             LoginLogServiceInterface::class  => LoginLogService::class,
             TaskServiceInterface::class  => TaskService::class,
             UserProfileServiceInterface::class  => UserProfileService::class,
+            GoogleDriveServiceInterface::class  => GoogleDriveService::class,
            
         ], true);
     }

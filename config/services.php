@@ -41,4 +41,10 @@ return [
         'timeout'  => 5,
     ],
 
+        'google_drive' => [
+        'service_account_json' => env('GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON'),
+        'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
+        'make_public' => env('GOOGLE_DRIVE_MAKE_PUBLIC', false),
+    ],
+
 ];
