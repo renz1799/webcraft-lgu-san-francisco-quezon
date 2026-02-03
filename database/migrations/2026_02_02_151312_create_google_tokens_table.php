@@ -9,14 +9,14 @@ return new class extends Migration {
     {
         Schema::create('google_tokens', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('user_id')->index(); // who connected
+            $table->uuid('user_id')->nullable(); // who connected
             $table->string('provider')->default('google_drive'); // future-proof
             $table->text('access_token')->nullable();
             $table->text('refresh_token')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['user_id', 'provider']);
+            $table->unique(['provider']);
         });
     }
 

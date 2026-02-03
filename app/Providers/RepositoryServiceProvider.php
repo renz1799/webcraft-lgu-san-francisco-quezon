@@ -43,7 +43,8 @@ use App\Services\Contracts\{
     TaskServiceInterface,
     UserProfileServiceInterface,
     GoogleDriveServiceInterface,
-    GoogleDriveOAuthServiceInterface
+    GoogleDriveOAuthServiceInterface,
+    GoogleDriveGlobalServiceInterface
 
     
 
@@ -60,6 +61,7 @@ use App\Services\Tasks\TaskService;
 use App\Services\UserProfileService;
 use App\Services\GoogleDrive\GoogleDriveService;
 use App\Services\GoogleDrive\GoogleDriveOAuthService;
+use App\Services\GoogleDrive\GoogleDriveGlobalService;
 
 
 
@@ -95,6 +97,7 @@ class RepositoryServiceProvider extends ServiceProvider
             UserProfileServiceInterface::class  => UserProfileService::class,
             GoogleDriveServiceInterface::class  => GoogleDriveService::class,
             GoogleDriveOAuthServiceInterface::class  => GoogleDriveOAuthService::class,
+            GoogleDriveGlobalServiceInterface::class  => GoogleDriveGlobalService::class,
            
         ], true);
     }

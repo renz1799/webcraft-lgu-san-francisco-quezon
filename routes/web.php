@@ -19,6 +19,7 @@ use App\Http\Controllers\Tasks\TaskController;
 use App\Http\Controllers\Tasks\TaskActionController;
 use App\Http\Controllers\DriveTestController;
 use App\Http\Controllers\DriveOAuthController;
+use App\Http\Controllers\GoogleDrive\DriveGlobalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -230,7 +231,16 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     ->name('drive.oauth.preview')
     ->middleware(['auth']);
 
-    
+    Route::get('/drive/global', [DriveGlobalController::class, 'index'])->name('drive.global.index');
+    Route::post('/drive/global/connect', [DriveGlobalController::class, 'connect'])->name('drive.global.connect');
+    Route::get('/google/drive/callback', [DriveGlobalController::class, 'callback'])->name('drive.global.callback');
+    Route::post('/drive/global/disconnect', [DriveGlobalController::class, 'disconnect'])->name('drive.global.disconnect');
+    Route::post('/drive/global/upload', [DriveGlobalController::class, 'upload'])->name('drive.global.upload');  
+    Route::get('/drive/global/preview/{fileId}', [DriveGlobalController::class, 'preview'])
+    ->name('drive.global.preview')
+    ->middleware(['auth']);
+
+   
     /*
     |--------------------------------------------------------------------------
     | Theme
