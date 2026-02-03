@@ -18,6 +18,7 @@ use App\Http\Controllers\Notifications\NotificationController;
 use App\Http\Controllers\Tasks\TaskController;
 use App\Http\Controllers\Tasks\TaskActionController;
 use App\Http\Controllers\DriveTestController;
+use App\Http\Controllers\DriveOAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -220,6 +221,16 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::post('/drive/test', [DriveTestController::class, 'store'])
         ->name('drive.test.store');
 
+
+    Route::get('/drive/oauth', [DriveOAuthController::class, 'index'])->name('drive.oauth.index');
+    Route::post('/drive/oauth/connect', [DriveOAuthController::class, 'connect'])->name('drive.oauth.connect');
+    Route::get('/google/drive/callback', [DriveOAuthController::class, 'callback'])->name('drive.oauth.callback');
+    Route::post('/drive/oauth/upload', [DriveOAuthController::class, 'upload'])->name('drive.oauth.upload');
+    Route::get('/drive/oauth/preview/{fileId}', [DriveOAuthController::class, 'preview'])
+    ->name('drive.oauth.preview')
+    ->middleware(['auth']);
+
+    
     /*
     |--------------------------------------------------------------------------
     | Theme

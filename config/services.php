@@ -45,6 +45,9 @@ return [
         'service_account_json' => env('GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON'),
         'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
         'make_public' => env('GOOGLE_DRIVE_MAKE_PUBLIC', false),
+
+        'oauth_client_json' => env('GOOGLE_DRIVE_OAUTH_CLIENT_JSON'),
+        'redirect_uri' => env('GOOGLE_DRIVE_OAUTH_REDIRECT_URI'),
     ],
 
 ];

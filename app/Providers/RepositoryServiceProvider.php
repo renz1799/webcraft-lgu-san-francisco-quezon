@@ -14,7 +14,8 @@ use App\Repositories\Contracts\{
     ThemePreferencesRepositoryInterface,
     NotificationRepositoryInterface,
     TaskRepositoryInterface,
-    TaskEventRepositoryInterface
+    TaskEventRepositoryInterface,
+    GoogleTokenRepositoryInterface
 };
 use App\Repositories\Eloquent\{
     EloquentUserRepository,
@@ -25,7 +26,8 @@ use App\Repositories\Eloquent\{
     EloquentThemePreferencesRepository,
     EloquentNotificationRepository,
     EloquentTaskRepository,
-    EloquentTaskEventRepository
+    EloquentTaskEventRepository,
+    EloquentGoogleTokenRepository
 };
 
 // Services
@@ -40,7 +42,8 @@ use App\Services\Contracts\{
     LoginLogServiceInterface,
     TaskServiceInterface,
     UserProfileServiceInterface,
-    GoogleDriveServiceInterface
+    GoogleDriveServiceInterface,
+    GoogleDriveOAuthServiceInterface
 
     
 
@@ -56,6 +59,7 @@ use App\Services\LoginLogService;
 use App\Services\Tasks\TaskService;
 use App\Services\UserProfileService;
 use App\Services\GoogleDrive\GoogleDriveService;
+use App\Services\GoogleDrive\GoogleDriveOAuthService;
 
 
 
@@ -74,6 +78,7 @@ class RepositoryServiceProvider extends ServiceProvider
             NotificationRepositoryInterface::class => EloquentNotificationRepository::class,
             TaskRepositoryInterface::class => EloquentTaskRepository::class,
             TaskEventRepositoryInterface::class => EloquentTaskEventRepository::class,
+            GoogleTokenRepositoryInterface::class => EloquentGoogleTokenRepository::class,
         ]);
 
         // Services (singletons by default here)
@@ -89,6 +94,7 @@ class RepositoryServiceProvider extends ServiceProvider
             TaskServiceInterface::class  => TaskService::class,
             UserProfileServiceInterface::class  => UserProfileService::class,
             GoogleDriveServiceInterface::class  => GoogleDriveService::class,
+            GoogleDriveOAuthServiceInterface::class  => GoogleDriveOAuthService::class,
            
         ], true);
     }
