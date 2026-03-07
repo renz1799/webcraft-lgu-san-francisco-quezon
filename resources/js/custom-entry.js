@@ -21,6 +21,7 @@
     return Promise.all([
       import("./audit-logs/table.js"),
       import("./audit-logs/filters.js"),
+      import("./audit-logs/actions.js"),
     ]);
   }
 

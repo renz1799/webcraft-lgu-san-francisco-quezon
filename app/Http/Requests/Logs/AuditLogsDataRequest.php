@@ -48,4 +48,14 @@ class AuditLogsDataRequest extends FormRequest
 
         $this->replace($clean);
     }
+
+    public function validated($key = null, $default = null)
+    {
+        $data = parent::validated($key, $default);
+
+        $data['page'] = (int) ($data['page'] ?? 1);
+        $data['size'] = (int) ($data['size'] ?? 15);
+
+        return $data;
+    }
 }

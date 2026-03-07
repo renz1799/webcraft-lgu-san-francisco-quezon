@@ -44,8 +44,14 @@ class AuditLogService implements AuditLogServiceInterface
         ]);
     }
 
-    public function datatable(array $filters, int $page = 1, int $size = 15): array
+    public function datatable(array $params): array
     {
+        $page = max(1, (int) ($params['page'] ?? 1));
+        $size = max(1, min((int) ($params['size'] ?? 15), 100));
+
+        $filters = $params;
+        unset($filters['page'], $filters['size']);
+
         return $this->logs->datatable($filters, $page, $size);
     }
 

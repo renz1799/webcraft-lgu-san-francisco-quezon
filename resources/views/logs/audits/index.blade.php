@@ -6,6 +6,7 @@
     .items-header{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
     .items-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
     .box-header{overflow:visible!important}
+    .tabulator.is-loading{opacity:.65;pointer-events:none}
   </style>
 @endsection
 
@@ -21,7 +22,7 @@
 <div class="box">
   <div class="box-header">
     <div class="items-header">
-      <h5 class="box-title">System Activityss</h5>
+      <h5 class="box-title">System Activity</h5>
 
       <div class="items-actions">
         <input

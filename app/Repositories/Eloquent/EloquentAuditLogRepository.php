@@ -22,7 +22,7 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
     public function datatable(array $filters, int $page = 1, int $size = 15): array
     {
         $page = max(1, (int) $page);
-        $size = max(1, (int) $size);
+        $size = max(1, min((int) $size, 100));
 
         $recordsTotal = (clone $this->buildBaseQuery(false))->count();
 
@@ -232,3 +232,4 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
             : '-';
     }
 }
+

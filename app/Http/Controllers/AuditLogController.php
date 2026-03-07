@@ -22,15 +22,7 @@ class AuditLogController extends Controller
 
     public function data(AuditLogsDataRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-
-        $page = max(1, (int) ($validated['page'] ?? 1));
-        $size = max(1, min((int) ($validated['size'] ?? 15), 100));
-
-        $filters = $validated;
-        unset($filters['page'], $filters['size']);
-
-        $payload = $this->audit->datatable($filters, $page, $size);
+        $payload = $this->audit->datatable($request->validated());
 
         return response()->json([
             'data' => $payload['data'] ?? [],
@@ -39,5 +31,3 @@ class AuditLogController extends Controller
         ]);
     }
 }
-
-
