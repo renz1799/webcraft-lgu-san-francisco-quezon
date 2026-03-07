@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Access;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\AccessUsersDataRequest;
 use App\Http\Requests\Users\DeleteUserRequest;
 use App\Http\Requests\Users\ResetUserPasswordRequest;
@@ -98,3 +99,5 @@ class UserAccessController extends Controller
             ->header('Pragma', 'no-cache');
     }
 }
+
+

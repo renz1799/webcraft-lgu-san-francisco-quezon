@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\GoogleDrive;
+namespace App\Http\Controllers\Drive;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Drive\ConnectDriveRequest;
@@ -72,3 +72,5 @@ class DriveGlobalController extends Controller
         ]);
     }
 }
+
+

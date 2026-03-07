@@ -30,9 +30,7 @@
       <h5 class="box-title">Roles</h5>
 
       <div class="items-actions">
-        <button type="button" class="ti-btn ti-btn-primary" data-hs-overlay="#addRoleModal">
-          Add New Role
-        </button>
+
 
         <input
           id="roles-search"
@@ -41,6 +39,10 @@
           placeholder="Search role/permission..."
         />
 
+        <button type="button" class="ti-btn ti-btn-primary" data-hs-overlay="#addRoleModal">
+          Add New Role
+        </button>
+        
         <div class="relative shrink-0">
           <button id="roles-more-btn" type="button" class="ti-btn ti-btn-light">
             More Filters

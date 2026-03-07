@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Profile;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Http\Requests\Profile\UpdatePasswordRequest;
 use App\Services\Contracts\UserProfileServiceInterface;
@@ -37,3 +38,5 @@ class UserProfileController extends Controller
             ->with('success', 'Password updated successfully.');
     }
 }
+
+

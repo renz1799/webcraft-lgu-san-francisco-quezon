@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Access;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Permissions\DestroyPermissionRequest;
 use App\Http\Requests\Permissions\StorePermissionRequest;
 use App\Models\Permission;
@@ -61,3 +62,5 @@ class PermissionController extends Controller
         return back()->with('success', 'Permission permanently deleted.');
     }
 }
+
+

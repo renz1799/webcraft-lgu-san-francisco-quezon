@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Drive;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Drive\UploadDriveFileRequest;
 use App\Services\Contracts\GoogleDriveOAuthServiceInterface;
 use Illuminate\Http\RedirectResponse;
@@ -69,3 +70,5 @@ class DriveOAuthController extends Controller
         ]);
     }
 }
+
+

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Access;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Roles\AccessRolesDataRequest;
 use App\Http\Requests\Roles\DeleteRoleRequest;
 use App\Http\Requests\Roles\RestoreRoleRequest;
@@ -86,4 +87,6 @@ class RolesController extends Controller
         return redirect()->route('access.roles.index')->with('success', 'Role deleted successfully.');
     }
 }
+
+
 

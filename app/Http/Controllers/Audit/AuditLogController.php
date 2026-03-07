@@ -1,7 +1,8 @@
 <?php
 // app/Http/Controllers/AuditLogController.php
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Audit;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Logs\AuditLogsDataRequest;
 use App\Services\Contracts\AuditLogServiceInterface;
 use Illuminate\Http\JsonResponse;
@@ -31,3 +32,5 @@ class AuditLogController extends Controller
         ]);
     }
 }
+
+

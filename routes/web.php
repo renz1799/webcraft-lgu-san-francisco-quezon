@@ -1,19 +1,20 @@
 <?php
 
-use App\Http\Controllers\AuditLogController;
-use App\Http\Controllers\AuditRestoreController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DashboardsController;
-use App\Http\Controllers\DriveOAuthController;
-use App\Http\Controllers\GoogleDrive\DriveGlobalController;
-use App\Http\Controllers\LoginLogController;
+use App\Http\Controllers\Access\PermissionController;
+use App\Http\Controllers\Access\RolesController;
+use App\Http\Controllers\Access\UserAccessController;
+use App\Http\Controllers\Audit\AuditLogController;
+use App\Http\Controllers\Audit\AuditRestoreController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Dashboard\DashboardsController;
+use App\Http\Controllers\Drive\DriveGlobalController;
+use App\Http\Controllers\Drive\DriveOAuthController;
+use App\Http\Controllers\Logs\LoginLogController;
 use App\Http\Controllers\Notifications\NotificationController;
-use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\RolesController;
+use App\Http\Controllers\Profile\UserProfileController;
+use App\Http\Controllers\Settings\ThemeController;
 use App\Http\Controllers\Tasks\TaskActionController;
 use App\Http\Controllers\Tasks\TaskController;
-use App\Http\Controllers\UserAccessController;
-use App\Http\Controllers\UserProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -216,11 +217,14 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     | Theme
     |--------------------------------------------------------------------------
     */
-    Route::post('/theme/style', [\App\Http\Controllers\ThemeController::class, 'updateStyle'])
+    Route::post('/theme/style', [ThemeController::class, 'updateStyle'])
         ->name('theme.style.update');
 
-    Route::post('/theme/colors', [\App\Http\Controllers\ThemeController::class, 'updateColors'])
+    Route::post('/theme/colors', [ThemeController::class, 'updateColors'])
         ->middleware('role:Administrator')
         ->name('theme.colors.update');
 });
+
+
+
 

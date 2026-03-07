@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Logs;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Logs\LoginLogsDataRequest;
 use App\Services\Contracts\LoginLogServiceInterface;
 use Illuminate\Http\JsonResponse;
@@ -31,3 +32,5 @@ class LoginLogController extends Controller
         ]);
     }
 }
+
+

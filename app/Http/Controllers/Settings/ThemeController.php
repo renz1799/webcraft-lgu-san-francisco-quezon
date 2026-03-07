@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Settings;
 
+use App\Http\Controllers\Controller;
 use App\Services\ThemeService;
 use App\Http\Requests\Theme\UpdateThemeStyleRequest;
 use Illuminate\Http\Request;
@@ -45,3 +46,5 @@ class ThemeController extends Controller
         return response()->json($colors);
     }
 }
+
+

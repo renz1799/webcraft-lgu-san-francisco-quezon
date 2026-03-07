@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Audit;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Logs\RestoreSubjectRequest;
 use App\Services\Contracts\AuditLogServiceInterface;
 use Illuminate\Http\JsonResponse;
@@ -54,3 +55,5 @@ class AuditRestoreController extends Controller
         return response()->json(['ok' => true]);
     }
 }
+
+
