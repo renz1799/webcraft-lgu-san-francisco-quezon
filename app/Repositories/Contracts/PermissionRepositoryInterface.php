@@ -3,13 +3,18 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\Permission;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-interface PermissionRepositoryInterface {
-    public function paginate(int $perPage = 30, string $trashed = 'none'): LengthAwarePaginator; // none|with|only
-    public function find(string $id, bool $withTrashed = false): ?Permission;
+interface PermissionRepositoryInterface
+{
+    public function datatable(array $filters, int $page = 1, int $size = 15): array;
+
+    public function findByIdWithTrashed(string $id): ?Permission;
+
     public function create(array $data): Permission;
-    public function delete(Permission $permission): void;        // soft delete
-    public function restore(string $id): bool;                   // returns true on success
-    public function forceDelete(Permission $permission): void;   // permanent
+
+    public function update(Permission $permission, array $data): Permission;
+
+    public function delete(Permission $permission): void;
+
+    public function restore(Permission $permission): bool;
 }

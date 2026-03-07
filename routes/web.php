@@ -109,19 +109,19 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     */
     Route::middleware(['role:Administrator'])->group(function () {
         // canonical access.* routes
+        Route::get('/permissions/data', [PermissionController::class, 'data'])->name('access.permissions.data');
         Route::get('/permissions', [PermissionController::class, 'index'])->name('access.permissions.index');
         Route::post('/permissions', [PermissionController::class, 'store'])->name('access.permissions.store');
+        Route::patch('/permissions/{permission}', [PermissionController::class, 'update'])
+            ->whereUuid('permission')
+            ->name('access.permissions.update');
         Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])
             ->whereUuid('permission')
             ->name('access.permissions.destroy');
 
-        Route::post('/permissions/{permission}/restore', [PermissionController::class, 'restore'])
+        Route::patch('/permissions/{permission}/restore', [PermissionController::class, 'restore'])
             ->whereUuid('permission')
             ->name('access.permissions.restore');
-
-        Route::delete('/permissions/{permission}/force', [PermissionController::class, 'forceDestroy'])
-            ->whereUuid('permission')
-            ->name('access.permissions.force');
     });
 
     /*

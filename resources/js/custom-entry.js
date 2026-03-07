@@ -41,6 +41,14 @@
     ]);
   }
 
+  function loadAccessPermissions() {
+    return Promise.all([
+      import("./access-permissions/table.js"),
+      import("./access-permissions/filters.js"),
+      import("./access-permissions/actions.js"),
+    ]);
+  }
+
   function loadTasksIndex() {
     return Promise.all([
       import("./tasks/table.js"),
@@ -75,6 +83,12 @@
     if (document.getElementById("roles-table")) {
       loadAccessRoles().catch((err) => {
         console.error("Failed to load access roles modules", err);
+      });
+    }
+
+    if (document.getElementById("permissions-table")) {
+      loadAccessPermissions().catch((err) => {
+        console.error("Failed to load access permissions modules", err);
       });
     }
 

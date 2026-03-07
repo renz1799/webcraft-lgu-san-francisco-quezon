@@ -3,9 +3,10 @@
 namespace App\Http\Requests\Permissions;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Models\Permission;
 use Illuminate\Validation\Rule;
 
-class StorePermissionRequest extends BaseFormRequest
+class UpdatePermissionRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {
@@ -16,12 +17,17 @@ class StorePermissionRequest extends BaseFormRequest
 
     public function rules(): array
     {
+        $permission = $this->route('permission');
+        $permissionId = $permission instanceof Permission ? (string) $permission->id : null;
+        $guard = $this->input('guard_name', 'web');
+
         return [
             'name' => [
                 'bail', 'required', 'string', 'max:255',
                 'regex:/^(view|modify|delete)\s+.+$/i',
                 Rule::unique('permissions', 'name')
-                    ->where('guard_name', $this->input('guard_name', 'web')),
+                    ->ignore($permissionId, 'id')
+                    ->where('guard_name', $guard),
             ],
             'page' => ['bail', 'required', 'string', 'max:255'],
             'guard_name' => ['bail', 'sometimes', 'in:web,api'],

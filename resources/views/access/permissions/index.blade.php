@@ -1,189 +1,253 @@
 @extends('layouts.master')
 
 @section('styles')
-    {{-- add per-page styles here if needed --}}
+  <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
+  <style>
+    .items-header{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+    .items-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .box-header{overflow:visible!important}
+    .tabulator.is-loading{opacity:.65;pointer-events:none}
+  </style>
 @endsection
 
 @section('content')
-
-<!-- Page Header -->
 <div class="block justify-between page-header md:flex">
   <div>
-    <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white dark:hover:text-white text-[1.125rem] font-semibold">
+    <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
       Manage Permissions
     </h3>
   </div>
-  <ol class="flex items-center whitespace-nowrap min-w-0">
-    <li class="text-[0.813rem] ps-[0.5rem]">
-      <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="javascript:void(0);">
-        Pages
-        <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
-      </a>
-    </li>
-    <li class="text-[0.813rem] text-defaulttextcolor font-semibold hover:text-primary dark:text-[#8c9097] dark:text-white/50" aria-current="page">
-      Manage Permissions
-    </li>
-  </ol>
 </div>
-<!-- /Page Header -->
 
-<div class="grid grid-cols-12 gap-6 mb-[3rem]">
-  <div class="xl:col-span-12 col-span-12">
+@if (session('success'))
+  <div class="alert alert-success mb-4">{{ session('success') }}</div>
+@endif
 
-    <!-- Add Permission -->
-    <div class="box mb-6">
-      <div class="box-header">
-        <h6 class="text-[1rem] font-semibold">Add New Permission</h6>
-      </div>
-      <div class="box-body">
-        @if (session('success'))
-          <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
+@if ($errors->any())
+  <div class="alert alert-danger mb-4">
+    <ul class="list-disc ms-6">
+      @foreach($errors->all() as $e)
+        <li>{{ $e }}</li>
+      @endforeach
+    </ul>
+  </div>
+@endif
 
-        @if ($errors->any())
-          <div class="alert alert-danger mb-4">
-            <ul class="list-disc ms-6">
-              @foreach($errors->all() as $e)
-                <li>{{ $e }}</li>
-              @endforeach
-            </ul>
+<div class="box mb-[3rem]">
+  <div class="box-header">
+    <div class="items-header">
+      <h5 class="box-title">Existing Permissions</h5>
+
+      <div class="items-actions">
+        <input
+          id="permissions-search"
+          type="text"
+          class="form-control !w-[320px] !rounded-md"
+          placeholder="Search permission/module/role..."
+        />
+
+        <button type="button" class="ti-btn ti-btn-primary" data-hs-overlay="#addPermissionModal">
+          Add Permission
+        </button>
+
+        <div class="relative shrink-0">
+          <button id="permissions-more-btn" type="button" class="ti-btn ti-btn-light">
+            More Filters
+            <span id="permissions-adv-count"
+              class="hidden ms-2 inline-flex items-center justify-center text-[10px] leading-none px-2 py-1 rounded-full bg-primary/10 text-primary">
+              0
+            </span>
+            <i class="ri-arrow-down-s-line ms-1"></i>
+          </button>
+
+          <div id="permissions-more-panel"
+            class="hidden absolute right-0 mt-2 w-[380px] z-[9999] rounded-md border border-defaultborder bg-white dark:bg-bodybg shadow-lg">
+
+            <div class="p-3 border-b border-defaultborder flex items-center justify-between">
+              <div class="text-sm font-semibold text-defaulttextcolor dark:text-white">Advanced Filters</div>
+              <button id="permissions-more-close" type="button" class="ti-btn ti-btn-sm ti-btn-light">
+                <i class="ri-close-line"></i>
+              </button>
+            </div>
+
+            <div class="p-3 space-y-3">
+              <div>
+                <label class="ti-form-label">Archive Scope</label>
+                <select id="permissions-archived" class="ti-form-input w-full">
+                  <option value="active" selected>Active Only</option>
+                  <option value="archived">Archived Only</option>
+                  <option value="all">Active + Archived</option>
+                </select>
+                <div class="text-xs text-[#8c9097] mt-1">Choose which records to include.</div>
+              </div>
+
+              <div>
+                <label class="ti-form-label">Page / Module</label>
+                <input id="permissions-module" type="text" class="ti-form-input w-full" placeholder="Exact/partial module" />
+              </div>
+
+              <div>
+                <label class="ti-form-label">Guard</label>
+                <select id="permissions-guard" class="ti-form-input w-full">
+                  <option value="">All</option>
+                  <option value="web">Web</option>
+                  <option value="api">API</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="ti-form-label">Role</label>
+                <input id="permissions-role" type="text" class="ti-form-input w-full" placeholder="Role using this permission" />
+              </div>
+
+              <div>
+                <label class="ti-form-label">Created Date Range</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <input id="permissions-date-from" type="date" class="ti-form-input w-full" />
+                  <input id="permissions-date-to" type="date" class="ti-form-input w-full" />
+                </div>
+                <div class="text-xs text-[#8c9097] mt-1">Filter by permission creation date.</div>
+              </div>
+            </div>
+
+            <div class="p-3 border-t border-defaultborder flex items-center justify-end gap-2">
+              <button id="permissions-adv-reset" type="button" class="ti-btn ti-btn-light">Reset</button>
+              <button id="permissions-adv-apply" type="button" class="ti-btn ti-btn-primary">Apply</button>
+            </div>
           </div>
-        @endif
+        </div>
 
-        <form action="{{ route('access.permissions.store') }}" method="POST" class="space-y-4">
+        <button id="permissions-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="box-body">
+    <div class="overflow-auto table-bordered">
+      <div id="permissions-table" class="ti-custom-table ti-striped-table ti-custom-table-hover"></div>
+    </div>
+
+    <div class="mt-2 flex items-center justify-between text-xs text-[#8c9097]">
+      <div id="permissions-info"></div>
+    </div>
+  </div>
+</div>
+
+<div id="addPermissionModal" class="hs-overlay hidden ti-modal [--overlay-backdrop:static]">
+  <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out">
+    <div class="ti-modal-content">
+      <div class="ti-modal-header">
+        <h6 class="modal-title text-[1rem] font-semibold">Add Permission</h6>
+        <button type="button" class="hs-dropdown-toggle text-[1rem] font-semibold text-defaulttextcolor"
+                data-hs-overlay="#addPermissionModal"><i class="ri-close-line"></i></button>
+      </div>
+
+      <div class="ti-modal-body px-4">
+        <form id="addPermissionForm" method="POST" action="{{ route('access.permissions.store') }}" class="space-y-4">
           @csrf
 
-          <div class="sm:grid grid-cols-12 gap-6">
-            <div class="xl:col-span-6 col-span-12">
-              <label for="permission_name" class="form-label">Permission Name</label>
-              <input
-                type="text"
-                id="permission_name"
-                name="name"
-                value="{{ old('name') }}"
-                class="form-control w-full !rounded-md"
-                placeholder='e.g., "view Login Logs" or "modify User Lists"'
-                required
-              >
-              @error('name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="xl:col-span-4 col-span-12">
-              <label for="page" class="form-label">Page / Module</label>
-              <input
-                type="text"
-                id="page"
-                name="page"
-                value="{{ old('page') }}"
-                class="form-control w-full !rounded-md"
-                placeholder='e.g., "Login Logs" or "Manage Users"'
-                required
-              >
-              @error('page') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="xl:col-span-2 col-span-12">
-              <label for="guard_name" class="form-label">Guard</label>
-              <select id="guard_name" name="guard_name" class="form-control w-full !rounded-md">
-                <option value="web" {{ old('guard_name','web') === 'web' ? 'selected' : '' }}>Web</option>
-                <option value="api" {{ old('guard_name') === 'api' ? 'selected' : '' }}>API</option>
-              </select>
-              @error('guard_name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-            </div>
+          <div>
+            <label for="addPermissionName" class="form-label">Permission Name</label>
+            <input
+              type="text"
+              id="addPermissionName"
+              name="name"
+              class="form-control w-full !rounded-md"
+              placeholder='e.g., "view Login Logs" or "modify User Lists"'
+              required
+            >
           </div>
 
           <div>
-            <button type="submit" class="ti-btn ti-btn-primary-full !rounded-full btn-wave">
-              Add Permission
-            </button>
+            <label for="addPermissionPage" class="form-label">Page / Module</label>
+            <input
+              type="text"
+              id="addPermissionPage"
+              name="page"
+              class="form-control w-full !rounded-md"
+              placeholder='e.g., "Login Logs" or "Manage Users"'
+              required
+            >
+          </div>
+
+          <div>
+            <label for="addPermissionGuard" class="form-label">Guard</label>
+            <select id="addPermissionGuard" name="guard_name" class="form-control w-full !rounded-md">
+              <option value="web">Web</option>
+              <option value="api">API</option>
+            </select>
+          </div>
+
+          <div class="text-end mt-2">
+            <button type="submit" class="ti-btn btn-wave bg-primary text-white !font-medium">Save Permission</button>
           </div>
         </form>
       </div>
     </div>
-    <!-- /Add Permission -->
-
-    <!-- Permissions Table -->
-<div class="box">
-  <div class="box-header">
-    <h6 class="text-[1rem] font-semibold">Existing Permissions</h6>
   </div>
-  <div class="box-body">
+</div>
 
-    @php
-      // Support both Collection and Paginator
-      $collection = $permissions instanceof \Illuminate\Contracts\Pagination\Paginator
-        ? collect($permissions->items())
-        : collect($permissions);
-
-      $grouped = $collection
-        ->groupBy(fn($p) => $p->page ?: 'Uncategorized')
-        ->sortKeys(); // Sort groups by page name
-    @endphp
-
-            <div class="table-responsive">
-            <table class="table whitespace-nowrap min-w-full">
-                <thead class="bg-primary/10">
-                <tr class="border-b border-primary/10">
-                    <th scope="col" class="text-start">Permission</th>
-                    <th scope="col" class="text-start">Guard</th>
-                    <th scope="col" class="text-start">Actions</th>
-                </tr>
-                </thead>
-                    <tbody>
-                    @forelse ($grouped as $pageName => $items)
-                        <tr class="bg-primary/5">
-                        <td colspan="3" class="p-3 font-semibold">
-                            {{ $pageName }}
-                            <span class="text-xs text-muted">({{ $items->count() }})</span>
-                        </td>
-                        </tr>
-
-                        @foreach ($items->sortBy('name') as $permission)
-                        <tr id="perm-row-{{ $permission->id }}" class="border-b border-primary/10">
-                            <th scope="row" class="text-start">{{ $permission->name }}</th>
-                            <td class="text-start">{{ $permission->guard_name }}</td>
-                            <td>
-                            <div class="hstack flex gap-3 text-[.9375rem]">
-                                <button
-                                type="button"
-                                aria-label="Delete"
-                                class="ti-btn btn-wave ti-btn-sm ti-btn-danger !rounded-full"
-                                data-action="delete-permission"
-                                data-endpoint="{{ route('access.permissions.destroy', $permission) }}"
-                                data-row="perm-row-{{ $permission->id }}"
-                                data-name="{{ $permission->name }}"
-                                >
-                                <i class="ri-delete-bin-line"></i>
-                                </button>
-                            </div>
-                            </td>
-                        </tr>
-                        @endforeach
-                    @empty
-                        <tr>
-                        <td colspan="3" class="text-center text-muted py-6">No permissions found.</td>
-                        </tr>
-                    @endforelse
-                    </tbody>
-            </table>
-            </div>
-
-    {{-- Pagination (if controller used paginate()) --}}
-    @if ($permissions instanceof \Illuminate\Contracts\Pagination\Paginator)
-      <div class="mt-4">
-        {{ $permissions->links() }}
+<div id="editPermissionModal" class="hs-overlay hidden ti-modal [--overlay-backdrop:static]">
+  <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out">
+    <div class="ti-modal-content">
+      <div class="ti-modal-header">
+        <h6 class="modal-title text-[1rem] font-semibold">Edit Permission</h6>
+        <button type="button" class="hs-dropdown-toggle text-[1rem] font-semibold text-defaulttextcolor"
+                data-hs-overlay="#editPermissionModal"><i class="ri-close-line"></i></button>
       </div>
-    @endif
+
+      <div class="ti-modal-body px-4">
+        <form id="editPermissionForm" method="POST" action="" class="space-y-4">
+          @csrf
+          @method('PATCH')
+          <input type="hidden" id="editPermissionId" name="permission_id">
+
+          <div>
+            <label for="editPermissionName" class="form-label">Permission Name</label>
+            <input
+              type="text"
+              id="editPermissionName"
+              name="name"
+              class="form-control w-full !rounded-md"
+              required
+            >
+          </div>
+
+          <div>
+            <label for="editPermissionPage" class="form-label">Page / Module</label>
+            <input
+              type="text"
+              id="editPermissionPage"
+              name="page"
+              class="form-control w-full !rounded-md"
+              required
+            >
+          </div>
+
+          <div>
+            <label for="editPermissionGuard" class="form-label">Guard</label>
+            <select id="editPermissionGuard" name="guard_name" class="form-control w-full !rounded-md">
+              <option value="web">Web</option>
+              <option value="api">API</option>
+            </select>
+          </div>
+
+          <div class="text-end mt-2">
+            <button type="submit" class="ti-btn btn-wave bg-primary text-white !font-medium">Update Permission</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
-
-    <!-- /Permissions Table -->
-
-  </div>
-</div>
+@endsection
 
 @push('scripts')
-  @vite('resources/js/permissions-manage.js')
-@endpush
+  <script src="{{ asset('build/assets/libs/tabulator-tables/js/tabulator.min.js') }}"></script>
 
-@endsection
+  <script>
+    window.__accessPermissions = {
+      ajaxUrl: @json(route('access.permissions.data')),
+    };
+  </script>
+@endpush
