@@ -6,34 +6,57 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Services\Contracts\AuthServiceInterface;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
+use Illuminate\View\View;
+use App\Models\Role;
 
 class AuthController extends Controller
 {
     public function __construct(private readonly AuthServiceInterface $auth) {}
 
-    public function showSignUpForm()
+    public function showSignUpForm(): View
     {
-        // Safer: avoid exposing/Administrator-assigning Administrator role in UI
-        $roles = Role::query()
-            ->where('guard_name', 'web')
-            ->where('name', '!=', 'Administrator')
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return view('auth.sign-up', compact('roles'));
+        return view('auth.sign-up', [
+            'roles' => $this->registrationRoles(),
+        ]);
     }
 
-    public function showLoginForm()
+    public function registrationOptions(): JsonResponse
+    {
+        return response()->json([
+            'roles' => $this->registrationRoles()
+                ->map(fn (Role $role) => [
+                    'id' => (string) $role->id,
+                    'name' => (string) $role->name,
+                ])
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    public function showLoginForm(): View
     {
         return view('auth.login');
     }
 
-    public function register(RegisterRequest $request)
+    public function register(RegisterRequest $request): RedirectResponse|JsonResponse
     {
-        $this->auth->register($request->validated());
-        return redirect()->route('login')->with('success', 'Account created successfully. Please log in.');
+        $user = $this->auth->register($request->validated());
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Account created successfully.',
+                'data' => [
+                    'id' => (string) $user->id,
+                    'username' => (string) $user->username,
+                    'email' => (string) $user->email,
+                ],
+            ], 201);
+        }
+
+        return back()->with('success', 'Account created successfully.');
     }
 
     public function login(LoginRequest $request)
@@ -61,7 +84,18 @@ class AuthController extends Controller
     public function logout()
     {
         $this->auth->logout();
+
         return redirect('/login');
+    }
+
+    private function registrationRoles()
+    {
+        return Role::query()
+            ->where('guard_name', 'web')
+            ->whereNull('deleted_at')
+            ->where('name', '!=', 'Administrator')
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 }
 

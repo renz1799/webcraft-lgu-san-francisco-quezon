@@ -230,6 +230,8 @@
 		</div>
         <!-- END PAGE-->
 
+        @include('layouts.components.modals.register-user')
+
         <!-- SCRIPTS -->
 
         @include('layouts.components.scripts')
@@ -263,3 +265,4 @@
 
 	</body>
 </html>
+

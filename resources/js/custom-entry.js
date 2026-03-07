@@ -49,6 +49,10 @@
     ]);
   }
 
+  function loadRegisterUserModal() {
+    return import("./auth/register-modal.js");
+  }
+
   function loadTasksIndex() {
     return Promise.all([
       import("./tasks/table.js"),
@@ -89,6 +93,12 @@
     if (document.getElementById("permissions-table")) {
       loadAccessPermissions().catch((err) => {
         console.error("Failed to load access permissions modules", err);
+      });
+    }
+
+    if (document.getElementById("registerUserModal")) {
+      loadRegisterUserModal().catch((err) => {
+        console.error("Failed to load register user modal module", err);
       });
     }
 

@@ -51,8 +51,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     | Sign-up / Registration (gated)
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role_or_permission:Administrator')->group(function () {
+    Route::middleware('role:Administrator')->group(function () {
         Route::get('/sign-up', [AuthController::class, 'showSignUpForm'])->name('sign-up');
+        Route::get('/register/options', [AuthController::class, 'registrationOptions'])->name('register.options');
         Route::post('/register', [AuthController::class, 'register'])->name('register');
     });
 

@@ -24,6 +24,7 @@
 @php
   $u = auth()->user();
   $isAdmin = $u && $u->hasAnyRole(['Administrator', 'admin']);
+  $canRegisterUser = $u && $u->hasRole('Administrator');
   $canInventoryInspection = $u && $u->hasAnyRole(['Administrator', 'Inspector', 'Staff']);
   $canTasks = $u && $u->hasAnyRole(['Administrator', 'admin', 'Staff']);
 @endphp
@@ -115,11 +116,13 @@
           </a>
         </li>
 
+        @if($canRegisterUser)
         <li class="slide">
-          <a href="{{ route('sign-up') }}" class="side-menu__item">
+          <a href="javascript:void(0);" class="side-menu__item hs-dropdown-toggle" data-hs-overlay="#registerUserModal">
             User Registration
           </a>
         </li>
+        @endif
 
         <li class="slide">
           <a href="{{ route('logs.index') }}" class="side-menu__item">
