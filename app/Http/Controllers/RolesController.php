@@ -64,9 +64,13 @@ class RolesController extends Controller
         return view('access.roles.index', $this->roles->indexData());
     }
 
-    public function update(UpdateRoleRequest $request, Role $role): RedirectResponse
+    public function update(UpdateRoleRequest $request, Role $role): RedirectResponse|JsonResponse
     {
         $this->roles->update($role, $request->validated());
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Role updated successfully.'], 200);
+        }
 
         return redirect()->route('access.roles.index')->with('success', 'Role updated successfully.');
     }
@@ -82,3 +86,4 @@ class RolesController extends Controller
         return redirect()->route('access.roles.index')->with('success', 'Role deleted successfully.');
     }
 }
+

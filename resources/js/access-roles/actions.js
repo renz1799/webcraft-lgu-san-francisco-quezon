@@ -124,6 +124,40 @@ import "sweetalert2/dist/sweetalert2.min.css";
     });
   }
 
+  function openEditRoleModal() {
+    const selector = "#editRoleModal";
+    const modal = document.querySelector(selector);
+    if (!modal) return;
+
+    if (window.HSOverlay && typeof window.HSOverlay.open === "function") {
+      window.HSOverlay.open(selector);
+      return;
+    }
+
+    // Fallback if HSOverlay is not available
+    modal.classList.remove("hidden");
+    modal.classList.add("open", "opened");
+    modal.setAttribute("aria-overlay", "true");
+    modal.setAttribute("tabindex", "-1");
+  }
+
+  function closeEditRoleModal() {
+    const selector = "#editRoleModal";
+    const modal = document.querySelector(selector);
+    if (!modal) return;
+
+    if (window.HSOverlay && typeof window.HSOverlay.close === "function") {
+      window.HSOverlay.close(selector);
+      return;
+    }
+
+    // Fallback if HSOverlay is not available
+    modal.classList.add("hidden");
+    modal.classList.remove("open", "opened");
+    modal.removeAttribute("aria-overlay");
+    modal.removeAttribute("tabindex");
+  }
+
   function renderRolePermissionsModal(roleName, permissions) {
     const grouped = permissions.reduce((acc, permission) => {
       const page = permission.page || "Uncategorized";
@@ -172,6 +206,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
         if (action === "edit-role") {
           applyRoleToEditModal(btn);
+          openEditRoleModal();
           return;
         }
 
@@ -245,6 +280,54 @@ import "sweetalert2/dist/sweetalert2.min.css";
       });
     }
 
+    const editRoleForm = document.getElementById("editRoleForm");
+    if (editRoleForm) {
+      editRoleForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const actionUrl = editRoleForm.getAttribute("action") || "";
+        if (!actionUrl) {
+          await showToast("error", "Update failed", "Missing update endpoint.");
+          return;
+        }
+
+        const submitBtn = editRoleForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.setAttribute("disabled", "disabled");
+
+        try {
+          const response = await fetch(actionUrl, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+              "X-CSRF-TOKEN": getCsrf(),
+            },
+            body: new FormData(editRoleForm),
+          });
+
+          const isJson = (response.headers.get("content-type") || "").includes("application/json");
+          const payload = isJson ? await response.json().catch(() => ({})) : {};
+
+          if (!response.ok) {
+            if (response.status === 422 && payload?.errors) {
+              const firstError = Object.values(payload.errors).flat()[0];
+              throw new Error(firstError || "Validation failed.");
+            }
+
+            throw new Error(payload?.message || response.statusText || "Update request failed.");
+          }
+
+          closeEditRoleModal();
+          await showToast("success", payload?.message || "Role updated");
+          reloadRolesTable();
+        } catch (err) {
+          await showToast("error", "Update failed", err?.message || "Please try again.");
+        } finally {
+          if (submitBtn) submitBtn.removeAttribute("disabled");
+        }
+      });
+    }
+
     document.addEventListener("click", function (e) {
       const btn = e.target.closest("[data-bulk]");
       if (!btn) return;
@@ -259,5 +342,3 @@ import "sweetalert2/dist/sweetalert2.min.css";
     });
   });
 })();
-
-
