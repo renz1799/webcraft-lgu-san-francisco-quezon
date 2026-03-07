@@ -34,18 +34,16 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-    
+
     'positionstack' => [
-        'key'      => env('POSITIONSTACK_API_KEY'),
+        'key' => env('POSITIONSTACK_API_KEY'),
         'endpoint' => env('POSITIONSTACK_URL', 'http://api.positionstack.com/v1'),
-        'timeout'  => 5,
+        'timeout' => 5,
     ],
 
-        'google_drive' => [
-        'service_account_json' => env('GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON'),
+    'google_drive' => [
         'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
         'make_public' => env('GOOGLE_DRIVE_MAKE_PUBLIC', false),
-
         'oauth_client_json' => env('GOOGLE_DRIVE_OAUTH_CLIENT_JSON'),
         'redirect_uri' => env('GOOGLE_DRIVE_OAUTH_REDIRECT_URI'),
     ],

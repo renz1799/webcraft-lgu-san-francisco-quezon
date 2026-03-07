@@ -42,12 +42,8 @@ use App\Services\Contracts\{
     LoginLogServiceInterface,
     TaskServiceInterface,
     UserProfileServiceInterface,
-    GoogleDriveServiceInterface,
     GoogleDriveOAuthServiceInterface,
     GoogleDriveGlobalServiceInterface
-
-    
-
 };
 use App\Services\Auth\AuthService;
 use App\Services\Geocoding\PositionstackGeocodingService;
@@ -59,11 +55,8 @@ use App\Services\RoleService;
 use App\Services\LoginLogService;
 use App\Services\Tasks\TaskService;
 use App\Services\UserProfileService;
-use App\Services\GoogleDrive\GoogleDriveService;
 use App\Services\GoogleDrive\GoogleDriveOAuthService;
 use App\Services\GoogleDrive\GoogleDriveGlobalService;
-
-
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -74,31 +67,29 @@ class RepositoryServiceProvider extends ServiceProvider
             UserRepositoryInterface::class        => EloquentUserRepository::class,
             LoginDetailRepositoryInterface::class => EloquentLoginDetailRepository::class,
             PermissionRepositoryInterface::class  => EloquentPermissionRepository::class,
-            AuditLogRepositoryInterface::class  => EloquentAuditLogRepository::class,
-            RoleRepositoryInterface::class  => EloquentRoleRepository::class,
+            AuditLogRepositoryInterface::class    => EloquentAuditLogRepository::class,
+            RoleRepositoryInterface::class        => EloquentRoleRepository::class,
             ThemePreferencesRepositoryInterface::class => EloquentThemePreferencesRepository::class,
             NotificationRepositoryInterface::class => EloquentNotificationRepository::class,
-            TaskRepositoryInterface::class => EloquentTaskRepository::class,
-            TaskEventRepositoryInterface::class => EloquentTaskEventRepository::class,
+            TaskRepositoryInterface::class        => EloquentTaskRepository::class,
+            TaskEventRepositoryInterface::class   => EloquentTaskEventRepository::class,
             GoogleTokenRepositoryInterface::class => EloquentGoogleTokenRepository::class,
         ]);
 
         // Services (singletons by default here)
         $this->bindMany([
-            AuthServiceInterface::class        => AuthService::class,
-            GeocodingServiceInterface::class   => PositionstackGeocodingService::class,
-            UserAccessServiceInterface::class  => UserAccessService::class,
-            PermissionServiceInterface::class  => PermissionService::class,
-            AuditLogServiceInterface::class  => AuditLogService::class,
+            AuthServiceInterface::class           => AuthService::class,
+            GeocodingServiceInterface::class      => PositionstackGeocodingService::class,
+            UserAccessServiceInterface::class     => UserAccessService::class,
+            PermissionServiceInterface::class     => PermissionService::class,
+            AuditLogServiceInterface::class       => AuditLogService::class,
             AuditLogTableServiceInterface::class  => AuditLogTableService::class,
-            RoleServiceInterface::class  => RoleService::class,
-            LoginLogServiceInterface::class  => LoginLogService::class,
-            TaskServiceInterface::class  => TaskService::class,
-            UserProfileServiceInterface::class  => UserProfileService::class,
-            GoogleDriveServiceInterface::class  => GoogleDriveService::class,
-            GoogleDriveOAuthServiceInterface::class  => GoogleDriveOAuthService::class,
-            GoogleDriveGlobalServiceInterface::class  => GoogleDriveGlobalService::class,
-           
+            RoleServiceInterface::class           => RoleService::class,
+            LoginLogServiceInterface::class       => LoginLogService::class,
+            TaskServiceInterface::class           => TaskService::class,
+            UserProfileServiceInterface::class    => UserProfileService::class,
+            GoogleDriveOAuthServiceInterface::class => GoogleDriveOAuthService::class,
+            GoogleDriveGlobalServiceInterface::class => GoogleDriveGlobalService::class,
         ], true);
     }
 

@@ -5,7 +5,6 @@ use App\Http\Controllers\AuditRestoreController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardsController;
 use App\Http\Controllers\DriveOAuthController;
-use App\Http\Controllers\DriveTestController;
 use App\Http\Controllers\GoogleDrive\DriveGlobalController;
 use App\Http\Controllers\LoginLogController;
 use App\Http\Controllers\Notifications\NotificationController;
@@ -195,18 +194,6 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->whereUuid('id')
         ->name('tasks.claim');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Test Drive Upload
-    |--------------------------------------------------------------------------
-    */
-
-    Route::get('/drive/test', [DriveTestController::class, 'index'])
-        ->name('drive.test.index');
-
-    Route::post('/drive/test', [DriveTestController::class, 'store'])
-        ->name('drive.test.store');
-
     Route::get('/drive/oauth', [DriveOAuthController::class, 'index'])->name('drive.oauth.index');
     Route::post('/drive/oauth/connect', [DriveOAuthController::class, 'connect'])->name('drive.oauth.connect');
     Route::get('/google/drive/callback', [DriveOAuthController::class, 'callback'])->name('drive.oauth.callback');
@@ -236,3 +223,4 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->middleware('role:Administrator')
         ->name('theme.colors.update');
 });
+
