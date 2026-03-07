@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Services\Contracts\UserAccessServiceInterface;
+use App\Http\Requests\Users\AccessUsersDataRequest;
 use App\Http\Requests\Users\DeleteUserRequest;
 use App\Http\Requests\Users\ResetUserPasswordRequest;
 use App\Http\Requests\Users\UpdateUserModulePermissionsRequest;
 use App\Http\Requests\Users\UpdateUserStatusRequest;
-use App\Http\Requests\Users\UserPermissionsTableRequest;
 use App\Http\Requests\Users\ViewUserPermissionsRequest;
+use App\Models\User;
+use App\Services\Contracts\UserAccessServiceInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 
@@ -17,44 +17,19 @@ class UserAccessController extends Controller
 {
     public function __construct(private readonly UserAccessServiceInterface $svc) {}
 
-    /** Page: list users + grouped permissions */
     public function index(): View
     {
-        $q = request()->string('q')->toString();
-        $data = $this->svc->indexData($q ?: null);
-
-        return view('access.users.index', $data);
+        return view('access.users.index');
     }
 
-    public function data(UserPermissionsTableRequest $request): JsonResponse
+    public function data(AccessUsersDataRequest $request): JsonResponse
     {
-        $f = $request->filters();
-
-        $page = $f['page'];
-        $size = $f['size'];
-        $q = $f['q'] ?: null;
-
-        $p = $this->svc->paginateForPermissionsTable($q, $page, $size);
-
-        $rows = $p->getCollection()->map(function (User $u) {
-            return [
-                'id' => $u->id,
-                'username' => $u->username,
-                'email' => $u->email,
-                'role' => optional($u->roles->first())->name ?? 'No Role Assigned',
-                'created' => optional($u->created_at)?->format('d M Y'),
-                'is_active' => (bool) $u->is_active,
-
-                'edit_url' => route('access.users.edit', $u),
-                'status_url' => route('access.users.status.update', $u),
-                'delete_url' => route('access.users.destroy', $u),
-            ];
-        })->values();
+        $payload = $this->svc->datatable($request->validated());
 
         return response()->json([
-            'data' => $rows,
-            'total' => $p->total(),
-            'last_page' => $p->lastPage(),
+            'data' => $payload['data'] ?? [],
+            'last_page' => (int) ($payload['last_page'] ?? 1),
+            'total' => (int) ($payload['total'] ?? 0),
         ]);
     }
 
@@ -80,16 +55,24 @@ class UserAccessController extends Controller
         return response()->json(['message' => 'User account deleted successfully.'], 200);
     }
 
-    public function restore(User $user): JsonResponse
+    public function restore(string $user): JsonResponse
     {
-        $this->svc->restoreUser($user);
+        $ok = $this->svc->restoreUser($user);
+
+        if (! $ok) {
+            return response()->json(['message' => 'User not found or not restorable.'], 404);
+        }
 
         return response()->json(['message' => 'User restored successfully.'], 200);
     }
 
-    public function forceDelete(User $user): JsonResponse
+    public function forceDelete(string $user): JsonResponse
     {
-        $this->svc->forceDeleteUser($user);
+        $ok = $this->svc->forceDeleteUser($user);
+
+        if (! $ok) {
+            return response()->json(['message' => 'User not found or already removed.'], 404);
+        }
 
         return response()->json(['message' => 'User permanently deleted.'], 200);
     }

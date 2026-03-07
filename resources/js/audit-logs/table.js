@@ -4,15 +4,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
 (function () {
   "use strict";
 
-  function onReady(fn) {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", fn);
-      return;
-    }
-
-    fn();
-  }
-
   function esc(s) {
     return String(s ?? "")
       .replace(/&/g, "&amp;")
@@ -74,7 +65,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
     });
   }
 
-  onReady(function () {
+  document.addEventListener("DOMContentLoaded", function () {
     const cfg = window.__audit || {};
     const el = document.getElementById("audit-table");
     if (!el) return;

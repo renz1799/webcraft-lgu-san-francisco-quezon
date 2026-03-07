@@ -24,6 +24,14 @@
     ]);
   }
 
+  function loadAccessUsers() {
+    return Promise.all([
+      import("./access-users/table.js"),
+      import("./access-users/filters.js"),
+      import("./access-users/actions.js"),
+    ]);
+  }
+
   onReady(function () {
     if (document.getElementById("login-table")) {
       loadLoginLogs().catch((err) => {
@@ -34,6 +42,12 @@
     if (document.getElementById("audit-table")) {
       loadAuditLogs().catch((err) => {
         console.error("Failed to load audit logs modules", err);
+      });
+    }
+
+    if (document.getElementById("users-table")) {
+      loadAccessUsers().catch((err) => {
+        console.error("Failed to load access users modules", err);
       });
     }
   });

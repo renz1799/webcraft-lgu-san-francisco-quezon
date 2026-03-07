@@ -12,7 +12,6 @@ use Spatie\Permission\PermissionRegistrar;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 
 class UserAccessService implements UserAccessServiceInterface
@@ -24,46 +23,15 @@ class UserAccessService implements UserAccessServiceInterface
 
     /* ----------------------------- Queries ------------------------------ */
 
-    public function indexData(?string $q = null): array
+    public function datatable(array $params): array
     {
-        $q = $q ? trim($q) : null;
-        if ($q === '') $q = null;
+        $page = max(1, (int) ($params['page'] ?? 1));
+        $size = max(1, min((int) ($params['size'] ?? 15), 100));
 
-        $query = User::query()
-            ->with(['roles', 'profile'])
-            ->where('user_type', '!=', 'Administrator');
+        $filters = $params;
+        unset($filters['page'], $filters['size']);
 
-        if ($q) {
-            $query->where(function ($sub) use ($q) {
-                $sub->where('email', 'like', "%{$q}%")
-                    ->orWhere('username', 'like', "%{$q}%")
-                    // optional: search full name parts
-                    ->orWhereHas('profile', function ($p) use ($q) {
-                        $p->where('first_name', 'like', "%{$q}%")
-                        ->orWhere('middle_name', 'like', "%{$q}%")
-                        ->orWhere('last_name', 'like', "%{$q}%")
-                        ->orWhere('name_extension', 'like', "%{$q}%");
-                    });
-            });
-        }
-
-        $users = $query->orderByDesc('created_at')
-            ->paginate(20)
-            ->withQueryString();
-
-        $permissions = Permission::query()
-            ->orderBy('name')
-            ->get()
-            ->groupBy(function ($p) {
-                return explode(' ', $p->name, 2)[1] ?? 'others';
-            });
-
-        return compact('users', 'permissions', 'q');
-    }
-
-    public function paginateForPermissionsTable(?string $q, int $page, int $size): LengthAwarePaginator
-    {
-        return $this->users->paginateForPermissionsTable($q, $page, $size);
+        return $this->users->datatable($filters, $page, $size);
     }
 
     public function getUserPermissions(User $user): array

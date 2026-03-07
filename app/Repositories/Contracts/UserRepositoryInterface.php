@@ -25,13 +25,12 @@ interface UserRepositoryInterface
 
     /** (Optional convenience) by id */
     public function restoreById(string $id): bool;
-    public function forceDeleteById(string $id): bool;
 
     public function paginate(int $perPage = 30): LengthAwarePaginator;
 
     public function assignRoleAndSyncPermissions(User $user, string $roleName): void;
 
-    public function paginateForPermissionsTable(?string $q, int $page, int $size): LengthAwarePaginator;
+    public function datatable(array $filters, int $page = 1, int $size = 15): array;
 
     public function listForTaskReassign(): array;
 
