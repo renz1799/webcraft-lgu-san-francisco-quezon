@@ -39,6 +39,9 @@ interface TaskServiceInterface
 
     public function claim(string $actorUserId, string $taskId, ?string $note = null): Task;
 
-    public function tableData(string $actorUserId, array $roles, array $filters, int $page, int $size): array;
+    public function archive(string $actorUserId, string $taskId): void;
 
+    public function restore(string $actorUserId, string $taskId): bool;
+
+    public function datatable(array $params): array;
 }

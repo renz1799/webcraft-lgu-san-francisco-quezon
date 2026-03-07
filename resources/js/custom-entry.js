@@ -42,7 +42,11 @@
   }
 
   function loadTasksIndex() {
-    return import("./tasks/index.js");
+    return Promise.all([
+      import("./tasks/table.js"),
+      import("./tasks/filters.js"),
+      import("./tasks/actions.js"),
+    ]);
   }
 
   function loadTaskShow() {
@@ -76,7 +80,7 @@
 
     if (document.getElementById("tasks-table")) {
       loadTasksIndex().catch((err) => {
-        console.error("Failed to load tasks index module", err);
+        console.error("Failed to load tasks index modules", err);
       });
     }
 

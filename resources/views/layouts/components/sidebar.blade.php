@@ -23,9 +23,9 @@
 
 @php
   $u = auth()->user();
-  $isAdmin = $u && $u->hasRole('Administrator');
+  $isAdmin = $u && $u->hasAnyRole(['Administrator', 'admin']);
   $canInventoryInspection = $u && $u->hasAnyRole(['Administrator', 'Inspector', 'Staff']);
-  $canTasks = $u && $u->hasAnyRole(['Administrator', 'Staff']);
+  $canTasks = $u && $u->hasAnyRole(['Administrator', 'admin', 'Staff']);
 @endphp
 
 <ul class="main-menu">
@@ -44,18 +44,18 @@
       </a>
 
       <ul class="slide-menu child1">
-        @php($canAll = auth()->user()?->hasRole('Administrator'))
+        @php($canAll = auth()->user()?->hasAnyRole(['Administrator', 'admin']) || auth()->user()?->can('view All Tasks'))
 
         @if($canAll)
           <li class="slide">
-            <a href="{{ route('tasks.index', ['scope' => 'all']) }}" class="side-menu__item">
-              All (Admininstrator)
+            <a href="{{ route('tasks.index', ['scope' => 'all', 'archived' => 'active']) }}" class="side-menu__item">
+              All (Administrator)
             </a>
           </li>
         @endif
 
         <li class="slide">
-          <a href="{{ route('tasks.index', ['scope' => 'mine']) }}" class="side-menu__item">
+          <a href="{{ route('tasks.index', ['scope' => 'mine', 'archived' => 'active']) }}" class="side-menu__item">
             Assigned to Me
             @if(($taskCounts['my'] ?? 0) > 0)
               <span class="text-success text-[0.75em] badge !py-[0.25rem] !px-[0.45rem] rounded-sm bg-success/10 ms-2">
@@ -66,7 +66,7 @@
         </li>
 
         <li class="slide">
-          <a href="{{ route('tasks.index', ['scope' => 'available']) }}" class="side-menu__item">
+          <a href="{{ route('tasks.index', ['scope' => 'available', 'archived' => 'active']) }}" class="side-menu__item">
             Available to Claim
             @if(($taskCounts['claimable'] ?? 0) > 0)
               <span class="text-success text-[0.75em] badge !py-[0.25rem] !px-[0.45rem] rounded-sm bg-success/10 ms-2">

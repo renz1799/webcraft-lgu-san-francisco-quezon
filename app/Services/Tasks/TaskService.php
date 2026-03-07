@@ -4,8 +4,8 @@ namespace App\Services\Tasks;
 
 use App\Models\Task;
 use App\Models\User;
-use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
+use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Services\Contracts\TaskServiceInterface;
 use App\Services\Notifications\NotificationService;
 use Illuminate\Support\Facades\DB;
@@ -16,18 +16,16 @@ class TaskService implements TaskServiceInterface
     public function __construct(
         private readonly TaskRepositoryInterface $tasks,
         private readonly TaskEventRepositoryInterface $taskEvents,
-        private readonly NotificationService $notificationService, // keep as concrete for now; can be interface later
+        private readonly NotificationService $notificationService,
     ) {}
 
     /**
      * Cache actor snapshots per request so we don't re-query multiple times.
+     *
      * @var array<string, array{actor_name_snapshot: string, actor_username_snapshot: ?string}>
      */
     private array $actorSnapshotCache = [];
 
-    /**
-     * Build immutable actor "snapshot" fields for audit/history.
-     */
     private function actorSnapshots(string $actorUserId): array
     {
         if (isset($this->actorSnapshotCache[$actorUserId])) {
@@ -45,9 +43,6 @@ class TaskService implements TaskServiceInterface
         ];
     }
 
-    /**
-     * Always create TaskEvent with snapshot columns included.
-     */
     private function createEvent(array $payload): void
     {
         $actorUserId = (string) ($payload['actor_user_id'] ?? '');
@@ -93,7 +88,6 @@ class TaskService implements TaskServiceInterface
                 'data' => $data,
             ]);
 
-            // event: created
             $this->createEvent([
                 'task_id' => $task->id,
                 'actor_user_id' => $actorUserId,
@@ -101,7 +95,6 @@ class TaskService implements TaskServiceInterface
                 'note' => 'Task created.',
             ]);
 
-            // event: assigned
             $this->createEvent([
                 'task_id' => $task->id,
                 'actor_user_id' => $actorUserId,
@@ -112,7 +105,6 @@ class TaskService implements TaskServiceInterface
                 ],
             ]);
 
-            // notify assignee (notification links to TASK, not subject)
             $this->notificationService->notifyTaskAssigned(
                 assigneeUserId: $assigneeUserId,
                 actorUserId: $actorUserId,
@@ -137,17 +129,15 @@ class TaskService implements TaskServiceInterface
             Task::STATUS_CANCELLED,
         ];
 
-        if (!in_array($toStatus, $allowed, true)) {
+        if (! in_array($toStatus, $allowed, true)) {
             throw new InvalidArgumentException('Invalid task status.');
         }
 
         return DB::transaction(function () use ($actorUserId, $taskId, $toStatus, $note) {
             $task = $this->tasks->findOrFail($taskId);
-
             $fromStatus = (string) $task->status;
 
             if ($fromStatus === $toStatus) {
-                // still allow a note-only event even if status unchanged
                 if ($note) {
                     $this->createEvent([
                         'task_id' => $task->id,
@@ -156,6 +146,7 @@ class TaskService implements TaskServiceInterface
                         'note' => $note,
                     ]);
                 }
+
                 return $task;
             }
 
@@ -184,7 +175,6 @@ class TaskService implements TaskServiceInterface
                 'note' => $note,
             ]);
 
-            // ✅ notify: admin + creator + assignee + participants (no spam on comments)
             $this->notificationService->notifyTaskParticipants(
                 task: $task,
                 actorUserId: $actorUserId,
@@ -215,120 +205,85 @@ class TaskService implements TaskServiceInterface
         });
     }
 
-public function reassign(
-    string $actorUserId,
-    string $taskId,
-    string $newAssigneeUserId,
-    ?string $note = null
-): Task {
-    return DB::transaction(function () use (
-        $actorUserId,
-        $taskId,
-        $newAssigneeUserId,
-        $note
-    ) {
-        $task = $this->tasks->findOrFail($taskId);
+    public function reassign(
+        string $actorUserId,
+        string $taskId,
+        string $newAssigneeUserId,
+        ?string $note = null
+    ): Task {
+        return DB::transaction(function () use (
+            $actorUserId,
+            $taskId,
+            $newAssigneeUserId,
+            $note
+        ) {
+            $task = $this->tasks->findOrFail($taskId);
 
-        // -------------------------
-        // Resolve FROM / TO users
-        // -------------------------
-        $fromUserId = $task->assigned_to_user_id;
+            $fromUserId = $task->assigned_to_user_id;
+            $fromUser = $fromUserId ? User::with('profile')->find($fromUserId) : null;
+            $toUser = User::with('profile')->find($newAssigneeUserId);
 
-        $fromUser = $fromUserId
-            ? User::with('profile')->find($fromUserId)
-            : null;
+            $fromName = $fromUser?->profile?->full_name
+                ?? $fromUser?->username
+                ?? 'Unassigned';
 
-        $toUser = User::with('profile')->find($newAssigneeUserId);
+            $toName = $toUser?->profile?->full_name
+                ?? $toUser?->username
+                ?? 'Unassigned';
 
-        $fromName = $fromUser?->profile?->full_name
-            ?? $fromUser?->username
-            ?? 'Unassigned';
+            $task->assigned_to_user_id = $newAssigneeUserId;
+            $this->tasks->save($task);
 
-        $toName = $toUser?->profile?->full_name
-            ?? $toUser?->username
-            ?? 'Unassigned';
+            $customNote = trim((string) $note);
+            $lines = ["Task reassigned: {$fromName} -> {$toName}."];
 
-        // -------------------------
-        // Update task (source of truth)
-        // -------------------------
-        $task->assigned_to_user_id = $newAssigneeUserId;
-        $this->tasks->save($task);
+            if ($customNote !== '') {
+                $lines[] = "Note: {$customNote}";
+            }
 
-        // -------------------------
-        // Build timeline note
-        // -------------------------
-        // -------------------------
-        // Build timeline note (strict format)
-        // -------------------------
-        $customNote = trim((string) $note);
+            $finalNote = implode("\n", $lines);
 
-        // Resolve actor name
-        $actorUser = User::with('profile')->find($actorUserId);
+            $this->createEvent([
+                'task_id' => (string) $task->id,
+                'actor_user_id' => $actorUserId,
+                'event_type' => 'task_reassigned',
+                'from_status' => (string) $task->status,
+                'to_status' => (string) $task->status,
+                'note' => $finalNote,
+                'meta' => [
+                    'from_user_id' => $fromUserId,
+                    'to_user_id' => $newAssigneeUserId,
+                    'custom_note' => $customNote !== '' ? $customNote : null,
+                ],
+            ]);
 
-        $actorName = $actorUser?->profile?->full_name
-            ?? $actorUser?->username
-            ?? 'System';
+            $this->notificationService->notifyTaskParticipants(
+                task: $task,
+                actorUserId: $actorUserId,
+                type: 'task_reassigned',
+                title: 'Task Reassigned',
+                message: "Task \"{$task->title}\" was reassigned."
+            );
 
-        // Line 1: action
-        $lines = [];
-        $lines[] = "Task reassigned: {$fromName} → {$toName}.";
+            $this->notificationService->notifyTaskAssigned(
+                assigneeUserId: (string) $newAssigneeUserId,
+                actorUserId: $actorUserId,
+                taskId: (string) $task->id,
+                taskTitle: (string) $task->title,
+                url: route('tasks.show', (string) $task->id)
+            );
 
-        // Line 3+: optional note
-        if ($customNote !== '') {
-            $lines[] = "Note: {$customNote}";
-        }
-
-        $finalNote = implode("\n", $lines);
-
-
-        // -------------------------
-        // Timeline event
-        // -------------------------
-        $this->createEvent([
-            'task_id'       => (string) $task->id,
-            'actor_user_id' => $actorUserId,
-            'event_type'    => 'task_reassigned',
-            'from_status'   => (string) $task->status,
-            'to_status'     => (string) $task->status,
-            'note'          => $finalNote,
-            'meta'          => [
-                'from_user_id' => $fromUserId,
-                'to_user_id'   => $newAssigneeUserId,
-                'custom_note'  => $customNote !== '' ? $customNote : null,
-            ],
-        ]);
-
-        // -------------------------
-        // Notifications
-        // -------------------------
-        $this->notificationService->notifyTaskParticipants(
-            task: $task,
-            actorUserId: $actorUserId,
-            type: 'task_reassigned',
-            title: 'Task Reassigned',
-            message: "Task \"{$task->title}\" was reassigned."
-        );
-
-        $this->notificationService->notifyTaskAssigned(
-            assigneeUserId: (string) $newAssigneeUserId,
-            actorUserId: $actorUserId,
-            taskId: (string) $task->id,
-            taskTitle: (string) $task->title,
-            url: route('tasks.show', (string) $task->id)
-        );
-
-        return $task;
-    });
-}
-
+            return $task;
+        });
+    }
 
     public function claim(string $actorUserId, string $taskId, ?string $note = null): Task
     {
         return DB::transaction(function () use ($actorUserId, $taskId, $note) {
             $task = $this->tasks->findOrFail($taskId);
 
-            if (!empty($task->assigned_to_user_id)) {
-                return $task; // already claimed/assigned
+            if (! empty($task->assigned_to_user_id)) {
+                return $task;
             }
 
             $task->assigned_to_user_id = $actorUserId;
@@ -356,22 +311,59 @@ public function reassign(
         });
     }
 
-    public function tableData(string $actorUserId, array $roles, array $filters, int $page, int $size): array
+    public function archive(string $actorUserId, string $taskId): void
     {
-        $paginator = $this->tasks->paginateForTable(
-            userId: $actorUserId,
-            roles: $roles,
-            filters: $filters,
-            page: $page,
-            size: $size
-        );
+        DB::transaction(function () use ($actorUserId, $taskId) {
+            $task = $this->tasks->findOrFail($taskId);
 
-        return [
-            'ok' => true,
-            'data' => $paginator->items(),
-            'total' => $paginator->total(),
-            'last_page' => $paginator->lastPage(),
-        ];
+            if ($task->trashed()) {
+                return;
+            }
+
+            $this->tasks->delete($task);
+
+            $this->createEvent([
+                'task_id' => (string) $task->id,
+                'actor_user_id' => $actorUserId,
+                'event_type' => 'archived',
+                'note' => 'Task archived.',
+            ]);
+        });
     }
 
+    public function restore(string $actorUserId, string $taskId): bool
+    {
+        return DB::transaction(function () use ($actorUserId, $taskId) {
+            $task = $this->tasks->findOrFailWithTrashed($taskId);
+
+            if (! $task->trashed()) {
+                return true;
+            }
+
+            $ok = $this->tasks->restore($task);
+            if (! $ok) {
+                return false;
+            }
+
+            $this->createEvent([
+                'task_id' => (string) $task->id,
+                'actor_user_id' => $actorUserId,
+                'event_type' => 'restored',
+                'note' => 'Task restored.',
+            ]);
+
+            return true;
+        });
+    }
+
+    public function datatable(array $params): array
+    {
+        $page = max(1, (int) ($params['page'] ?? 1));
+        $size = max(1, min((int) ($params['size'] ?? 15), 100));
+
+        $filters = $params;
+        unset($filters['page'], $filters['size']);
+
+        return $this->tasks->datatable($filters, $page, $size);
+    }
 }

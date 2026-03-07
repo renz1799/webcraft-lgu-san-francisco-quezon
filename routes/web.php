@@ -195,6 +195,14 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->whereUuid('id')
         ->name('tasks.claim');
 
+    Route::delete('/tasks/{id}', [TaskActionController::class, 'destroy'])
+        ->whereUuid('id')
+        ->name('tasks.destroy');
+
+    Route::patch('/tasks/{id}/restore', [TaskActionController::class, 'restore'])
+        ->whereUuid('id')
+        ->name('tasks.restore');
+
     Route::get('/drive/oauth', [DriveOAuthController::class, 'index'])->name('drive.oauth.index');
     Route::post('/drive/oauth/connect', [DriveOAuthController::class, 'connect'])->name('drive.oauth.connect');
     Route::get('/google/drive/callback', [DriveOAuthController::class, 'callback'])->name('drive.oauth.callback');
