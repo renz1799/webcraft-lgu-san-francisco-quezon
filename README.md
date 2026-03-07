@@ -69,11 +69,32 @@ Use this flow for custom page JavaScript so template updates are easy to merge:
 5. Add an `onReady` guard in lazy-loaded modules so they still initialize when imported after `DOMContentLoaded`.
 6. After changes, run `npm run build` (or restart `npm run dev`) so the manifest is refreshed.
 
+## Datatable Baseline Keywords
+
+Use these command keywords to request table refactors with consistent scope:
+
+- `DTBL-FS` (Datatable Baseline, Full Stack)
+  - Apply the Users baseline from backend to UI.
+  - Backend flow: `Request -> Controller -> Service -> Repository` using `datatable(...)`.
+  - Response contract: `data`, `last_page`, `total`.
+  - Frontend flow: Blade search + advanced filters + table info, with JS split into `table.js`, `filters.js`, `actions.js`.
+
+- `DTBL-UI` (Datatable Baseline, UI Only)
+  - Apply only Blade and JS baseline structure.
+  - Skip backend contract/method refactor unless explicitly requested.
+
+Canonical baseline reference:
+
+- `resources/views/access/users/index.blade.php`
+- `resources/js/access-users/table.js`
+- `resources/js/access-users/filters.js`
+- `resources/js/access-users/actions.js`
+
 ## Project Rules
 
 - New modules should follow `Request -> Controller -> Service -> Repository`.
 - Keep role checks consistent, including legacy `admin` where needed.
-- For table pages, follow the Audit Logs pattern for backend payload + Blade/JS structure.
+- For table pages, follow the Users datatable baseline (`DTBL-FS` / `DTBL-UI`) for backend payload + Blade/JS structure.
 - For large frontend flows, split files like `resources/js/air/inspect.js` and load them through `resources/js/custom-entry.js` lazy imports.
 
 See [docs/CONVENTIONS.md](docs/CONVENTIONS.md) for the full checklist.

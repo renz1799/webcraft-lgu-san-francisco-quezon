@@ -62,13 +62,27 @@ Use consistent verb naming by use case:
 
 ### Baseline Reference
 
-Use Audit Logs as the baseline for remote listing pages:
+Use Users Access as the canonical baseline for remote listing pages:
 
-- `resources/views/logs/audits/index.blade.php`
-- `resources/js/audit-logs/table.js`
-- `resources/js/audit-logs/filters.js`
+- `resources/views/access/users/index.blade.php`
+- `resources/js/access-users/table.js`
+- `resources/js/access-users/filters.js`
+- `resources/js/access-users/actions.js`
 
-RIS and other modules should align to this pattern.
+Other modules should align to this pattern unless explicitly scoped otherwise.
+
+### Command Keywords
+
+Use these keywords in requests to define scope clearly:
+
+- `DTBL-FS` (Datatable Baseline, Full Stack)
+  - Apply full backend-to-frontend baseline.
+  - Includes: Request, Controller `data()`, Service `datatable()`, Repository `datatable()`, Blade structure, and JS split (`table.js`, `filters.js`, `actions.js`).
+  - Must keep response contract: `data`, `last_page`, `total`.
+
+- `DTBL-UI` (Datatable Baseline, UI Only)
+  - Apply Blade + JS baseline only.
+  - Backend method/contract refactor is excluded unless explicitly requested.
 
 ### Blade
 
@@ -79,13 +93,14 @@ RIS and other modules should align to this pattern.
   - clear/reset actions
   - table container
   - info text container
-- Expose runtime config in a single window object (example: `window.__audit`).
+- Expose runtime config in a single window object (example: `window.__accessUsers`).
 
 ### JS module splitting
 
 - For table pages, split into at least:
   - `table.js`
   - `filters.js`
+  - `actions.js`
 - For complex flows, use `resources/js/custom-entry.js` and lazy-load feature modules by page marker.
 - Reference pattern:
   - `resources/js/air/inspect.js` imports `resources/js/air/inspect/*.js`.
@@ -136,9 +151,9 @@ Example:
 
 ```bash
 git commit \
-  -m "refactor(audit-logs): align listing flow with core pattern" \
-  -m "Move filtering/query logic into repository datatable contract" \
-  -m "Split frontend into table.js and filters.js for maintainability"
+  -m "refactor(access-users): align listing flow with datatable baseline" \
+  -m "Apply Request->Controller->Service->Repository datatable contract" \
+  -m "Split frontend into table.js, filters.js, and actions.js"
 ```
 
 ## Definition Of Done Checklist
@@ -149,7 +164,7 @@ Before marking a feature complete:
 2. Controller remains thin.
 3. Business logic placed in service.
 4. Queries placed in repository.
-5. UI follows Audit Logs baseline (if list page).
+5. UI follows Users datatable baseline (`DTBL-FS` / `DTBL-UI`) for list pages.
 6. `vite.custom.inputs.js` and `resources/js/custom-entry.js` updated for new page JS modules.
 7. Role and permission gates applied.
 8. Audit logging added for write operations.
