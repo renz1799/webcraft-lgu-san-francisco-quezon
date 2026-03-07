@@ -60,8 +60,25 @@ import "sweetalert2/dist/sweetalert2.min.css";
       return;
     }
 
-    if (window.__accessUsersTable && typeof window.__accessUsersTable.setData === "function") {
-      window.__accessUsersTable.setData();
+    const table = window.__accessUsersTable;
+    if (!table) return;
+
+    if (typeof table.replaceData === "function") {
+      table.replaceData();
+      return;
+    }
+
+    if (typeof table.setData === "function") {
+      const cfg = window.__accessUsers || {};
+      const params = typeof window.__accessUsersGetParams === "function"
+        ? window.__accessUsersGetParams() || {}
+        : {};
+
+      table.setData(cfg.ajaxUrl || "", {
+        ...params,
+        page: table.getPage ? table.getPage() || 1 : 1,
+        size: table.getPageSize ? table.getPageSize() || 15 : 15,
+      });
     }
   }
 
@@ -166,4 +183,3 @@ import "sweetalert2/dist/sweetalert2.min.css";
     });
   });
 })();
-

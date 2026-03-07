@@ -20,18 +20,18 @@
   }
 
   onReady(function () {
-    const cfg = window.__accessUsers || {};
-    const el = document.getElementById("users-table");
+    const cfg = window.__accessRoles || {};
+    const el = document.getElementById("roles-table");
     if (!el) return;
 
-    if (window.__accessUsersTable && typeof window.__accessUsersTable.destroy === "function") {
+    if (window.__accessRolesTable && typeof window.__accessRolesTable.destroy === "function") {
       try {
-        window.__accessUsersTable.destroy();
+        window.__accessRolesTable.destroy();
       } catch (_e) {}
-      window.__accessUsersTable = null;
+      window.__accessRolesTable = null;
     }
 
-    const infoEl = document.getElementById("users-info");
+    const infoEl = document.getElementById("roles-info");
     const ajaxUrl = cfg.ajaxUrl || "";
 
     if (!ajaxUrl) {
@@ -47,17 +47,15 @@
     }
 
     function getFilters() {
-      if (typeof window.__accessUsersGetParams === "function") {
-        return window.__accessUsersGetParams() || {};
+      if (typeof window.__accessRolesGetParams === "function") {
+        return window.__accessRolesGetParams() || {};
       }
 
       return {
         search: "",
         archived: "active",
-        status: "",
-        role: "",
-        username: "",
-        email: "",
+        name: "",
+        permission: "",
         date_from: "",
         date_to: "",
       };
@@ -66,7 +64,7 @@
     const table = new Tabulator(el, {
       layout: "fitColumns",
       responsiveLayout: "collapse",
-      placeholder: "No users found.",
+      placeholder: "No roles found.",
 
       pagination: true,
       paginationMode: "remote",
@@ -96,55 +94,68 @@
 
       columns: [
         {
-          title: "User Name",
-          field: "username",
-          minWidth: 160,
-          formatter: (cell) => esc(cell.getValue() || "-"),
+          title: "Role Name",
+          field: "name",
+          minWidth: 180,
+          formatter: function (cell) {
+            const row = cell.getRow().getData();
+            const name = esc(cell.getValue() || "-");
+            const archived = row.is_archived
+              ? ' <span class="badge bg-warning/10 text-warning align-middle">Archived</span>'
+              : "";
+
+            return `${name}${archived}`;
+          },
         },
         {
-          title: "Email",
-          field: "email",
-          minWidth: 220,
-          formatter: (cell) => esc(cell.getValue() || "-"),
-        },
-        {
-          title: "Role",
-          field: "role",
-          minWidth: 170,
-          formatter: (cell) => esc(cell.getValue() || "No Role Assigned"),
+          title: "Permissions",
+          field: "permissions_count",
+          minWidth: 320,
+          formatter: function (cell) {
+            const row = cell.getRow().getData();
+            const roleName = esc(row.name || "Role");
+            const permsJson = esc(JSON.stringify(row.permissions || []));
+            const count = Number(row.permissions_count || 0);
+            const preview = esc(row.permissions_preview || "No permissions assigned");
+            const moreCount = Number(row.permissions_more_count || 0);
+            const moreText = moreCount > 0 ? `<span class="text-[#8c9097]"> +${moreCount} more</span>` : "";
+
+            return `
+              <span class="inline-flex items-center gap-2 w-full">
+                <span>${count > 0 ? preview : "No permissions assigned"}${moreText}</span>
+                <button
+                  type="button"
+                  class="ti-btn ti-btn-xs ti-btn-info !rounded-full"
+                  data-action="view-role-perms"
+                  data-role="${roleName}"
+                  data-perms='${permsJson}'
+                  title="View permissions"
+                >
+                  <i class="ri-eye-line"></i>
+                </button>
+              </span>
+            `;
+          },
         },
         {
           title: "Created",
           field: "created_at",
-          minWidth: 180,
+          minWidth: 190,
           formatter: function (cell) {
             const row = cell.getRow().getData();
             return esc(row.created_at_text || cell.getValue() || "-");
           },
         },
         {
-          title: "Status",
-          field: "is_active",
+          title: "State",
+          field: "is_archived",
           width: 130,
           hozAlign: "center",
           headerSort: false,
           formatter: function (cell) {
-            const row = cell.getRow().getData();
-            if (row.is_archived) {
-              return '<span class="badge bg-warning/10 text-warning">Archived</span>';
-            }
-
-            const checked = row.is_active ? "checked" : "";
-            const endpoint = esc(row.status_url || "");
-
-            return `
-              <input
-                type="checkbox"
-                class="ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4 users-toggle-status"
-                data-endpoint="${endpoint}"
-                ${checked}
-              >
-            `;
+            return cell.getValue()
+              ? '<span class="badge bg-warning/10 text-warning">Archived</span>'
+              : '<span class="badge bg-success/10 text-success">Active</span>';
           },
         },
         {
@@ -155,7 +166,7 @@
           headerSort: false,
           formatter: function (cell) {
             const row = cell.getRow().getData();
-            const username = esc(row.username || "this user");
+            const roleName = esc(row.name || "");
 
             if (row.is_archived) {
               const restoreUrl = esc(row.restore_url || "");
@@ -169,9 +180,9 @@
                   <button
                     type="button"
                     class="ti-btn btn-wave ti-btn-sm ti-btn-success !rounded-full"
-                    data-action="restore-user"
+                    data-action="restore-role"
                     data-endpoint="${restoreUrl}"
-                    data-username="${username}"
+                    data-name="${roleName}"
                     title="Restore"
                   >
                     <i class="ri-history-line"></i>
@@ -180,21 +191,32 @@
               `;
             }
 
-            const editUrl = esc(row.edit_url || "");
+            const permissionIds = esc(JSON.stringify(row.permission_ids || []));
+            const updateUrl = esc(row.update_url || "");
             const deleteUrl = esc(row.delete_url || "");
 
             return `
               <div class="hstack flex gap-3 text-[.9375rem] justify-center w-full">
-                <a href="${editUrl}" class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full" title="Edit">
+                <button
+                  type="button"
+                  class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full"
+                  data-action="edit-role"
+                  data-hs-overlay="#editRoleModal"
+                  data-role-id="${esc(row.id || "")}" 
+                  data-role-name="${roleName}"
+                  data-role-permissions='${permissionIds}'
+                  data-update-url="${updateUrl}"
+                  title="Edit"
+                >
                   <i class="ri-edit-line"></i>
-                </a>
+                </button>
 
                 <button
                   type="button"
                   class="ti-btn btn-wave ti-btn-sm ti-btn-danger !rounded-full"
-                  data-action="delete-user"
+                  data-action="delete-role"
                   data-endpoint="${deleteUrl}"
-                  data-username="${username}"
+                  data-name="${roleName}"
                   title="Delete"
                 >
                   <i class="ri-delete-bin-line"></i>
@@ -206,7 +228,7 @@
       ],
     });
 
-    window.__accessUsersTable = table;
+    window.__accessRolesTable = table;
 
     function updateInfo() {
       if (!infoEl) return;
@@ -259,7 +281,7 @@
       hardRefreshCurrentPage();
     }
 
-    window.__accessUsersReload = reload;
+    window.__accessRolesReload = reload;
 
     table.on("dataLoaded", function () {
       el.classList.remove("is-loading");
@@ -273,3 +295,4 @@
     setInfoText("Loading...");
   });
 })();
+

@@ -282,9 +282,20 @@ function bindResetPassword() {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+  const hasPermissionsEditor = !!document.getElementById('savePermissionsButton');
+  const hasRoleSelect = !!document.getElementById('role');
+  const hasPermissionCheckbox = !!document.querySelector('.permission-checkbox');
+  const hasResetBtn = !!document.getElementById('resetPasswordButton');
+
+  // Safety guard: this module is for user-permission edit page only.
+  if (!hasPermissionsEditor && !hasRoleSelect && !hasPermissionCheckbox && !hasResetBtn) {
+    return;
+  }
+
   bindStatusToggles();
   bindDeleteButtons();
   bindSavePermissions();
   bindRoleChange();
-  bindResetPassword(); 
+  bindResetPassword();
 });
+

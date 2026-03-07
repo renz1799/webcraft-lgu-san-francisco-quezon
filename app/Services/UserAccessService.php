@@ -177,30 +177,6 @@ class UserAccessService implements UserAccessServiceInterface
         return $ok;
     }
 
-    /** Permanently delete a user (returns true if hard-deleted). */
-    public function forceDeleteUser(string|User $user): bool
-    {
-        $model = $user instanceof User ? $user : $this->users->findByIdWithTrashed($user);
-        if (! $model) {
-            return false;
-        }
-
-        $snapshot = $model->only(['id', 'username', 'email', 'user_type', 'is_active']);
-        $ok = $this->users->forceDelete($model);
-
-        if ($ok) {
-            $this->audit->record(
-                'user.force_deleted',
-                $model, // still valid as an in-memory subject
-                $snapshot,
-                [],
-                $this->meta(),
-                'permanent removal'
-            );
-        }
-
-        return $ok;
-    }
     public function updateStatus(User $user, bool $isActive): void
     {
         $before = (bool) $user->is_active;
@@ -470,3 +446,4 @@ class UserAccessService implements UserAccessServiceInterface
         return $buf;
     }
 }
+

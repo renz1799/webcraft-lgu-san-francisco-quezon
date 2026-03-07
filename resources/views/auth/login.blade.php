@@ -54,7 +54,6 @@
         </div>
         <div class="xl:col-span-12 col-span-12 mb-3">
             <label for="signin-password" class="form-label text-default block">Password
-                <a href="{{ route('password.request') }}" class="ltr:float-right rtl:float-left text-danger">Forgot password?</a>
             </label>
             <div class="input-group">
                 <input type="password" name="password" class="form-control !border-s border-defaultborder dark:border-defaultborder/10 form-control-lg !rounded-s-md" id="signin-password" placeholder="Enter your password">

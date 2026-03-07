@@ -29,11 +29,6 @@ Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:login')
     ->name('login.attempt');
 
-// Password reset (public)
-Route::get('forgot-password', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-Route::post('forgot-password', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
-Route::get('reset-password/{token}', [\App\Http\Controllers\Auth\ResetPasswordController::class, 'showResetForm'])->name('password.reset');
-Route::post('reset-password', [\App\Http\Controllers\Auth\ResetPasswordController::class, 'reset'])->name('password.update');
 
 /*
 |--------------------------------------------------------------------------
@@ -81,7 +76,6 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::post('{user}/reset-password', [UserAccessController::class, 'resetPassword'])->name('access.users.password.reset');
             Route::delete('{user}', [UserAccessController::class, 'destroy'])->name('access.users.destroy');
             Route::patch('{user}/restore', [UserAccessController::class, 'restore'])->name('access.users.restore');
-            Route::delete('{user}/force', [UserAccessController::class, 'forceDelete'])->name('access.users.force-delete');
 
 
         });
@@ -97,12 +91,15 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             ->except(['show']);
 
         // canonical aliases
+        Route::get('/roles/data', [RolesController::class, 'data'])->name('access.roles.data');
         Route::get('/roles', [RolesController::class, 'index'])->name('access.roles.index');
         Route::get('/roles/create', [RolesController::class, 'create'])->name('access.roles.create');
         Route::post('/roles', [RolesController::class, 'store'])->name('access.roles.store');
         Route::get('/roles/{role}/edit', [RolesController::class, 'edit'])->whereUuid('role')->name('access.roles.edit');
         Route::match(['put', 'patch'], '/roles/{role}', [RolesController::class, 'update'])->whereUuid('role')->name('access.roles.update');
         Route::delete('/roles/{role}', [RolesController::class, 'destroy'])->whereUuid('role')->name('access.roles.destroy');
+
+        Route::patch('/roles/{role}/restore', [RolesController::class, 'restore'])->whereUuid('role')->name('access.roles.restore');
     });
 
     /*

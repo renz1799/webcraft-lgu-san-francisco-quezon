@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Roles\AccessRolesDataRequest;
 use App\Http\Requests\Roles\DeleteRoleRequest;
+use App\Http\Requests\Roles\RestoreRoleRequest;
 use App\Http\Requests\Roles\StoreRoleRequest;
 use App\Http\Requests\Roles\UpdateRoleRequest;
 use App\Models\Role;
 use App\Services\Contracts\RoleServiceInterface;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -19,17 +22,34 @@ class RolesController extends Controller
 
     public function index(): View
     {
-        $data = $this->roles->indexData();
-
-        return view('access.roles.index', $data);
+        return view('access.roles.index', $this->roles->indexData());
     }
 
-    // Kept for resource compatibility; renders the same screen-based form/modals.
+    public function data(AccessRolesDataRequest $request): JsonResponse
+    {
+        $payload = $this->roles->datatable($request->validated());
+
+        return response()->json([
+            'data' => $payload['data'] ?? [],
+            'last_page' => (int) ($payload['last_page'] ?? 1),
+            'total' => (int) ($payload['total'] ?? 0),
+        ]);
+    }
+
+    public function restore(RestoreRoleRequest $request, string $role): JsonResponse
+    {
+        $ok = $this->roles->restoreRole($role);
+
+        if (! $ok) {
+            return response()->json(['message' => 'Role not found or not restorable.'], 404);
+        }
+
+        return response()->json(['message' => 'Role restored successfully.'], 200);
+    }
+
     public function create(): View
     {
-        $data = $this->roles->indexData();
-
-        return view('access.roles.index', $data);
+        return view('access.roles.index', $this->roles->indexData());
     }
 
     public function store(StoreRoleRequest $request): RedirectResponse
@@ -41,11 +61,7 @@ class RolesController extends Controller
 
     public function edit(Role $role): View
     {
-        $data = $this->roles->indexData();
-        $data['role'] = $role->load('permissions');
-        $data['rolePermissions'] = $role->permissions()->pluck('id')->toArray();
-
-        return view('access.roles.index', $data);
+        return view('access.roles.index', $this->roles->indexData());
     }
 
     public function update(UpdateRoleRequest $request, Role $role): RedirectResponse
@@ -55,9 +71,13 @@ class RolesController extends Controller
         return redirect()->route('access.roles.index')->with('success', 'Role updated successfully.');
     }
 
-    public function destroy(DeleteRoleRequest $request, Role $role): RedirectResponse
+    public function destroy(DeleteRoleRequest $request, Role $role): RedirectResponse|JsonResponse
     {
         $this->roles->delete($role);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Role deleted successfully.'], 200);
+        }
 
         return redirect()->route('access.roles.index')->with('success', 'Role deleted successfully.');
     }

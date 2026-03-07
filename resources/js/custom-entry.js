@@ -33,6 +33,14 @@
     ]);
   }
 
+  function loadAccessRoles() {
+    return Promise.all([
+      import("./access-roles/table.js"),
+      import("./access-roles/filters.js"),
+      import("./access-roles/actions.js"),
+    ]);
+  }
+
   onReady(function () {
     if (document.getElementById("login-table")) {
       loadLoginLogs().catch((err) => {
@@ -49,6 +57,12 @@
     if (document.getElementById("users-table")) {
       loadAccessUsers().catch((err) => {
         console.error("Failed to load access users modules", err);
+      });
+    }
+
+    if (document.getElementById("roles-table")) {
+      loadAccessRoles().catch((err) => {
+        console.error("Failed to load access roles modules", err);
       });
     }
   });

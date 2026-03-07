@@ -3,14 +3,10 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\Role;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 
 interface RoleRepositoryInterface
 {
-    public function allWithPermissions(): Collection;
-
-    public function paginateWithPermissions(int $perPage = 30): LengthAwarePaginator;
+    public function datatable(array $filters, int $page = 1, int $size = 15): array;
 
     public function create(array $data): Role;
 
@@ -18,6 +14,9 @@ interface RoleRepositoryInterface
 
     public function syncPermissions(Role $role, array $permissionIds): void;
 
-    /** Soft delete. */
     public function delete(Role $role): void;
+
+    public function findByIdWithTrashed(string $id): ?Role;
+
+    public function restore(Role $role): bool;
 }

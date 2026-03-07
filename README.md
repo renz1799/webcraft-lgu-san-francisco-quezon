@@ -76,8 +76,11 @@ Use these command keywords to request table refactors with consistent scope:
 - `DTBL-FS` (Datatable Baseline, Full Stack)
   - Apply the Users baseline from backend to UI.
   - Backend flow: `Request -> Controller -> Service -> Repository` using `datatable(...)`.
+  - Soft-delete + restore flow is required (no force-delete endpoints/actions in DTBL-FS modules).
   - Response contract: `data`, `last_page`, `total`.
   - Frontend flow: Blade search + advanced filters + table info, with JS split into `table.js`, `filters.js`, `actions.js`.
+  - Advanced filters must include `archived` scope (`active|archived|all`), and row actions must switch between archive/restore based on row state.
+  - After archive/restore/delete actions, refresh tables with the module reload helper (force remote fetch); avoid bare `table.setData()` calls.
 
 - `DTBL-UI` (Datatable Baseline, UI Only)
   - Apply only Blade and JS baseline structure.
@@ -95,6 +98,7 @@ Canonical baseline reference:
 - New modules should follow `Request -> Controller -> Service -> Repository`.
 - Keep role checks consistent, including legacy `admin` where needed.
 - For table pages, follow the Users datatable baseline (`DTBL-FS` / `DTBL-UI`) for backend payload + Blade/JS structure.
+- DTBL-FS modules must use soft delete + restore only; do not add force-delete routes/actions.
 - For large frontend flows, split files like `resources/js/air/inspect.js` and load them through `resources/js/custom-entry.js` lazy imports.
 
 See [docs/CONVENTIONS.md](docs/CONVENTIONS.md) for the full checklist.

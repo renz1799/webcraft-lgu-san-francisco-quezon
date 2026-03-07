@@ -14,16 +14,10 @@ interface UserRepositoryInterface
     public function findByIdWithTrashed(string $id): ?User;
     public function findByEmail(string $email): ?User;
 
-    /** Soft-delete */
     public function delete(User $user): void;
 
-    /** Restore a soft-deleted user */
     public function restore(User $user): bool;
 
-    /** Permanently delete (bypass/after soft delete) */
-    public function forceDelete(User $user): bool;
-
-    /** (Optional convenience) by id */
     public function restoreById(string $id): bool;
 
     public function paginate(int $perPage = 30): LengthAwarePaginator;

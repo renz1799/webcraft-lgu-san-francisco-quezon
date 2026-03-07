@@ -47,7 +47,7 @@ class UserAccessController extends Controller
         return response()->json(['message' => 'User status updated successfully.'], 200);
     }
 
-    /** JSON: delete a user */
+    /** JSON: soft delete a user */
     public function destroy(DeleteUserRequest $request, User $user): JsonResponse
     {
         $this->svc->deleteUser($user);
@@ -64,17 +64,6 @@ class UserAccessController extends Controller
         }
 
         return response()->json(['message' => 'User restored successfully.'], 200);
-    }
-
-    public function forceDelete(string $user): JsonResponse
-    {
-        $ok = $this->svc->forceDeleteUser($user);
-
-        if (! $ok) {
-            return response()->json(['message' => 'User not found or already removed.'], 404);
-        }
-
-        return response()->json(['message' => 'User permanently deleted.'], 200);
     }
 
     public function edit(User $user): View

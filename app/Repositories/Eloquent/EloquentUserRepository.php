@@ -63,12 +63,6 @@ class EloquentUserRepository implements UserRepositoryInterface
         return (bool) $user->restore();
     }
 
-    /** Permanently delete */
-    public function forceDelete(User $user): bool
-    {
-        return (bool) $user->forceDelete();
-    }
-
     /** Convenience: restore by id */
     public function restoreById(string $id): bool
     {
@@ -289,7 +283,7 @@ class EloquentUserRepository implements UserRepositoryInterface
             'status_url' => $isArchived ? null : route('access.users.status.update', $user),
             'delete_url' => $isArchived ? null : route('access.users.destroy', $user),
             'restore_url' => $isArchived ? route('access.users.restore', $user) : null,
-            'force_delete_url' => $isArchived ? route('access.users.force-delete', $user) : null,
         ];
     }
 }
+

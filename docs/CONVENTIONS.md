@@ -57,6 +57,8 @@ Use consistent verb naming by use case:
   - `total`
   - optional `recordsTotal`
   - optional `recordsFiltered`
+- DTBL-FS repositories must support archived scope (`active|archived|all`) through soft deletes and provide restore flow.
+- Do not add force-delete operations in DTBL-FS modules.
 
 ## Frontend Rules (Blade + JS)
 
@@ -79,6 +81,9 @@ Use these keywords in requests to define scope clearly:
   - Apply full backend-to-frontend baseline.
   - Includes: Request, Controller `data()`, Service `datatable()`, Repository `datatable()`, Blade structure, and JS split (`table.js`, `filters.js`, `actions.js`).
   - Must keep response contract: `data`, `last_page`, `total`.
+  - Must include soft-delete + restore flow (no force-delete route/action).
+  - Advanced filters must include `archived` scope (`active|archived|all`).
+  - Row actions must switch between archive and restore based on row state.
 
 - `DTBL-UI` (Datatable Baseline, UI Only)
   - Apply Blade + JS baseline only.
@@ -121,6 +126,7 @@ Use these keywords in requests to define scope clearly:
 - Send `page` and `size` to backend.
 - Backend responds with `data`, `last_page`, `total`.
 - Keep footer info text updated based on current page and total.
+- For post-mutation refresh (archive/restore/delete), do not use bare `table.setData()`; use module reload helper that forces remote fetch via `setPage(1)` and `replaceData()` (or `setData(ajaxUrl, params)` fallback).
 
 ## UI Feedback
 
@@ -165,7 +171,8 @@ Before marking a feature complete:
 3. Business logic placed in service.
 4. Queries placed in repository.
 5. UI follows Users datatable baseline (`DTBL-FS` / `DTBL-UI`) for list pages.
-6. `vite.custom.inputs.js` and `resources/js/custom-entry.js` updated for new page JS modules.
-7. Role and permission gates applied.
-8. Audit logging added for write operations.
-9. Basic lint, syntax, and build checks passed.
+6. DTBL-FS list pages include soft-delete + restore with archived filter; no force-delete route/action.
+7. `vite.custom.inputs.js` and `resources/js/custom-entry.js` updated for new page JS modules.
+8. Role and permission gates applied.
+9. Audit logging added for write operations.
+10. Basic lint, syntax, and build checks passed.
