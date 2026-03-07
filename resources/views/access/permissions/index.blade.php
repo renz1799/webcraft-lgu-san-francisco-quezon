@@ -8,7 +8,7 @@
     .box-header{overflow:visible!important}
     .tabulator.is-loading{opacity:.65;pointer-events:none}
   </style>
-@endsection
+@endsection 
 
 @section('content')
 <div class="block justify-between page-header md:flex">
