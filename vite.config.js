@@ -5,6 +5,7 @@ import fsExtra from 'fs-extra'; // Import fs-extra as a default import
 import { join } from 'path';
 import fs from 'fs';
 import path from 'path';
+import { customViteInputs } from './vite.custom.inputs';
 
 const packageJsonPath = path.resolve('./package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
@@ -27,13 +28,10 @@ export default defineConfig({
                 'resources/js/theme-switcher.js',
                 'resources/js/force-password-change.js',
                 'resources/js/tasks/show.js',
-                 'resources/js/audit-logs/table.js',
-                 'resources/js/audit-logs/filters.js',
-                 
-                // Resources paths 
+                 ...customViteInputs,
+                 // Resources paths 
                 'resources/sass/app.scss', 
                 'resources/js/app.js',
-                'resources/js/login-logs.js',
                 'resources/js/logs-tabulator.js',
                 'resources/js/permissions-tabulator.js',
                 'resources/js/notifications/header.js',

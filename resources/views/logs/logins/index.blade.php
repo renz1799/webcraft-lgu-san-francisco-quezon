@@ -6,6 +6,7 @@
     .items-header{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
     .items-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
     .box-header{overflow:visible!important}
+    .tabulator.is-loading{opacity:.65;pointer-events:none}
   </style>
 @endsection
 
@@ -13,7 +14,7 @@
 <div class="block justify-between page-header md:flex">
   <div>
     <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
-      Audit Logs
+      Login Logs
     </h3>
   </div>
 </div>
@@ -21,89 +22,96 @@
 <div class="box">
   <div class="box-header">
     <div class="items-header">
-      <h5 class="box-title">System Activityss</h5>
+      <h5 class="box-title">Recent Login Attempts</h5>
 
       <div class="items-actions">
         <input
-          id="audit-search"
+          id="login-search"
           type="text"
           class="form-control !w-[320px] !rounded-md"
-          placeholder="Search action/user/subject/ip..."
+          placeholder="Search user/email/ip/device/address..."
         />
 
         <div class="relative shrink-0">
-          <button id="audit-more-btn" type="button" class="ti-btn ti-btn-light">
+          <button id="login-more-btn" type="button" class="ti-btn ti-btn-light">
             More Filters
-            <span id="audit-adv-count"
+            <span id="login-adv-count"
               class="hidden ms-2 inline-flex items-center justify-center text-[10px] leading-none px-2 py-1 rounded-full bg-primary/10 text-primary">
               0
             </span>
             <i class="ri-arrow-down-s-line ms-1"></i>
           </button>
 
-          <div id="audit-more-panel"
+          <div id="login-more-panel"
             class="hidden absolute right-0 mt-2 w-[380px] z-[9999] rounded-md border border-defaultborder bg-white dark:bg-bodybg shadow-lg">
 
             <div class="p-3 border-b border-defaultborder flex items-center justify-between">
               <div class="text-sm font-semibold text-defaulttextcolor dark:text-white">Advanced Filters</div>
-              <button id="audit-more-close" type="button" class="ti-btn ti-btn-sm ti-btn-light">
+              <button id="login-more-close" type="button" class="ti-btn ti-btn-sm ti-btn-light">
                 <i class="ri-close-line"></i>
               </button>
             </div>
 
             <div class="p-3 space-y-3">
               <div>
-                <label class="ti-form-label">Action</label>
-                <input id="audit-action" type="text" class="ti-form-input w-full" placeholder="e.g. user.role.changed" />
-                <div class="text-xs text-[#8c9097] mt-1">Matches audit action text.</div>
-              </div>
-
-              <div>
-                <label class="ti-form-label">Actor ID</label>
-                <input id="audit-actor-id" type="text" class="ti-form-input w-full" placeholder="User UUID" />
-                <div class="text-xs text-[#8c9097] mt-1">Exact actor UUID filter.</div>
-              </div>
-
-              <div>
-                <label class="ti-form-label">Subject Type</label>
-                <select id="audit-subject-type" class="ti-form-input w-full">
+                <label class="ti-form-label">Status</label>
+                <select id="login-status" class="ti-form-input w-full">
                   <option value="">All</option>
-                  <option value="user">User</option>
-                  <option value="permission">Permission</option>
-                  <option value="role">Role</option>
+                  <option value="success">Success</option>
+                  <option value="failed">Failed</option>
                 </select>
-                <div class="text-xs text-[#8c9097] mt-1">Filter by subject model type.</div>
+                <div class="text-xs text-[#8c9097] mt-1">Filter successful or failed attempts.</div>
+              </div>
+
+              <div>
+                <label class="ti-form-label">Username</label>
+                <input id="login-user" type="text" class="ti-form-input w-full" placeholder="Exact/partial username" />
+              </div>
+
+              <div>
+                <label class="ti-form-label">Email</label>
+                <input id="login-email" type="text" class="ti-form-input w-full" placeholder="Exact/partial email" />
+              </div>
+
+              <div>
+                <label class="ti-form-label">IP Address</label>
+                <input id="login-ip" type="text" class="ti-form-input w-full" placeholder="e.g. 192.168" />
+              </div>
+
+              <div>
+                <label class="ti-form-label">Device</label>
+                <input id="login-device" type="text" class="ti-form-input w-full" placeholder="Browser/device text" />
               </div>
 
               <div>
                 <label class="ti-form-label">Date Range</label>
                 <div class="grid grid-cols-2 gap-2">
-                  <input id="audit-date-from" type="date" class="ti-form-input w-full" />
-                  <input id="audit-date-to" type="date" class="ti-form-input w-full" />
+                  <input id="login-date-from" type="date" class="ti-form-input w-full" />
+                  <input id="login-date-to" type="date" class="ti-form-input w-full" />
                 </div>
-                <div class="text-xs text-[#8c9097] mt-1">Filters by audit timestamp (from-to).</div>
+                <div class="text-xs text-[#8c9097] mt-1">Filter by login timestamp (from-to).</div>
               </div>
             </div>
 
             <div class="p-3 border-t border-defaultborder flex items-center justify-end gap-2">
-              <button id="audit-adv-reset" type="button" class="ti-btn ti-btn-light">Reset</button>
-              <button id="audit-adv-apply" type="button" class="ti-btn ti-btn-primary">Apply</button>
+              <button id="login-adv-reset" type="button" class="ti-btn ti-btn-light">Reset</button>
+              <button id="login-adv-apply" type="button" class="ti-btn ti-btn-primary">Apply</button>
             </div>
           </div>
         </div>
 
-        <button id="audit-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
+        <button id="login-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
       </div>
     </div>
   </div>
 
   <div class="box-body">
     <div class="overflow-auto table-bordered">
-      <div id="audit-table" class="ti-custom-table ti-striped-table ti-custom-table-hover"></div>
+      <div id="login-table" class="ti-custom-table ti-striped-table ti-custom-table-hover"></div>
     </div>
 
     <div class="mt-2 flex items-center justify-between text-xs text-[#8c9097]">
-      <div id="audit-info"></div>
+      <div id="login-info"></div>
     </div>
   </div>
 </div>
@@ -113,11 +121,8 @@
   <script src="{{ asset('build/assets/libs/tabulator-tables/js/tabulator.min.js') }}"></script>
 
   <script>
-    window.__audit = {
-      ajaxUrl: @json(route('audit-logs.data')),
-      restoreEndpoint: @json(route('audit.restore')),
-      csrf: @json(csrf_token()),
-      canRestore: @json(auth()->user()?->hasAnyRole(['Administrator', 'admin']) || auth()->user()?->can('modify Allow Data Restoration')),
+    window.__loginLogs = {
+      ajaxUrl: @json(route('logs.data')),
     };
   </script>
 @endpush

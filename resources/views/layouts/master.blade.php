@@ -238,6 +238,7 @@
 
                 <!-- APP JS -->
 		@vite('resources/js/app.js')
+        @vite('resources/js/custom-entry.js')
         <!-- Datatables JS -->
         <script src="{{asset('build/assets/jquery.dataTables.min.js')}}"></script>
         <script src="{{asset('build/assets/dataTables.bootstrap5.min.js')}}"></script>

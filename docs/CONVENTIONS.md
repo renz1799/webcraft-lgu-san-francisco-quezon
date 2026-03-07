@@ -86,10 +86,19 @@ RIS and other modules should align to this pattern.
 - For table pages, split into at least:
   - `table.js`
   - `filters.js`
-- For complex flows, use an entry file plus feature modules.
+- For complex flows, use `resources/js/custom-entry.js` and lazy-load feature modules by page marker.
 - Reference pattern:
   - `resources/js/air/inspect.js` imports `resources/js/air/inspect/*.js`.
 - Each file should own one concern (payload, save, finalize, units, utils, etc).
+
+### Vite Entry Strategy (Template-safe)
+
+- Keep template `vite.config.js` stable and import `customViteInputs` from `vite.custom.inputs.js`.
+- Register custom JS entry files in `vite.custom.inputs.js` (default should include `resources/js/custom-entry.js`).
+- Use `resources/js/custom-entry.js` to lazy-load page modules with `import()` only when required DOM markers exist.
+- In page Blade files, avoid per-page `@vite('resources/js/module/file.js')` calls for lazy-loaded modules.
+- Use an `onReady(...)` guard inside lazy-loaded modules so they can initialize even when imported after DOM ready.
+- After JS entry changes, run `npm run build` (or restart `npm run dev`) to refresh the manifest.
 
 ## Tabulator Conventions
 
@@ -141,7 +150,7 @@ Before marking a feature complete:
 3. Business logic placed in service.
 4. Queries placed in repository.
 5. UI follows Audit Logs baseline (if list page).
-6. Vite entries added for new per-page JS files.
+6. `vite.custom.inputs.js` and `resources/js/custom-entry.js` updated for new page JS modules.
 7. Role and permission gates applied.
 8. Audit logging added for write operations.
 9. Basic lint, syntax, and build checks passed.

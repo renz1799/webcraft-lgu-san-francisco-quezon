@@ -6,7 +6,7 @@ namespace App\Services\Contracts;
 interface LoginLogServiceInterface
 {
     /**
-     * Returns an array: ['recordsTotal'=>int, 'recordsFiltered'=>int, 'data'=>array]
+     * Returns datatable payload: ['data'=>array, 'last_page'=>int, 'total'=>int].
      */
     public function datatable(array $params): array;
 }

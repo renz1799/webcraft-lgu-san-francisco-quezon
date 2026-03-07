@@ -58,11 +58,22 @@ npm run dev
 npm run build
 ```
 
+## Frontend Entry Pattern (Template-safe)
+
+Use this flow for custom page JavaScript so template updates are easy to merge:
+
+1. Keep template `vite.config.js` mostly unchanged; only keep `...customViteInputs` in the `input` array.
+2. Register custom entries in `vite.custom.inputs.js`.
+3. Keep `resources/js/custom-entry.js` as the single custom entry, and lazy-load page modules with `import()` based on DOM markers.
+4. In page blades, do not add per-page `@vite('resources/js/...')` calls for module files.
+5. Add an `onReady` guard in lazy-loaded modules so they still initialize when imported after `DOMContentLoaded`.
+6. After changes, run `npm run build` (or restart `npm run dev`) so the manifest is refreshed.
+
 ## Project Rules
 
 - New modules should follow `Request -> Controller -> Service -> Repository`.
 - Keep role checks consistent, including legacy `admin` where needed.
 - For table pages, follow the Audit Logs pattern for backend payload + Blade/JS structure.
-- For large frontend flows, split files like `resources/js/air/inspect.js` and keep an entry file that imports focused submodules.
+- For large frontend flows, split files like `resources/js/air/inspect.js` and load them through `resources/js/custom-entry.js` lazy imports.
 
 See [docs/CONVENTIONS.md](docs/CONVENTIONS.md) for the full checklist.

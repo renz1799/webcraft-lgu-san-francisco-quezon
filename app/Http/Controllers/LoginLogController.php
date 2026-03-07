@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Logs\LoginLogsDataRequest;
 use App\Services\Contracts\LoginLogServiceInterface;
-use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 
 class LoginLogController extends Controller
 {
@@ -15,38 +15,19 @@ class LoginLogController extends Controller
         $this->middleware(['auth', 'role_or_permission:Administrator']);
     }
 
-    /** Page */
     public function index(): View
     {
-        return view('logs.index');
+        return view('logs.logins.index');
     }
-
 
     public function data(LoginLogsDataRequest $request): JsonResponse
     {
-        \Log::info('LoginLogController@data HIT', [
-            'user_id' => optional($request->user())->id,
-            'query'   => $request->query(),
-            'all'     => $request->all(),
-        ]);
-
         $payload = $this->logs->datatable($request->validated());
 
-        \Log::info('LoginLogController@data RESPONSE', [
-            'returned_rows' => count($payload['data'] ?? []),
-            'last_page'     => $payload['last_page'] ?? null,
-            'total'         => $payload['total'] ?? null,
-            // keep these if you still include them:
-            'recordsTotal'    => $payload['recordsTotal'] ?? null,
-            'recordsFiltered' => $payload['recordsFiltered'] ?? null,
-        ]);
-
         return response()->json([
-            'data'      => $payload['data'] ?? [],
-            'last_page' => $payload['last_page'] ?? 1,
-            'total'     => $payload['total'] ?? 0,
+            'data' => $payload['data'] ?? [],
+            'last_page' => (int)($payload['last_page'] ?? 1),
+            'total' => (int)($payload['total'] ?? 0),
         ]);
     }
-
-
 }
