@@ -98,19 +98,19 @@
         </li>
 
         <li class="slide">
-          <a href="{{ route('users.permissions.index') }}" class="side-menu__item">
+          <a href="{{ route('access.users.index') }}" class="side-menu__item">
             Users
           </a>
         </li>
 
         <li class="slide">
-          <a href="{{ route('roles.index') }}" class="side-menu__item">
+          <a href="{{ route('access.roles.index') }}" class="side-menu__item">
             Roles
           </a>
         </li>
 
         <li class="slide">
-          <a href="{{ route('permissions.index') }}" class="side-menu__item">
+          <a href="{{ route('access.permissions.index') }}" class="side-menu__item">
             Permissions
           </a>
         </li>

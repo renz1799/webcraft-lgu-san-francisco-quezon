@@ -93,7 +93,7 @@
     <div class="overflow-auto perm-table-bordered">
       <div
         id="perm-table"
-        data-endpoint="{{ route('users.permissions.data') }}"
+        data-endpoint="{{ route('access.users.data') }}"
         class="ti-custom-table ti-striped-table ti-custom-table-hover"
       ></div>
     </div>

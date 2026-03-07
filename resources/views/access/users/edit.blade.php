@@ -61,7 +61,7 @@
                       name="role"
                       id="role"
                       class="form-control"
-                      data-endpoint="{{ route('users.permissions.update', $user) }}"
+                      data-endpoint="{{ route('access.users.update', $user) }}"
                     >
                       @foreach ($roles as $role)
                         <option value="{{ $role->name }}" {{ $userRole && $userRole->name == $role->name ? 'selected' : '' }}>
@@ -170,7 +170,7 @@
           type="button"
           class="ti-btn btn-wave bg-danger text-white"
           id="resetPasswordButton"
-          data-endpoint="{{ route('users.password.reset', $user) }}"
+          data-endpoint="{{ route('access.users.password.reset', $user) }}"
         >
           Generate Temporary Password
         </button>
@@ -192,7 +192,7 @@
               type="button"
               class="ti-btn btn-wave bg-primary text-white m-1"
               id="savePermissionsButton"
-              data-endpoint="{{ route('users.permissions.update', $user) }}"
+              data-endpoint="{{ route('access.users.update', $user) }}"
             >
               Save Changes
             </button>

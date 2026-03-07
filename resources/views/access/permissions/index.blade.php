@@ -50,7 +50,7 @@
           </div>
         @endif
 
-        <form action="{{ route('permissions.store') }}" method="POST" class="space-y-4">
+        <form action="{{ route('access.permissions.store') }}" method="POST" class="space-y-4">
           @csrf
 
           <div class="sm:grid grid-cols-12 gap-6">
@@ -149,7 +149,7 @@
                                 aria-label="Delete"
                                 class="ti-btn btn-wave ti-btn-sm ti-btn-danger !rounded-full"
                                 data-action="delete-permission"
-                                data-endpoint="{{ route('permissions.destroy', $permission) }}"
+                                data-endpoint="{{ route('access.permissions.destroy', $permission) }}"
                                 data-row="perm-row-{{ $permission->id }}"
                                 data-name="{{ $permission->name }}"
                                 >

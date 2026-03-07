@@ -94,7 +94,7 @@
                                 <a aria-label="Delete Role" href="javascript:void(0);"
                                 class="ti-btn btn-wave ti-btn-sm ti-btn-danger !rounded-full"
                                 data-action="delete-role"
-                                data-endpoint="{{ route('roles.destroy',$role) }}"
+                                data-endpoint="{{ route('access.roles.destroy',$role) }}"
                                 data-name="{{ $role->name }}">
                                 <i class="ri-delete-bin-line"></i>
                                 </a>
@@ -122,7 +122,7 @@
       </div>
 
       <div class="ti-modal-body px-4">
-        <form id="addRoleForm" method="POST" action="{{ route('roles.store') }}">
+        <form id="addRoleForm" method="POST" action="{{ route('access.roles.store') }}">
           @csrf
 
           <div class="mb-4">
