@@ -64,7 +64,7 @@ Use consistent verb naming by use case:
 
 Use Audit Logs as the baseline for remote listing pages:
 
-- `resources/views/logs/audit-logs.blade.php`
+- `resources/views/logs/audits/index.blade.php`
 - `resources/js/audit-logs/table.js`
 - `resources/js/audit-logs/filters.js`
 

@@ -17,7 +17,7 @@ class AuditLogController extends Controller
 
     public function index(): View
     {
-        return view('logs.audit-logs');
+        return view('logs.audits.index');
     }
 
     public function data(AuditLogsDataRequest $request): JsonResponse
