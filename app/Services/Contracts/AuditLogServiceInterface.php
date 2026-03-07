@@ -17,5 +17,7 @@ interface AuditLogServiceInterface
         ?string $message = null
     ): AuditLog;
 
+    public function datatable(array $filters, int $page = 1, int $size = 15): array;
+
     public function paginate(int $perPage = 50, array $filters = []): LengthAwarePaginator;
 }

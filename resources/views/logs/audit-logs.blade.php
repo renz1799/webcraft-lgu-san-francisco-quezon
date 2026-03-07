@@ -2,116 +2,125 @@
 
 @section('styles')
   <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
-
   <style>
-    /* Page spacing */
-    .page-header { margin-bottom: 1rem; }
-
-    /* Filter form alignment */
-    .audit-filters { align-items: end; }
-    .audit-filters .form-control { height: 42px; }
-    .audit-filters .ti-btn { height: 42px; }
-
-    /* ✅ Restore normal box-body padding (this fixes the "broken" look) */
-    .audit-table-wrap { padding: 1rem; }
-
-    /* ✅ Make the Tabulator table feel like it is inside a bordered container */
-    .audit-table-bordered {
-      border: 1px solid rgba(0,0,0,.06);
-      border-radius: 0.75rem;
-      overflow: hidden;
-      background: #fff;
-    }
-
-    /* Keep tabulator itself from adding weird outer gaps */
-    #activity-table .tabulator {
-      border: 0;
-      border-radius: 0;
-    }
-
-    /* Tabulator footer spacing */
-    #activity-table .tabulator-footer {
-      padding: 0.75rem 1rem;
-    }
-
-    /* Info row aligned with the bordered container padding */
-    .audit-info-row {
-      padding: 0.5rem 0.25rem 0;
-    }
+    .items-header{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+    .items-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .box-header{overflow:visible!important}
   </style>
 @endsection
 
 @section('content')
 <div class="block justify-between page-header md:flex">
   <div>
-    <h3 class="text-[1.125rem] font-semibold">System Activity</h3>
-  </div>
-</div>
-
-<div class="box mb-4">
-  <div class="box-body">
-    <form method="GET" class="grid grid-cols-12 gap-3 audit-filters">
-      <input
-        type="text"
-        name="action"
-        value="{{ $filters['action'] ?? '' }}"
-        placeholder="action e.g. user.role.changed"
-        class="form-control xl:col-span-4 col-span-12"
-      >
-
-      <input
-        type="text"
-        name="actor_id"
-        value="{{ $filters['actor_id'] ?? '' }}"
-        placeholder="actor uuid"
-        class="form-control xl:col-span-3 col-span-12"
-      >
-
-      <input
-        type="date"
-        name="date_from"
-        value="{{ $filters['date_from'] ?? '' }}"
-        class="form-control xl:col-span-2 col-span-6"
-      >
-
-      <input
-        type="date"
-        name="date_to"
-        value="{{ $filters['date_to'] ?? '' }}"
-        class="form-control xl:col-span-2 col-span-6"
-      >
-
-      <button class="ti-btn ti-btn-primary-full !rounded-full btn-wave xl:col-span-1 col-span-12">
-        Filter
-      </button>
-    </form>
+    <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
+      Audit Logs
+    </h3>
   </div>
 </div>
 
 <div class="box">
   <div class="box-header">
-    <h6 class="text-[1rem] font-semibold box-title">Recent Activity</h6>
+    <div class="items-header">
+      <h5 class="box-title">System Activityss</h5>
+
+      <div class="items-actions">
+        <input
+          id="audit-search"
+          type="text"
+          class="form-control !w-[320px] !rounded-md"
+          placeholder="Search action/user/subject/ip..."
+        />
+
+        <div class="relative shrink-0">
+          <button id="audit-more-btn" type="button" class="ti-btn ti-btn-light">
+            More Filters
+            <span id="audit-adv-count"
+              class="hidden ms-2 inline-flex items-center justify-center text-[10px] leading-none px-2 py-1 rounded-full bg-primary/10 text-primary">
+              0
+            </span>
+            <i class="ri-arrow-down-s-line ms-1"></i>
+          </button>
+
+          <div id="audit-more-panel"
+            class="hidden absolute right-0 mt-2 w-[380px] z-[9999] rounded-md border border-defaultborder bg-white dark:bg-bodybg shadow-lg">
+
+            <div class="p-3 border-b border-defaultborder flex items-center justify-between">
+              <div class="text-sm font-semibold text-defaulttextcolor dark:text-white">Advanced Filters</div>
+              <button id="audit-more-close" type="button" class="ti-btn ti-btn-sm ti-btn-light">
+                <i class="ri-close-line"></i>
+              </button>
+            </div>
+
+            <div class="p-3 space-y-3">
+              <div>
+                <label class="ti-form-label">Action</label>
+                <input id="audit-action" type="text" class="ti-form-input w-full" placeholder="e.g. user.role.changed" />
+                <div class="text-xs text-[#8c9097] mt-1">Matches audit action text.</div>
+              </div>
+
+              <div>
+                <label class="ti-form-label">Actor ID</label>
+                <input id="audit-actor-id" type="text" class="ti-form-input w-full" placeholder="User UUID" />
+                <div class="text-xs text-[#8c9097] mt-1">Exact actor UUID filter.</div>
+              </div>
+
+              <div>
+                <label class="ti-form-label">Subject Type</label>
+                <select id="audit-subject-type" class="ti-form-input w-full">
+                  <option value="">All</option>
+                  <option value="user">User</option>
+                  <option value="permission">Permission</option>
+                  <option value="role">Role</option>
+                </select>
+                <div class="text-xs text-[#8c9097] mt-1">Filter by subject model type.</div>
+              </div>
+
+              <div>
+                <label class="ti-form-label">Date Range</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <input id="audit-date-from" type="date" class="ti-form-input w-full" />
+                  <input id="audit-date-to" type="date" class="ti-form-input w-full" />
+                </div>
+                <div class="text-xs text-[#8c9097] mt-1">Filters by audit timestamp (from-to).</div>
+              </div>
+            </div>
+
+            <div class="p-3 border-t border-defaultborder flex items-center justify-end gap-2">
+              <button id="audit-adv-reset" type="button" class="ti-btn ti-btn-light">Reset</button>
+              <button id="audit-adv-apply" type="button" class="ti-btn ti-btn-primary">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <button id="audit-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
+      </div>
+    </div>
   </div>
 
-  <div class="box-body audit-table-wrap">
-    {{-- ✅ Same idea as your Login Logs: overflow + bordered wrapper --}}
-    <div class="overflow-auto audit-table-bordered">
-      <div id="activity-table"
-           data-endpoint="{{ route('audit-logs.data') }}"
-           data-restore-endpoint="{{ route('audit.restore') }}"
-           class="ti-custom-table ti-striped-table ti-custom-table-hover"></div>
+  <div class="box-body">
+    <div class="overflow-auto table-bordered">
+      <div id="audit-table" class="ti-custom-table ti-striped-table ti-custom-table-hover"></div>
     </div>
 
-    {{-- ✅ Info row (like login logs) --}}
-    <div class="mt-2 flex items-center justify-between text-xs text-[#8c9097] audit-info-row">
-      <div id="activity-info">—</div>
+    <div class="mt-2 flex items-center justify-between text-xs text-[#8c9097]">
+      <div id="audit-info"></div>
     </div>
   </div>
 </div>
+@endsection
 
 @push('scripts')
   <script src="{{ asset('build/assets/libs/tabulator-tables/js/tabulator.min.js') }}"></script>
-  @vite('resources/js/logs-tabulator.js')
-  @vite('resources/js/logs.js')
+
+  <script>
+    window.__audit = {
+      ajaxUrl: @json(route('audit-logs.data')),
+      restoreEndpoint: @json(route('audit.restore')),
+      csrf: @json(csrf_token()),
+      canRestore: @json(auth()->user()?->hasAnyRole(['Administrator', 'admin']) || auth()->user()?->can('modify Allow Data Restoration')),
+    };
+  </script>
+
+  @vite('resources/js/audit-logs/table.js')
+  @vite('resources/js/audit-logs/filters.js')
 @endpush
-@endsection

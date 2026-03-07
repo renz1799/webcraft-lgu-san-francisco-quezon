@@ -10,6 +10,20 @@ interface AuditLogRepositoryInterface
 {
     public function create(array $data): AuditLog;
 
+    /**
+     * Manual pagination payload for Tabulator.
+     *
+     * Return shape:
+     * [
+     *   'data' => array<array>,
+     *   'last_page' => int,
+     *   'total' => int,
+     *   'recordsTotal' => int,
+     *   'recordsFiltered' => int,
+     * ]
+     */
+    public function datatable(array $filters, int $page = 1, int $size = 15): array;
+
     public function paginate(
         int $perPage = 50,
         array $filters = []

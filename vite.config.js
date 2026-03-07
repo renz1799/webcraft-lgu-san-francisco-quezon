@@ -27,6 +27,9 @@ export default defineConfig({
                 'resources/js/theme-switcher.js',
                 'resources/js/force-password-change.js',
                 'resources/js/tasks/show.js',
+                 'resources/js/audit-logs/table.js',
+                 'resources/js/audit-logs/filters.js',
+                 
                 // Resources paths 
                 'resources/sass/app.scss', 
                 'resources/js/app.js',

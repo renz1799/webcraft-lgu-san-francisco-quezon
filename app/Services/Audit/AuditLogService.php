@@ -44,6 +44,11 @@ class AuditLogService implements AuditLogServiceInterface
         ]);
     }
 
+    public function datatable(array $filters, int $page = 1, int $size = 15): array
+    {
+        return $this->logs->datatable($filters, $page, $size);
+    }
+
     public function paginate(int $perPage = 50, array $filters = []): LengthAwarePaginator
     {
         return $this->logs->paginate($perPage, $filters);
