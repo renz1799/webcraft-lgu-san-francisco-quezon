@@ -41,6 +41,14 @@
     ]);
   }
 
+  function loadTasksIndex() {
+    return import("./tasks/index.js");
+  }
+
+  function loadTaskShow() {
+    return import("./tasks/show.js");
+  }
+
   onReady(function () {
     if (document.getElementById("login-table")) {
       loadLoginLogs().catch((err) => {
@@ -63,6 +71,18 @@
     if (document.getElementById("roles-table")) {
       loadAccessRoles().catch((err) => {
         console.error("Failed to load access roles modules", err);
+      });
+    }
+
+    if (document.getElementById("tasks-table")) {
+      loadTasksIndex().catch((err) => {
+        console.error("Failed to load tasks index module", err);
+      });
+    }
+
+    if (document.getElementById("task-show-page")) {
+      loadTaskShow().catch((err) => {
+        console.error("Failed to load task show module", err);
       });
     }
   });

@@ -5,6 +5,15 @@ import "sweetalert2/dist/sweetalert2.min.css";
 (function () {
   "use strict";
 
+  function onReady(fn) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn);
+      return;
+    }
+
+    fn();
+  }
+
   function debounce(fn, wait = 350) {
     let t = null;
     return (...args) => {
@@ -153,7 +162,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
     return `<span class="badge ${cls}">${escapeHtml(label)}</span>`;
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  onReady(function () {
     const el = document.getElementById("tasks-table");
     if (!el) return;
 
@@ -551,3 +560,4 @@ import "sweetalert2/dist/sweetalert2.min.css";
     });
   });
 })();
+

@@ -27,7 +27,6 @@ export default defineConfig({
                 'resources/js/roles-page.js',
                 'resources/js/theme-switcher.js',
                 'resources/js/force-password-change.js',
-                'resources/js/tasks/show.js',
                  ...customViteInputs,
                  // Resources paths 
                 'resources/sass/app.scss', 

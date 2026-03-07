@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('content')
-<div class="w-full px-4 py-4 max-w-[1600px]">
+<div id="task-show-page" class="w-full px-4 py-4 max-w-[1600px]">
 
 
     <div class="flex items-center justify-between mb-4">
@@ -195,9 +195,7 @@
     </div>
 
 </div>
-
-@push('scripts')
-    @vite('resources/js/tasks/show.js')
-@endpush
-
 @endsection
+
+
+

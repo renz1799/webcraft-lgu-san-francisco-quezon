@@ -101,7 +101,5 @@
       notificationsUrl: @json(url('notifications')),
     };
   </script>
-
-
-  @vite('resources/js/tasks/index.js')
 @endpush
+
