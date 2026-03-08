@@ -9,6 +9,8 @@ interface TaskRepositoryInterface
 {
     public function create(array $data): Task;
 
+    public function findLatestBySubject(string $subjectType, string $subjectId): ?Task;
+
     public function findOrFail(string $id): Task;
 
     public function findOrFailWithTrashed(string $id): Task;

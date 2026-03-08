@@ -15,6 +15,15 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         return Task::create($data);
     }
 
+    public function findLatestBySubject(string $subjectType, string $subjectId): ?Task
+    {
+        return Task::query()
+            ->where('subject_type', $subjectType)
+            ->where('subject_id', $subjectId)
+            ->orderByDesc('created_at')
+            ->first();
+    }
+
     public function findOrFail(string $id): Task
     {
         return Task::query()->findOrFail($id);

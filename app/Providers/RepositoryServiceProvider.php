@@ -40,6 +40,7 @@ use App\Services\Contracts\{
     RoleServiceInterface,
     LoginLogServiceInterface,
     TaskServiceInterface,
+    TaskTimelineServiceInterface,
     TaskShowActionProviderInterface,
     UserProfileServiceInterface,
     GoogleDriveOAuthServiceInterface,
@@ -53,6 +54,7 @@ use App\Services\Audit\AuditLogService;
 use App\Services\Access\RoleService;
 use App\Services\Access\LoginLogService;
 use App\Services\Tasks\TaskService;
+use App\Services\Tasks\TaskTimelineService;
 use App\Services\Tasks\TaskShowActionProvider;
 use App\Services\Access\UserProfileService;
 use App\Services\GoogleDrive\GoogleDriveOAuthService;
@@ -86,6 +88,7 @@ class RepositoryServiceProvider extends ServiceProvider
             RoleServiceInterface::class           => RoleService::class,
             LoginLogServiceInterface::class       => LoginLogService::class,
             TaskServiceInterface::class           => TaskService::class,
+            TaskTimelineServiceInterface::class   => TaskTimelineService::class,
             TaskShowActionProviderInterface::class => TaskShowActionProvider::class,
             UserProfileServiceInterface::class    => UserProfileService::class,
             GoogleDriveOAuthServiceInterface::class => GoogleDriveOAuthService::class,
@@ -108,6 +111,3 @@ class RepositoryServiceProvider extends ServiceProvider
         }
     }
 }
-
-
-
