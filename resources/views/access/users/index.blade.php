@@ -14,7 +14,7 @@
 <div class="block justify-between page-header md:flex">
   <div>
     <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
-      User AccessD
+      User AccessDegit
     </h3>
   </div>
 </div>
