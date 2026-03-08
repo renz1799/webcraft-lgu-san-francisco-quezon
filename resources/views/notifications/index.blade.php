@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('content')
-<div class="block justify-between page-header md:flex">
+<div id="notifications-index-page" class="block justify-between page-header md:flex">
   <div>
     <h3 class="text-[1.125rem] font-semibold">Notifications</h3>
     <p class="text-sm text-[#8c9097]">Unread: <span class="font-semibold">{{ $unreadCount }}</span></p>
@@ -81,6 +81,4 @@
 </div>
 @endsection
 
-@push('scripts')
-@vite('resources/js/notifications/index.js')
-@endpush
+

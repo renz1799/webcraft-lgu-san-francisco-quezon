@@ -5,7 +5,7 @@
 @endsection
 
 @section('content')
-<div class="container">
+<div id="access-user-edit-page" class="container">
   <!-- Header -->
   <div class="block justify-between page-header md:flex">
     <div>
@@ -204,7 +204,4 @@
   </div>
 </div>
 
-@push('scripts')
-  @vite('resources/js/permissions.js')
-@endpush
 @endsection

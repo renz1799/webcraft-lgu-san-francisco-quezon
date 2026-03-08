@@ -33,6 +33,10 @@
     ]);
   }
 
+  function loadAccessUsersEdit() {
+    return import("./permissions.js");
+  }
+
   function loadAccessRoles() {
     return Promise.all([
       import("./access-roles/table.js"),
@@ -47,6 +51,10 @@
       import("./access-permissions/filters.js"),
       import("./access-permissions/actions.js"),
     ]);
+  }
+
+  function loadNotificationsIndex() {
+    return import("./notifications/index.js");
   }
 
   function loadRegisterUserModal() {
@@ -84,6 +92,12 @@
       });
     }
 
+    if (document.getElementById("access-user-edit-page")) {
+      loadAccessUsersEdit().catch((err) => {
+        console.error("Failed to load access user edit module", err);
+      });
+    }
+
     if (document.getElementById("roles-table")) {
       loadAccessRoles().catch((err) => {
         console.error("Failed to load access roles modules", err);
@@ -93,6 +107,12 @@
     if (document.getElementById("permissions-table")) {
       loadAccessPermissions().catch((err) => {
         console.error("Failed to load access permissions modules", err);
+      });
+    }
+
+    if (document.getElementById("notifications-index-page")) {
+      loadNotificationsIndex().catch((err) => {
+        console.error("Failed to load notifications index module", err);
       });
     }
 
