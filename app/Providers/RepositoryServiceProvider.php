@@ -41,6 +41,7 @@ use App\Services\Contracts\{
     RoleServiceInterface,
     LoginLogServiceInterface,
     TaskServiceInterface,
+    TaskShowActionProviderInterface,
     UserProfileServiceInterface,
     GoogleDriveOAuthServiceInterface,
     GoogleDriveGlobalServiceInterface
@@ -54,6 +55,7 @@ use App\Services\Audit\AuditLogTableService;
 use App\Services\RoleService;
 use App\Services\LoginLogService;
 use App\Services\Tasks\TaskService;
+use App\Services\Tasks\TaskShowActionProvider;
 use App\Services\UserProfileService;
 use App\Services\GoogleDrive\GoogleDriveOAuthService;
 use App\Services\GoogleDrive\GoogleDriveGlobalService;
@@ -87,6 +89,7 @@ class RepositoryServiceProvider extends ServiceProvider
             RoleServiceInterface::class           => RoleService::class,
             LoginLogServiceInterface::class       => LoginLogService::class,
             TaskServiceInterface::class           => TaskService::class,
+            TaskShowActionProviderInterface::class => TaskShowActionProvider::class,
             UserProfileServiceInterface::class    => UserProfileService::class,
             GoogleDriveOAuthServiceInterface::class => GoogleDriveOAuthService::class,
             GoogleDriveGlobalServiceInterface::class => GoogleDriveGlobalService::class,

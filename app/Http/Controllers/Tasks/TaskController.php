@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Services\Contracts\TaskServiceInterface;
+use App\Services\Contracts\TaskShowActionProviderInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class TaskController extends Controller
         private readonly TaskRepositoryInterface $tasks,
         private readonly TaskEventRepositoryInterface $taskEvents,
         private readonly TaskServiceInterface $taskService,
+        private readonly TaskShowActionProviderInterface $taskShowActions,
     ) {
         $this->middleware('role_or_permission:Administrator|admin|Staff')
             ->only(['index', 'data']);
@@ -79,6 +81,8 @@ class TaskController extends Controller
                 ->all();
         }
 
-        return view('tasks.show', compact('task', 'events', 'subjectUrl', 'assignees'));
+        $headerActions = $this->taskShowActions->getHeaderActions($request->user(), $task);
+
+        return view('tasks.show', compact('task', 'events', 'subjectUrl', 'assignees', 'headerActions'));
     }
 }

@@ -9,15 +9,52 @@
             <h1 class="text-xl font-semibold text-defaulttextcolor dark:text-white">{{ $task->title }}</h1>
             <p class="text-sm text-[#8c9097]">
                 Status: <span class="font-semibold">{{ $task->status }}</span>
-                • Created: {{ $task->created_at->format('M d, Y h:i A') }}
+                â€¢ Created: {{ $task->created_at->format('M d, Y h:i A') }}
             </p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap justify-end">
             <a href="{{ route('tasks.index') }}" class="ti-btn ti-btn-light">Back</a>
 
             @if($subjectUrl)
                 <a href="{{ $subjectUrl }}" class="ti-btn ti-btn-secondary">Open Related</a>
             @endif
+
+            @foreach(($headerActions ?? []) as $action)
+                @php
+                    $actionType = ($action['type'] ?? 'link') === 'button' ? 'button' : 'link';
+                    $actionLabel = trim((string) ($action['label'] ?? ''));
+                    $actionClasses = trim((string) ($action['classes'] ?? 'ti-btn ti-btn-secondary'));
+                    $actionHref = (string) ($action['href'] ?? '#');
+                    $actionAttributes = is_array($action['attributes'] ?? null) ? $action['attributes'] : [];
+                    $actionButtonType = (string) ($action['button_type'] ?? 'button');
+                @endphp
+
+                @if($actionLabel !== '')
+                    @if($actionType === 'link')
+                        <a href="{{ $actionHref }}" class="{{ $actionClasses }}"
+                            @foreach($actionAttributes as $key => $value)
+                                @php($attrName = is_string($key) ? trim($key) : '')
+                                @if($attrName !== '' && preg_match('/^[a-zA-Z0-9_:\-]+$/', $attrName))
+                                    {{ $attrName }}="{{ e((string) $value) }}"
+                                @endif
+                            @endforeach
+                        >
+                            {{ $actionLabel }}
+                        </a>
+                    @else
+                        <button type="{{ $actionButtonType }}" class="{{ $actionClasses }}"
+                            @foreach($actionAttributes as $key => $value)
+                                @php($attrName = is_string($key) ? trim($key) : '')
+                                @if($attrName !== '' && preg_match('/^[a-zA-Z0-9_:\-]+$/', $attrName))
+                                    {{ $attrName }}="{{ e((string) $value) }}"
+                                @endif
+                            @endforeach
+                        >
+                            {{ $actionLabel }}
+                        </button>
+                    @endif
+                @endif
+            @endforeach
         </div>
     </div>
 
@@ -87,7 +124,7 @@
             @csrf
 
             <select name="assignee_user_id" class="ti-form-select w-full" required>
-                <option value="" disabled selected>Select new assignee…</option>
+                <option value="" disabled selected>Select new assigneeâ€¦</option>
 
                 @foreach(($assignees ?? []) as $u)
                 @php($isCurrent = (string) $task->assigned_to_user_id === (string) $u['id'])
@@ -149,7 +186,7 @@
                                         {{ strtoupper($event->event_type) }}
                                         @if($event->from_status || $event->to_status)
                                             <span class="text-xs text-[#8c9097] font-normal">
-                                                ({{ $event->from_status ?? '—' }} → {{ $event->to_status ?? '—' }})
+                                                ({{ $event->from_status ?? 'â€”' }} â†’ {{ $event->to_status ?? 'â€”' }})
                                             </span>
                                         @endif
                                     </div>

@@ -12,10 +12,106 @@ import Swal from "sweetalert2";
     fn();
   }
 
+  function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || "";
+  }
+
+  function getResponseError(response, data) {
+    if (data?.message) {
+      return String(data.message);
+    }
+
+    if (response.status === 403) {
+      return "You don't have permission to do that.";
+    }
+
+    if (response.status === 419) {
+      return "Security token expired. Please refresh the page and try again.";
+    }
+
+    return response.statusText || "Request failed";
+  }
+
+  function bindExtensionPostButtons() {
+    document.querySelectorAll(".js-task-extension-post").forEach((btn) => {
+      btn.addEventListener("click", async function () {
+        const endpoint = String(btn.dataset.taskPostEndpoint || "").trim();
+        if (!endpoint) {
+          return;
+        }
+
+        const confirmText = String(btn.dataset.taskPostConfirm || "Proceed with this action?");
+        const successText = String(btn.dataset.taskPostSuccess || "Action completed successfully.");
+        const redirectKey = String(btn.dataset.taskPostRedirectKey || "redirect_url");
+
+        const ask = await Swal.fire({
+          title: "Are you sure?",
+          text: confirmText,
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Yes, continue",
+          cancelButtonText: "Cancel",
+        });
+
+        if (!ask.isConfirmed) {
+          return;
+        }
+
+        const originalDisabled = btn.hasAttribute("disabled");
+        btn.setAttribute("disabled", "disabled");
+
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "X-CSRF-TOKEN": getCsrfToken(),
+              Accept: "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+          });
+
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            throw new Error(getResponseError(response, data));
+          }
+
+          await Swal.fire({
+            icon: "success",
+            title: "Success",
+            text: data?.message || successText,
+            timer: 1500,
+            showConfirmButton: false,
+          });
+
+          const redirectUrl = data?.[redirectKey];
+          if (redirectUrl) {
+            window.location.href = String(redirectUrl);
+            return;
+          }
+
+          window.location.reload();
+        } catch (error) {
+          await Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: error?.message || "Something went wrong.",
+          });
+        } finally {
+          if (!originalDisabled) {
+            btn.removeAttribute("disabled");
+          }
+        }
+      });
+    });
+  }
+
   onReady(() => {
     if (!document.getElementById("task-show-page")) {
       return;
     }
+
+    bindExtensionPostButtons();
 
     // -------------------------
     // Status Update
@@ -80,7 +176,7 @@ import Swal from "sweetalert2";
           showCancelButton: true,
           confirmButtonText: "Yes, reassign",
           cancelButtonText: "Cancel",
-          confirmButtonColor: "#f59e0b", // optional: matches warning vibe
+          confirmButtonColor: "#f59e0b",
         }).then((result) => {
           if (result.isConfirmed) {
             submitForm(form, {
@@ -107,21 +203,13 @@ import Swal from "sweetalert2";
       })
         .then(async (response) => {
           if (!response.ok) {
-            // try JSON, fallback generic
             let data = null;
             try {
               data = await response.json();
             } catch (e) {
               data = null;
             }
-            throw new Error(
-              data?.message ||
-                (response.status === 403
-                  ? "You don’t have permission to do that."
-                  : response.status === 419
-                  ? "Security token expired. Please refresh the page and try again."
-                  : "Request failed")
-            );
+            throw new Error(getResponseError(response, data));
           }
           return response.json().catch(() => ({}));
         })
