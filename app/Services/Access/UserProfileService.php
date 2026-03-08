@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Access;
 
 use App\Models\User;
 use App\Models\LoginDetail;
@@ -114,3 +114,4 @@ class UserProfileService implements UserProfileServiceInterface
         ];
     }
 }
+

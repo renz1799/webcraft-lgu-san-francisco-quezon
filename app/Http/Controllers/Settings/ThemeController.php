@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Services\ThemeService;
+use App\Services\UI\ThemeService;
 use App\Http\Requests\Theme\UpdateThemeStyleRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -46,5 +46,6 @@ class ThemeController extends Controller
         return response()->json($colors);
     }
 }
+
 
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Access;
 
 use App\Models\Permission;
 use App\Repositories\Contracts\PermissionRepositoryInterface;
@@ -135,3 +135,4 @@ class PermissionService implements PermissionServiceInterface
         }
     }
 }
+

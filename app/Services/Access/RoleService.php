@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Access;
 
 use App\Models\Permission;
 use App\Models\Role;
@@ -148,3 +148,4 @@ class RoleService implements RoleServiceInterface
         return true;
     }
 }
+

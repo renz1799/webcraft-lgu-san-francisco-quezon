@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Access;
 
 use App\Repositories\Contracts\LoginDetailRepositoryInterface;
 use App\Services\Contracts\LoginLogServiceInterface;
@@ -143,3 +143,4 @@ class LoginLogService implements LoginLogServiceInterface
         ];
     }
 }
+

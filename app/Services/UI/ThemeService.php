@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\UI;
 
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Support\Arr;
@@ -143,3 +143,4 @@ class ThemeService
         return $clean;
     }
 }
+

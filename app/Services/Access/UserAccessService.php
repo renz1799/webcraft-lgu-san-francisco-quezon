@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Access;
 
 use App\Models\User;
 use App\Models\Permission;
@@ -446,4 +446,5 @@ class UserAccessService implements UserAccessServiceInterface
         return $buf;
     }
 }
+
 
