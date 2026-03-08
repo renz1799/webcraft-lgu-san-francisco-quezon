@@ -16,6 +16,7 @@ Read the full documentation:
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Conventions](docs/CONVENTIONS.md)
+- [Core Sync Operations](docs/CORE_SYNC_OPERATIONS.md)
 
 ## Core Stack
 
