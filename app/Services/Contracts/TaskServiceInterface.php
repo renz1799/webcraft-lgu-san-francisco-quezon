@@ -35,6 +35,17 @@ interface TaskServiceInterface
         array $data
     ): Task;
 
+    public function syncTaskContext(
+        string $taskId,
+        array $data,
+        string $assignmentMode = 'keep',
+        ?string $assignedToUserId = null,
+        ?string $title = null,
+        ?string $description = null,
+        ?string $type = null,
+        bool $mergeData = true
+    ): Task;
+
     public function recordEvent(
         string $actorUserId,
         string $taskId,

@@ -6,9 +6,14 @@ use App\Models\Task;
 use App\Services\Contracts\TaskServiceInterface;
 use App\Services\Contracts\TaskTimelineServiceInterface;
 use Illuminate\Support\Arr;
+use InvalidArgumentException;
 
 class TaskTimelineService implements TaskTimelineServiceInterface
 {
+    private const ASSIGNMENT_KEEP = 'keep';
+    private const ASSIGNMENT_SET = 'set';
+    private const ASSIGNMENT_CLEAR = 'clear';
+
     public function __construct(
         private readonly TaskServiceInterface $tasks,
     ) {}
@@ -66,17 +71,20 @@ class TaskTimelineService implements TaskTimelineServiceInterface
         );
     }
 
-    public function recordIfChanged(
+    public function syncSubjectTaskContext(
         string $actorUserId,
         string $subjectType,
         string $subjectId,
         array $data,
+        string $assignmentMode = self::ASSIGNMENT_KEEP,
         ?string $assignedToUserId = null,
         ?string $title = null,
         ?string $description = null,
         ?string $type = null,
         ?string $note = null
     ): Task {
+        $this->assertValidAssignmentMode($assignmentMode);
+
         $task = $this->tasks->findLatestBySubject($subjectType, $subjectId);
 
         if (! $task) {
@@ -90,11 +98,16 @@ class TaskTimelineService implements TaskTimelineServiceInterface
                 data: $data,
             );
 
-            if ($assignedToUserId !== null) {
-                $task = $this->tasks->updateTaskAssignmentAndData(
+            if ($assignmentMode === self::ASSIGNMENT_SET && $assignedToUserId !== null && $assignedToUserId !== '') {
+                $task = $this->tasks->syncTaskContext(
                     taskId: (string) $task->id,
-                    assignedToUserId: $assignedToUserId,
                     data: $data,
+                    assignmentMode: self::ASSIGNMENT_SET,
+                    assignedToUserId: $assignedToUserId,
+                    title: null,
+                    description: null,
+                    type: null,
+                    mergeData: false
                 );
 
                 $this->tasks->recordEvent(
@@ -114,19 +127,29 @@ class TaskTimelineService implements TaskTimelineServiceInterface
         }
 
         $previousData = (array) ($task->data ?? []);
-        $targetAssignee = $assignedToUserId ?? $task->assigned_to_user_id;
+        $mergedData = array_replace_recursive($previousData, $data);
 
-        $changedDataKeys = $this->diffDataKeys($previousData, $data);
+        $targetAssignee = $this->resolveTargetAssignee($task, $assignmentMode, $assignedToUserId);
+
+        $changedDataKeys = $this->diffDataKeys($previousData, $mergedData);
         $assigneeChanged = (string) ($task->assigned_to_user_id ?? '') !== (string) ($targetAssignee ?? '');
+        $titleChanged = $title !== null && $task->title !== $title;
+        $descriptionChanged = $description !== null && $task->description !== $description;
+        $typeChanged = $type !== null && $task->type !== $type;
 
-        if ($changedDataKeys === [] && ! $assigneeChanged) {
+        if ($changedDataKeys === [] && ! $assigneeChanged && ! $titleChanged && ! $descriptionChanged && ! $typeChanged) {
             return $task;
         }
 
-        $updatedTask = $this->tasks->updateTaskAssignmentAndData(
+        $updatedTask = $this->tasks->syncTaskContext(
             taskId: (string) $task->id,
-            assignedToUserId: $targetAssignee,
-            data: $data,
+            data: $mergedData,
+            assignmentMode: $assignmentMode,
+            assignedToUserId: $assignedToUserId,
+            title: $title,
+            description: $description,
+            type: $type,
+            mergeData: false
         );
 
         $this->tasks->recordEvent(
@@ -137,16 +160,45 @@ class TaskTimelineService implements TaskTimelineServiceInterface
             meta: [
                 'subject_type' => $subjectType,
                 'subject_id' => $subjectId,
+                'assignment_mode' => $assignmentMode,
                 'changed_data_keys' => $changedDataKeys,
                 'assignee_changed' => $assigneeChanged,
                 'from_assigned_to_user_id' => $task->assigned_to_user_id,
                 'to_assigned_to_user_id' => $targetAssignee,
+                'title_changed' => $titleChanged,
+                'description_changed' => $descriptionChanged,
+                'type_changed' => $typeChanged,
             ],
             fromStatus: (string) $task->status,
             toStatus: (string) $updatedTask->status,
         );
 
         return $updatedTask;
+    }
+
+    public function recordIfChanged(
+        string $actorUserId,
+        string $subjectType,
+        string $subjectId,
+        array $data,
+        ?string $assignedToUserId = null,
+        ?string $title = null,
+        ?string $description = null,
+        ?string $type = null,
+        ?string $note = null
+    ): Task {
+        return $this->syncSubjectTaskContext(
+            actorUserId: $actorUserId,
+            subjectType: $subjectType,
+            subjectId: $subjectId,
+            data: $data,
+            assignmentMode: $assignedToUserId === null ? self::ASSIGNMENT_KEEP : self::ASSIGNMENT_SET,
+            assignedToUserId: $assignedToUserId,
+            title: $title,
+            description: $description,
+            type: $type,
+            note: $note,
+        );
     }
 
     private function resolveInitialTitle(string $subjectType, string $subjectId, ?string $title): string
@@ -157,6 +209,23 @@ class TaskTimelineService implements TaskTimelineServiceInterface
         }
 
         return sprintf('Workflow task for %s %s', $subjectType, $subjectId);
+    }
+
+    private function resolveTargetAssignee(Task $task, string $assignmentMode, ?string $assignedToUserId): ?string
+    {
+        return match ($assignmentMode) {
+            self::ASSIGNMENT_KEEP => $task->assigned_to_user_id,
+            self::ASSIGNMENT_SET => $assignedToUserId,
+            self::ASSIGNMENT_CLEAR => null,
+            default => throw new InvalidArgumentException('Invalid assignment mode.'),
+        };
+    }
+
+    private function assertValidAssignmentMode(string $assignmentMode): void
+    {
+        if (! in_array($assignmentMode, [self::ASSIGNMENT_KEEP, self::ASSIGNMENT_SET, self::ASSIGNMENT_CLEAR], true)) {
+            throw new InvalidArgumentException('Invalid assignment mode. Allowed values: keep, set, clear.');
+        }
     }
 
     private function diffDataKeys(array $before, array $after): array

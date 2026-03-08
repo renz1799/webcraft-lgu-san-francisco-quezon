@@ -130,11 +130,68 @@ class TaskService implements TaskServiceInterface
         ?string $assignedToUserId,
         array $data
     ): Task {
-        return DB::transaction(function () use ($taskId, $assignedToUserId, $data) {
+        return $this->syncTaskContext(
+            taskId: $taskId,
+            data: $data,
+            assignmentMode: 'set',
+            assignedToUserId: $assignedToUserId,
+            title: null,
+            description: null,
+            type: null,
+            mergeData: false
+        );
+    }
+
+    public function syncTaskContext(
+        string $taskId,
+        array $data,
+        string $assignmentMode = 'keep',
+        ?string $assignedToUserId = null,
+        ?string $title = null,
+        ?string $description = null,
+        ?string $type = null,
+        bool $mergeData = true
+    ): Task {
+        return DB::transaction(function () use (
+            $taskId,
+            $data,
+            $assignmentMode,
+            $assignedToUserId,
+            $title,
+            $description,
+            $type,
+            $mergeData
+        ) {
+            if (! in_array($assignmentMode, ['keep', 'set', 'clear'], true)) {
+                throw new InvalidArgumentException('Invalid assignment mode. Allowed values: keep, set, clear.');
+            }
+
             $task = $this->tasks->findOrFail($taskId);
 
-            $task->assigned_to_user_id = $assignedToUserId;
-            $task->data = $data;
+            $targetData = $mergeData
+                ? array_replace_recursive((array) ($task->data ?? []), $data)
+                : $data;
+
+            $targetAssignee = match ($assignmentMode) {
+                'keep' => $task->assigned_to_user_id,
+                'set' => $assignedToUserId,
+                'clear' => null,
+            };
+
+            $task->assigned_to_user_id = $targetAssignee;
+            $task->data = $targetData;
+
+            if ($title !== null) {
+                $task->title = $title;
+            }
+
+            if ($description !== null) {
+                $task->description = $description;
+            }
+
+            if ($type !== null) {
+                $task->type = $type;
+            }
 
             return $this->tasks->save($task);
         });
