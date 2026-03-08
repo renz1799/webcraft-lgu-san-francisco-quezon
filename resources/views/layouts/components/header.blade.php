@@ -144,7 +144,7 @@
     <div class="header-element md:!px-[0.65rem] px-2 hs-dropdown !items-center ti-dropdown [--placement:bottom-left]">
         @php
         // extra safety: if composer fails, still fallback cleanly
-        $photo = $user?->cache_busted_photo_url ?: asset('build/assets/images/default-profile.png');
+        $photo = $user?->cache_busted_photo_url ?: asset('build/assets/images/faces/9.jpg');
         @endphp
 
         <button id="dropdown-profile" type="button"

@@ -1,4 +1,3 @@
-console.log('[Notifications] Header script loaded');
 
 (function () {
   const endpoints = window.__notifEndpoints || {};

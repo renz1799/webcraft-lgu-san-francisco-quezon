@@ -14,7 +14,7 @@ class HeaderComposer
         if ($user) {
             $user->loadMissing('profile');
 
-            $default = asset('build/assets/images/default-profile.png');
+            $default = asset('build/assets/images/faces/9.jpg');
             $photoUrl = $default;
 
             $relPath = $user->profile?->profile_photo_path; // e.g. "profiles/abc.jpg"

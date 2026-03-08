@@ -20,16 +20,12 @@
         <!-- ICONS CSS -->
         <link href="{{asset('build/assets/iconfonts/icons.css')}}" rel="stylesheet">
 
-        <!-- Datatables CSS -->
-        <link href="{{asset('build/assets/jquery.dataTables.min.css')}}" rel="stylesheet">
         
         <!-- APP SCSS -->
         @vite(['resources/sass/app.scss'])
 
         @include('layouts.components.styles')
 
-        <!-- Include jQuery -->
-        <script src="{{asset('build/assets/jquery-3.6.0.min.js')}}"></script>
         
         <!-- MAIN JS -->
         <script src="{{asset('build/assets/main.js')}}"></script>
@@ -241,15 +237,10 @@
                 <!-- APP JS -->
 		@vite('resources/js/app.js')
         @vite('resources/js/custom-entry.js')
-        <!-- Datatables JS -->
-        <script src="{{asset('build/assets/jquery.dataTables.min.js')}}"></script>
-        <script src="{{asset('build/assets/dataTables.bootstrap5.min.js')}}"></script>
 
         <!-- STICKY JS -->
 		<script src="{{asset('build/assets/sticky.js')}}"></script>
                 
-        <!-- Delete modal JS -->
-         <script src="{{asset('build/assets/delete-modal.js')}}"></script>
 
 
 
