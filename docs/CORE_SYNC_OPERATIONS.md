@@ -15,6 +15,14 @@ This document defines the shared Core to GSO sync process.
 
 Rule: never merge Core changes directly into GSO `main` locally. Always land them through `codex/core-sync` and a PR.
 
+## Source Of Truth Policy
+
+- Core (`Webcraft-Core-System`) is the source of truth for shared architecture, contracts, and generic service behavior.
+- GSO must not keep long-lived forks of Core-owned/shared primitives.
+- If GSO needs a new behavior, implement it in Core first in a generic way, then sync it down to GSO.
+- During conflict resolution for Core-owned/shared primitives (for example `app/Services/Contracts/**`, `app/Services/Tasks/**`, `app/Repositories/Contracts/**`), prefer Core-side changes and refactor GSO module code to match.
+- Temporary direct edits in GSO Core-owned files are exception-only and must include `allow-core-touch` plus a follow-up re-alignment plan.
+
 ## Automation Flow
 
 1. A commit is pushed to Core `main`.
