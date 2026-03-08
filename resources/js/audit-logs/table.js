@@ -226,13 +226,31 @@
       setInfoText(`Showing ${start}-${end} of ${total} record(s).`);
     }
 
-    function reload() {
+    function hardRefreshCurrentPage() {
+      if (typeof table.replaceData === "function") {
+        table.replaceData();
+        return;
+      }
+
+      table.setData(ajaxUrl, {
+        ...getFilters(),
+        page: table.getPage() || 1,
+        size: table.getPageSize ? table.getPageSize() || 15 : 15,
+      });
+    }
+
+    function reload({ resetPage = true } = {}) {
       el.classList.add("is-loading");
       setInfoText("Updating...");
 
-      const page = table.getPage();
-      if (page && page !== 1) table.setPage(1);
-      else table.setData();
+      const page = table.getPage() || 1;
+
+      if (resetPage && page !== 1) {
+        table.setPage(1);
+        return;
+      }
+
+      hardRefreshCurrentPage();
     }
 
     window.__auditReload = reload;
@@ -249,3 +267,4 @@
     setInfoText("Loading...");
   });
 })();
+
