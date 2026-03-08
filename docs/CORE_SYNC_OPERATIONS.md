@@ -4,7 +4,7 @@ This document defines the shared Core to GSO sync process.
 
 ## Repositories
 
-- Core repository: `renz1799/Webcraft-Ynex-Fixed-Template-Clean-Switcher-`
+- Core repository: `renz1799/Webcraft-Core-System`
 - GSO repository: `renz1799/GSO-System-for-San-Francisco-Quezon-V2`
 
 ## Branch Model
@@ -84,7 +84,7 @@ Run inside GSO repo root:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\sync-core.ps1 `
   -CoreRemoteName "core" `
-  -CoreRemoteUrl "https://github.com/renz1799/Webcraft-Ynex-Fixed-Template-Clean-Switcher-.git" `
+  -CoreRemoteUrl "https://github.com/renz1799/Webcraft-Core-System.git" `
   -CoreBranch "main" `
   -BaseBranch "main" `
   -WorkBranch "codex/core-sync" `
