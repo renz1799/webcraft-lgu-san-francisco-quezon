@@ -39,6 +39,7 @@ use App\Services\Contracts\{
     AuditLogServiceInterface,
     RoleServiceInterface,
     LoginLogServiceInterface,
+    NotificationServiceInterface,
     TaskServiceInterface,
     TaskTimelineServiceInterface,
     TaskShowActionProviderInterface,
@@ -53,6 +54,7 @@ use App\Services\Access\PermissionService;
 use App\Services\Audit\AuditLogService;
 use App\Services\Access\RoleService;
 use App\Services\Access\LoginLogService;
+use App\Services\Notifications\NotificationService;
 use App\Services\Tasks\TaskService;
 use App\Services\Tasks\TaskTimelineService;
 use App\Services\Tasks\TaskShowActionProvider;
@@ -87,6 +89,7 @@ class RepositoryServiceProvider extends ServiceProvider
             AuditLogServiceInterface::class       => AuditLogService::class,
             RoleServiceInterface::class           => RoleService::class,
             LoginLogServiceInterface::class       => LoginLogService::class,
+            NotificationServiceInterface::class   => NotificationService::class,
             TaskServiceInterface::class           => TaskService::class,
             TaskTimelineServiceInterface::class   => TaskTimelineService::class,
             TaskShowActionProviderInterface::class => TaskShowActionProvider::class,

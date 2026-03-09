@@ -2,18 +2,29 @@
 
 namespace App\Services\Contracts;
 
-use App\Models\Inspection;
 use App\Models\Notification;
 use App\Models\Task;
 
 interface NotificationServiceInterface
 {
+    public function notifyUsersByRoles(
+        array $roleNames,
+        string $actorUserId,
+        string $type,
+        string $title,
+        string $message,
+        string $entityType,
+        string $entityId,
+        array $data = [],
+        bool $excludeActor = true
+    ): void;
+
     public function notifyTaskAssigned(
         string $assigneeUserId,
         string $actorUserId,
         string $taskId,
         string $taskTitle,
-        string $url
+        ?string $url = null
     ): Notification;
 
     public function notifyTaskParticipants(
@@ -26,7 +37,7 @@ interface NotificationServiceInterface
     ): void;
 
     public function notifyInspectionSubmitted(
-        Inspection $inspection,
+        object $inspection,
         string $actorUserId,
         ?string $taskId = null
     ): void;

@@ -2,7 +2,6 @@
 
 namespace App\Services\Notifications;
 
-use App\Models\Inspection;
 use App\Models\Notification;
 use App\Models\Task;
 use App\Repositories\Contracts\NotificationRepositoryInterface;
@@ -10,6 +9,7 @@ use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Contracts\NotificationServiceInterface;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Route;
 
 class NotificationService implements NotificationServiceInterface
 {
@@ -19,13 +19,52 @@ class NotificationService implements NotificationServiceInterface
         private readonly UserRepositoryInterface $users,
     ) {}
 
+    public function notifyUsersByRoles(
+        array $roleNames,
+        string $actorUserId,
+        string $type,
+        string $title,
+        string $message,
+        string $entityType,
+        string $entityId,
+        array $data = [],
+        bool $excludeActor = true
+    ): void {
+        $roleNames = array_values(array_unique(array_filter(
+            array_map(static fn ($roleName) => trim((string) $roleName), $roleNames)
+        )));
+
+        if ($roleNames === []) {
+            return;
+        }
+
+        $recipients = array_values(array_unique($this->users->getUserIdsByRoles($roleNames)));
+
+        if ($excludeActor) {
+            $recipients = array_values(array_diff($recipients, [(string) $actorUserId]));
+        }
+
+        $this->fanOutBulk(
+            recipientUserIds: $recipients,
+            actorUserId: $actorUserId,
+            type: $type,
+            title: $title,
+            message: $message,
+            entityType: $entityType,
+            entityId: $entityId,
+            data: $data,
+        );
+    }
+
     public function notifyTaskAssigned(
         string $assigneeUserId,
         string $actorUserId,
         string $taskId,
         string $taskTitle,
-        string $url
+        ?string $url = null
     ): Notification {
+        $url ??= route('tasks.show', $taskId);
+
         return $this->notifications->create([
             'notifiable_user_id' => $assigneeUserId,
             'actor_user_id'      => $actorUserId,
@@ -59,7 +98,6 @@ class NotificationService implements NotificationServiceInterface
         string $message,
         array $data = []
     ): void {
-        // 1) Participants from task events (repo)
         $participantIds = $this->taskEvents
             ->getForTask((string) $task->id)
             ->pluck('actor_user_id')
@@ -69,7 +107,6 @@ class NotificationService implements NotificationServiceInterface
             ->values()
             ->all();
 
-        // 2) Always include creator + assignee
         $candidateIds = array_filter(array_unique(array_merge(
             $participantIds,
             [
@@ -78,10 +115,8 @@ class NotificationService implements NotificationServiceInterface
             ]
         )));
 
-        // 3) Include admins (repo, no Eloquent calls here)
         $adminIds = $this->users->getUserIdsByRoles(['Administrator']);
 
-        // 4) Final recipients: merge + dedupe + exclude actor
         $recipients = array_values(array_diff(
             array_unique(array_merge($candidateIds, $adminIds)),
             [(string) $actorUserId]
@@ -103,21 +138,20 @@ class NotificationService implements NotificationServiceInterface
     }
 
     public function notifyInspectionSubmitted(
-        Inspection $inspection,
+        object $inspection,
         string $actorUserId,
         ?string $taskId = null
     ): void {
-        // notify Administrator + Staff (repo)
-        $recipients = $this->users->getUserIdsByRoles(['Administrator', 'Staff']);
-
-        // exclude actor
-        $recipients = array_values(array_diff($recipients, [(string) $actorUserId]));
-
         $po = trim((string) ($inspection->po_number ?? ''));
-        $poLabel = $po !== '' ? " (PO No: {$po})" : "";
+        $poLabel = $po !== '' ? " (PO No: {$po})" : '';
+        $url = $inspection->url ?? null;
 
-        $this->fanOutBulk(
-            recipientUserIds: $recipients,
+        if ($url === null && Route::has('inspections.show')) {
+            $url = route('inspections.show', $inspection->id);
+        }
+
+        $this->notifyUsersByRoles(
+            roleNames: ['Administrator', 'Staff'],
             actorUserId: $actorUserId,
             type: 'inspection_submitted',
             title: 'Inspection Submitted',
@@ -129,9 +163,10 @@ class NotificationService implements NotificationServiceInterface
                 'po_number'     => $inspection->po_number,
                 'dv_number'     => $inspection->dv_number,
                 'status'        => $inspection->status,
-                'url'           => route('inspections.show', $inspection->id),
+                'url'           => $url,
                 'task_id'       => $taskId,
             ],
+            excludeActor: true,
         );
     }
 
@@ -153,10 +188,12 @@ class NotificationService implements NotificationServiceInterface
         $rows = [];
         foreach ($recipientUserIds as $userId) {
             $userId = (string) $userId;
-            if ($userId === '') continue;
+            if ($userId === '') {
+                continue;
+            }
 
             $rows[] = [
-                'id'                => (string) \Illuminate\Support\Str::uuid(),
+                'id'                 => (string) \Illuminate\Support\Str::uuid(),
                 'notifiable_user_id' => $userId,
                 'actor_user_id'      => $actorUserId,
                 'type'               => $type,

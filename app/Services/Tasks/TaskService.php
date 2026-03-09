@@ -6,8 +6,8 @@ use App\Models\Task;
 use App\Models\User;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
+use App\Services\Contracts\NotificationServiceInterface;
 use App\Services\Contracts\TaskServiceInterface;
-use App\Services\Notifications\NotificationService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -16,7 +16,7 @@ class TaskService implements TaskServiceInterface
     public function __construct(
         private readonly TaskRepositoryInterface $tasks,
         private readonly TaskEventRepositoryInterface $taskEvents,
-        private readonly NotificationService $notificationService,
+        private readonly NotificationServiceInterface $notificationService,
     ) {}
 
     public function createAndAssign(
