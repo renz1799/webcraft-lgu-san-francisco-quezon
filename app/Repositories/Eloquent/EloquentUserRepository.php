@@ -8,6 +8,7 @@ use App\Repositories\Contracts\UserRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -150,7 +151,39 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     public function getUserIdsByRoles(array $roleNames): array
     {
-        return User::role($roleNames)
+        $requestedRoleNames = array_values(array_unique(array_filter(
+            array_map(static fn ($roleName) => trim((string) $roleName), $roleNames)
+        )));
+
+        if ($requestedRoleNames === []) {
+            return [];
+        }
+
+        $existingRoleNames = Role::query()
+            ->where('guard_name', 'web')
+            ->whereIn('name', $requestedRoleNames)
+            ->pluck('name')
+            ->map(fn ($name) => (string) $name)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $missingRoleNames = array_values(array_diff($requestedRoleNames, $existingRoleNames));
+
+        if ($missingRoleNames !== []) {
+            Log::warning('User role lookup skipped missing roles.', [
+                'guard_name' => 'web',
+                'requested_roles' => $requestedRoleNames,
+                'missing_roles' => $missingRoleNames,
+            ]);
+        }
+
+        if ($existingRoleNames === []) {
+            return [];
+        }
+
+        return User::role($existingRoleNames, 'web')
             ->pluck('id')
             ->map(fn ($id) => (string) $id)
             ->filter()
