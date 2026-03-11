@@ -200,7 +200,7 @@ class UserAccessService implements UserAccessServiceInterface
 
     public function getEditData(User $user): array
     {
-        $roles = Role::all();
+        $roles = Role::with('permissions:id,name,page')->get();
         $permissions = Permission::all()->groupBy('page');
 
         $userRole = $user->roles()->first();

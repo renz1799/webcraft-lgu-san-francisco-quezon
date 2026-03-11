@@ -1,5 +1,14 @@
 import Swal from 'sweetalert2';
 
+function onReady(fn) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fn);
+    return;
+  }
+
+  fn();
+}
+
 function getCsrfToken() {
   const el = document.querySelector('meta[name="csrf-token"]');
   return el ? el.getAttribute('content') : '';
@@ -56,6 +65,59 @@ function collectSelectedPermissions() {
     selected[page][resource].push(action);
   });
   return selected;
+}
+
+function getRoleDefaults() {
+  const el = document.getElementById('roleDefaultsJson');
+  if (!el) return {};
+
+  try {
+    return JSON.parse(el.textContent || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function setSelectedPermissions(nested = {}) {
+  const selected = new Set();
+
+  Object.entries(nested).forEach(([page, resources]) => {
+    Object.entries(resources || {}).forEach(([resource, actions]) => {
+      (actions || []).forEach((action) => {
+        selected.add(`${page}::${resource}::${action}`);
+      });
+    });
+  });
+
+  document.querySelectorAll('.permission-checkbox').forEach((checkbox) => {
+    const key = `${checkbox.getAttribute('data-page')}::${checkbox.getAttribute('data-permission')}::${checkbox.getAttribute('data-action')}`;
+    checkbox.checked = selected.has(key);
+  });
+}
+
+function bindRestoreDefaults() {
+  const btn = document.getElementById('restoreDefaultsButton');
+  const ddl = document.getElementById('role');
+  if (!btn || !ddl) return;
+
+  btn.addEventListener('click', () => {
+    const roleName = ddl.value;
+    const roleDefaults = getRoleDefaults();
+    const defaults = roleDefaults[roleName];
+
+    if (!roleName) {
+      toastError('Select a role first.');
+      return;
+    }
+
+    if (typeof defaults === 'undefined') {
+      toastError('Role defaults are unavailable for the selected role.');
+      return;
+    }
+
+    setSelectedPermissions(defaults || {});
+    toastSuccess(`Restored ${roleName} defaults. Click Save Changes to apply.`);
+  });
 }
 
 /* ---------- STATUS TOGGLE (PATCH /users/{user}/status) ---------- */
@@ -281,7 +343,7 @@ function bindResetPassword() {
 }
 
 
-document.addEventListener('DOMContentLoaded', () => {
+onReady(() => {
   const hasPermissionsEditor = !!document.getElementById('savePermissionsButton');
   const hasRoleSelect = !!document.getElementById('role');
   const hasPermissionCheckbox = !!document.querySelector('.permission-checkbox');
@@ -295,6 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindStatusToggles();
   bindDeleteButtons();
   bindSavePermissions();
+  bindRestoreDefaults();
   bindRoleChange();
   bindResetPassword();
 });

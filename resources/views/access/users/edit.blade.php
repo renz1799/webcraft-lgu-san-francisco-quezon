@@ -5,7 +5,37 @@
 @endsection
 
 @section('content')
+@php
+  $roleDefaults = $roles->mapWithKeys(function ($role) {
+      $nested = [];
+
+      foreach ($role->permissions as $permission) {
+          $page = $permission->page ?: 'Others';
+          $words = explode(' ', $permission->name, 2);
+          $action = strtolower($words[0] ?? '');
+          $resource = $words[1] ?? '';
+
+          if ($resource === '') {
+              continue;
+          }
+
+          $action = $action === 'edit' ? 'modify' : $action;
+
+          if (! isset($nested[$page][$resource])) {
+              $nested[$page][$resource] = [];
+          }
+
+          if (! in_array($action, $nested[$page][$resource], true)) {
+              $nested[$page][$resource][] = $action;
+          }
+      }
+
+      return [$role->name => $nested];
+  });
+@endphp
+
 <div id="access-user-edit-page" class="container">
+  <script type="application/json" id="roleDefaultsJson">@json($roleDefaults)</script>
   <!-- Header -->
   <div class="block justify-between page-header md:flex">
     <div>
