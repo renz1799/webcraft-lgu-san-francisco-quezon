@@ -12,10 +12,24 @@ interface GoogleDriveGlobalServiceInterface
 
     public function handleCallback(string $code): void;
 
-    public function upload(UploadedFile $file, ?string $name = null, bool $makePublic = false): array;
+    public function sanitizeFolderName(string $value): string;
+
+    public function ensureFolder(string $name, string $parentId): array;
+
+    public function upload(
+        UploadedFile $file,
+        ?string $name = null,
+        bool $makePublic = false,
+        ?string $folderId = null,
+    ): array;
+
+    public function copyFile(
+        string $sourceFileId,
+        ?string $newName = null,
+        ?string $targetFolderId = null,
+    ): array;
 
     public function disconnect(): void;
-    
-    public function download(string $fileId): array;
 
+    public function download(string $fileId): array;
 }
