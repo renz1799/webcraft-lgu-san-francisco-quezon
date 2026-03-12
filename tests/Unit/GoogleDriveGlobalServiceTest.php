@@ -123,6 +123,17 @@ class GoogleDriveGlobalServiceTest extends TestCase
         $this->assertSame('inventory-folder', $result['folder_id']);
         $this->assertSame(['inventory-folder'], $drive->files->copyCalls[0]['file']->parents);
     }
+    public function test_delete_file_delegates_to_drive_with_all_drives_support(): void
+    {
+        $drive = new FakeDriveService();
+        $service = $this->makeService($drive);
+
+        $service->deleteFile('drive-file-1');
+
+        $this->assertCount(1, $drive->files->deleteCalls);
+        $this->assertSame('drive-file-1', $drive->files->deleteCalls[0]['file_id']);
+        $this->assertTrue($drive->files->deleteCalls[0]['options']['supportsAllDrives']);
+    }
 
     private function makeService(FakeDriveService $drive): GoogleDriveGlobalService
     {
@@ -166,6 +177,7 @@ final class FakeDriveFilesResource
     public array $createCalls = [];
     public array $copyCalls = [];
     public array $getCalls = [];
+    public array $deleteCalls = [];
 
     public function listFiles(array $options): object
     {
@@ -213,6 +225,14 @@ final class FakeDriveFilesResource
         }
 
         return $this->getResults[$fileId];
+    }
+
+    public function delete(string $fileId, array $options): void
+    {
+        $this->deleteCalls[] = [
+            'file_id' => $fileId,
+            'options' => $options,
+        ];
     }
 
     public function copy(string $sourceFileId, object $file, array $options): object

@@ -29,6 +29,8 @@ interface GoogleDriveGlobalServiceInterface
         ?string $targetFolderId = null,
     ): array;
 
+    public function deleteFile(string $fileId): void;
+
     public function disconnect(): void;
 
     public function download(string $fileId): array;

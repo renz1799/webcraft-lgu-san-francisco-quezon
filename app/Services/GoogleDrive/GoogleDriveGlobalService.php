@@ -182,6 +182,20 @@ class GoogleDriveGlobalService implements GoogleDriveGlobalServiceInterface
         ]);
     }
 
+    public function deleteFile(string $fileId): void
+    {
+        $resolvedFileId = trim($fileId);
+        if ($resolvedFileId === '') {
+            throw new \RuntimeException('Missing Google Drive file id.');
+        }
+
+        $drive = $this->makeAuthorizedDrive();
+
+        $drive->files->delete($resolvedFileId, [
+            'supportsAllDrives' => true,
+        ]);
+    }
+
     public function disconnect(): void
     {
         $this->tokens->deleteGlobal();
