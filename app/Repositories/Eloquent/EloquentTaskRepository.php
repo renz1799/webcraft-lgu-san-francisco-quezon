@@ -127,6 +127,158 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         ];
     }
 
+    public function adminDashboardStats(int $months = 6): array
+    {
+        $months = max(2, min($months, 12));
+        $now = Carbon::now();
+
+        $monthWindows = collect(range($months - 1, 0))
+            ->map(function (int $offset) use ($now) {
+                $start = $now->copy()->startOfMonth()->subMonths($offset);
+                $end = $offset === 0
+                    ? $now->copy()
+                    : $start->copy()->endOfMonth();
+
+                return [
+                    'key' => $start->format('Y-m'),
+                    'label' => $start->format('M'),
+                    'start' => $start,
+                    'end' => $end,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $keys = array_column($monthWindows, 'key');
+        $newCounts = array_fill_keys($keys, 0);
+        $completedCounts = array_fill_keys($keys, 0);
+        $pendingSnapshots = array_fill_keys($keys, 0);
+        $inProgressSnapshots = array_fill_keys($keys, 0);
+
+        $tasks = Task::withTrashed()
+            ->select([
+                'id',
+                'status',
+                'created_at',
+                'started_at',
+                'completed_at',
+                'cancelled_at',
+                'deleted_at',
+            ])
+            ->with([
+                'events' => function ($query) {
+                    $query->select(['id', 'task_id', 'event_type', 'to_status', 'created_at'])
+                        ->where('event_type', 'status_changed')
+                        ->whereNotNull('to_status')
+                        ->orderBy('created_at');
+                },
+            ])
+            ->where('created_at', '<=', $now)
+            ->orderBy('created_at')
+            ->get();
+
+        foreach ($tasks as $task) {
+            if ($task->created_at) {
+                $key = $task->created_at->format('Y-m');
+                if (array_key_exists($key, $newCounts)) {
+                    $newCounts[$key]++;
+                }
+            }
+
+            if ($task->completed_at) {
+                $key = $task->completed_at->format('Y-m');
+                if (array_key_exists($key, $completedCounts)) {
+                    $completedCounts[$key]++;
+                }
+            }
+        }
+
+        foreach ($monthWindows as $window) {
+            $pendingCount = 0;
+            $inProgressCount = 0;
+
+            foreach ($tasks as $task) {
+                $statusAtWindowEnd = $this->resolveStatusAtWindowEnd($task, $window['end']);
+
+                if ($statusAtWindowEnd === Task::STATUS_PENDING) {
+                    $pendingCount++;
+                }
+
+                if ($statusAtWindowEnd === Task::STATUS_IN_PROGRESS) {
+                    $inProgressCount++;
+                }
+            }
+
+            $pendingSnapshots[$window['key']] = $pendingCount;
+            $inProgressSnapshots[$window['key']] = $inProgressCount;
+        }
+
+        $currentWindow = $monthWindows[count($monthWindows) - 1];
+        $previousWindow = $monthWindows[count($monthWindows) - 2];
+
+        $currentPending = Task::query()
+            ->where('status', Task::STATUS_PENDING)
+            ->count();
+
+        $currentInProgress = Task::query()
+            ->where('status', Task::STATUS_IN_PROGRESS)
+            ->count();
+
+        $pendingSnapshots[$currentWindow['key']] = $currentPending;
+        $inProgressSnapshots[$currentWindow['key']] = $currentInProgress;
+
+        return [
+            'period_label' => "Last {$months} months",
+            'cards' => [
+                'new' => $this->makeAdminMetricCard(
+                    current: (int) $newCounts[$currentWindow['key']],
+                    previous: (int) $newCounts[$previousWindow['key']],
+                    contextLabel: 'this month',
+                    comparisonLabel: 'Prev Month'
+                ),
+                'completed' => $this->makeAdminMetricCard(
+                    current: (int) $completedCounts[$currentWindow['key']],
+                    previous: (int) $completedCounts[$previousWindow['key']],
+                    contextLabel: 'this month',
+                    comparisonLabel: 'Prev Month'
+                ),
+                'pending' => $this->makeAdminMetricCard(
+                    current: $currentPending,
+                    previous: (int) $pendingSnapshots[$previousWindow['key']],
+                    contextLabel: 'open right now',
+                    comparisonLabel: 'End of Last Month'
+                ),
+                'in_progress' => $this->makeAdminMetricCard(
+                    current: $currentInProgress,
+                    previous: (int) $inProgressSnapshots[$previousWindow['key']],
+                    contextLabel: 'open right now',
+                    comparisonLabel: 'End of Last Month'
+                ),
+            ],
+            'chart' => [
+                'categories' => array_column($monthWindows, 'label'),
+                'series' => [
+                    [
+                        'name' => 'New',
+                        'data' => array_values($newCounts),
+                    ],
+                    [
+                        'name' => 'Pending',
+                        'data' => array_values($pendingSnapshots),
+                    ],
+                    [
+                        'name' => 'Completed',
+                        'data' => array_values($completedCounts),
+                    ],
+                    [
+                        'name' => 'Inprogress',
+                        'data' => array_values($inProgressSnapshots),
+                    ],
+                ],
+            ],
+        ];
+    }
+
     private function buildDatatableQuery(array $filters): Builder
     {
         $actorUserId = (string) ($filters['actor_user_id'] ?? '');
@@ -264,5 +416,76 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         }
 
         return count(array_intersect($roles, $eligible)) > 0;
+    }
+
+    private function resolveStatusAtWindowEnd(Task $task, Carbon $windowEnd): ?string
+    {
+        if (! $task->created_at || $task->created_at->gt($windowEnd)) {
+            return null;
+        }
+
+        if ($task->deleted_at && $task->deleted_at->lte($windowEnd)) {
+            return null;
+        }
+
+        $status = Task::STATUS_PENDING;
+        $hasStatusEvents = false;
+
+        foreach ($task->events as $event) {
+            if (! $event->created_at || $event->created_at->gt($windowEnd)) {
+                break;
+            }
+
+            $nextStatus = trim((string) ($event->to_status ?? ''));
+            if ($nextStatus === '') {
+                continue;
+            }
+
+            $status = $nextStatus;
+            $hasStatusEvents = true;
+        }
+
+        if ($hasStatusEvents) {
+            return $status;
+        }
+
+        if ($task->cancelled_at && $task->cancelled_at->lte($windowEnd)) {
+            return Task::STATUS_CANCELLED;
+        }
+
+        if ($task->completed_at && $task->completed_at->lte($windowEnd)) {
+            return Task::STATUS_DONE;
+        }
+
+        if ($task->started_at && $task->started_at->lte($windowEnd)) {
+            return Task::STATUS_IN_PROGRESS;
+        }
+
+        return Task::STATUS_PENDING;
+    }
+
+    private function makeAdminMetricCard(
+        int $current,
+        int $previous,
+        string $contextLabel,
+        string $comparisonLabel
+    ): array {
+        $delta = $current - $previous;
+        $direction = $delta === 0
+            ? 'flat'
+            : ($delta > 0 ? 'up' : 'down');
+
+        $deltaPercent = $previous === 0
+            ? ($current === 0 ? 0.0 : 100.0)
+            : round((abs($delta) / $previous) * 100, 2);
+
+        return [
+            'value' => $current,
+            'comparison_value' => $previous,
+            'comparison_label' => $comparisonLabel,
+            'context_label' => $contextLabel,
+            'delta_percent' => $deltaPercent,
+            'direction' => $direction,
+        ];
     }
 }

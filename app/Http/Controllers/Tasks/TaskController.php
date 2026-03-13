@@ -25,9 +25,16 @@ class TaskController extends Controller
             ->only(['index', 'data']);
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        return view('tasks.index');
+        $user = $request->user();
+        $isAdministrator = $user?->hasAnyRole(['Administrator', 'admin']) ?? false;
+
+        $adminTaskStats = $isAdministrator
+            ? $this->tasks->adminDashboardStats(6)
+            : null;
+
+        return view('tasks.index', compact('adminTaskStats'));
     }
 
     public function data(TaskTableDataRequest $request): JsonResponse

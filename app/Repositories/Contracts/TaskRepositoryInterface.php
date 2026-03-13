@@ -28,4 +28,6 @@ interface TaskRepositoryInterface
     public function datatable(array $filters, int $page = 1, int $size = 15): array;
 
     public function countsForSidebar(string $userId, array $roles): array;
+
+    public function adminDashboardStats(int $months = 6): array;
 }

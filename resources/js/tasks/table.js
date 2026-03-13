@@ -269,6 +269,21 @@
     });
 
     window.__tasksTable = table;
+    function emitSidebarStats() {
+      if (typeof window.__tasksUpdateSidebarStats !== "function") {
+        return;
+      }
+
+      const currentPageRows = typeof table.getDataCount === "function"
+        ? table.getDataCount("active")
+        : (typeof table.getData === "function" ? table.getData().length : 0);
+
+      window.__tasksUpdateSidebarStats({
+        visibleTotal: lastTotal,
+        currentPageRows,
+        filters: getFilters(),
+      });
+    }
 
     function updateInfo() {
       if (!infoEl) return;
@@ -328,10 +343,12 @@
     table.on("dataLoaded", function () {
       el.classList.remove("is-loading");
       updateInfo();
+      emitSidebarStats();
     });
 
     table.on("pageLoaded", function () {
       updateInfo();
+      emitSidebarStats();
     });
 
     setInfoText("Loading...");

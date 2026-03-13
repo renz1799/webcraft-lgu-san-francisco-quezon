@@ -66,6 +66,7 @@
       import("./tasks/table.js"),
       import("./tasks/filters.js"),
       import("./tasks/actions.js"),
+      import("./tasks/stats.js"),
     ]);
   }
 
