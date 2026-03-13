@@ -155,7 +155,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         $pendingSnapshots = array_fill_keys($keys, 0);
         $inProgressSnapshots = array_fill_keys($keys, 0);
 
-        $tasks = Task::withTrashed()
+        $tasks = Task::query()
             ->select([
                 'id',
                 'status',
