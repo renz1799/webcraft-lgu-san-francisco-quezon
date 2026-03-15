@@ -36,6 +36,34 @@
         gap: 0.9rem;
     }
 
+    .task-show-header-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+        border-radius: 9999px;
+        padding: 0.7rem 1rem;
+        line-height: 1;
+        box-shadow: 0 10px 24px rgba(14, 165, 233, 0.16);
+    }
+
+    .task-show-header-action i {
+        font-size: 1rem;
+    }
+
+    .task-show-section-title {
+        display: inline-flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .task-show-section-status {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #f59e0b;
+    }
+
     .task-show-summary.box,
     .task-show-timeline.box,
     .task-show-stat,
@@ -395,23 +423,25 @@
                 Review task details, take action, and follow the complete activity timeline from one page.
             </p>
         </div>
-        <ol class="flex items-center whitespace-nowrap min-w-0">
-            <li class="text-[0.813rem] ps-[0.5rem]">
-                <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('tasks.index') }}">
-                    Workflow
-                    <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
-                </a>
-            </li>
-            <li class="text-[0.813rem] ps-[0.5rem]">
-                <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('tasks.index') }}">
-                    Tasks
-                    <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
-                </a>
-            </li>
-            <li class="text-[0.813rem] text-defaulttextcolor font-semibold dark:text-[#8c9097] dark:text-white/50" aria-current="page">
-                Timeline
-            </li>
-        </ol>
+        <div class="mt-4 md:mt-0">
+            <ol class="flex items-center whitespace-nowrap min-w-0">
+                <li class="text-[0.813rem] ps-[0.5rem]">
+                    <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('tasks.index') }}">
+                        Workflow
+                        <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
+                    </a>
+                </li>
+                <li class="text-[0.813rem] ps-[0.5rem]">
+                    <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('tasks.index') }}">
+                        Tasks
+                        <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
+                    </a>
+                </li>
+                <li class="text-[0.813rem] text-defaulttextcolor font-semibold dark:text-[#8c9097] dark:text-white/50" aria-current="page">
+                    Timeline
+                </li>
+            </ol>
+        </div>
     </div>
 
     <div class="grid grid-cols-12 gap-x-6 task-show-layout">
@@ -419,22 +449,23 @@
             <div class="box overflow-hidden task-show-summary">
                 <div class="box-header justify-between">
                     <div>
-                        <h5 class="box-title">Task Overview</h5>
+                        <h5 class="box-title task-show-section-title">
+                            <span>Task Overview</span>
+                            <span class="task-show-section-status">({{ $currentStatusLabel }})</span>
+                        </h5>
                         <p class="text-xs text-[#8c9097] dark:text-white/50 mt-1">
                             Summary, ownership, and available workflow actions stay on the left.
                         </p>
                     </div>
-                    <span class="badge {{ $currentStatusClasses }} font-semibold whitespace-nowrap">
-                        {{ $currentStatusLabel }}
-                    </span>
+                    @if($subjectUrl)
+                        <a href="{{ $subjectUrl }}" class="ti-btn ti-btn-secondary-full task-show-header-action">
+                            <i class="ti ti-external-link"></i>
+                            Open Task
+                        </a>
+                    @endif
                 </div>
                 <div class="box-body space-y-5">
                     <div class="flex flex-wrap gap-2 task-show-action-row">
-
-                        @if($subjectUrl)
-                            <a href="{{ $subjectUrl }}" class="ti-btn ti-btn-secondary">Open Task</a>
-                        @endif
-
                         @foreach($normalizedHeaderActions as $action)
                             @if($action['type'] === 'link')
                                 <a href="{{ $action['href'] }}" class="{{ $action['classes'] }}"{!! $action['attributes_html'] !!}>
