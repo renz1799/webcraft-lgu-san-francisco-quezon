@@ -291,7 +291,7 @@ function bindResetPassword() {
 
     const res = await Swal.fire({
       title: 'Generate temporary password?',
-      text: 'This will immediately replace the user's current password.',
+      text: "This will immediately replace the user's current password.",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Yes, generate',
