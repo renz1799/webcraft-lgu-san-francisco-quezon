@@ -48,7 +48,7 @@ function toastSuccess(message) {
 function toastError(message) {
   Swal.fire({
     icon: 'error',
-    title: 'Oops…',
+    title: 'Oops...',
     text: message || 'Something went wrong',
   });
 }
@@ -219,7 +219,7 @@ function bindSavePermissions() {
         const span = document.getElementById(`feedback-${page.replace(/\s+/g, '-').toLowerCase()}`);
         if (span) {
           span.classList.remove('hidden');
-          span.textContent = '✔ Saved';
+          span.textContent = 'Saved';
           setTimeout(() => span.classList.add('hidden'), 2500);
         }
       });
@@ -291,7 +291,7 @@ function bindResetPassword() {
 
     const res = await Swal.fire({
       title: 'Generate temporary password?',
-      text: 'This will immediately replace the user’s current password.',
+      text: 'This will immediately replace the user's current password.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Yes, generate',
@@ -361,4 +361,3 @@ onReady(() => {
   bindRoleChange();
   bindResetPassword();
 });
-
