@@ -66,7 +66,9 @@ class UserProfileService implements UserProfileServiceInterface
                 $user,
                 ['user' => $beforeUser, 'profile' => $beforeProfile],
                 ['user' => $afterUser, 'profile' => $afterProfile],
-                $this->meta()
+                $this->meta(),
+                null,
+                $this->buildProfileUpdatedDisplay($user->fresh(), $beforeUser, $beforeProfile, $afterUser, $afterProfile)
             );
         });
     }
@@ -89,7 +91,8 @@ class UserProfileService implements UserProfileServiceInterface
                 $before,
                 ['must_change_password' => false, 'password_changed' => true],
                 $this->meta(),
-                'user changed own password'
+                'user changed own password',
+                $this->buildPasswordChangedDisplay($user)
             );
         });
     }
@@ -112,6 +115,104 @@ class UserProfileService implements UserProfileServiceInterface
             'ip' => request()->ip(),
             'ua' => request()->userAgent(),
         ];
+    }
+
+    private function buildProfileUpdatedDisplay(
+        User $user,
+        array $beforeUser,
+        array $beforeProfile,
+        array $afterUser,
+        array $afterProfile
+    ): array {
+        $fields = [
+            'user.email' => 'Email',
+            'user.username' => 'Username',
+            'profile.first_name' => 'First Name',
+            'profile.middle_name' => 'Middle Name',
+            'profile.last_name' => 'Last Name',
+            'profile.name_extension' => 'Name Extension',
+            'profile.address' => 'Address',
+            'profile.contact_details' => 'Contact Details',
+            'profile.profile_photo_path' => 'Profile Photo',
+        ];
+
+        $items = [];
+        foreach ($fields as $path => $label) {
+            [$group, $key] = explode('.', $path, 2);
+
+            $before = $group === 'user'
+                ? ($beforeUser[$key] ?? null)
+                : ($beforeProfile[$key] ?? null);
+            $after = $group === 'user'
+                ? ($afterUser[$key] ?? null)
+                : ($afterProfile[$key] ?? null);
+
+            if (($before ?? null) === ($after ?? null)) {
+                continue;
+            }
+
+            $items[] = [
+                'label' => $label,
+                'before' => $before ?: 'None',
+                'after' => $after ?: 'None',
+            ];
+        }
+
+        return [
+            'summary' => 'Profile updated for ' . $this->userDisplayName($user),
+            'subject_label' => $this->userDisplayName($user),
+            'sections' => [
+                [
+                    'title' => 'Profile Changes',
+                    'items' => $items ?: [[
+                        'label' => 'Profile',
+                        'value' => 'Profile saved with no tracked field changes.',
+                    ]],
+                ],
+            ],
+            'request_details' => [
+                'Current Username' => $afterUser['username'] ?? ($user->username ?: 'None'),
+                'Current Email' => $afterUser['email'] ?? ($user->email ?: 'None'),
+            ],
+        ];
+    }
+
+    private function buildPasswordChangedDisplay(User $user): array
+    {
+        return [
+            'summary' => 'Password changed for ' . $this->userDisplayName($user),
+            'subject_label' => $this->userDisplayName($user),
+            'sections' => [
+                [
+                    'title' => 'Password Update',
+                    'items' => [
+                        [
+                            'label' => 'Password',
+                            'value' => 'User updated their password successfully.',
+                        ],
+                        [
+                            'label' => 'Password Change Required',
+                            'before' => 'Required',
+                            'after' => 'Cleared',
+                        ],
+                    ],
+                ],
+            ],
+            'request_details' => [
+                'Username' => $user->username ?: 'None',
+                'Email' => $user->email ?: 'None',
+            ],
+        ];
+    }
+
+    private function userDisplayName(User $user): string
+    {
+        $profileName = trim((string) ($user->profile?->full_name ?? ''));
+        if ($profileName !== '') {
+            return $profileName;
+        }
+
+        return (string) ($user->username ?: $user->email ?: 'User');
     }
 }
 

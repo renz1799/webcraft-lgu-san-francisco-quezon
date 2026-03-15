@@ -393,8 +393,16 @@ import "sweetalert2/dist/sweetalert2.min.css";
       return `<span style="color:${theme.muted};font-size:13px">None</span>`;
     }
 
-    const bg = tone === "added" ? theme.addedBg : theme.removedBg;
-    const color = tone === "added" ? theme.addedText : theme.removedText;
+    const bg = tone === "added"
+      ? theme.addedBg
+      : tone === "removed"
+        ? theme.removedBg
+        : theme.softBg;
+    const color = tone === "added"
+      ? theme.addedText
+      : tone === "removed"
+        ? theme.removedText
+        : theme.text;
 
     return `
       <div style="display:flex;flex-wrap:wrap;gap:8px;">
@@ -404,6 +412,73 @@ import "sweetalert2/dist/sweetalert2.min.css";
           </span>`).join("")}
       </div>
     `;
+  }
+
+  function getStructuredDisplay(meta) {
+    const display = meta?.display;
+    if (!isPlainObject(display)) return null;
+
+    return {
+      summary: String(display.summary || "").trim(),
+      subjectLabel: String(display.subject_label || "").trim(),
+      sections: Array.isArray(display.sections) ? display.sections.filter(isPlainObject) : [],
+      requestDetails: isPlainObject(display.request_details) ? display.request_details : {},
+      systemNotes: Array.isArray(display.system_notes) ? display.system_notes.filter(isPlainObject) : [],
+    };
+  }
+
+  function renderStructuredValue(value, theme) {
+    if (Array.isArray(value)) {
+      return renderList(normalizeList(value), theme, "neutral");
+    }
+
+    return `<div style="color:${theme.text};font-size:13px;line-height:1.5;">${esc(formatValue(value))}</div>`;
+  }
+
+  function renderStructuredSections(sections, theme) {
+    if (!sections.length) return "";
+
+    return sections.map((section) => `
+      <div style="border:1px solid ${theme.border};border-radius:16px;background:${theme.cardBg};padding:16px;display:grid;gap:12px;">
+        <div style="font-weight:700;color:${theme.text};font-size:14px;">${esc(section.title || "Details")}</div>
+        <div style="display:grid;gap:10px;">
+          ${(Array.isArray(section.items) ? section.items : [])
+            .filter(isPlainObject)
+            .map((item) => {
+              const label = String(item.label || "").trim();
+              if (!label) return "";
+
+              const hasBeforeAfter = Object.prototype.hasOwnProperty.call(item, "before")
+                || Object.prototype.hasOwnProperty.call(item, "after");
+
+              if (hasBeforeAfter) {
+                return `
+                  <div style="border:1px solid ${theme.border};border-radius:14px;background:${theme.popupBg};padding:14px;display:grid;gap:8px;">
+                    <div style="font-weight:700;color:${theme.text};font-size:13px;">${esc(label)}</div>
+                    <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+                      <div>
+                        <div style="font-size:11px;font-weight:700;color:${theme.muted};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Before</div>
+                        ${renderStructuredValue(item.before, theme)}
+                      </div>
+                      <div>
+                        <div style="font-size:11px;font-weight:700;color:${theme.muted};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">After</div>
+                        ${renderStructuredValue(item.after, theme)}
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }
+
+              return `
+                <div style="border:1px solid ${theme.border};border-radius:14px;background:${theme.popupBg};padding:14px;display:grid;gap:8px;">
+                  <div style="font-weight:700;color:${theme.text};font-size:13px;">${esc(label)}</div>
+                  ${renderStructuredValue(item.value, theme)}
+                </div>
+              `;
+            }).join("")}
+        </div>
+      </div>
+    `).join("");
   }
 
   function renderDiffSections(sections, theme) {
@@ -466,7 +541,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
           ${sections.map((section) => `
             <div style="border:1px solid ${theme.border};border-radius:14px;background:${theme.popupBg};padding:14px;display:grid;gap:8px;">
               <div style="font-weight:700;color:${theme.text};font-size:13px;">${esc(section.title)}</div>
-              ${renderList(section.items, theme, "added")}
+              ${renderList(section.items, theme, "neutral")}
             </div>
           `).join("")}
         </div>
@@ -474,7 +549,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
     `;
   }
 
-  function renderRequestDetails(payload, theme) {
+  function renderRequestDetails(payload, theme, extraDetails = {}) {
     const details = [
       { label: "Recorded", value: payload.createdAt || "-" },
       { label: "Action", value: formatActionLabel(payload.action) },
@@ -484,6 +559,15 @@ import "sweetalert2/dist/sweetalert2.min.css";
       { label: "IP Address", value: payload.ip || payload.meta?.ip || "-" },
       { label: "Browser", value: payload.agent || payload.meta?.ua || "-" },
     ];
+
+    Object.entries(extraDetails || {}).forEach(([label, value]) => {
+      const cleanLabel = String(label || "").trim();
+      if (!cleanLabel || value === null || value === "" || value === []) return;
+
+      if (details.some((item) => item.label === cleanLabel)) return;
+
+      details.push({ label: cleanLabel, value: formatValue(value) });
+    });
 
     return `
       <div style="border:1px solid ${theme.border};border-radius:16px;background:${theme.cardBg};padding:16px;display:grid;gap:12px;">
@@ -528,11 +612,28 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
   function buildDetailsHtml(payload) {
     const theme = getTheme();
+    const structuredDisplay = getStructuredDisplay(payload.meta || {});
     const diffSections = buildListSections(payload.old, payload.new);
     const fieldChanges = buildFieldChanges(payload.old, payload.new);
     const metaSections = buildMetaSections(payload.meta || {});
-    const summary = buildSummary(payload);
+    const summary = structuredDisplay?.summary || buildSummary(payload);
     const note = String(payload.message || "").trim();
+    const requestPayload = structuredDisplay?.subjectLabel
+      ? { ...payload, subject: structuredDisplay.subjectLabel }
+      : payload;
+    const detailsHtml = structuredDisplay?.sections?.length
+      ? renderStructuredSections(structuredDisplay.sections, theme)
+      : `${diffSections.length ? renderDiffSections(diffSections, theme) : ""}${fieldChanges.length ? renderFieldChanges(fieldChanges, theme) : ""}`;
+    const requestDetailsHtml = renderRequestDetails(
+      requestPayload,
+      theme,
+      structuredDisplay?.requestDetails || {}
+    );
+    const systemNotesHtml = (structuredDisplay?.systemNotes?.length
+      ? renderMetaSections(structuredDisplay.systemNotes, theme)
+      : metaSections.length
+        ? renderMetaSections(metaSections, theme)
+        : "");
 
     return {
       theme,
@@ -548,10 +649,9 @@ import "sweetalert2/dist/sweetalert2.min.css";
             </div>
           </div>
           ${note ? `<div style="border:1px solid ${theme.border};border-radius:16px;background:${theme.noteBg};padding:14px;color:${theme.text};font-size:13px;line-height:1.5;"><strong style="display:block;margin-bottom:4px;">Audit note</strong>${esc(note)}</div>` : ""}
-          ${diffSections.length ? renderDiffSections(diffSections, theme) : ""}
-          ${fieldChanges.length ? renderFieldChanges(fieldChanges, theme) : ""}
-          ${renderRequestDetails(payload, theme)}
-          ${metaSections.length ? renderMetaSections(metaSections, theme) : ""}
+          ${detailsHtml}
+          ${requestDetailsHtml}
+          ${systemNotesHtml}
           ${renderTechnicalDetails(payload, theme)}
         </div>
       `,
