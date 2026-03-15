@@ -72,12 +72,16 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
         return $q->with([
             'actor' => function (MorphTo $morph) {
                 $morph->constrain([
-                    User::class => fn (Builder $qq) => $qq->withTrashed()->select('id', 'username', 'email', 'deleted_at'),
+                    User::class => fn (Builder $qq) => $qq->withTrashed()
+                        ->select('id', 'username', 'email', 'deleted_at')
+                        ->with(['profile:id,user_id,first_name,middle_name,last_name,name_extension']),
                 ]);
             },
             'subject' => function (MorphTo $morph) {
                 $morph->constrain([
-                    User::class => fn (Builder $qq) => $qq->withTrashed()->select('id', 'username', 'email', 'deleted_at'),
+                    User::class => fn (Builder $qq) => $qq->withTrashed()
+                        ->select('id', 'username', 'email', 'deleted_at')
+                        ->with(['profile:id,user_id,first_name,middle_name,last_name,name_extension']),
                     Permission::class => fn (Builder $qq) => $qq->withTrashed()->select('id', 'name', 'page', 'deleted_at'),
                     Role::class => fn (Builder $qq) => $qq->withTrashed()->select('id', 'name', 'deleted_at'),
                 ]);
@@ -162,6 +166,8 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
     {
         $actor = $log->actor;
         $subject = $log->subject;
+        $old = (array) ($log->changes_old ?? []);
+        $new = (array) ($log->changes_new ?? []);
 
         $subjectTypeShort = match ($log->subject_type) {
             User::class => 'user',
@@ -175,11 +181,12 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
 
         return [
             'id' => (string) $log->id,
-            'created_at_text' => $log->created_at?->format('Y-m-d H:i:s'),
+            'created_at_iso' => $log->created_at?->toIso8601String(),
+            'created_at_text' => $log->created_at?->format('M d, Y g:i A'),
 
-            'actor_name' => $actor
-                ? ($actor->username ?? $actor->email ?? 'User')
-                : '-',
+            'actor_name' => $actor instanceof User
+                ? $this->buildUserDisplayName($actor)
+                : ($actor ? ($actor->username ?? $actor->email ?? 'User') : '-'),
             'actor_id' => $log->actor_id,
 
             'action' => (string) ($log->action ?? ''),
@@ -198,8 +205,8 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
             'ip' => (string) ($log->ip ?? ''),
 
             'message' => $log->message,
-            'changes_old' => $log->changes_old,
-            'changes_new' => $log->changes_new,
+            'changes_old' => $old,
+            'changes_new' => $new,
             'meta' => $log->meta,
             'user_agent' => $log->user_agent,
         ];
@@ -213,6 +220,11 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
 
         $type = $log->subject_type ? class_basename($log->subject_type) : null;
 
+        if ($type === 'User') {
+            $name = $this->buildUserDisplayName($subject instanceof User ? $subject : null, $old, $new);
+            return $type ? trim($type . ($name ? ' : ' . $name : '')) : '-';
+        }
+
         $name = $subject->name
             ?? ($old['name'] ?? null)
             ?? ($new['name'] ?? null);
@@ -221,15 +233,47 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
             ?? ($old['page'] ?? null)
             ?? ($new['page'] ?? null);
 
-        if ($type === 'User' && ! $name) {
-            $name = $subject->username
-                ?? $subject->email
-                ?? ($old['username'] ?? $old['email'] ?? ($new['username'] ?? $new['email'] ?? 'User'));
-        }
-
         return $type
             ? trim($type . ($name ? ' : ' . $name : '') . ($page ? ' - ' . $page : ''))
             : '-';
     }
-}
 
+    private function buildUserDisplayName(?User $user, array $old = [], array $new = []): string
+    {
+        $profileName = trim((string) ($user?->profile?->full_name ?? ''));
+        if ($profileName !== '') {
+            return $profileName;
+        }
+
+        $profilePayloadName = $this->buildProfileNameFromArray($new['profile'] ?? null)
+            ?: $this->buildProfileNameFromArray($old['profile'] ?? null);
+
+        if ($profilePayloadName !== '') {
+            return $profilePayloadName;
+        }
+
+        return (string) (
+            $user?->username
+            ?? $user?->email
+            ?? ($new['username'] ?? null)
+            ?? ($old['username'] ?? null)
+            ?? ($new['email'] ?? null)
+            ?? ($old['email'] ?? null)
+            ?? 'User'
+        );
+    }
+
+    private function buildProfileNameFromArray(mixed $profileData): string
+    {
+        if (! is_array($profileData)) {
+            return '';
+        }
+
+        return trim(implode(' ', array_filter([
+            $profileData['first_name'] ?? null,
+            $profileData['middle_name'] ?? null,
+            $profileData['last_name'] ?? null,
+            $profileData['name_extension'] ?? null,
+        ])));
+    }
+}

@@ -19,6 +19,38 @@
       .replace(/'/g, "&#39;");
   }
 
+  function titleCase(value) {
+    return String(value ?? "")
+      .replace(/[._]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (match) => match.toUpperCase());
+  }
+
+  function formatActionLabel(action) {
+    const labels = {
+      "user.permissions.synced": "Permissions Updated",
+      "user.role.changed": "Role Updated",
+      "user.role.assigned_default": "Default Role Assigned",
+      "user.status.updated": "Status Updated",
+      "user.password.reset": "Temporary Password Generated",
+      "user.password.changed": "Password Changed",
+      "user.profile.updated": "Profile Updated",
+      "user.deleted": "User Archived",
+      "user.restored": "User Restored",
+      "role.created": "Role Created",
+      "role.updated": "Role Updated",
+      "role.deleted": "Role Archived",
+      "role.restored": "Role Restored",
+      "permission.created": "Permission Created",
+      "permission.updated": "Permission Updated",
+      "permission.deleted": "Permission Archived",
+      "permission.restored": "Permission Restored",
+    };
+
+    return labels[action] || titleCase(action || "-");
+  }
+
   onReady(function () {
     const cfg = window.__audit || {};
     const el = document.getElementById("audit-table");
@@ -94,13 +126,18 @@
         {
           title: "When",
           field: "created_at_text",
-          minWidth: 170,
-          formatter: (cell) => esc(cell.getValue() || "-"),
+          minWidth: 190,
+          formatter: function (cell) {
+            const row = cell.getRow().getData();
+            const text = esc(cell.getValue() || "-");
+            const iso = esc(row.created_at_iso || "");
+            return `<span class="font-medium" title="${iso}">${text}</span>`;
+          },
         },
         {
           title: "User",
           field: "actor_name",
-          minWidth: 170,
+          minWidth: 180,
           formatter: function (cell) {
             const row = cell.getRow().getData();
             const name = esc(row.actor_name || "-");
@@ -122,13 +159,15 @@
         {
           title: "Action",
           field: "action",
-          minWidth: 180,
-          formatter: (cell) => esc(cell.getValue() || "-"),
+          minWidth: 190,
+          formatter: function (cell) {
+            return esc(formatActionLabel(cell.getValue() || "-"));
+          },
         },
         {
           title: "Subject",
           field: "subject_label",
-          minWidth: 240,
+          minWidth: 260,
           formatter: function (cell) {
             const row = cell.getRow().getData();
             const label = esc(row.subject_label || "-");
@@ -171,13 +210,13 @@
         {
           title: "IP",
           field: "ip",
-          minWidth: 120,
+          minWidth: 130,
           formatter: (cell) => esc(cell.getValue() || "-"),
         },
         {
-          title: "Changes",
+          title: "Details",
           field: "id",
-          width: 110,
+          width: 150,
           hozAlign: "center",
           headerSort: false,
           formatter: function (cell) {
@@ -185,14 +224,21 @@
 
             return `
               <button type="button"
-                class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full"
+                class="ti-btn ti-btn-sm ti-btn-light !rounded-md inline-flex items-center gap-1.5"
                 data-action="view-log"
                 data-message="${esc(row.message ?? "")}" 
+                data-action-code="${esc(row.action ?? "")}"
+                data-created-at="${esc(row.created_at_text ?? "")}" 
+                data-user="${esc(row.actor_name ?? "-")}" 
+                data-subject="${esc(row.subject_label ?? "-")}" 
+                data-request="${esc(row.request ?? "")}" 
+                data-ip="${esc(row.ip ?? "")}" 
                 data-old='${esc(JSON.stringify(row.changes_old ?? {}))}'
                 data-new='${esc(JSON.stringify(row.changes_new ?? {}))}'
                 data-meta='${esc(JSON.stringify(row.meta ?? {}))}'
                 data-agent='${esc(String(row.user_agent ?? ""))}'>
-                <i class="ri-eye-line"></i>
+                <i class="ri-file-list-3-line"></i>
+                <span>View Details</span>
               </button>
             `;
           },
@@ -267,4 +313,3 @@
     setInfoText("Loading...");
   });
 })();
-
