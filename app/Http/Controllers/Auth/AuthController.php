@@ -74,7 +74,7 @@ class AuthController extends Controller
 
         $user = auth()->user();
         if ($user && (bool) $user->must_change_password) {
-            return redirect('/mail-settings?tab=account-settings')
+            return redirect()->route('profile.index', ['tab' => 'account-settings'])
                 ->with('force_password_change', true);
         }
 
@@ -98,5 +98,6 @@ class AuthController extends Controller
             ->get(['id', 'name']);
     }
 }
+
 
 

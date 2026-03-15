@@ -11,13 +11,13 @@ function getForceFlag() {
 function isAccountSettingsPage() {
   const url = new URL(window.location.href);
   return (
-    url.pathname === "/mail-settings" &&
+    (url.pathname === "/profile" || url.pathname === "/mail-settings") &&
     url.searchParams.get("tab") === "account-settings"
   );
 }
 
 function redirectToAccountSettings() {
-  window.location.href = "/mail-settings?tab=account-settings";
+  window.location.href = "/profile?tab=account-settings";
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -58,3 +58,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     localStorage.setItem(STORAGE_KEY, "1");
   }
 });
+

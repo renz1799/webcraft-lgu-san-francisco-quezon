@@ -109,7 +109,7 @@ export default defineConfig({
                 'resources/assets/js/jsvectormap.js',
                 'resources/assets/js/landing.js',
                 'resources/assets/js/leaflet.js',
-                'resources/assets/js/mail-settings.js',
+                'resources/assets/js/profile-settings.js',
                 'resources/assets/js/mail.js',
                 'resources/assets/js/masonry.js',
                 'resources/assets/js/modal.js',
@@ -236,3 +236,4 @@ export default defineConfig({
     },
 });
     
+

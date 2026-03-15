@@ -16,8 +16,8 @@ class UserProfileController extends Controller
 
     public function index(): View
     {
-        $data = $this->svc->getMailSettingsData(auth()->user());
-        return view('pages.profile.mail-settings', $data);
+        $data = $this->svc->getProfileData(auth()->user());
+        return view('profile.index', $data);
     }
 
     public function update(UpdateProfileRequest $request)
@@ -38,5 +38,6 @@ class UserProfileController extends Controller
             ->with('success', 'Password updated successfully.');
     }
 }
+
 
 

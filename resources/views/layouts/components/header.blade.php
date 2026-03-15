@@ -170,8 +170,8 @@
 
         <ul class="text-defaulttextcolor font-medium dark:text-[#8c9097] dark:text-white/50">
             @if($user)
-                <li><a class="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0 !p-[0.65rem] !inline-flex" href="{{ url('mail-settings') }}">
-                        <i class="ti ti-adjustments-horizontal text-[1.125rem] me-2 opacity-[0.7]"></i>Settings
+                <li><a class="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0 !p-[0.65rem] !inline-flex" href="{{ route('profile.index') }}">
+                        <i class="ti ti-user-circle text-[1.125rem] me-2 opacity-[0.7]"></i>Profile
                     </a>
                 </li>
 

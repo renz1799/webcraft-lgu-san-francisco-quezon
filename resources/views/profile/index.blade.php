@@ -11,23 +11,25 @@
 @endsection
 
 @section('content')
+@php($activeTab = request('tab', 'personal-info'))
+@php($isAccountTab = $activeTab === 'account-settings')
 
                   <div class="container">
 
                     <!-- Page Header -->
                     <div class="block justify-between page-header md:flex">
                         <div>
-                            <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white dark:hover:text-white text-[1.125rem] font-semibold">Mail Settings</h3>
+                            <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white dark:hover:text-white text-[1.125rem] font-semibold">Profile</h3>
                         </div>
                         <ol class="flex items-center whitespace-nowrap min-w-0">
                             <li class="text-[0.813rem] ps-[0.5rem]">
                               <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="javascript:void(0);">
-                                Mail
+                                Profile
                                 <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
                               </a>
                             </li>
                             <li class="text-[0.813rem] text-defaulttextcolor font-semibold hover:text-primary dark:text-[#8c9097] dark:text-white/50 " aria-current="page">
-                               Mail Settings
+                               Profile
                             </li>
                         </ol>
                     </div>
@@ -39,10 +41,10 @@
                             <div class="box">
                             <div class="box-header sm:flex block !justify-start">
     <nav aria-label="Tabs" class="md:flex block !justify-start whitespace-nowrap" role="tablist">
-        <a href="?tab=personal-info" class="m-1 block w-full hs-tab-active:bg-primary/10 hs-tab-active:text-primary cursor-pointer text-defaulttextcolor dark:text-defaulttextcolor/70 py-2 px-3 flex-grow  text-[0.75rem] font-medium rounded-md hover:text-primary {{ request('tab') !== 'account-settings' ? 'active' : '' }}" id="Personal-item">
+        <a href="{{ route('profile.index', ['tab' => 'personal-info']) }}" class="m-1 block w-full cursor-pointer py-2 px-3 flex-grow text-[0.75rem] font-medium rounded-md {{ $isAccountTab ? 'text-defaulttextcolor dark:text-defaulttextcolor/70 hover:text-primary' : 'bg-primary/10 text-primary' }}" id="Personal-item">
             Personal Information
         </a>
-        <a href="?tab=account-settings" class="m-1 block w-full hs-tab-active:bg-primary/10 hs-tab-active:text-primary cursor-pointer text-defaulttextcolor dark:text-defaulttextcolor/70 py-2 px-3 text-[0.75rem] flex-grow font-medium rounded-md hover:text-primary {{ request('tab') === 'account-settings' ? 'active' : '' }}" id="account-item">
+        <a href="{{ route('profile.index', ['tab' => 'account-settings']) }}" class="m-1 block w-full cursor-pointer py-2 px-3 text-[0.75rem] flex-grow font-medium rounded-md {{ $isAccountTab ? 'bg-primary/10 text-primary' : 'text-defaulttextcolor dark:text-defaulttextcolor/70 hover:text-primary' }}" id="account-item">
             Account Settings
         </a>
     </nav>
@@ -53,24 +55,8 @@
         @csrf
         @method('PUT')
 
-        <div class="tab-pane {{ request('tab') !== 'account-settings' ? 'show active' : 'hidden' }} dark:border-defaultborder/10" id="personal-info">
+        <div class="tab-pane {{ $isAccountTab ? 'hidden' : 'show active' }} dark:border-defaultborder/10" id="personal-info">
             <div class="sm:p-4 p-0">
-                @if (session('success'))
-                    <div class="alert alert-success">
-                        {{ session('success') }}
-                    </div>
-                @endif
-
-                @if ($errors->any())
-                    <div class="alert alert-danger">
-                        <ul>
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
                 <h6 class="font-semibold mb-4 text-[1rem]">Photo:</h6>
                 <div class="mb-6 sm:flex items-center">
                 <div class="mb-0 me-[3rem]">
@@ -94,6 +80,15 @@
                             <i class="fe fe-camera !text-[0.65rem] !text-white"></i>
                         </a>
                     </span>
+                </div>
+                <div class="inline-flex flex-col items-start gap-2">
+                    <div class="inline-flex">
+                        <label for="profile-image" class="ti-btn btn-wave bg-primary text-white !rounded-e-none !font-medium cursor-pointer">Change</label>
+                        <button type="button" class="ti-btn ti-btn-light !font-medium !rounded-s-none" id="reset-profile-preview">Reset Preview</button>
+                    </div>
+                    <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mb-0">
+                        Select a new image, then save the profile to apply it.
+                    </p>
                 </div>
                 </div>
                 <h6 class="font-semibold mb-4 text-[1rem]">Profile:</h6>
@@ -144,13 +139,16 @@
                     </div>
                     <div class="xl:col-span-6 col-span-12">
                         <label for="username" class="form-label">Username:</label>
-                        <input 
-                            type="text" 
-                            name="username" 
-                            class="form-control w-full !rounded-md" 
-                            id="username" 
-                            placeholder="Username" 
-                            value="{{ old('username', $user->username) }}">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="ri-at-line"></i></span>
+                            <input 
+                                type="text" 
+                                name="username" 
+                                class="form-control w-full !rounded-e-md !rounded-s-none" 
+                                id="username" 
+                                placeholder="Username" 
+                                value="{{ old('username', $user->username) }}">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -167,7 +165,7 @@
     </form>
 
 
-    <div class="tab-pane {{ request('tab') === 'account-settings' ? 'show active' : 'hidden' }} dark:border-defaultborder/10" id="account-settings">
+    <div class="tab-pane {{ $isAccountTab ? 'show active' : 'hidden' }} dark:border-defaultborder/10" id="account-settings">
     <div class="grid grid-cols-12 gap-4">
     <!-- Reset Password Section -->
     <div class="xl:col-span-8 lg:col-span-8 col-span-12">
@@ -204,25 +202,6 @@
                         <div class="mt-4">
                             <button type="submit" class="ti-btn btn-wave bg-primary text-white">Reset Password</button>
                         </div>
-                        
-                        <!-- Feedback Section -->
-                        <div id="feedbackContainer" class="mt-4">
-                            @if (session('success'))
-                                <div class="alert alert-success">
-                                    {{ session('success') }}
-                                </div>
-                            @endif
-
-                            @if ($errors->any())
-                                <div class="alert alert-danger">
-                                    <ul>
-                                        @foreach ($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
-                        </div>
                     </form>
                 </div>
             </div>
@@ -233,7 +212,15 @@
 <div class="xl:col-span-4 lg:col-span-4 col-span-12">
     <div class="box shadow-none mb-0 border dark:border-defaultborder/10">
         <div class="box-header justify-between items-center sm:flex block">
-            <div class="box-title">Last Login</div>
+            <div>
+                <div class="box-title">Last Login</div>
+                <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mt-1 mb-0">
+                    Recent sign-ins and device activity tied to your account.
+                </p>
+            </div>
+            <div class="sm:mt-0 mt-2">
+                <span class="badge bg-primary/10 text-primary">{{ $loginDetails->count() }} recent</span>
+            </div>
         </div>
         <div class="box-body">
             <ul class="list-group">
@@ -249,7 +236,7 @@
                                 </p>
                                 <p class="mb-0">
                                     <span class="text-[#8c9097] dark:text-white/50 text-[0.6875rem]">
-                                        {{ $login->address ?? 'Unknown Location' }} <br> {{ $login->created_at->format('M d, h:iA') }}
+                                        {{ $login->address ?? 'Unknown Location' }} <br> {{ $login->created_at->format('M d, h:iA') }} · {{ $login->created_at->diffForHumans() }}
                                     </span>
                                 </p>
                             </div>
@@ -278,8 +265,16 @@
         <!-- Choices JS -->
         <script src="{{asset('build/assets/libs/choices.js/public/assets/scripts/choices.min.js')}}"></script>
 
-        <!-- Mail Settings -->
-        @vite('resources/assets/js/mail-settings.js')
+        <script>
+            window.profileFeedback = {
+                success: @json(session('success')),
+                errors: @json($errors->all()),
+                activeTab: @json(request('tab', 'personal-info')),
+            };
+        </script>
+
+        <!-- Profile Settings -->
+        @vite('resources/assets/js/profile-settings.js')
       
 
         <script>
@@ -297,3 +292,5 @@
 @endpush
 
 @endsection
+
+

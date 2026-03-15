@@ -17,14 +17,14 @@ class EnsurePasswordChanged
             return $next($request);
         }
 
-        // Not required → allow
+        // Not required, allow.
         if (! (bool) $user->must_change_password) {
             return $next($request);
         }
 
         // Allow these routes while forced to change password
         $allowedRouteNames = [
-            'profile.index',          // GET /mail-settings
+            'profile.index',          // GET /profile
             'profile.updatePassword', // PUT /profile/password
             'logout',                 // POST /logout
         ];
@@ -44,6 +44,7 @@ class EnsurePasswordChanged
             return $next($request);
         }
 
-        return redirect()->to(url('/mail-settings?tab=account-settings'));
+        return redirect()->route('profile.index', ['tab' => 'account-settings']);
     }
 }
+

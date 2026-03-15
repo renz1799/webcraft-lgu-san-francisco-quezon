@@ -17,7 +17,7 @@ class UserProfileService implements UserProfileServiceInterface
         private readonly AuditLogServiceInterface $audit
     ) {}
 
-    public function getMailSettingsData(User $user): array
+    public function getProfileData(User $user): array
     {
         $loginDetails = LoginDetail::where('user_id', $user->id)
             ->latest()
@@ -80,7 +80,7 @@ class UserProfileService implements UserProfileServiceInterface
 
             $user->forceFill([
                 'password' => Hash::make($data['new_password']),
-                'must_change_password' => false, // ✅ clear the flag here
+                'must_change_password' => false, // Clear the flag here.
             ])->save();
 
             $this->audit->record(
@@ -114,4 +114,5 @@ class UserProfileService implements UserProfileServiceInterface
         ];
     }
 }
+
 

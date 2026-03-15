@@ -589,7 +589,7 @@
 
                                 <ul class="text-defaulttextcolor font-medium dark:text-[#8c9097] dark:text-white/50">
                                 <li>
-                                    <a class="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0  !p-[0.65rem] !inline-flex" href="{{url('profile')}}">
+                                    <a class="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0  !p-[0.65rem] !inline-flex" href="{{ route('profile.index') }}">
                                     <i class="ti ti-user-circle text-[1.125rem] me-2 opacity-[0.7]"></i>Profile
                                     </a>
                                 </li>
@@ -601,8 +601,8 @@
                                 </li>
                                 <li><a class="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0 !p-[0.65rem] !inline-flex" href="{{url('todo')}}"><i
                                         class="ti ti-clipboard-check text-[1.125rem] me-2 opacity-[0.7]"></i>Task Manager</a></li>
-                                <li><a class="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0 !p-[0.65rem] !inline-flex" href="{{url('mail-settings')}}"><i
-                                        class="ti ti-adjustments-horizontal text-[1.125rem] me-2 opacity-[0.7]"></i>Settings</a></li>
+                                <li><a class="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0 !p-[0.65rem] !inline-flex" href="{{ route('profile.index', ['tab' => 'account-settings']) }}"><i
+                                        class="ti ti-adjustments-horizontal text-[1.125rem] me-2 opacity-[0.7]"></i>Account Settings</a></li>
                                 <li><a class="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0 !p-[0.65rem] !inline-flex " href="javascript:void(0);"><i
                                         class="ti ti-wallet text-[1.125rem] me-2 opacity-[0.7]"></i>Bal: $7,12,950</a></li>
                                 <li><a class="w-full ti-dropdown-item !text-[0.8125rem] !p-[0.65rem] !gap-x-0 !inline-flex" href="{{url('chat')}}"><i

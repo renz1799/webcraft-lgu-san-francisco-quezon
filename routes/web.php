@@ -15,6 +15,7 @@ use App\Http\Controllers\Profile\UserProfileController;
 use App\Http\Controllers\Settings\ThemeController;
 use App\Http\Controllers\Tasks\TaskActionController;
 use App\Http\Controllers\Tasks\TaskController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -41,10 +42,14 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/capture-location', [AuthController::class, 'captureLocation']); // if still used
 
-    // Profile / Mail settings
-    Route::get('/mail-settings', [UserProfileController::class, 'index'])->name('profile.index');
-    Route::put('/mail-settings', [UserProfileController::class, 'update'])->name('profile.update');
+    // Profile
+    Route::get('/profile', [UserProfileController::class, 'index'])->name('profile.index');
+    Route::put('/profile', [UserProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [UserProfileController::class, 'updatePassword'])->name('profile.updatePassword');
+    Route::get('/mail-settings', function (Request $request) {
+        return redirect()->route('profile.index', $request->query());
+    });
+    Route::put('/mail-settings', [UserProfileController::class, 'update']);
 
     /*
     |--------------------------------------------------------------------------
@@ -233,6 +238,8 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->middleware('role:Administrator')
         ->name('theme.colors.update');
 });
+
+
 
 
 
