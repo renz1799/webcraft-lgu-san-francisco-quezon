@@ -153,7 +153,7 @@
     .dark .task-show-stat,
     .dark .task-show-description,
     .dark .task-show-empty {
-        background: rgb(var(--body-bg));
+        background: rgba(15, 23, 42, 0.9);
     }
 
     .dark .task-show-summary.box,
@@ -162,21 +162,53 @@
         box-shadow: 0 18px 44px rgba(2, 6, 23, 0.28);
     }
 
+    .dark .task-show-summary .box-header,
+    .dark .task-show-summary .box-body,
+    .dark .task-show-timeline .box-header,
+    .dark .task-show-timeline .box-body {
+        background: rgba(15, 23, 42, 0.9);
+    }
+
+    .dark .task-show-stat,
+    .dark .task-show-description,
+    .dark .task-show-empty {
+        background: rgba(15, 23, 42, 0.64);
+        border-color: rgba(148, 163, 184, 0.12);
+        box-shadow: none;
+    }
+
+    .dark .task-show-header-action {
+        box-shadow: 0 10px 24px rgba(14, 165, 233, 0.22);
+    }
+
+    .dark .task-show-section-status {
+        color: #fbbf24;
+    }
+
+    .dark .task-show-timeline-list::before {
+        border-color: rgba(167, 139, 250, 0.24);
+    }
+
+    .dark .task-show-timeline-list .timeline-time .date,
+    .dark .task-show-timeline-list .timeline-time .time {
+        color: rgba(226, 232, 240, 0.76);
+    }
+
     .dark .task-show-timeline-list .timeline-icon a {
         background: #1f2937;
         box-shadow: 0 0 0 0.38rem rgba(124, 58, 237, 0.14);
     }
 
     .dark .task-show-timeline-list .timeline-body {
-        background: rgba(17, 24, 39, 0.88);
-        border-color: rgba(124, 58, 237, 0.16);
-        box-shadow: none;
+        background: rgba(30, 41, 59, 0.92);
+        border-color: rgba(124, 58, 237, 0.2);
+        box-shadow: 0 14px 32px rgba(2, 6, 23, 0.2);
     }
 
     .dark .task-show-timeline-note {
-        background: rgba(76, 29, 149, 0.12);
-        border-color: rgba(124, 58, 237, 0.18);
-        color: rgba(255, 255, 255, 0.72);
+        background: rgba(76, 29, 149, 0.18);
+        border-color: rgba(124, 58, 237, 0.24);
+        color: rgba(255, 255, 255, 0.82);
     }
 
     .dark .task-show-timeline-avatar {
