@@ -385,6 +385,7 @@
                                       data-page="{{ $page }}"
                                       data-action="view"
                                       data-permission="{{ $permissionName }}"
+                                      aria-label="Toggle permission access for {{ $permissionName }} on {{ $page }}"
                                       {{ isset($userPermissions[$page][$permissionName]) && in_array('view', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
                                   @endif
                                 </td>
@@ -395,6 +396,7 @@
                                       data-page="{{ $page }}"
                                       data-action="modify"
                                       data-permission="{{ $permissionName }}"
+                                      aria-label="Toggle permission access for {{ $permissionName }} on {{ $page }}"
                                       {{ isset($userPermissions[$page][$permissionName]) && in_array('modify', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
                                   @endif
                                 </td>
@@ -405,6 +407,7 @@
                                       data-page="{{ $page }}"
                                       data-action="delete"
                                       data-permission="{{ $permissionName }}"
+                                      aria-label="Toggle permission access for {{ $permissionName }} on {{ $page }}"
                                       {{ isset($userPermissions[$page][$permissionName]) && in_array('delete', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
                                   @endif
                                 </td>
@@ -519,3 +522,4 @@
   </div>
 </div>
 @endsection
+
