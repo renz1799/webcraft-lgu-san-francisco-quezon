@@ -101,6 +101,20 @@ Benefits:
 - Lower merge conflict risk
 - Clear ownership of feature slices (save, finalize, units, payload, utils)
 
+## Print Workspace Pattern
+
+For interactive print pages, use a split workspace architecture:
+
+- sidebar for report inputs and actions
+- preview area for live paper rendering
+- optional PDF endpoint for stable export
+
+Reference:
+
+- `app/Http/Controllers/Reports/PrintWorkspaceSampleController.php`
+- `resources/views/print-workspace/rpcppe-sample.blade.php`
+- `docs/PRINT_WORKSPACE_STANDARD.md`
+
 ## Write Operation Pattern
 
 For create/update/delete actions:

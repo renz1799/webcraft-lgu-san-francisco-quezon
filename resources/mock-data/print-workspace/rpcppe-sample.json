@@ -1,0 +1,114 @@
+{
+  "entity_name": "LGU San Francisco",
+  "fund_sources": [
+    {
+      "id": "general-fund",
+      "label": "All Fund Sources",
+      "cluster": "01 - General Fund"
+    },
+    {
+      "id": "special-education-fund",
+      "label": "Special Education Fund",
+      "cluster": "02 - Special Education Fund"
+    }
+  ],
+  "departments": [
+    {
+      "id": "gso",
+      "label": "GSO Office"
+    },
+    {
+      "id": "accounting",
+      "label": "Accounting Office"
+    },
+    {
+      "id": "mayor",
+      "label": "Office of the Mayor"
+    }
+  ],
+  "accountable_officers": [
+    {
+      "id": "kristian-edano",
+      "label": "KRISTIAN D. EDANO",
+      "name": "KRISTIAN D. EDANO",
+      "designation": "Supply Officer"
+    },
+    {
+      "id": "maria-santos",
+      "label": "MARIA L. SANTOS",
+      "name": "MARIA L. SANTOS",
+      "designation": "Administrative Officer IV"
+    },
+    {
+      "id": "daniel-cruz",
+      "label": "DANIEL P. CRUZ",
+      "name": "DANIEL P. CRUZ",
+      "designation": "Accountant I"
+    }
+  ],
+  "signatories": {
+    "accountable_officer_name": "KRISTIAN D. EDANO",
+    "accountable_officer_designation": "Supply Officer",
+    "committee_chair_name": "ENGR. JULIUS D. RAMOS",
+    "committee_member_1_name": "ANA F. REYES",
+    "committee_member_2_name": "CARLO M. GOMEZ",
+    "approved_by_name": "HON. SOL R. HERNANDEZ",
+    "approved_by_designation": "Municipal Mayor",
+    "verified_by_name": "MARIAN P. LOPEZ",
+    "verified_by_designation": "Municipal Accountant"
+  },
+  "rows": [
+    {
+      "id": "row-1",
+      "fund_source_id": "general-fund",
+      "department_id": "gso",
+      "accountable_officer_id": "kristian-edano",
+      "article": "Laptop Computer, 14-inch",
+      "description": "Laptop Computer, 14-inch, Intel Core i5, 16 GB RAM, 512 GB SSD.",
+      "property_no": "2026-PPE-02-PPE-00001",
+      "unit": "unit",
+      "unit_value": 60000,
+      "balance_per_card_qty": 1,
+      "remarks": "Condition: Brand New | Office: GSO | Officer: KRISTIAN D. EDANO"
+    },
+    {
+      "id": "row-2",
+      "fund_source_id": "general-fund",
+      "department_id": "gso",
+      "accountable_officer_id": "kristian-edano",
+      "article": "Laser Printer",
+      "description": "Network laser printer with duplex support and starter toner.",
+      "property_no": "2026-PPE-02-PPE-00002",
+      "unit": "unit",
+      "unit_value": 18500,
+      "balance_per_card_qty": 1,
+      "remarks": "Condition: Good | Office: GSO | Officer: KRISTIAN D. EDANO"
+    },
+    {
+      "id": "row-3",
+      "fund_source_id": "special-education-fund",
+      "department_id": "mayor",
+      "accountable_officer_id": "maria-santos",
+      "article": "Conference Display Panel",
+      "description": "75-inch presentation display with floor stand and HDMI matrix switch.",
+      "property_no": "2026-PPE-02-PPE-00003",
+      "unit": "unit",
+      "unit_value": 92000,
+      "balance_per_card_qty": 1,
+      "remarks": "Condition: Serviceable | Office: Mayor | Officer: MARIA L. SANTOS"
+    },
+    {
+      "id": "row-4",
+      "fund_source_id": "general-fund",
+      "department_id": "accounting",
+      "accountable_officer_id": "daniel-cruz",
+      "article": "Desktop Workstation",
+      "description": "Desktop workstation, Core i7, 32 GB RAM, dual-monitor ready setup.",
+      "property_no": "2026-PPE-02-PPE-00004",
+      "unit": "unit",
+      "unit_value": 78500,
+      "balance_per_card_qty": 2,
+      "remarks": "Condition: Good | Office: Accounting | Officer: DANIEL P. CRUZ"
+    }
+  ]
+}

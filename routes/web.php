@@ -12,6 +12,7 @@ use App\Http\Controllers\Drive\DriveOAuthController;
 use App\Http\Controllers\Logs\LoginLogController;
 use App\Http\Controllers\Notifications\NotificationController;
 use App\Http\Controllers\Profile\UserProfileController;
+use App\Http\Controllers\Reports\PrintWorkspaceSampleController;
 use App\Http\Controllers\Settings\ThemeController;
 use App\Http\Controllers\Tasks\TaskActionController;
 use App\Http\Controllers\Tasks\TaskController;
@@ -153,6 +154,11 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::post('/audit/restore', [AuditRestoreController::class, 'restore'])
             ->name('audit.restore');
     });
+
+    Route::get('/reports/samples/rpcppe-preview', [PrintWorkspaceSampleController::class, 'rpcppe'])
+        ->name('reports.samples.rpcppe');
+    Route::get('/reports/samples/rpcppe-preview/pdf', [PrintWorkspaceSampleController::class, 'rpcppePdf'])
+        ->name('reports.samples.rpcppe.pdf');
 
     /*
     |--------------------------------------------------------------------------

@@ -100,6 +100,15 @@ Use these keywords in requests to define scope clearly:
   - info text container
 - Expose runtime config in a single window object (example: `window.__accessUsers`).
 
+## Print Workspace Conventions
+
+- Use the shared print workspace shell for interactive print pages with sidebar controls and live preview.
+- Keep page-density knobs like `$rowsPerPage` and `$blankRowCutoff` in the page partial so they are easy to tune.
+- Prefer a hybrid model:
+  - preview workspace for setup
+  - dedicated PDF export endpoint for stable final output
+- See `docs/PRINT_WORKSPACE_STANDARD.md` for the full print workspace standard.
+
 ### JS module splitting
 
 - For table pages, split into at least:
