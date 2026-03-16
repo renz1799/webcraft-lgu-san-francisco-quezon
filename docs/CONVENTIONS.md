@@ -144,8 +144,11 @@ Use these keywords in requests to define scope clearly:
 ## Audit Logging Conventions
 
 - Use dot notation action names (example: `ris.updated`, `user.restored`).
-- Capture meaningful before and after payloads when possible.
 - Keep audit calls in service layer for domain operations.
+- Prefer business milestones, lifecycle events, and cross-module outcomes over draft-edit churn.
+- Write searchable `message` values that include the main business identifier.
+- Use structured display payloads for user-facing audit detail modals.
+- See `docs/AUDIT_LOGGING.md` for the full audit policy.
 
 ## Git Commit Conventions
 

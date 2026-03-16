@@ -110,6 +110,7 @@ For create/update/delete actions:
 - Use `DB::transaction` when multiple writes are involved.
 - Persist through repositories.
 - Record audit events through `AuditLogServiceInterface`.
+- Follow `docs/AUDIT_LOGGING.md` for what should and should not be written to the audit feed.
 - Return user-friendly responses from controllers.
 
 ## Authorization Pattern
@@ -138,6 +139,8 @@ When creating a new module, add these in order:
 6. Blade page(s) and modular JS entries.
 7. Vite entry registration for new JS files.
 8. Audit logging for domain changes.
+
+Audit logging must follow the shared rules in `docs/AUDIT_LOGGING.md`.
 
 ## Current Notes
 
