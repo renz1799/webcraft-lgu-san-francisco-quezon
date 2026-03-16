@@ -7,6 +7,7 @@
     .items-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
     .box-header{overflow:visible!important}
     .tabulator.is-loading{opacity:.65;pointer-events:none}
+    .audit-message-cell{white-space:normal;line-height:1.45}
   </style>
 @endsection
 
@@ -29,7 +30,7 @@
           id="audit-search"
           type="text"
           class="form-control !w-[320px] !rounded-md"
-          placeholder="Search action/user/subject/ip..."
+          placeholder="Search message/action/user/ip..."
         />
 
         <div class="relative shrink-0">
@@ -122,3 +123,5 @@
     };
   </script>
 @endpush
+
+

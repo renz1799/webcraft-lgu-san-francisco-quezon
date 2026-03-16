@@ -165,47 +165,16 @@
           },
         },
         {
-          title: "Subject",
-          field: "subject_label",
-          minWidth: 260,
+          title: "Message",
+          field: "message",
+          minWidth: 360,
+          widthGrow: 2,
+          variableHeight: true,
           formatter: function (cell) {
             const row = cell.getRow().getData();
-            const label = esc(row.subject_label || "-");
-            const subjectId = esc(row.subject_id || "");
-            const type = esc(row.subject_type_short || "");
-            const deleted = row.subject_is_deleted
-              ? ' <span class="text-red-500">(deleted)</span>'
-              : "";
-
-            const copyBtn = subjectId
-              ? `<button type="button"
-                    class="ti-btn ti-btn-xs ti-btn-light !rounded-full !p-1 !leading-none"
-                    data-action="copy"
-                    data-copy="${subjectId}"
-                    title="Copy UUID">
-                    <i class="ri-clipboard-line text-[12px]"></i>
-                 </button>`
-              : "";
-
-            const restoreBtn = row.subject_show_restore && cfg.canRestore
-              ? `<button type="button"
-                    class="ti-btn ti-btn-xs ti-btn-warning !rounded-full ms-1"
-                    data-action="restore-subject"
-                    data-type="${type}"
-                    data-id="${subjectId}"
-                    title="Restore">
-                    <i class="ri-history-line"></i>
-                 </button>`
-              : "";
-
-            return `<span class="inline-flex items-center gap-2 w-full"><span>${label}${deleted}</span>${copyBtn}${restoreBtn}</span>`;
+            const message = esc(cell.getValue() || formatActionLabel(row.action || "-"));
+            return `<div class="audit-message-cell" title="${message}">${message}</div>`;
           },
-        },
-        {
-          title: "Request",
-          field: "request",
-          minWidth: 260,
-          formatter: (cell) => esc(cell.getValue() || "-"),
         },
         {
           title: "IP",
@@ -313,3 +282,4 @@
     setInfoText("Loading...");
   });
 })();
+
