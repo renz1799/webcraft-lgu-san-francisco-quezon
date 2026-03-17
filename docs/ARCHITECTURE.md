@@ -2,162 +2,484 @@
 
 ## Purpose
 
-This project uses a layered architecture to separate HTTP concerns, business rules, data access, and UI behavior. It is intentionally more than plain MVC.
+The Webcraft Core System uses a layered architecture to separate:
 
-## Layered Flow
+HTTP concerns  
+business orchestration  
+data access  
+presentation behavior  
+infrastructure capabilities  
+
+This architecture is intentionally more structured than plain MVC to support platform reuse across multiple systems.
+
+This document defines structural rules.
+Coding conventions live in `CONVENTIONS.md`.
+
+---
+
+# Core System Definition
+
+Core is the platform foundation.
+
+Core provides:
+
+infrastructure  
+capabilities  
+shared contracts  
+architecture standards  
+
+Modules provide:
+
+business workflows  
+domain behavior  
+feature orchestration  
+UI behavior  
+
+Core must remain:
+
+module agnostic  
+domain neutral  
+presentation neutral  
+
+Detailed Core service boundaries are defined in:
+
+docs/CORE_SERVICE_RULES.md
+
+---
+
+# Layered Flow
 
 Typical request flow:
 
-`Route -> FormRequest -> Controller -> Service -> Repository -> Model/DB`
+Route  
+→ FormRequest  
+→ Controller  
+→ Service  
+→ Repository  
+→ Model / Database  
 
 Response flow:
 
-`Repository -> Service -> Controller -> JSON/Blade -> JS UI`
+Repository  
+→ Service  
+→ Controller  
+→ Blade / JSON  
+→ JS UI  
 
-## Layer Responsibilities
+This flow must remain consistent for new modules.
 
-### Routes
+---
 
-- Define URI, route name, and middleware.
-- Enforce top-level access control (`auth`, `role_or_permission`, etc).
+# Layer Responsibilities
 
-### FormRequest
+## Routes
 
-- Validate payload shape and data constraints.
-- Authorize caller as defense in depth.
-- Normalize request input when needed (`prepareForValidation`).
+Responsibilities:
 
-### Controller
+- define URI and route names
+- apply middleware
+- enforce top-level authorization
 
-- Keep thin.
-- Call service contracts only.
-- No direct query logic.
-- No business rule branching outside orchestration concerns.
+Routes must not contain business logic.
 
-### Service
+---
 
-- Own business rules and use cases.
-- Coordinate repositories and helper services.
-- Own transaction boundaries for write operations.
-- Trigger audit logging for domain actions.
+## FormRequest
 
-### Repository
+Responsibilities:
 
-- Own query and persistence details.
-- Return stable payload contracts expected by upper layers.
-- Hide model/query internals from controllers/services.
+- validation
+- authorization
+- payload normalization
 
-### Model
+FormRequest should ensure controllers receive validated data.
 
-- Define relations, casts, scopes, and entity-level behavior.
-- Avoid workflow orchestration in models.
+---
 
-## Datatable Pattern (Audit Logs Baseline)
+## Controller
 
-Audit Logs is the core reference implementation for remote table pages.
+Controllers must remain thin.
 
-### Backend contract
+Responsibilities:
 
-- Request class validates:
-  - `page`
-  - `size`
-  - filter fields
-- Controller:
-  - reads validated data
-  - clamps `page` and `size`
-  - removes `page` and `size` from filter payload
-  - calls `service->datatable($filters, $page, $size)`
-- Service delegates datatable call to repository.
-- Repository returns:
-  - `data`
-  - `last_page`
-  - `total`
-  - optional `recordsTotal`
-  - optional `recordsFiltered`
+- call services
+- return responses
+- coordinate HTTP concerns
 
-### Frontend contract
+Controllers must not contain:
 
-- Blade mounts table and filter controls.
-- Blade exposes runtime config via one window object (example: `window.__audit`).
-- JS is split per module:
-  - `table.js` for Tabulator setup, row actions, and info text
-  - `filters.js` for filter state, advanced panel behavior, and reload wiring
-- Table reload hook is exposed globally.
-- Filter payload getter is exposed globally.
+query logic  
+business rules  
+domain branching  
 
-## Frontend Decomposition Pattern (AIR Inspect Reference)
+Controllers orchestrate requests, not workflows.
 
-For large single-page workflows, use an entry module that imports focused submodules.
+---
 
-Reference:
+## Service Layer
 
-- Entry: `resources/js/air/inspect.js`
-- Submodules: `resources/js/air/inspect/*.js`
+Services own:
+
+business use cases  
+orchestration  
+transaction boundaries  
+coordination of repositories  
+coordination of infrastructure services  
+
+Services may:
+
+call repositories  
+call dispatchers  
+call providers  
+trigger audit logging  
+
+Services should not:
+
+format UI data  
+perform raw queries  
+contain presentation logic  
+
+---
+
+## Repository Layer
+
+Repositories own:
+
+query logic  
+filtering  
+pagination  
+persistence  
+
+Repositories should return:
+
+models  
+collections  
+paginators  
+query result objects  
+
+Repositories should not contain:
+
+UI formatting  
+display labels  
+formatted timestamps  
+presentation flags  
+
+Presentation mapping belongs to presenters or transformers.
+
+---
+
+## Model Layer
+
+Models define:
+
+relationships  
+casts  
+scopes  
+entity-level behavior  
+
+Models should not:
+
+orchestrate workflows  
+coordinate services  
+
+Models represent entities, not use cases.
+
+---
+
+# Presentation Layer
+
+Presentation shaping should live outside repositories and services.
+
+Examples:
+
+Presenters  
+Transformers  
+ViewModels  
+
+Presentation layer owns:
+
+display labels  
+formatted dates  
+status badges  
+UI row shaping  
+
+This separation allows:
+
+API reuse  
+exports  
+mobile clients  
+dashboards  
+
+without repository changes.
+
+Naming and coding conventions for presenters are defined in:
+
+docs/CONVENTIONS.md
+
+---
+
+# Core vs Module Responsibilities
+
+## Core Should Contain
+
+Shared capabilities reusable across modules:
+
+audit logging  
+notification dispatching  
+file storage  
+mail dispatching  
+attachment handling  
+
+Core provides engines.
+
+---
+
+## Modules Should Contain
+
+Domain behavior:
+
+business workflows  
+events  
+recipients  
+wording  
+feature orchestration  
+
+Modules define scenarios.
+
+---
+
+## Structural Boundary Rule
+
+If logic requires module knowledge:
+
+it belongs in the module.
+
+If logic is reusable without modification:
+
+it belongs in Core.
+
+---
+
+# Generic Service Contract Rules
+
+Generic services may accept structured payloads.
+
+Payload structure must be:
+
+explicit  
+consistent  
+documented  
+
+Detailed payload conventions are defined in:
+
+docs/CONVENTIONS.md
+
+Refactor triggers for generic services are defined in:
+
+docs/CORE_REFACTOR_GUIDELINES.md
+
+---
+
+# Shared Table Rules
+
+Tables used across modules should include:
+
+module_name  
+module_code (optional)
+
+This improves:
+
+filtering  
+reporting  
+scalability  
+
+Shared tables commonly include:
+
+audit_logs  
+notifications  
+attachments  
+comments  
+
+Primary filtering fields should be indexed.
+
+Broad text search should remain secondary.
+
+Search optimization strategies belong in repository implementation, not controllers.
+
+---
+
+# Datatable Pattern (Audit Logs Baseline)
+
+Audit Logs is the reference implementation for remote datatable pages.
+
+Backend contract:
+
+Request validates:
+- page
+- size
+- filters
+
+Controller:
+
+- reads validated payload
+- clamps page/size
+- passes filters to service
+
+Service:
+
+- coordinates query request
+
+Repository:
+
+returns:
+
+data  
+last_page  
+total  
+
+Optional:
+
+recordsTotal  
+recordsFiltered  
+
+Frontend contract:
+
+Blade:
+
+mounts filters and table container.
+
+JS:
+
+table.js → table setup  
+filters.js → filter state  
+
+This pattern should be followed for new table modules.
+
+Detailed frontend conventions live in:
+
+docs/CONVENTIONS.md
+
+---
+
+# Frontend Decomposition Pattern
+
+Large workflows should use modular JS structure.
+
+Pattern:
+
+Entry file:
+resources/js/module/feature.js
+
+Submodules:
+resources/js/module/feature/*.js
 
 Benefits:
 
-- Smaller, focused files
-- Easier debugging
-- Lower merge conflict risk
-- Clear ownership of feature slices (save, finalize, units, payload, utils)
+smaller files  
+clear ownership  
+reduced conflicts  
+easier debugging  
 
-## Print Workspace Pattern
+---
 
-For interactive print pages, use a split workspace architecture:
+# Print Workspace Pattern
 
-- sidebar for report inputs and actions
-- preview area for live paper rendering
-- optional PDF endpoint for stable export
+Interactive print pages should follow workspace architecture:
+
+sidebar:
+report inputs and actions
+
+preview:
+live paper rendering
+
+optional:
+PDF export endpoint
 
 Reference:
 
-- `app/Http/Controllers/Reports/PrintWorkspaceSampleController.php`
-- `resources/views/print-workspace/rpcppe-sample.blade.php`
-- `docs/PRINT_WORKSPACE_STANDARD.md`
+docs/PRINT_WORKSPACE_STANDARD.md
 
-## Write Operation Pattern
+Production print modules must still follow layered architecture for data sourcing.
 
-For create/update/delete actions:
+---
 
-- Validate and authorize via FormRequest.
-- Execute domain logic in service method.
-- Use `DB::transaction` when multiple writes are involved.
-- Persist through repositories.
-- Record audit events through `AuditLogServiceInterface`.
-- Follow `docs/AUDIT_LOGGING.md` for what should and should not be written to the audit feed.
-- Return user-friendly responses from controllers.
+# Write Operation Pattern
 
-## Authorization Pattern
+Create/update/delete flow:
 
-- Route middleware is first gate.
-- Request `authorize()` is second gate.
-- Keep role naming consistent; include legacy `admin` where needed by existing data.
+FormRequest:
+validation + authorization
 
-## Dependency Injection Pattern
+Service:
+domain logic
 
-Bindings are centralized in:
+Repository:
+persistence
 
-- `app/Providers/RepositoryServiceProvider.php`
+Service:
+audit logging
 
-Use interface-based constructor injection in controllers and services.
+Controller:
+response
 
-## Module Template (New Feature)
+Audit rules defined in:
 
-When creating a new module, add these in order:
+docs/AUDIT_LOGGING.md
 
-1. Routes and middleware.
-2. Request classes.
-3. Service contract and service implementation.
-4. Repository contract and repository implementation.
-5. Controller actions (thin).
-6. Blade page(s) and modular JS entries.
-7. Vite entry registration for new JS files.
-8. Audit logging for domain changes.
+---
 
-Audit logging must follow the shared rules in `docs/AUDIT_LOGGING.md`.
+# Authorization Pattern
 
-## Current Notes
+Authorization layers:
 
-- Some legacy paths remain for backward compatibility.
-- New modules should follow the patterns above.
-- Existing modules should be incrementally aligned to the Audit Logs baseline.
+Route middleware → first gate
+
+FormRequest authorize() → second gate
+
+Keep role naming consistent across modules.
+
+---
+
+# Dependency Injection Pattern
+
+Bindings centralized in:
+
+app/Providers/RepositoryServiceProvider.php
+
+Use interface-based injection for:
+
+controllers  
+services  
+
+Avoid concrete coupling in upper layers.
+
+---
+
+# Module Template (New Feature)
+
+When creating a new module:
+
+1 Routes and middleware  
+2 Request classes  
+3 Service contract + implementation  
+4 Repository contract + implementation  
+5 Controller actions  
+6 Blade pages  
+7 Modular JS entries  
+8 Audit logging  
+
+New modules must follow layered flow.
+
+---
+
+# Current Notes
+
+Some legacy modules may not fully follow these rules.
+
+New modules must follow this architecture.
+
+Existing modules should be incrementally aligned.
+
+Refactor guidance is defined in:
+
+docs/CORE_REFACTOR_GUIDELINES.md

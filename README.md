@@ -1,105 +1,237 @@
-# GSO San Francisco Quezon
+# Webcraft Core System
 
-General Services Office Information System built with Laravel, Blade, and Vite.
+The Webcraft Core System is the shared architectural foundation for Webcraft platforms and LGU information systems.
 
-## Architecture At A Glance
+This repository defines:
 
-This project is not plain MVC. It uses layered application architecture:
+- platform architecture standards
+- core service contracts
+- infrastructure services
+- UI patterns
+- audit logging standards
+- development conventions
+- platform governance rules
 
-- `FormRequest` for validation + authorization
-- `Controller` for HTTP orchestration only
-- `Service` for business rules and transaction boundaries
-- `Repository` for persistence/query logic
-- `Model` for Eloquent relationships and entity behavior
+Application systems such as GSO, DTS, Procurement, HR, and future modules must align with Core standards.
 
-Read the full documentation:
+Core is not an application.
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [Conventions](docs/CONVENTIONS.md)
-- [Core Sync Operations](docs/CORE_SYNC_OPERATIONS.md)
+Core is the platform foundation.
 
-## Core Stack
+---
 
-- PHP / Laravel
-- MySQL
-- Blade templates
-- Vite (modular JS entries)
-- Tabulator (server-driven data tables)
-- SweetAlert2 (user feedback)
-- Spatie Roles and Permissions
+# Core Philosophy
 
-## Local Setup
+Core provides:
 
-1. Install dependencies:
-```bash
-composer install
-npm install
-```
+capabilities  
+infrastructure  
+contracts  
+standards  
 
-2. Configure environment:
-```bash
-cp .env.example .env
-php artisan key:generate
-```
+Modules provide:
 
-3. Configure database in `.env`, then run:
-```bash
-php artisan migrate
-```
+business rules  
+workflows  
+domain behavior  
+feature orchestration  
 
-4. Run app and assets:
-```bash
-php artisan serve
-npm run dev
-```
+Core defines **how systems work**.
 
-## Build
+Modules define **what systems do**.
 
-```bash
-npm run build
-```
+---
 
-## Frontend Entry Pattern (Template-safe)
+# What Core Owns
 
-Use this flow for custom page JavaScript so template updates are easy to merge:
+Core contains reusable platform capabilities such as:
 
-1. Keep template `vite.config.js` mostly unchanged; only keep `...customViteInputs` in the `input` array.
-2. Register custom entries in `vite.custom.inputs.js`.
-3. Keep `resources/js/custom-entry.js` as the single custom entry, and lazy-load page modules with `import()` based on DOM markers.
-4. In page blades, do not add per-page `@vite('resources/js/...')` calls for module files.
-5. Add an `onReady` guard in lazy-loaded modules so they still initialize when imported after `DOMContentLoaded`.
-6. After changes, run `npm run build` (or restart `npm run dev`) so the manifest is refreshed.
+Shared infrastructure services:
+- Audit logging
+- Notification dispatching
+- File storage
+- Attachment handling
+- Mail dispatching
 
-## Datatable Baseline Keywords
+Architecture standards:
+- Layered architecture rules
+- Service boundaries
+- Repository discipline
+- Presentation separation
 
-Use these command keywords to request table refactors with consistent scope:
+UI standards:
+- Datatable patterns
+- Print workspace patterns
 
-- `DTBL-FS` (Datatable Baseline, Full Stack)
-  - Apply the Users baseline from backend to UI.
-  - Backend flow: `Request -> Controller -> Service -> Repository` using `datatable(...)`.
-  - Soft-delete + restore flow is required (no force-delete endpoints/actions in DTBL-FS modules).
-  - Response contract: `data`, `last_page`, `total`.
-  - Frontend flow: Blade search + advanced filters + table info, with JS split into `table.js`, `filters.js`, `actions.js`.
-  - Advanced filters must include `archived` scope (`active|archived|all`), and row actions must switch between archive/restore based on row state.
-  - After archive/restore/delete actions, refresh tables with the module reload helper (force remote fetch); avoid bare `table.setData()` calls.
+Platform governance:
+- Core service rules
+- Design principles
+- Anti-pattern guidance
+- Refactor guidelines
 
-- `DTBL-UI` (Datatable Baseline, UI Only)
-  - Apply only Blade and JS baseline structure.
-  - Skip backend contract/method refactor unless explicitly requested.
+Core must remain:
 
-Canonical baseline reference:
+module agnostic  
+domain neutral  
+presentation neutral  
 
-- `resources/views/access/users/index.blade.php`
-- `resources/js/access-users/table.js`
-- `resources/js/access-users/filters.js`
-- `resources/js/access-users/actions.js`
+---
 
-## Project Rules
+# What Core Must NOT Contain
 
-- New modules should follow `Request -> Controller -> Service -> Repository`.
-- Keep role checks consistent, including legacy `admin` where needed.
-- For table pages, follow the Users datatable baseline (`DTBL-FS` / `DTBL-UI`) for backend payload + Blade/JS structure.
-- DTBL-FS modules must use soft delete + restore only; do not add force-delete routes/actions.
-- For large frontend flows, split files like `resources/js/air/inspect.js` and load them through `resources/js/custom-entry.js` lazy imports.
+Core must not contain:
 
-See [docs/CONVENTIONS.md](docs/CONVENTIONS.md) for the full checklist.
+- business workflows
+- module-specific services
+- domain wording
+- module routes
+- feature orchestration
+- module UI behavior
+
+Bad example:
+
+TaskNotificationService inside Core.
+
+Good example:
+
+NotificationDispatcher inside Core.
+TaskNotificationService inside module.
+
+Core provides engines.
+Modules provide scenarios.
+
+---
+
+# How Applications Should Use Core
+
+Applications should:
+
+- follow Core architecture standards
+- use Core service contracts
+- avoid modifying Core primitives directly
+- implement domain behavior in modules
+- move reusable infrastructure into Core
+
+If new generic behavior is needed:
+
+Add it to Core first.
+Then sync to applications.
+
+See:
+
+docs/CORE_SYNC_OPERATIONS.md
+
+---
+
+# Architecture Documentation
+
+Core engineering standards are defined in:
+
+## Structural Architecture
+
+- docs/ARCHITECTURE.md
+
+Defines:
+- layering model
+- Core vs Module boundaries
+- service/repository structure
+- shared table architecture
+
+## Development Conventions
+
+- docs/CONVENTIONS.md
+
+Defines:
+- naming rules
+- DTO conventions
+- repository conventions
+- frontend structure
+- Definition of Done
+
+## Core Governance
+
+- docs/CORE_SERVICE_RULES.md
+- docs/CORE_DESIGN_PRINCIPLES.md
+- docs/CORE_ANTI_PATTERNS.md
+- docs/CORE_REFACTOR_GUIDELINES.md
+
+Defines:
+- Core service boundaries
+- design philosophy
+- architecture anti-patterns
+- safe refactor rules
+
+## Platform Standards
+
+- docs/AUDIT_LOGGING.md
+- docs/PRINT_WORKSPACE_STANDARD.md
+- docs/CORE_SYNC_OPERATIONS.md
+
+Defines:
+- audit policies
+- print workspace standards
+- Core synchronization workflow
+
+Together these documents form the Core engineering handbook.
+
+---
+
+# When To Add Something To Core
+
+Add logic to Core only if:
+
+- multiple modules can use it
+- it contains no domain wording
+- it contains no module workflows
+- it requires no module branching
+- it can be reused without modification
+
+If any fail:
+
+It belongs in the module.
+
+---
+
+# Development Philosophy
+
+This Core is designed for:
+
+long-term maintainability  
+modular growth  
+platform reuse  
+engineering discipline  
+architecture stability  
+
+Core prioritizes:
+
+clarity over convenience  
+structure over shortcuts  
+platform health over local optimization  
+
+---
+
+# Intended Usage
+
+This Core supports:
+
+LGU systems  
+enterprise internal systems  
+document workflow platforms  
+modular information systems  
+
+Primary goals:
+
+reusability  
+consistency  
+maintainability  
+scalability  
+
+---
+
+# Guiding Principle
+
+Core provides stability.
+
+Modules provide evolution.
+
+Do not invert this relationship.

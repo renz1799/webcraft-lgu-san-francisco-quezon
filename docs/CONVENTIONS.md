@@ -1,190 +1,406 @@
 # Conventions
 
-## Naming Conventions
+## Purpose
 
-### Classes
+This document defines implementation and coding conventions for the Webcraft Core System.
 
-- Controllers: `*Controller`
-- Requests: `*Request`
-- Services: `*Service`
-- Service contracts: `*ServiceInterface`
-- Repositories: `Eloquent*Repository`
-- Repository contracts: `*RepositoryInterface`
+ARCHITECTURE.md defines structure.
+CORE_SERVICE_RULES.md defines Core boundaries.
+CORE_REFACTOR_GUIDELINES.md defines refactor triggers.
 
-### Methods
+This document defines how code should be written within that structure.
 
-Use consistent verb naming by use case:
+---
 
-- Datatable listing: `datatable(array $filters, int $page, int $size): array`
-- Read by id: `findById(...)`
-- Create draft: `createDraft(...)`
-- Update: `updateX(...)` where `X` is module name
-- Restore: `restoreX(...)`
+# Naming Conventions
 
-### Routes
+## Class Naming
 
-- Use named routes consistently.
-- Prefer resource-like naming (`module.index`, `module.data`, `module.update`, etc).
+Use clear suffixes to indicate responsibility:
 
-## Controller Rules
+Service → business orchestration  
+Repository → persistence/query logic  
+Controller → HTTP orchestration  
+Request → validation/authorization  
+Model → entity representation  
+DTO → structured payload object  
+Presenter → UI formatting  
+Transformer → output shaping  
+Dispatcher → delivery/transport  
+Builder → structured payload construction  
+Resolver → contextual lookup  
+Provider → aggregated data sourcing  
 
-- Inject interfaces, not concrete classes.
-- Keep actions thin and focused.
-- Do not place query builders in controllers.
-- Do not duplicate business rules already in services.
+Examples:
 
-## Request Rules
+AuditLogService  
+AuditLogRepository  
+AuditRecordData  
+AuditLogTablePresenter  
+NotificationDispatcher  
+AuditContextResolver  
 
-- Every mutating endpoint should use a dedicated FormRequest.
-- `rules()` should define complete input contract.
-- `authorize()` should reflect role/permission gates.
-- Use `prepareForValidation()` for trim and normalization when needed.
+---
 
-## Service Rules
+## Service Naming
 
-- Service is the main owner of use-case logic.
-- Use transactions for multi-step writes.
-- Call repositories for persistence and retrieval.
-- Record audit logs for meaningful state changes.
+Service names should describe the use case they coordinate.
 
-## Repository Rules
+Good:
 
-- Keep query logic in repositories.
-- Return stable output contracts expected by service/controller.
-- For datatables, return:
-  - `data`
-  - `last_page`
-  - `total`
-  - optional `recordsTotal`
-  - optional `recordsFiltered`
-- DTBL-FS repositories must support archived scope (`active|archived|all`) through soft deletes and provide restore flow.
-- Do not add force-delete operations in DTBL-FS modules.
+TaskService  
+DtsWorkflowService  
 
-## Frontend Rules (Blade + JS)
+Avoid vague names:
 
-### Baseline Reference
+Manager  
+Handler  
+Processor  
 
-Use Users Access as the canonical baseline for remote listing pages:
+If a service only dispatches or transports:
 
-- `resources/views/access/users/index.blade.php`
-- `resources/js/access-users/table.js`
-- `resources/js/access-users/filters.js`
-- `resources/js/access-users/actions.js`
+Use Dispatcher.
 
-Other modules should align to this pattern unless explicitly scoped otherwise.
+If a service builds structured data:
 
-### Command Keywords
+Use Builder.
 
-Use these keywords in requests to define scope clearly:
+---
 
-- `DTBL-FS` (Datatable Baseline, Full Stack)
-  - Apply full backend-to-frontend baseline.
-  - Includes: Request, Controller `data()`, Service `datatable()`, Repository `datatable()`, Blade structure, and JS split (`table.js`, `filters.js`, `actions.js`).
-  - Must keep response contract: `data`, `last_page`, `total`.
-  - Must include soft-delete + restore flow (no force-delete route/action).
-  - Advanced filters must include `archived` scope (`active|archived|all`).
-  - Row actions must switch between archive and restore based on row state.
+## Repository Naming
 
-- `DTBL-UI` (Datatable Baseline, UI Only)
-  - Apply Blade + JS baseline only.
-  - Backend method/contract refactor is excluded unless explicitly requested.
+Repositories should be named after entities.
 
-### Blade
+Examples:
 
-- Keep table page structure consistent:
-  - primary search
-  - optional status selector
-  - advanced filters panel
-  - clear/reset actions
-  - table container
-  - info text container
-- Expose runtime config in a single window object (example: `window.__accessUsers`).
+UserRepository  
+AuditLogRepository  
+AttachmentRepository  
 
-## Print Workspace Conventions
+Avoid:
 
-- Use the shared print workspace shell for interactive print pages with sidebar controls and live preview.
-- Keep page-density knobs like `$rowsPerPage` and `$blankRowCutoff` in the page partial so they are easy to tune.
-- Prefer a hybrid model:
-  - preview workspace for setup
-  - dedicated PDF export endpoint for stable final output
-- See `docs/PRINT_WORKSPACE_STANDARD.md` for the full print workspace standard.
+UserDataManager  
+AuditHandler  
 
-### JS module splitting
+---
 
-- For table pages, split into at least:
-  - `table.js`
-  - `filters.js`
-  - `actions.js`
-- For complex flows, use `resources/js/custom-entry.js` and lazy-load feature modules by page marker.
-- Reference pattern:
-  - `resources/js/air/inspect.js` imports `resources/js/air/inspect/*.js`.
-- Each file should own one concern (payload, save, finalize, units, utils, etc).
+## DTO Naming
 
-### Vite Entry Strategy (Template-safe)
+DTO naming pattern:
 
-- Keep template `vite.config.js` stable and import `customViteInputs` from `vite.custom.inputs.js`.
-- Register custom JS entry files in `vite.custom.inputs.js` (default should include `resources/js/custom-entry.js`).
-- Use `resources/js/custom-entry.js` to lazy-load page modules with `import()` only when required DOM markers exist.
-- In page Blade files, avoid per-page `@vite('resources/js/module/file.js')` calls for lazy-loaded modules.
-- Use an `onReady(...)` guard inside lazy-loaded modules so they can initialize even when imported after DOM ready.
-- After JS entry changes, run `npm run build` (or restart `npm run dev`) to refresh the manifest.
+Entity + Purpose + Data
 
-## Tabulator Conventions
+Examples:
 
-- Use remote pagination mode.
-- Send `page` and `size` to backend.
-- Backend responds with `data`, `last_page`, `total`.
-- Keep footer info text updated based on current page and total.
-- For post-mutation refresh (archive/restore/delete), do not use bare `table.setData()`; use module reload helper that forces remote fetch via `setPage(1)` and `replaceData()` (or `setData(ajaxUrl, params)` fallback).
+AuditRecordData  
+NotificationData  
+ReportRequestData  
 
-## UI Feedback
+DTOs should represent structured contracts, not arbitrary arrays.
 
-- Use SweetAlert2 for:
-  - destructive action confirmation
-  - success and error outcomes
-  - actionable validation messages
+---
 
-## Authorization Conventions
+# Method Conventions
 
-- Prefer `role_or_permission` middleware at route level.
-- Add request-level `authorize()` checks for defense in depth.
-- Keep support for legacy role names when required (`Administrator` and `admin`).
+## Service Methods
 
-## Audit Logging Conventions
+Service methods should represent use cases.
 
-- Use dot notation action names (example: `ris.updated`, `user.restored`).
-- Keep audit calls in service layer for domain operations.
-- Prefer business milestones, lifecycle events, and cross-module outcomes over draft-edit churn.
-- Write searchable `message` values that include the main business identifier.
-- Use structured display payloads for user-facing audit detail modals.
-- See `docs/AUDIT_LOGGING.md` for the full audit policy.
+Good:
 
-## Git Commit Conventions
+assignUserToTask()
+submitInspection()
+approveRequest()
 
-- Use multiple `-m` flags for readability in history.
-- First `-m`: short subject line.
-- Additional `-m`: grouped details (`what`, `why`, `notes`).
+Avoid vague names:
+
+process()
+handle()
+execute()
+
+Service methods should describe intent.
+
+---
+
+## Repository Methods
+
+Repository methods should describe query purpose.
+
+Good:
+
+findById()
+paginateWithFilters()
+findActiveUsers()
+searchByModule()
+
+Avoid:
+
+getData()
+fetchAll()
+
+Method names should reveal query behavior.
+
+---
+
+## Controller Methods
+
+Controller methods should reflect HTTP actions.
+
+Examples:
+
+index()
+store()
+update()
+destroy()
+show()
+
+Custom actions should remain descriptive:
+
+restore()
+archive()
+finalize()
+
+---
+
+# Payload Conventions
+
+## Generic Payload Naming
+
+Generic payload keys should be consistent.
+
+Common examples:
+
+action  
+module_name  
+entity_type  
+entity_id  
+message  
+meta  
+display  
+
+Payload contracts should remain predictable.
+
+For complex payloads, prefer DTO usage.
+
+---
+
+## DTO Usage Guidelines
+
+Use DTO when:
+
+payload grows beyond simple structure  
+payload reused across services  
+generic service contract needs clarity  
+
+DTO should improve clarity, not add ceremony.
+
+DTO should not contain business logic.
+
+DTO should represent structured data only.
+
+---
+
+# Repository Conventions
+
+## Repository Responsibilities
+
+Repositories should:
+
+handle queries  
+handle persistence  
+handle filtering  
+handle pagination  
+
+Repositories should not:
+
+format UI  
+build display labels  
+format timestamps  
+generate UI flags  
+
+Presentation shaping belongs in presenters.
+
+---
+
+## Pagination Pattern
+
+Standard pagination response should include:
+
+data  
+last_page  
+total  
+
+Optional:
+
+recordsTotal  
+recordsFiltered  
+
+This keeps frontend integration consistent.
+
+---
+
+## Filtering Pattern
+
+Filtering should be:
+
+explicit  
+predictable  
+index-friendly  
+
+Prefer:
+
+date filters  
+module filters  
+status filters  
+actor filters  
+
+Avoid heavy broad text search as primary filter.
+
+---
+
+# Presenter Conventions
+
+Presenters should answer:
+
+"How should this appear?"
+
+Presenters may format:
+
+display names  
+dates  
+badges  
+row structures  
+labels  
+
+Presenters should not:
+
+query database  
+execute workflows  
 
 Example:
 
-```bash
-git commit \
-  -m "refactor(access-users): align listing flow with datatable baseline" \
-  -m "Apply Request->Controller->Service->Repository datatable contract" \
-  -m "Split frontend into table.js, filters.js, and actions.js"
-```
+AuditLogTablePresenter
 
-## Definition Of Done Checklist
+---
 
-Before marking a feature complete:
+# Builder Conventions
 
-1. Request validation and authorization added.
-2. Controller remains thin.
-3. Business logic placed in service.
-4. Queries placed in repository.
-5. UI follows Users datatable baseline (`DTBL-FS` / `DTBL-UI`) for list pages.
-6. DTBL-FS list pages include soft-delete + restore with archived filter; no force-delete route/action.
-7. `vite.custom.inputs.js` and `resources/js/custom-entry.js` updated for new page JS modules.
-8. Role and permission gates applied.
-9. Audit logging added for write operations.
-10. Basic lint, syntax, and build checks passed.
+Builders construct structured payloads.
+
+Examples:
+
+AuditDisplayBuilder  
+ReportPayloadBuilder  
+
+Builders should focus on structure, not orchestration.
+
+---
+
+# Resolver Conventions
+
+Resolvers locate contextual information.
+
+Examples:
+
+AuditContextResolver  
+CurrentUserResolver  
+
+Resolvers should not execute business workflows.
+
+---
+
+# Provider Conventions
+
+Providers aggregate data for use cases.
+
+Examples:
+
+ReportDataProvider  
+DashboardMetricsProvider  
+
+Use providers when data comes from multiple sources.
+
+---
+
+# Frontend Conventions
+
+## Module JS Structure
+
+Pattern:
+
+resources/js/module/feature.js
+
+Submodules:
+
+resources/js/module/feature/*.js
+
+Keep files small and focused.
+
+---
+
+## Datatable JS Pattern
+
+Standard file split:
+
+table.js → table setup  
+filters.js → filter logic  
+actions.js → row actions  
+
+This improves maintainability.
+
+---
+
+# Definition Of Done (Core Modules)
+
+A feature is complete when:
+
+Architecture:
+
+follows layered flow  
+controller remains thin  
+repository handles queries  
+service handles orchestration  
+
+Code quality:
+
+clear naming  
+consistent method patterns  
+no UI logic in repositories  
+
+Integration:
+
+audit logging added if needed  
+datatable baseline followed where applicable  
+
+Frontend:
+
+JS modules properly split  
+filters follow baseline pattern  
+
+---
+
+# General Coding Discipline
+
+Prefer:
+
+explicit naming  
+small focused classes  
+clear contracts  
+
+Avoid:
+
+vague naming  
+mixed responsibilities  
+implicit payload structures  
+
+When unsure about structural placement:
+
+refer to ARCHITECTURE.md.
+
+When unsure about Core boundaries:
+
+refer to CORE_SERVICE_RULES.md.
+
+When unsure about splitting classes:
+
+refer to CORE_REFACTOR_GUIDELINES.md.

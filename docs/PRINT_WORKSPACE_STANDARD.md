@@ -101,13 +101,49 @@ The screen workspace is the authoring shell. The paper preview itself should sti
 - keep page numbers inside the paper preview, not in the sidebar
 - keep filters and buttons out of the document itself
 - keep printable layout decisions in page partials, not in the controller
-- prefer mock or DTO-style data shaping in the controller, not Blade condition sprawl
 
-For this Core sample:
+### Sample Implementation Note (Core Reference)
 
-- page partial: `resources/views/print-workspace/partials/rpcppe-sample-pages.blade.php`
-- item grid partial: `resources/views/print-workspace/partials/rpcppe-sample-items.blade.php`
-- page styles: `resources/views/print-workspace/partials/rpcppe-sample-styles.blade.php`
+The Core RPCPPE workspace is a reference implementation focused on UI structure.  
+For this sample, simple mock or DTO-style data shaping in the controller is acceptable to keep the example self-contained.
+
+### Production Implementation Rule
+
+Production print modules must still follow the layered architecture defined in:
+
+docs/ARCHITECTURE.md
+
+Meaning:
+
+Request  
+→ Controller  
+→ Service  
+→ Repository / Provider  
+
+Controllers should not generate report data directly.
+
+Report data should come from:
+
+Service  
+Repository  
+Provider  
+
+The workspace shell is UI structure only.
+
+Report generation must remain part of the service layer.
+
+### Core Sample Structure Reference
+
+For the Core sample:
+
+- page partial:
+  resources/views/print-workspace/partials/rpcppe-sample-pages.blade.php
+
+- item grid partial:
+  resources/views/print-workspace/partials/rpcppe-sample-items.blade.php
+
+- page styles:
+  resources/views/print-workspace/partials/rpcppe-sample-styles.blade.php
 
 ## Pagination Tuning Rule
 
