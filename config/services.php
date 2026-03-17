@@ -48,4 +48,8 @@ return [
         'redirect_uri' => env('GOOGLE_DRIVE_OAUTH_REDIRECT_URI'),
     ],
 
+    'chrome' => [
+    'binary' => env('CHROME_BIN'),
+],
+
 ];

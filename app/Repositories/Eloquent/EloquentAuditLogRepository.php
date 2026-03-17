@@ -11,6 +11,7 @@ use App\Repositories\Contracts\AuditLogRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Collection;
 
 class EloquentAuditLogRepository implements AuditLogRepositoryInterface
 {
@@ -275,5 +276,37 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
             $profileData['last_name'] ?? null,
             $profileData['name_extension'] ?? null,
         ])));
+    }
+
+    public function findForPrint(array $filters): Collection
+    {
+        return AuditLog::query()
+            ->with(['actor'])
+            ->when($filters['date_from'] ?? null, function ($query, $value) {
+                $query->whereDate('created_at', '>=', $value);
+            })
+            ->when($filters['date_to'] ?? null, function ($query, $value) {
+                $query->whereDate('created_at', '<=', $value);
+            })
+            ->when($filters['module_name'] ?? null, function ($query, $value) {
+                $query->where('module_name', $value);
+            })
+            ->when($filters['action'] ?? null, function ($query, $value) {
+                $query->where('action', $value);
+            })
+            ->when($filters['actor_id'] ?? null, function ($query, $value) {
+                $query->where('actor_id', $value);
+            })
+            ->when($filters['subject_type'] ?? null, function ($query, $value) {
+                $query->where('subject_type', $value);
+            })
+            ->when($filters['search'] ?? null, function ($query, $value) {
+                $query->where(function ($inner) use ($value) {
+                    $inner->where('message', 'like', "%{$value}%")
+                        ->orWhere('action', 'like', "%{$value}%");
+                });
+            })
+            ->orderByDesc('created_at')
+            ->get();
     }
 }

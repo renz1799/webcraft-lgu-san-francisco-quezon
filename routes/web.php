@@ -4,6 +4,7 @@ use App\Http\Controllers\Access\PermissionController;
 use App\Http\Controllers\Access\RolesController;
 use App\Http\Controllers\Access\UserAccessController;
 use App\Http\Controllers\Audit\AuditLogController;
+use App\Http\Controllers\AuditLogs\AuditLogPrintController;
 use App\Http\Controllers\Audit\AuditRestoreController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Dashboard\DashboardsController;
@@ -159,6 +160,15 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->name('reports.samples.rpcppe');
     Route::get('/reports/samples/rpcppe-preview/pdf', [PrintWorkspaceSampleController::class, 'rpcppePdf'])
         ->name('reports.samples.rpcppe.pdf');
+        
+    //PRINTING 
+    Route::get('/audit-logs/print', [AuditLogPrintController::class, 'preview'])
+        ->name('audit-logs.print.index')
+        ->middleware(['auth']);
+
+    Route::get('/audit-logs/print/pdf', [AuditLogPrintController::class, 'downloadPdf'])
+        ->name('audit-logs.print.pdf')
+        ->middleware(['auth']);
 
     /*
     |--------------------------------------------------------------------------

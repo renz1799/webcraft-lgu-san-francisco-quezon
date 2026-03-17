@@ -2,205 +2,609 @@
 
 This document defines the standard page pattern for printable documents that need both:
 
-- a left-side settings or filters panel
-- a right-side live paper preview
-- an optional server-generated PDF export
+* a left-side settings or filters panel
+* a right-side live paper preview
+* a server-generated PDF export
 
-The Core reference implementation is the RPCPPE sample workspace:
+The Core reference implementation is the Audit Log print module.
 
-- route: `/reports/samples/rpcppe-preview`
-- controller: `app/Http/Controllers/Reports/PrintWorkspaceSampleController.php`
-- preview view: `resources/views/print-workspace/rpcppe-sample.blade.php`
-- PDF view: `resources/views/print-workspace/rpcppe-sample-pdf.blade.php`
+---
 
-## Purpose
+# Purpose
 
 Use this pattern when a printable document needs users to adjust values like:
 
-- cutoff date
-- office or fund filters
-- signatory names and designations
-- preview-only toggles before printing or downloading PDF
+* cutoff date
+* module filters
+* report parameters
+* preview-only toggles before printing or downloading PDF
 
 This keeps the printable document clean while still giving the user a practical working area beside the preview.
 
-## Standard Building Blocks
+---
 
-### 1. Shared workspace styles
+# Core Principles
 
-Include the shared workspace styles in the `<head>`:
+Printable modules must follow:
 
-```blade
+Preview Workspace
+→ User configures report
+→ User sees live preview
+→ User downloads PDF
+
+Not:
+
+Generate PDF directly from buttons without preview.
+
+---
+
+# Standard Building Blocks
+
+## 1. Shared workspace styles
+
+Include the shared workspace styles:
+
+```
 <x-print.workspace-styles />
+<x-print.workspace-panel-styles />
 ```
 
-This provides the standard:
+This provides:
 
-- app-like screen background
-- left/right split layout
-- sticky settings panel
-- centered preview column
-- print behavior that hides the sidebar automatically
+* app-like screen background
+* left/right split layout
+* sticky settings panel
+* centered preview column
+* standardized filter sidebar design
+* print behavior that hides sidebar automatically
 
-File:
+Files:
 
-- `resources/views/components/print/workspace-styles.blade.php`
+```
+resources/views/components/print/workspace-styles.blade.php
+resources/views/components/print/workspace-panel-styles.blade.php
+```
 
-### 2. Shared workspace shell
+---
 
-Wrap the page in the shared workspace component:
+## 2. Shared workspace shell
 
-```blade
-<x-print.workspace
-  sidebar-width="clamp(320px, calc(297mm * 0.30), 390px)"
-  preview-width="min(294mm, calc(100vw - clamp(320px, calc(297mm * 0.30), 390px) - 160px))"
->
-  <x-slot:sidebar>
-    {{-- settings panel --}}
-  </x-slot:sidebar>
+Wrap the page in:
 
-  {{-- preview pages --}}
+```
+<x-print.workspace>
+
+<x-slot:sidebar>
+
+@include('module.print.partials.controls')
+
+</x-slot:sidebar>
+
+@include('module.print.partials.pages')
+
 </x-print.workspace>
 ```
 
-Props:
-
-- `sidebar-width`
-  - controls the left panel width
-  - should stay visually proportional to the paper width
-- `preview-width`
-  - should normally match the real paper width being previewed
-
 File:
 
-- `resources/views/components/print/workspace.blade.php`
-
-### 3. Shared settings panel shell
-
-Use the shared panel component inside the sidebar:
-
-```blade
-<x-print.panel
-  kicker="Reports"
-  title="RPCPPE Preview"
-  copy="Set the report window and signatories here, then review the printable document on the right."
->
-  {{-- module-specific controls --}}
-</x-print.panel>
+```
+resources/views/components/print/workspace.blade.php
 ```
 
-File:
+---
 
-- `resources/views/components/print/panel.blade.php`
+## 3. Shared settings panel shell
 
-## Preview Rules
+Use:
 
-The screen workspace is the authoring shell. The paper preview itself should still follow page-level rules:
-
-- keep the document inside a dedicated page container
-- keep page numbers inside the paper preview, not in the sidebar
-- keep filters and buttons out of the document itself
-- keep printable layout decisions in page partials, not in the controller
-
-### Sample Implementation Note (Core Reference)
-
-The Core RPCPPE workspace is a reference implementation focused on UI structure.  
-For this sample, simple mock or DTO-style data shaping in the controller is acceptable to keep the example self-contained.
-
-### Production Implementation Rule
-
-Production print modules must still follow the layered architecture defined in:
-
-docs/ARCHITECTURE.md
-
-Meaning:
-
-Request  
-→ Controller  
-→ Service  
-→ Repository / Provider  
-
-Controllers should not generate report data directly.
-
-Report data should come from:
-
-Service  
-Repository  
-Provider  
-
-The workspace shell is UI structure only.
-
-Report generation must remain part of the service layer.
-
-### Core Sample Structure Reference
-
-For the Core sample:
-
-- page partial:
-  resources/views/print-workspace/partials/rpcppe-sample-pages.blade.php
-
-- item grid partial:
-  resources/views/print-workspace/partials/rpcppe-sample-items.blade.php
-
-- page styles:
-  resources/views/print-workspace/partials/rpcppe-sample-styles.blade.php
-
-## Pagination Tuning Rule
-
-Keep pagination tuning close to the page partial so it is easy to adjust without reopening service/controller code.
+```
+<x-print.panel>
+```
 
 Example:
 
-```php
-$rowsPerPage = 11;
-$blankRowCutoff = 8;
+```
+<x-print.panel
+kicker="Reports"
+title="Audit Log Print Preview"
+copy="Set filters and review the document before downloading."
+>
 ```
 
-Meaning:
+File:
 
-- `rowsPerPage`
-  - maximum number of filled records a page should try to render
-- `blankRowCutoff`
-  - only pad blank rows when the page has fewer than this number of real rows
+```
+resources/views/components/print/panel.blade.php
+```
 
-This lets the team tune report density quickly while keeping the behavior obvious.
+---
 
-## PDF Export Rule
+# Sidebar Control Panel Standard
 
-Keep the preview workspace and final PDF export as separate concerns.
+All print workspaces must follow:
 
-- preview page
-  - optimized for interactive setup
-  - may still depend on browser rendering behavior
-- PDF export
-  - optimized for stable output
-  - should reuse the same shaped report data and page partials when possible
+Structure:
 
-For the Core sample:
+```
+Intro
+Filters section
+Actions section
+```
 
-- preview route: `/reports/samples/rpcppe-preview`
-- PDF route: `/reports/samples/rpcppe-preview/pdf`
+Example:
 
-The current sample uses a Chrome-based headless print command from the controller so the final exported PDF does not depend on the user manually tuning browser print settings.
+```
+Report Controls
+Filters
+Actions
+```
 
-## Implementation Checklist
+---
+
+# Button Hierarchy Standard
+
+All print modules must use:
+
+Primary:
+
+Apply Filters
+
+Secondary:
+
+Download PDF
+
+Tertiary:
+
+Reset Filters
+
+Hierarchy:
+
+```
+Primary → filled button
+Secondary → outline button
+Tertiary → text link
+```
+
+---
+
+# Core Button Pattern
+
+Buttons should follow:
+
+```
+<button class="ti-btn btn-wave ti-btn-primary-full label-ti-btn">
+
+<i class="ri-filter-3-line label-ti-btn-icon me-2"></i>
+
+Apply Filters
+
+</button>
+```
+
+Download example:
+
+```
+<a class="ti-btn btn-wave ti-btn-outline-primary label-ti-btn">
+
+<i class="ri-file-pdf-line label-ti-btn-icon me-2"></i>
+
+Download PDF
+
+</a>
+```
+
+---
+
+# Paper Standard
+
+All Core printable reports must default to:
+
+```
+Paper: A4
+Orientation: Portrait
+Preview must match PDF output.
+```
+
+Do not use browser default sizing.
+
+---
+
+# Header/Footer Standard
+
+Reports must support:
+
+* header image
+* footer image
+* page numbering
+* consistent margins
+
+Images stored in:
+
+```
+public/headers/
+```
+
+Example:
+
+```
+a4_header_template_dark_2480x300.png
+a4_footer_template_dark_2480x250.png
+```
+
+---
+
+# Paging Standard
+
+Preview must simulate PDF paging.
+
+Rules:
+
+* fixed A4 page height
+* page breaks enforced
+* footer page numbers bottom right
+* header repeated per page
+
+---
+
+# Preview vs PDF Separation Rule
+
+Preview:
+
+* interactive
+* may use workspace layout
+* may include sidebar
+
+PDF:
+
+Must:
+
+* be standalone
+* not extend master layouts
+* not include JS
+* not include sidebar
+* reuse same page partials
+
+Example:
+
+```
+<!DOCTYPE html>
+
+@include('module.print.partials.pdf-styles')
+
+@include('module.print.partials.pages')
+```
+
+---
+
+# Service Architecture Rule
+
+Printing must follow Core layering:
+
+```
+Controller
+→ Service
+→ Data Builder
+→ PDF Generator
+→ Blade View
+```
+
+Not:
+
+Controller → View → PDF directly.
+
+---
+
+# Report Data Rule
+
+Report data must come from:
+
+Service
+Repository
+Provider
+
+Not controller logic.
+
+---
+
+# File Structure Standard
+
+Each printable module must follow:
+
+```
+module/
+ ├─ print/
+ │   ├─ index.blade.php
+ │   ├─ pdf.blade.php
+ │   └─ partials/
+ │        ├─ controls.blade.php
+ │        ├─ pages.blade.php
+ │        ├─ table.blade.php
+ │        ├─ meta.blade.php
+ │        ├─ styles.blade.php
+ │        └─ pdf-styles.blade.php
+```
+
+Shared Core:
+
+```
+components/
+ ├─ print/
+ │   ├─ workspace.blade.php
+ │   ├─ panel.blade.php
+ │   ├─ workspace-styles.blade.php
+ │   └─ workspace-panel-styles.blade.php
+```
+
+---
+
+# Implementation Checklist
 
 When building a new print workspace:
 
-1. Create the printable page view.
-2. Add `<x-print.workspace-styles />` in the `<head>`.
-3. Wrap the body content with `<x-print.workspace>`.
-4. Put form controls and actions in the `sidebar` slot.
-5. Keep the actual paper pages in the default slot.
-6. Keep page-density knobs in the page partial itself.
-7. Add a dedicated PDF endpoint when the document is expected to be archived, shared, or printed formally.
-8. Reuse shared panel/workspace components instead of recreating the shell per module.
+1 Create printable page view
+2 Add workspace styles
+3 Wrap with workspace shell
+4 Put filters in sidebar
+5 Keep pages in preview slot
+6 Keep layout logic in partials
+7 Add PDF endpoint
+8 Reuse shared components
+9 Use A4 sizing
+10 Follow button hierarchy
 
-## Decision Rule
+---
 
-Use the print workspace standard when the page is both:
+# Problems Encountered and Solutions (Important)
 
-- interactive on screen
-- intended to print or export as a formal document
+These issues were discovered during the Audit Log print module implementation and define the baseline for all future print modules.
 
-If a document has no settings panel and only needs a simple print view, a single-purpose printable Blade is still acceptable.
+Future modules should avoid these mistakes.
+
+---
+
+## Problem 1 — Preview did not match PDF size
+
+Issue:
+
+Preview rendered as long bond while PDF used A4.
+
+Cause:
+
+Preview was using browser auto layout instead of fixed page sizing.
+
+Fix:
+
+Always enforce:
+
+```
+width:210mm;
+height:297mm;
+```
+
+And simulate real pages.
+
+Rule:
+
+Preview must visually match PDF dimensions.
+
+---
+
+## Problem 2 — Chrome PDF spacing different from preview
+
+Issue:
+
+Spacing differences between preview and PDF.
+
+Cause:
+
+Browser rendering vs headless Chrome rendering differences.
+
+Fix:
+
+Separate:
+
+```
+styles.blade.php
+pdf-styles.blade.php
+```
+
+Rule:
+
+Never share identical CSS between preview and PDF without testing.
+
+---
+
+## Problem 3 — Missing relationships in report data
+
+Issue:
+
+Undefined relationship errors.
+
+Cause:
+
+Report expected relations not loaded.
+
+Fix:
+
+Ensure repository/service loads required relationships.
+
+Rule:
+
+Report data must be shaped in Service layer, not Blade.
+
+---
+
+## Problem 4 — Missing report fields
+
+Issue:
+
+Undefined array keys like module_name.
+
+Cause:
+
+View expected fields not included in report data.
+
+Fix:
+
+Ensure ReportData builder defines all expected fields.
+
+Rule:
+
+Blade should never assume fields.
+Service must define report schema.
+
+---
+
+## Problem 5 — Chrome binary not found
+
+Issue:
+
+Chrome PDF generator failed.
+
+Cause:
+
+Chrome path not configured.
+
+Fix:
+
+Configure:
+
+```
+CHROME_BIN
+services.chrome.binary
+```
+
+Rule:
+
+PDF infrastructure must be configured before using print services.
+
+---
+
+## Problem 6 — Icons not rendering
+
+Issue:
+
+Remix icons not visible.
+
+Cause:
+
+Custom layout did not load icon assets.
+
+Fix:
+
+Ensure print workspace master loads same CSS as main layout.
+
+Rule:
+
+Custom layouts must load UI assets.
+
+---
+
+## Problem 7 — Template styles not applied
+
+Issue:
+
+Form styling inconsistent.
+
+Cause:
+
+Preview layout not extending UI asset stack.
+
+Fix:
+
+Create:
+
+```
+print-workspace-master.blade.php
+```
+
+Rule:
+
+Preview pages must load same UI assets as main app.
+
+---
+
+# Anti Patterns
+
+Do NOT:
+
+Generate PDF inside controllers.
+
+Do NOT:
+
+Mix preview and PDF styles.
+
+Do NOT:
+
+Duplicate sidebar UI per module.
+
+Do NOT:
+
+Hardcode report layouts.
+
+Do NOT:
+
+Use inconsistent button structures.
+
+---
+
+# Decision Rule
+
+Use Print Workspace when:
+
+Page is interactive
+AND
+Page is printable/exportable.
+
+Otherwise simple printable Blade is acceptable.
+
+---
+
+# Long Term Goal
+
+The Print Workspace is part of the Core platform direction:
+
+```
+Generic
+Reusable
+Consistent
+Module independent
+Platform driven
+```
+
+---
+
+# Recommended Addition to CORE_DESIGN_PRINCIPLES
+
+Add:
+
+PRINT_WORKSPACE_STANDARD must be followed by all printable modules.
+
+---
+
+# Result
+
+This ensures:
+
+* consistent report UX
+* reusable Core components
+* predictable PDF output
+* faster module creation
+* platform-level maintainability
+
+---
+
+# Future Standard (Recommended Next Step)
+
+Next recommended document:
+
+PRINT_SERVICE_STANDARD
+
+This will standardize:
+
+* PrintService pattern
+* ReportData pattern
+* PdfGenerator usage
+* Data shaping rules
+
+This completes the Core printing architecture.

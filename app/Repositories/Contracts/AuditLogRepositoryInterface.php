@@ -30,4 +30,10 @@ interface AuditLogRepositoryInterface
     ): LengthAwarePaginator;
 
     public function paginateForTable(array $filters, int $page, int $size): LengthAwarePaginator;
+
+    /**
+ * @param array<string, mixed> $filters
+ * @return \Illuminate\Support\Collection<int, \App\Models\AuditLog>
+ */
+    public function findForPrint(array $filters);
 }
