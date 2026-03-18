@@ -1,3 +1,26 @@
+@php
+    $selectedPaper = $filters['paper_profile'] ?? config('print.modules.audit_logs.default_paper', 'a4-portrait');
+
+    $allowedPapers = config('print.modules.audit_logs.allowed_papers', []);
+
+    $paperOptions = collect($allowedPapers)
+        ->mapWithKeys(fn ($code) => [
+            $code => config("print.papers.{$code}.label", $code),
+        ])
+        ->all();
+
+    $pdfParams = array_filter([
+        'date_from' => $filters['date_from'] ?? null,
+        'date_to' => $filters['date_to'] ?? null,
+        'module_name' => $filters['module_name'] ?? null,
+        'action' => $filters['action'] ?? null,
+        'actor_id' => $filters['actor_id'] ?? null,
+        'subject_type' => $filters['subject_type'] ?? null,
+        'search' => $filters['search'] ?? null,
+        'paper_profile' => $selectedPaper,
+    ], fn ($value) => $value !== null && $value !== '');
+@endphp
+
 <x-print.panel
     kicker="Reports"
     title="Audit Log Print Preview"
@@ -62,6 +85,18 @@
                 </div>
 
                 <div class="core-print-sidebar__field">
+                    <label for="actor_id" class="form-label">Actor ID</label>
+                    <input
+                        type="number"
+                        name="actor_id"
+                        id="actor_id"
+                        value="{{ $filters['actor_id'] ?? '' }}"
+                        class="form-control"
+                        placeholder="e.g. 1"
+                    >
+                </div>
+
+                <div class="core-print-sidebar__field">
                     <label for="subject_type" class="form-label">Subject Type</label>
                     <input
                         type="text"
@@ -84,6 +119,21 @@
                         placeholder="Search message or action"
                     >
                 </div>
+
+                <div class="core-print-sidebar__field">
+                    <label for="paper_profile" class="form-label">Paper Size</label>
+                    <select
+                        name="paper_profile"
+                        id="paper_profile"
+                        class="form-control"
+                    >
+                        @foreach ($paperOptions as $code => $label)
+                            <option value="{{ $code }}" @selected($selectedPaper === $code)>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
             <div class="core-print-sidebar__section core-print-sidebar__section--actions">
@@ -95,12 +145,13 @@
                     </button>
 
                     <a
-                        href="{{ route('audit-logs.print.pdf', $filters) }}"
+                        href="{{ route('audit-logs.print.pdf', $pdfParams) }}"
                         class="ti-btn btn-wave ti-btn-outline-primary label-ti-btn w-full text-center"
                     >
                         <i class="ri-file-pdf-line label-ti-btn-icon me-2"></i>
                         Download PDF
                     </a>
+
                     <a
                         href="{{ route('audit-logs.print.index') }}"
                         class="core-print-sidebar__reset"
