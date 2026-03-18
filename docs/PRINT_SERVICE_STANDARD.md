@@ -1,399 +1,537 @@
-# Print Service Standard
+# PRINT SERVICE STANDARD (Core System)
 
-This document defines the backend/service architecture standard for all printable modules in the Core System.
+This document defines the **backend orchestration, service responsibilities, data flow, and contract rules** for printable reports in the Core System.
 
-This complements PRINT_WORKSPACE_STANDARD which defines the UI structure. This document defines how report data is produced, shaped, and converted into PDFs.
+This standard ensures that all print services:
 
-The reference implementation is the Audit Log Print module.
+* Follow one predictable backend flow
+* Keep controllers thin
+* Keep report data builders focused on report content
+* Resolve paper profiles consistently
+* Keep preview and PDF contracts aligned
+* Remain reusable as more reports are added
 
----
-
-# Purpose
-
-Ensure all printable modules follow a consistent backend flow:
-
-Request → Controller → Print Service → Report Data Builder → PDF Generator → View
-
-Goals:
-
-* predictable architecture
-* reusable printing pipeline
-* clean separation of responsibilities
-* generic platform-ready services
-* avoid controller-heavy implementations
+This document focuses on **backend orchestration and service contracts**.
+Workspace layout and rendering rules belong to PRINT_WORKSPACE_STANDARD.
 
 ---
 
-# Core Flow
+# Core Principle
 
-All print modules must follow:
+Print architecture separates:
 
-Controller
+**Report Content**
+vs
+**Paper Layout**
+
+Meaning:
+
+* Report content is built by the report layer
+* Paper layout is resolved through print configuration
+* Rendering consumes a resolved report contract and a resolved paper profile
+
+Core printing must implement:
+
+**One report implementation**
++
+**Many paper profiles**
+
+Not:
+
+**Many duplicated services per paper size**
+
+---
+
+# Standard Backend Flow
+
+All printable reports must follow this flow:
+
+```text
+Request
+→ Controller
 → Print Service
 → Report Data Builder
 → PDF Generator
-→ Blade PDF View
+→ View
+```
 
-Controllers must not generate report data directly.
+This flow is mandatory.
 
----
+Do not skip layers.
 
-# Standard Class Structure
-
-Example structure:
-
-app/Services/Print/
-├─ AuditLogPrintService.php
-├─ Contracts/
-│    └─ AuditLogPrintServiceInterface.php
-├─ Data/
-│    └─ AuditLogReportData.php
-└─ Generators/
-└─ ChromePdfGenerator.php
+Do not merge unrelated responsibilities.
 
 ---
 
-# Responsibilities
+# Layer Responsibilities
 
-## Controller
+## 1. Request
 
-Responsible only for:
+The request layer owns:
 
-* receiving request
-* validating request
-* calling service
-* returning response
+* authorization
+* validation
+* payload normalization
+* explicit input contract
 
-Must NOT:
+Requests may accept:
 
-* build report datasets
-* query repositories
-* format report structures
+* report filters
+* `paper_profile`
+
+Requests must not:
+
+* resolve print config
+* choose view paths
+* build report data
 * generate PDFs
+
+---
+
+## 2. Controller
+
+Controllers are orchestration only.
+
+Controllers may:
+
+* receive validated filters
+* call the print service
+* return preview views
+* return PDF downloads
+
+Controllers must not:
+
+* query repositories directly for printable report data
+* paginate print rows
+* resolve paper defaults
+* merge module and paper config
+* choose paper-specific layout logic
+* construct report DTOs manually
+
+Controller code should remain thin and predictable.
+
+---
+
+## 3. Print Service
+
+The print service is the orchestration center for printable reports.
+
+The service owns:
+
+* resolving the active paper profile
+* calling repositories
+* delegating report content building
+* preparing preview payloads
+* preparing PDF rendering payloads
+* calling the PDF generator
+
+The service must not:
+
+* contain Blade markup
+* contain CSS decisions
+* hardcode paper sizes
+* duplicate report builder logic per paper size
+
+---
+
+## 4. Report Data Builder
+
+The report data builder owns:
+
+* transforming domain data into a print-ready report contract
+* report title
+* report metadata
+* printable rows
+* report-specific summary fields
+
+The report builder must not:
+
+* resolve paper profiles
+* decide page size
+* paginate rows for layout
+* decide preview width
+* choose header/footer assets
+
+Report builders produce **report content**, not layout rules.
+
+---
+
+## 5. PDF Generator
+
+The PDF generator owns:
+
+* rendering a PDF from a view
+* saving the output file
+* returning the generated path
+
+The PDF generator must not:
+
+* build report data
+* choose a paper profile
+* contain report logic
+
+---
+
+## 6. View Layer
+
+The view layer owns:
+
+* rendering shared report content
+* rendering paper-specific layout
+* consuming the resolved report contract
+* consuming the resolved paper profile
+
+Views must not:
+
+* query data sources
+* resolve configuration
+* contain fallback business rules
+
+---
+
+# Required Service Contract
+
+Every print service must expose a predictable contract for:
+
+* preview rendering
+* PDF rendering
+
+Recommended shape:
+
+```php
+[
+    'report' => $report,
+    'paperProfile' => $paperProfile,
+]
+```
+
+Preview and PDF must both use the same resolved paper profile.
+
+This is mandatory to keep rendering aligned.
+
+---
+
+# Print Configuration Rule
+
+All paper definitions and module print bindings must live in:
+
+```text
+config/print.php
+```
+
+Configuration must separate:
+
+## 1. Universal paper definitions
 
 Example:
 
-```
-public function pdf(Request $request)
-{
-    $report = $this->printService->buildReport($request->validated());
+* code
+* label
+* width
+* height
+* orientation
+* preview_width
+* default header/footer assets
 
-    return $this->printService->downloadPdf($report);
+## 2. Module-specific print profiles
+
+Example:
+
+* allowed papers
+* default paper
+* pages view
+* styles view
+* pdf styles view
+* rows per page
+* optional header/footer overrides
+
+This keeps physical paper definitions reusable while allowing modules to define their own layout bindings.
+
+---
+
+# Paper Profile Resolution Rule
+
+Paper profile resolution must happen in the **print service**.
+
+It must not happen in:
+
+* controllers
+* requests
+* report builders
+* Blade views
+
+Resolution flow must be:
+
+1. Read requested `paper_profile`
+2. Read module `allowed_papers`
+3. If requested paper is invalid or missing, fallback to module `default_paper`
+4. Load universal paper definition from `print.papers.{code}`
+5. Load module profile from `print.modules.{module}.profiles.{code}`
+6. Merge them into one resolved paper profile
+7. Pass only the resolved paper profile forward
+
+Recommended merge rule:
+
+```php
+$resolvedPaperProfile = array_merge($paperDefaults, $moduleProfile);
+```
+
+Module profile values override paper defaults.
+
+This supports platform defaults with module-specific overrides.
+
+---
+
+# Fallback Rule
+
+Fallback behavior must be explicit.
+
+If the requested paper is missing or invalid:
+
+* the service must use the module default paper
+* the system must not crash
+
+If config is incomplete:
+
+* service should fallback to the module default profile if available
+* rendering should remain predictable
+
+Never pass unresolved or invalid paper configuration into Blade.
+
+---
+
+# Preview Payload Rule
+
+Preview actions must receive:
+
+* report contract
+* resolved paper profile
+* filters if needed by the workspace
+
+Example:
+
+```php
+return view('module.print.index', [
+    'report' => $payload['report'],
+    'paperProfile' => $payload['paperProfile'],
+    'filters' => $filters,
+]);
+```
+
+Controllers must not construct the paper profile manually.
+
+---
+
+# PDF Payload Rule
+
+PDF generation must use the same paper profile resolution path as preview.
+
+The print service should:
+
+1. build the preview payload or equivalent shared payload
+2. pass `report` and `paperProfile` to the PDF view
+3. generate the PDF from that view
+
+Example:
+
+```php
+view: 'module.print.pdf',
+data: [
+    'report' => $payload['report'],
+    'paperProfile' => $payload['paperProfile'],
+],
+```
+
+Preview and PDF must never resolve paper profiles differently.
+
+---
+
+# Pagination Rule
+
+Pagination for printable pages is a **layout concern**.
+
+Therefore:
+
+* services must not paginate rows for page rendering
+* report builders must not paginate rows for page rendering
+* paper-specific `pages.blade.php` should control page chunking
+
+Services deliver report rows.
+Views decide how many rows fit the page.
+
+This is required to support multiple paper profiles without backend duplication.
+
+---
+
+# Header/Footer Asset Rule
+
+Header and footer assets must not be hardcoded in services or controllers.
+
+Assets must come from the resolved paper profile.
+
+Examples:
+
+* `header_image_web`
+* `footer_image_web`
+* `header_image_pdf`
+* `footer_image_pdf`
+
+Universal paper defaults may define these assets.
+Module profiles may override them.
+
+The print service should only pass the resolved profile.
+It should not manually rewrite view asset logic unless there is a dedicated resolver abstraction.
+
+---
+
+# Naming Rule
+
+Paper profile codes must be stable and reusable.
+
+Use the same code in:
+
+* config keys
+* request values
+* control select values
+* paper folder names
+
+Examples:
+
+* `a4-portrait`
+* `a4-landscape`
+* `letter-portrait`
+* `letter-landscape`
+* `long-bond-portrait`
+* `long-bond-landscape`
+
+Do not use display labels as identifiers.
+
+---
+
+# Anti-Patterns
+
+Never do these:
+
+* create one print service per paper size
+* create one controller action per paper size
+* resolve paper profiles in Blade
+* hardcode A4 assumptions in services
+* duplicate report builders for different paper sizes
+* paginate printable pages inside services
+* let preview and PDF use different profile resolution logic
+* pass raw request `paper_profile` directly to views without resolution
+
+---
+
+# Example Service Pattern
+
+Recommended pattern:
+
+```php
+public function buildReport(array $filters): array
+{
+    $paperProfile = $this->resolvePaperProfile($filters['paper_profile'] ?? null);
+
+    $rows = $this->repository->findForPrint($filters);
+    $report = $this->reportBuilder->build($rows, $filters);
+
+    return [
+        'report' => $report,
+        'paperProfile' => $paperProfile,
+    ];
+}
+```
+
+Recommended PDF pattern:
+
+```php
+public function generatePdf(array $filters): string
+{
+    $payload = $this->buildReport($filters);
+
+    return $this->pdfGenerator->generateFromView(
+        view: 'module.print.pdf',
+        data: [
+            'report' => $payload['report'],
+            'paperProfile' => $payload['paperProfile'],
+        ],
+        outputPath: $path,
+    );
 }
 ```
 
 ---
 
-## Print Service
+# Scalability Rule
 
-Primary orchestrator.
+Adding a new paper must not require:
 
-Responsibilities:
+* a new service
+* a new report builder
+* a new controller flow
 
-* validate print parameters
-* coordinate repositories
-* call ReportData builder
-* call PDF generator
-* define report contracts
+Adding a new paper should require only:
 
-Must NOT:
+1. config entry
+2. paper layout files
+3. optional tuning for rows and spacing
 
-* contain UI layout logic
-* contain Blade formatting
-* contain HTML
-
-Example responsibilities:
-
-* buildReport()
-* downloadPdf()
-* streamPdf()
+This is the required scalability model for Core printing.
 
 ---
 
-## Report Data Builder (Data layer)
+# Default Module Rule
 
-This is the most important abstraction.
+Each printable module must define:
 
-Purpose:
+* `default_paper`
+* `allowed_papers`
+* per-paper module profiles
 
-Convert domain data into report-ready structure.
+This keeps module capabilities explicit.
 
-Responsibilities:
-
-* shape report dataset
-* normalize fields
-* compute display values
-* guarantee required fields exist
-
-Example output:
-
-```
-ReportData
- ├─ title
- ├─ filters
- ├─ rows
- ├─ totals
- ├─ metadata
- └─ pagination
-```
-
-Must NOT:
-
-* access HTTP
-* access Blade
-* generate PDFs
+A module should not automatically support every paper just because a universal paper definition exists.
 
 ---
 
-# Data Layer Rule
+# Final Architecture Summary
 
-Report data builders belong to a Data folder, not Services.
+Request:
 
-Example:
+Validate input and normalize payload.
 
-app/Services/Print/Data/AuditLogReportData.php
+Controller:
 
-Reason:
+Orchestrate only.
 
-Services orchestrate.
-Data builders transform.
+Service:
 
----
+Resolve paper profile, build payload, coordinate rendering.
 
-# PDF Generator
+Report Builder:
 
-Handles only PDF conversion.
+Produce report content only.
 
-Responsibilities:
+View:
 
-* load Blade view
-* pass report data
-* execute PDF engine
+Render report content with paper layout.
 
-Must NOT:
+System:
 
-* build report data
-* query repositories
-
-Example:
-
-ChromePdfGenerator
-
-Possible future generators:
-
-* DomPdfGenerator
-* SnappyGenerator
-* ExternalPdfService
+One report implementation.
+Many paper profiles.
+Config-driven rendering.
 
 ---
 
-# Report Data Contract Rule
+# Final Rule
 
-Report data must be predictable.
+Core print services must always follow:
 
-Every report must define a clear structure.
+**One Print Service Flow**
++
+**One Report Contract**
++
+**One Resolved Paper Profile**
 
-Example required fields:
-
-* title
-* generated_at
-* filters
-* rows
-* totals (optional)
-* module_name
-
-Blade must never assume undefined keys.
-
----
-
-# Common Problems and Solutions
-
-## Problem — Undefined fields in Blade
-
-Cause:
-
-View expected fields not provided.
-
-Fix:
-
-ReportData must guarantee schema.
-
-Rule:
-
-ReportData defines the contract.
-Blade consumes it.
-
----
-
-## Problem — Controllers becoming too large
-
-Cause:
-
-Controllers generating report data.
-
-Fix:
-
-Move logic into PrintService.
-
-Rule:
-
-Controllers orchestrate only.
-
----
-
-## Problem — Services becoming god classes
-
-Cause:
-
-Service doing both data shaping and PDF generation.
-
-Fix:
-
-Split:
-
-PrintService
-ReportData
-PdfGenerator
-
-Rule:
-
-One responsibility per class.
-
----
-
-## Problem — Report tightly coupled to database
-
-Cause:
-
-Blade directly consuming models.
-
-Fix:
-
-Use ReportData DTO.
-
-Rule:
-
-Blade consumes report objects, not models.
-
----
-
-## Problem — Missing relationships
-
-Cause:
-
-Repositories not eager loading required relations.
-
-Fix:
-
-Load relations in Service or Repository.
-
-Rule:
-
-ReportData must not trigger lazy loading.
-
----
-
-# Naming Standards
-
-Services:
-
-AuditLogPrintService
-DtsPrintService
-InventoryPrintService
-
-Data builders:
-
-AuditLogReportData
-DtsReportData
-
-Generators:
-
-ChromePdfGenerator
-
----
-
-# Interface Rule
-
-All PrintServices should have interfaces.
-
-Example:
-
-AuditLogPrintServiceInterface
-
-Reason:
-
-Supports testing and future refactors.
-
----
-
-# Dependency Injection Rule
-
-Bind in CoreServiceProvider.
-
-Example:
-
-AuditLogPrintServiceInterface → AuditLogPrintService
-
----
-
-# Extensibility Rule
-
-Future features should not require rewriting services.
-
-Possible additions:
-
-* Excel export
-* CSV export
-* Email report
-* Scheduled reports
-
-Service must support extension.
-
----
-
-# Anti Patterns
-
-Do NOT:
-
-Generate PDFs in controllers.
-
-Do NOT:
-
-Mix HTML inside services.
-
-Do NOT:
-
-Use Blade as data source.
-
-Do NOT:
-
-Query database inside views.
-
-Do NOT:
-
-Let ReportData depend on HTTP.
-
----
-
-# Result
-
-Following this standard ensures:
-
-* reusable printing pipeline
-* clean architecture
-* predictable report generation
-* easy module expansion
-* platform-level printing foundation
-
----
-
-# Relationship to Other Standards
-
-This document works with:
-
-PRINT_WORKSPACE_STANDARD → UI
-PRINT_SERVICE_STANDARD → Backend
-ARCHITECTURE.md → Layer rules
-CORE_SERVICE_RULES.md → Service behavior
-
-Together they define the Core printing architecture.
+This is the required backend model for scalable multi-paper printing in the Core System.

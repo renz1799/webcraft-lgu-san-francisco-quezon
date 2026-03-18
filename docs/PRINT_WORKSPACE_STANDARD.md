@@ -1,610 +1,479 @@
-# Print Workspace Standard
+# PRINT WORKSPACE STANDARD (Core System)
 
-This document defines the standard page pattern for printable documents that need both:
+This document defines the **UI, layout, and structural rules** for all printable workspaces in the Core System.
 
-* a left-side settings or filters panel
-* a right-side live paper preview
-* a server-generated PDF export
+This standard ensures that all print workspaces:
 
-The Core reference implementation is the Audit Log print module.
+* Follow a consistent preview experience
+* Support multiple paper profiles
+* Keep preview and PDF layouts identical
+* Separate report content from paper layout
+* Remain scalable as more reports are added
 
----
-
-# Purpose
-
-Use this pattern when a printable document needs users to adjust values like:
-
-* cutoff date
-* module filters
-* report parameters
-* preview-only toggles before printing or downloading PDF
-
-This keeps the printable document clean while still giving the user a practical working area beside the preview.
+This document focuses on **workspace layout and rendering rules**.
+Backend orchestration rules belong to PRINT_SERVICE_STANDARD.
 
 ---
 
-# Core Principles
+# Core Principle
 
-Printable modules must follow:
+Print architecture separates:
 
-Preview Workspace
-→ User configures report
-→ User sees live preview
-→ User downloads PDF
+**Report Content**
+vs
+**Paper Layout**
 
-Not:
+Meaning:
 
-Generate PDF directly from buttons without preview.
+One report implementation
++
+Multiple paper profiles
 
----
+NOT:
 
-# Standard Building Blocks
-
-## 1. Shared workspace styles
-
-Include the shared workspace styles:
-
-```
-<x-print.workspace-styles />
-<x-print.workspace-panel-styles />
-```
-
-This provides:
-
-* app-like screen background
-* left/right split layout
-* sticky settings panel
-* centered preview column
-* standardized filter sidebar design
-* print behavior that hides sidebar automatically
-
-Files:
-
-```
-resources/views/components/print/workspace-styles.blade.php
-resources/views/components/print/workspace-panel-styles.blade.php
-```
+Multiple report implementations per paper size.
 
 ---
 
-## 2. Shared workspace shell
+# Workspace Layout Structure
 
-Wrap the page in:
+All print workspaces must follow the Core workspace layout:
 
-```
-<x-print.workspace>
+LEFT:
+Report controls
 
-<x-slot:sidebar>
+RIGHT:
+Preview panel
 
-@include('module.print.partials.controls')
-
-</x-slot:sidebar>
-
-@include('module.print.partials.pages')
-
-</x-print.workspace>
-```
-
-File:
+Structure example:
 
 ```
-resources/views/components/print/workspace.blade.php
+[x-print.panel]
+ ├─ Controls (filters + paper selector)
+ └─ Preview container
+```
+
+Controls modify the preview.
+Preview reflects the resolved paper profile.
+
+---
+
+# Paper Profile Concept
+
+All printable reports must use a **paper profile**.
+
+Paper profiles define the physical page behavior.
+
+A paper profile contains:
+
+* paper_code
+* label
+* width
+* height
+* orientation
+* preview_width
+* header_image_web
+* footer_image_web
+* header_image_pdf
+* footer_image_pdf
+
+Module profiles may extend this with:
+
+* pages_view
+* styles_view
+* pdf_styles_view
+* rows_per_page
+* first_page_rows (optional)
+* later_page_rows (optional)
+
+Paper profiles live in:
+
+```
+config/print.php
 ```
 
 ---
 
-## 3. Shared settings panel shell
+# Preview Container Rules
 
-Use:
+Preview must simulate a real printed page.
+
+Preview must:
+
+* Use paper profile width
+* Use paper profile height
+* Center pages
+* Show page shadows
+* Allow vertical scroll
+* Never auto-resize based on content
+
+Example behavior:
+
+Preview pages should look like real paper stacked vertically.
+
+Preview dimensions must come from:
 
 ```
-<x-print.panel>
+$paperProfile['width']
+$paperProfile['height']
 ```
+
+Never hardcode dimensions like:
+
+```
+210mm
+297mm
+```
+
+A4 portrait remains the baseline default profile, but preview must always use the resolved paper profile.
+
+---
+
+# Preview Styling Rules
+
+Preview pages should visually resemble paper.
+
+Recommended:
+
+* white background
+* subtle shadow
+* spacing between pages
+* centered layout
+
+Example visual expectations:
+
+* margin between pages
+* box-shadow allowed in preview only
+* shadows must NOT appear in PDF
+
+PDF styles must remove preview-only decoration.
+
+---
+
+# Preview vs PDF Rule (Critical)
+
+Preview and PDF must use the **same layout views**.
+
+Preview must include:
+
+```
+profile.styles_view
+profile.pages_view
+```
+
+PDF must include:
+
+```
+profile.pdf_styles_view
+profile.pages_view
+```
+
+The pages view must be identical.
+
+Never maintain separate page structures.
+
+This prevents layout drift.
+
+---
+
+# Folder Structure Standard
+
+All print views must follow this structure:
+
+```
+resources/views/{module}/print/
+├─ index.blade.php
+├─ pdf.blade.php
+├─ partials/
+│   ├─ controls.blade.php
+│   ├─ meta.blade.php
+│   ├─ table.blade.php
+│   ├─ header.blade.php
+│   ├─ footer.blade.php
+│   └─ base-styles.blade.php
+└─ paper/
+    ├─ a4-portrait/
+    │   ├─ pages.blade.php
+    │   ├─ styles.blade.php
+    │   └─ pdf-styles.blade.php
+    ├─ letter-portrait/
+    └─ future paper profiles
+```
+
+---
+
+# Shared vs Paper Specific Files
+
+Shared partials describe the report.
+
+Paper folders describe layout.
+
+Shared:
+
+* controls.blade.php
+* meta.blade.php
+* table.blade.php
+* header.blade.php
+* footer.blade.php
+* base-styles.blade.php
+
+Paper specific:
+
+* pages.blade.php
+* styles.blade.php
+* pdf-styles.blade.php
+
+Rule:
+
+Report content must NEVER move into paper folders.
+
+---
+
+# Pagination Rules
+
+Pagination must live inside:
+
+```
+paper/{profile}/pages.blade.php
+```
+
+Never paginate in:
+
+* controllers
+* services
+* report builders
+
+Pagination is a layout concern.
+
+Paper profiles control:
+
+* rows per page
+* first page spacing
+* later page spacing
+* footer space
+
+This allows tuning per paper.
+
+---
+
+# Header/Footer Rules
+
+Header and footer must NOT be hardcoded.
+
+They must come from the resolved paper profile.
 
 Example:
 
 ```
-<x-print.panel
-kicker="Reports"
-title="Audit Log Print Preview"
-copy="Set filters and review the document before downloading."
->
+$paperProfile['header_image_web']
+$paperProfile['footer_image_web']
 ```
 
-File:
+PDF should use:
 
 ```
-resources/views/components/print/panel.blade.php
+$paperProfile['header_image_pdf']
+$paperProfile['footer_image_pdf']
 ```
+
+Modules may override platform defaults.
+
+If no override exists:
+
+Platform paper defaults must be used.
 
 ---
 
-# Sidebar Control Panel Standard
+# Controls Rules
 
-All print workspaces must follow:
-
-Structure:
+Controls must live in:
 
 ```
-Intro
-Filters section
-Actions section
+partials/controls.blade.php
 ```
 
-Example:
+Controls must include:
 
-```
-Report Controls
-Filters
-Actions
-```
+* report filters
+* paper selector (if multiple supported)
+* preview button
+* PDF button
+* reset button
+
+Paper selector must:
+
+* use module allowed papers
+* default to module default paper
+* persist across preview
+* persist to PDF download
 
 ---
 
-# Button Hierarchy Standard
+# Paper Selector Rules
 
-All print modules must use:
+Paper selector values must match:
 
-Primary:
+* config paper codes
+* folder names
+* request values
 
-Apply Filters
+Example codes:
 
-Secondary:
+* a4-portrait
+* a4-landscape
+* letter-portrait
+* letter-landscape
+* long-bond-portrait
+* long-bond-landscape
 
+Never use labels as identifiers.
+
+Always use stable codes.
+
+---
+
+# Base Styles Rule
+
+Base styles must be shared.
+
+Located in:
+
+```
+partials/base-styles.blade.php
+```
+
+Base styles should define:
+
+* page width
+* page height
+* base typography
+* table defaults
+* print safe colors
+
+Paper profiles may extend styling.
+
+They must NOT redefine core layout rules.
+
+---
+
+# Paper Profile Extension Rule
+
+Adding a new paper must require only:
+
+1 Create paper folder
+2 Add config entry
+3 Tune rows per page
+
+Never duplicate reports.
+
+Example process:
+
+```
+paper/long-bond-portrait/
+├─ pages.blade.php
+├─ styles.blade.php
+└─ pdf-styles.blade.php
+```
+
+Add config.
+Done.
+
+---
+
+# Things That Must Never Happen
+
+Never do these:
+
+Do NOT duplicate report blades per paper
+
+Do NOT hardcode A4 sizes
+
+Do NOT put layout logic in controllers
+
+Do NOT paginate in services
+
+Do NOT use different preview and PDF layouts
+
+Do NOT hardcode header/footer paths
+
+Do NOT mix report data with layout decisions
+
+Do NOT create separate reports per paper size
+
+---
+
+# Workspace UX Rules
+
+Workspace must remain simple.
+
+User flow:
+
+Select filters
+Select paper
+Preview report
 Download PDF
 
-Tertiary:
+Preview must always reflect selected paper.
 
-Reset Filters
-
-Hierarchy:
-
-```
-Primary → filled button
-Secondary → outline button
-Tertiary → text link
-```
+PDF must always match preview.
 
 ---
 
-# Core Button Pattern
+# Default Paper Rule
 
-Buttons should follow:
-
-```
-<button class="ti-btn btn-wave ti-btn-primary-full label-ti-btn">
-
-<i class="ri-filter-3-line label-ti-btn-icon me-2"></i>
-
-Apply Filters
-
-</button>
-```
-
-Download example:
-
-```
-<a class="ti-btn btn-wave ti-btn-outline-primary label-ti-btn">
-
-<i class="ri-file-pdf-line label-ti-btn-icon me-2"></i>
-
-Download PDF
-
-</a>
-```
-
----
-
-# Paper Standard
-
-All Core printable reports must default to:
-
-```
-Paper: A4
-Orientation: Portrait
-Preview must match PDF output.
-```
-
-Do not use browser default sizing.
-
----
-
-# Header/Footer Standard
-
-Reports must support:
-
-* header image
-* footer image
-* page numbering
-* consistent margins
-
-Images stored in:
-
-```
-public/headers/
-```
+Modules must define a default paper.
 
 Example:
 
 ```
-a4_header_template_dark_2480x300.png
-a4_footer_template_dark_2480x250.png
+default_paper => a4-portrait
 ```
 
----
+If no paper selected:
 
-# Paging Standard
+System must fallback to module default.
 
-Preview must simulate PDF paging.
+If invalid paper selected:
 
-Rules:
+System must fallback safely.
 
-* fixed A4 page height
-* page breaks enforced
-* footer page numbers bottom right
-* header repeated per page
+Never crash.
 
 ---
 
-# Preview vs PDF Separation Rule
+# Final Architecture Summary
 
-Preview:
+Workspace:
 
-* interactive
-* may use workspace layout
-* may include sidebar
+One workspace
+Many paper profiles
 
-PDF:
+Views:
 
-Must:
+Shared report content
+Paper specific layouts
 
-* be standalone
-* not extend master layouts
-* not include JS
-* not include sidebar
-* reuse same page partials
+UX:
 
-Example:
+Paper selector
+Dynamic preview
+Identical PDF layout
 
-```
-<!DOCTYPE html>
+System:
 
-@include('module.print.partials.pdf-styles')
-
-@include('module.print.partials.pages')
-```
+Config driven
+Scalable
+Module extensible
 
 ---
 
-# Service Architecture Rule
+# Final Rule
 
-Printing must follow Core layering:
+Core printing must always follow:
 
-```
-Controller
-→ Service
-→ Data Builder
-→ PDF Generator
-→ Blade View
-```
+**One Report
+Many Paper Profiles**
 
-Not:
+Never the opposite.
 
-Controller → View → PDF directly.
-
----
-
-# Report Data Rule
-
-Report data must come from:
-
-Service
-Repository
-Provider
-
-Not controller logic.
-
----
-
-# File Structure Standard
-
-Each printable module must follow:
-
-```
-module/
- ├─ print/
- │   ├─ index.blade.php
- │   ├─ pdf.blade.php
- │   └─ partials/
- │        ├─ controls.blade.php
- │        ├─ pages.blade.php
- │        ├─ table.blade.php
- │        ├─ meta.blade.php
- │        ├─ styles.blade.php
- │        └─ pdf-styles.blade.php
-```
-
-Shared Core:
-
-```
-components/
- ├─ print/
- │   ├─ workspace.blade.php
- │   ├─ panel.blade.php
- │   ├─ workspace-styles.blade.php
- │   └─ workspace-panel-styles.blade.php
-```
-
----
-
-# Implementation Checklist
-
-When building a new print workspace:
-
-1 Create printable page view
-2 Add workspace styles
-3 Wrap with workspace shell
-4 Put filters in sidebar
-5 Keep pages in preview slot
-6 Keep layout logic in partials
-7 Add PDF endpoint
-8 Reuse shared components
-9 Use A4 sizing
-10 Follow button hierarchy
-
----
-
-# Problems Encountered and Solutions (Important)
-
-These issues were discovered during the Audit Log print module implementation and define the baseline for all future print modules.
-
-Future modules should avoid these mistakes.
-
----
-
-## Problem 1 — Preview did not match PDF size
-
-Issue:
-
-Preview rendered as long bond while PDF used A4.
-
-Cause:
-
-Preview was using browser auto layout instead of fixed page sizing.
-
-Fix:
-
-Always enforce:
-
-```
-width:210mm;
-height:297mm;
-```
-
-And simulate real pages.
-
-Rule:
-
-Preview must visually match PDF dimensions.
-
----
-
-## Problem 2 — Chrome PDF spacing different from preview
-
-Issue:
-
-Spacing differences between preview and PDF.
-
-Cause:
-
-Browser rendering vs headless Chrome rendering differences.
-
-Fix:
-
-Separate:
-
-```
-styles.blade.php
-pdf-styles.blade.php
-```
-
-Rule:
-
-Never share identical CSS between preview and PDF without testing.
-
----
-
-## Problem 3 — Missing relationships in report data
-
-Issue:
-
-Undefined relationship errors.
-
-Cause:
-
-Report expected relations not loaded.
-
-Fix:
-
-Ensure repository/service loads required relationships.
-
-Rule:
-
-Report data must be shaped in Service layer, not Blade.
-
----
-
-## Problem 4 — Missing report fields
-
-Issue:
-
-Undefined array keys like module_name.
-
-Cause:
-
-View expected fields not included in report data.
-
-Fix:
-
-Ensure ReportData builder defines all expected fields.
-
-Rule:
-
-Blade should never assume fields.
-Service must define report schema.
-
----
-
-## Problem 5 — Chrome binary not found
-
-Issue:
-
-Chrome PDF generator failed.
-
-Cause:
-
-Chrome path not configured.
-
-Fix:
-
-Configure:
-
-```
-CHROME_BIN
-services.chrome.binary
-```
-
-Rule:
-
-PDF infrastructure must be configured before using print services.
-
----
-
-## Problem 6 — Icons not rendering
-
-Issue:
-
-Remix icons not visible.
-
-Cause:
-
-Custom layout did not load icon assets.
-
-Fix:
-
-Ensure print workspace master loads same CSS as main layout.
-
-Rule:
-
-Custom layouts must load UI assets.
-
----
-
-## Problem 7 — Template styles not applied
-
-Issue:
-
-Form styling inconsistent.
-
-Cause:
-
-Preview layout not extending UI asset stack.
-
-Fix:
-
-Create:
-
-```
-print-workspace-master.blade.php
-```
-
-Rule:
-
-Preview pages must load same UI assets as main app.
-
----
-
-# Anti Patterns
-
-Do NOT:
-
-Generate PDF inside controllers.
-
-Do NOT:
-
-Mix preview and PDF styles.
-
-Do NOT:
-
-Duplicate sidebar UI per module.
-
-Do NOT:
-
-Hardcode report layouts.
-
-Do NOT:
-
-Use inconsistent button structures.
-
----
-
-# Decision Rule
-
-Use Print Workspace when:
-
-Page is interactive
-AND
-Page is printable/exportable.
-
-Otherwise simple printable Blade is acceptable.
-
----
-
-# Long Term Goal
-
-The Print Workspace is part of the Core platform direction:
-
-```
-Generic
-Reusable
-Consistent
-Module independent
-Platform driven
-```
-
----
-
-# Recommended Addition to CORE_DESIGN_PRINCIPLES
-
-Add:
-
-PRINT_WORKSPACE_STANDARD must be followed by all printable modules.
-
----
-
-# Result
-
-This ensures:
-
-* consistent report UX
-* reusable Core components
-* predictable PDF output
-* faster module creation
-* platform-level maintainability
-
----
-
-# Future Standard (Recommended Next Step)
-
-Next recommended document:
-
-PRINT_SERVICE_STANDARD
-
-This will standardize:
-
-* PrintService pattern
-* ReportData pattern
-* PdfGenerator usage
-* Data shaping rules
-
-This completes the Core printing architecture.
+This ensures the Core System remains maintainable as more reports and paper formats are introduced.
