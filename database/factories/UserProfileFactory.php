@@ -15,7 +15,7 @@ class UserProfileFactory extends Factory
             'first_name' => fake()->firstName(),
             'middle_name' => fake()->optional()->firstName(),
             'last_name' => fake()->lastName(),
-            'name_extension' => fake()->optional()->suffix(),
+            'name_extension' => fake()->optional()->randomElement(['Jr.', 'Sr.', 'III', 'IV']),
             'address' => fake()->address(),
             'contact_details' => fake()->phoneNumber(),
             'profile_photo_path' => null,

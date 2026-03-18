@@ -2,58 +2,56 @@
 
 namespace Database\Seeders;
 
+use App\Models\Department;
+use App\Models\Module;
+use App\Models\Notification;
 use App\Models\Task;
 use App\Models\TaskEvent;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Models\Notification;
 
 class TaskSeeder extends Seeder
 {
     public function run(): void
     {
-        /**
-         * IMPORTANT:
-         * We now create users via factories (UserSeeder), so do NOT hardcode UUIDs.
-         * Instead, resolve admin + a sample staff dynamically.
-         */
+        $module = Module::query()->find(config('module.id'));
 
-        // Admin user (actor/creator)
+        if (! $module) {
+            throw new \RuntimeException('TaskSeeder: current module not found. Run ModuleSeeder first.');
+        }
+
+        $department = Department::query()->orderBy('created_at')->first();
+
+        if (! $department) {
+            throw new \RuntimeException('TaskSeeder: no department found. Seed departments first.');
+        }
+
         $admin = User::query()
             ->where('email', 'admin@webcraft.ph')
             ->first();
 
         if (! $admin) {
-            throw new \RuntimeException("TaskSeeder: admin user not found. Run UserSeeder first (admin@webcraft.ph).");
+            throw new \RuntimeException('TaskSeeder: admin user not found. Run UserSeeder first.');
         }
 
-        // ✅ Sample staff you will rename later for snapshot testing
         $sampleStaff = User::query()
             ->where('email', '!=', 'admin@webcraft.ph')
             ->orderBy('created_at')
             ->first();
 
         if (! $sampleStaff) {
-            throw new \RuntimeException("TaskSeeder: no staff user found. Seed staff users first.");
+            throw new \RuntimeException('TaskSeeder: no staff user found. Seed staff users first.');
         }
 
-        // 👇 Useful for testing (you can copy this from logs)
-        $staffUserId = $sampleStaff->id;
-
-        DB::transaction(function () use ($admin, $sampleStaff, $staffUserId) {
-
-            // Optional: clear old data (ONLY for local dev)
-            // NOTE: delete Task first if task_events has FK task_id cascade delete is ON.
+        DB::transaction(function () use ($module, $department, $admin, $sampleStaff) {
             TaskEvent::query()->forceDelete();
             Task::query()->forceDelete();
             Notification::query()->forceDelete();
 
-            // ----------------------------
-            // 1) Assigned tasks (My Tasks)
-            // ----------------------------
-
             $t1 = Task::create([
+                'module_id' => $module->id,
+                'department_id' => $department->id,
                 'title' => 'Release Sticker (Inventory Item)',
                 'description' => 'Generate and release property sticker for newly received item.',
                 'type' => 'release_sticker',
@@ -70,15 +68,16 @@ class TaskSeeder extends Seeder
                 'updated_at' => now()->subDays(2),
             ]);
 
-            // Admin creates & assigns
             $this->seedEventsForTask($t1, $admin->id, [
-                ['event_type' => 'created',  'note' => 'Task created.', 'at' => now()->subDays(2)],
+                ['event_type' => 'created', 'note' => 'Task created.', 'at' => now()->subDays(2)],
                 ['event_type' => 'assigned', 'note' => 'Assigned to admin.', 'meta' => ['to_user_id' => $admin->id], 'at' => now()->subDays(2)],
             ]);
 
-            $this->seedNotificationForTask($t1, $admin->id, $admin->id, 'assigned');
+            $this->seedNotificationForTask($t1, $module->id, $department->id, $admin->id, $admin->id, 'assigned');
 
             $t2 = Task::create([
+                'module_id' => $module->id,
+                'department_id' => $department->id,
                 'title' => 'Print WeBill',
                 'description' => 'Print WeBill for customer pickup.',
                 'type' => 'print_we_bill',
@@ -101,9 +100,11 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'comment', 'note' => 'Need signature from officer-in-charge.', 'at' => now()->subHours(18)],
             ]);
 
-            $this->seedNotificationForTask($t2, $admin->id, $admin->id, 'assigned');
+            $this->seedNotificationForTask($t2, $module->id, $department->id, $admin->id, $admin->id, 'assigned');
 
             $t3 = Task::create([
+                'module_id' => $module->id,
+                'department_id' => $department->id,
                 'title' => 'Release Documents (DV/ORS)',
                 'description' => 'Prepare and release required documents.',
                 'type' => 'release_document',
@@ -127,13 +128,11 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'status_changed', 'from' => 'in_progress', 'to' => 'done', 'note' => 'Ready to pick up.', 'at' => now()->subDays(4)],
             ]);
 
-            $this->seedNotificationForTask($t3, $admin->id, $admin->id, 'assigned');
-
-            // -----------------------------------------
-            // 2) Available tasks (Role-based / pooled)
-            // -----------------------------------------
+            $this->seedNotificationForTask($t3, $module->id, $department->id, $admin->id, $admin->id, 'assigned');
 
             $p1 = Task::create([
+                'module_id' => $module->id,
+                'department_id' => $department->id,
                 'title' => 'Pooled: Release Sticker (Any Admin can claim)',
                 'description' => 'A pooled task visible to admin role; anyone can claim.',
                 'type' => 'release_sticker',
@@ -153,9 +152,11 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'created', 'note' => 'Pooled task created.', 'at' => now()->subHours(10)],
             ]);
 
-            $this->seedNotificationForTask($p1, $admin->id, $admin->id, 'pooled');
+            $this->seedNotificationForTask($p1, $module->id, $department->id, $admin->id, $admin->id, 'pooled');
 
             $p2 = Task::create([
+                'module_id' => $module->id,
+                'department_id' => $department->id,
                 'title' => 'Pooled: Print Gate Pass (Admin/Staff)',
                 'description' => 'Visible to admin and staff roles.',
                 'type' => 'print_gate_pass',
@@ -172,18 +173,19 @@ class TaskSeeder extends Seeder
                 'updated_at' => now()->subHours(3),
             ]);
 
-            // Admin created it, but make STAFF leave a comment event (snapshot test)
             $this->seedEventsForTask($p2, $admin->id, [
                 ['event_type' => 'created', 'note' => 'Pooled task created.', 'at' => now()->subHours(3)],
             ]);
 
-            $this->seedEventsForTask($p2, $staffUserId, [
+            $this->seedEventsForTask($p2, $sampleStaff->id, [
                 ['event_type' => 'comment', 'note' => 'Staff noted: Waiting for supporting document.', 'at' => now()->subHours(2)],
             ]);
 
-            $this->seedNotificationForTask($p2, $admin->id, $admin->id, 'pooled');
+            $this->seedNotificationForTask($p2, $module->id, $department->id, $admin->id, $admin->id, 'pooled');
 
             $p3 = Task::create([
+                'module_id' => $module->id,
+                'department_id' => $department->id,
                 'title' => 'Pooled: Staff-only Task (should not show for admin if strict)',
                 'description' => 'Visible only to staff role.',
                 'type' => 'staff_only_demo',
@@ -198,13 +200,9 @@ class TaskSeeder extends Seeder
                 'updated_at' => now()->subHours(1),
             ]);
 
-            // Use STAFF as actor here too (snapshot test)
-            $this->seedEventsForTask($p3, $staffUserId, [
+            $this->seedEventsForTask($p3, $sampleStaff->id, [
                 ['event_type' => 'created', 'note' => 'Staff-only pooled task created.', 'at' => now()->subHours(1)],
             ]);
-
-            // Optional: usually you wouldn't notify admin for staff-only pooled tasks
-            // $this->seedNotificationForTask($p3, $admin->id, $admin->id, 'pooled');
         });
     }
 
@@ -217,53 +215,53 @@ class TaskSeeder extends Seeder
 
         $actorUsername = $actor?->username;
 
-        foreach ($events as $e) {
+        foreach ($events as $event) {
             TaskEvent::create([
                 'task_id' => $task->id,
                 'actor_user_id' => $actorUserId,
-
-                // ✅ snapshots (new columns)
                 'actor_name_snapshot' => $actorName,
                 'actor_username_snapshot' => $actorUsername,
-
-                'event_type' => $e['event_type'],
-                'from_status' => $e['from'] ?? null,
-                'to_status' => $e['to'] ?? null,
-                'note' => $e['note'] ?? null,
-                'meta' => $e['meta'] ?? null,
-                'created_at' => $e['at'] ?? now(),
-                'updated_at' => $e['at'] ?? now(),
+                'event_type' => $event['event_type'],
+                'from_status' => $event['from'] ?? null,
+                'to_status' => $event['to'] ?? null,
+                'note' => $event['note'] ?? null,
+                'meta' => $event['meta'] ?? null,
+                'created_at' => $event['at'] ?? now(),
+                'updated_at' => $event['at'] ?? now(),
             ]);
         }
     }
 
-    private function seedNotificationForTask(Task $task, string $recipientUserId, string $actorUserId, string $kind = 'assigned'): void
-    {
+    private function seedNotificationForTask(
+        Task $task,
+        string $moduleId,
+        string $departmentId,
+        string $recipientUserId,
+        string $actorUserId,
+        string $kind = 'assigned'
+    ): void {
         $type = match ($kind) {
             'assigned' => 'task.assigned',
-            'pooled'   => 'task.available',
-            default    => 'task.updated',
+            'pooled' => 'task.available',
+            default => 'task.updated',
         };
 
         Notification::create([
+            'module_id' => $moduleId,
+            'department_id' => $departmentId,
             'notifiable_user_id' => $recipientUserId,
-            'actor_user_id'      => $actorUserId,
-            'type'               => $type,
-
-            'title'   => $kind === 'pooled' ? 'New Task Available' : 'New Task Assigned',
+            'actor_user_id' => $actorUserId,
+            'type' => $type,
+            'title' => $kind === 'pooled' ? 'New Task Available' : 'New Task Assigned',
             'message' => $task->title,
-
             'entity_type' => 'task',
-            'entity_id'   => $task->id,
-
+            'entity_id' => $task->id,
             'data' => [
-                'url'     => route('tasks.show', $task->id),
+                'url' => route('tasks.show', $task->id),
                 'task_id' => $task->id,
-                'status'  => $task->status,
+                'status' => $task->status,
             ],
-
             'read_at' => null,
         ]);
     }
 }
-//php artisan db:seed --class=TaskSeeder

@@ -3,31 +3,31 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Permission;
 
 class PermissionsSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $permissions = [
+            ['name' => 'view Tasks', 'page' => 'Manage Tasks'],
             ['name' => 'modify Reassign Tasks', 'page' => 'Manage Tasks'],
-          //  ['name' => 'modify Tasks', 'page' => 'Manage Tasks'],
-          //  ['name' => 'delete Tasks', 'page' => 'Manage Tasks'],
-
         ];
 
-        foreach ($permissions as $perm) {
-            Permission::updateOrCreate(
-                ['name' => $perm['name'], 'page' => $perm['page']],
-                ['guard_name' => 'web', 'id' => Str::uuid()]
+        foreach ($permissions as $permission) {
+            Permission::query()->updateOrCreate(
+                [
+                    'name' => $permission['name'],
+                    'page' => $permission['page'],
+                ],
+                [
+                    'guard_name' => 'web',
+                    'id' => (string) Str::uuid(),
+                ]
             );
         }
 
-        echo "✅ Permissions seeded successfully!\n";
+        $this->command?->info('Permissions seeded successfully.');
     }
 }
-//php artisan db:seed --class=PermissionsSeeder

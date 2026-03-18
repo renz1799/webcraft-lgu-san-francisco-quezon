@@ -2,7 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\Department;
+use App\Models\Module;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -15,9 +18,11 @@ class NotificationFactory extends Factory
         return [
             'id' => (string) Str::uuid(),
 
-            // default values (can be overridden in seeder)
-            'notifiable_user_id' => (string) Str::uuid(),
-            'actor_user_id' => (string) Str::uuid(),
+            'module_id' => Module::factory(),
+            'department_id' => Department::factory(),
+
+            'notifiable_user_id' => User::factory(),
+            'actor_user_id' => User::factory(),
 
             'type' => 'task_assigned',
             'title' => 'New Task Assigned',
@@ -37,13 +42,45 @@ class NotificationFactory extends Factory
         ];
     }
 
-    /**
-     * Mark notification as read
-     */
     public function read(): static
     {
         return $this->state(fn () => [
             'read_at' => now(),
+        ]);
+    }
+
+    public function unread(): static
+    {
+        return $this->state(fn () => [
+            'read_at' => null,
+        ]);
+    }
+
+    public function forModule(string $moduleId): static
+    {
+        return $this->state(fn () => [
+            'module_id' => $moduleId,
+        ]);
+    }
+
+    public function forDepartment(string $departmentId): static
+    {
+        return $this->state(fn () => [
+            'department_id' => $departmentId,
+        ]);
+    }
+
+    public function forRecipient(string $userId): static
+    {
+        return $this->state(fn () => [
+            'notifiable_user_id' => $userId,
+        ]);
+    }
+
+    public function fromActor(?string $userId): static
+    {
+        return $this->state(fn () => [
+            'actor_user_id' => $userId,
         ]);
     }
 }

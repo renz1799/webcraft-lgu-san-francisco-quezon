@@ -2,29 +2,35 @@
 
 namespace Database\Seeders;
 
+use App\Models\Department;
+use App\Models\Role;
 use App\Models\User;
+use App\Models\UserModule;
 use App\Models\UserProfile;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Models\Role;
-
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
         DB::transaction(function () {
+            $moduleId = config('module.id');
 
-            // Ensure roles exist
+            $department = Department::query()->orderBy('created_at')->first();
+
+            if (! $department) {
+                throw new \RuntimeException('UserSeeder: no department found. Seed departments first.');
+            }
+
             $adminRole = Role::firstOrCreate(['name' => 'Administrator']);
             $staffRole = Role::firstOrCreate(['name' => 'Staff']);
 
-            /**
-             * ADMIN
-             */
             $admin = User::factory()
                 ->admin()
-                ->create();
+                ->create([
+                    'primary_department_id' => $department->id,
+                ]);
 
             UserProfile::factory()->create([
                 'user_id' => $admin->id,
@@ -34,13 +40,25 @@ class UserSeeder extends Seeder
 
             $admin->assignRole($adminRole);
 
-            /**
-             * STAFF (bulk)
-             */
+            UserModule::updateOrCreate(
+                [
+                    'user_id' => $admin->id,
+                    'module_id' => $moduleId,
+                    'department_id' => $department->id,
+                ],
+                [
+                    'is_active' => true,
+                    'granted_at' => now(),
+                    'revoked_at' => null,
+                ]
+            );
+
             $staffUsers = User::factory()
                 ->count(5)
                 ->mustChangePassword()
-                ->create();
+                ->create([
+                    'primary_department_id' => $department->id,
+                ]);
 
             foreach ($staffUsers as $staff) {
                 UserProfile::factory()->create([
@@ -48,6 +66,19 @@ class UserSeeder extends Seeder
                 ]);
 
                 $staff->assignRole($staffRole);
+
+                UserModule::updateOrCreate(
+                    [
+                        'user_id' => $staff->id,
+                        'module_id' => $moduleId,
+                        'department_id' => $department->id,
+                    ],
+                    [
+                        'is_active' => true,
+                        'granted_at' => now(),
+                        'revoked_at' => null,
+                    ]
+                );
             }
         });
     }
