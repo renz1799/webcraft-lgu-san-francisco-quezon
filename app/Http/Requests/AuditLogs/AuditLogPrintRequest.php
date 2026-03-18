@@ -21,6 +21,7 @@ class AuditLogPrintRequest extends FormRequest
             'actor_id' => ['nullable', 'integer'],
             'subject_type' => ['nullable', 'string', 'max:255'],
             'search' => ['nullable', 'string', 'max:255'],
+            'paper_profile' => ['nullable', 'string', 'max:100'],
         ];
     }
 
@@ -31,6 +32,7 @@ class AuditLogPrintRequest extends FormRequest
             'action' => $this->string('action')->trim()->value() ?: null,
             'subject_type' => $this->string('subject_type')->trim()->value() ?: null,
             'search' => $this->string('search')->trim()->value() ?: null,
+            'paper_profile' => $this->string('paper_profile')->trim()->value() ?: null,
         ]);
     }
 }

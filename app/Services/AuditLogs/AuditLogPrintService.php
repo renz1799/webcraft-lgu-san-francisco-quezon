@@ -7,6 +7,7 @@ use App\Data\AuditLogs\AuditLogPrintData;
 use App\Repositories\Contracts\AuditLogRepositoryInterface;
 use App\Services\Contracts\AuditLogs\AuditLogPrintServiceInterface;
 use App\Services\Contracts\Infrastructure\PdfGeneratorInterface;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 class AuditLogPrintService implements AuditLogPrintServiceInterface
@@ -18,24 +19,59 @@ class AuditLogPrintService implements AuditLogPrintServiceInterface
     ) {
     }
 
-    public function buildReport(array $filters): AuditLogPrintData
+    public function buildReport(array $filters): array
     {
-        $logs = $this->auditLogRepository->findForPrint($filters);
+        $paperProfile = $this->resolvePaperProfile($filters['paper_profile'] ?? null);
 
-        return $this->reportBuilder->build($logs, $filters);
+        $logs = $this->auditLogRepository->findForPrint($filters);
+        $report = $this->reportBuilder->build($logs, $filters);
+
+        return [
+            'report' => $report,
+            'paperProfile' => $paperProfile,
+        ];
     }
 
     public function generatePdf(array $filters): string
     {
-        $report = $this->buildReport($filters);
+        $payload = $this->buildReport($filters);
 
         $filename = 'audit-log-report-' . now()->format('Ymd-His') . '-' . Str::uuid() . '.pdf';
         $outputPath = storage_path('app/tmp/' . $filename);
 
         return $this->pdfGenerator->generateFromView(
             view: 'audit-logs.print.pdf',
-            data: ['report' => $report],
+            data: [
+                'report' => $payload['report'],
+                'paperProfile' => $payload['paperProfile'],
+            ],
             outputPath: $outputPath,
         );
+    }
+
+    protected function resolvePaperProfile(?string $requestedPaper): array
+    {
+        $moduleConfig = config('print.modules.audit_logs', []);
+
+        $defaultPaper = $moduleConfig['default_paper'] ?? 'a4-portrait';
+        $allowedPapers = $moduleConfig['allowed_papers'] ?? [$defaultPaper];
+
+        $paperCode = in_array($requestedPaper, $allowedPapers, true)
+            ? $requestedPaper
+            : $defaultPaper;
+
+        $paperDefaults = config("print.papers.{$paperCode}", []);
+        $moduleProfile = config("print.modules.audit_logs.profiles.{$paperCode}", []);
+
+        $resolved = array_merge($paperDefaults, $moduleProfile);
+
+        if ($resolved === []) {
+            $fallbackDefaults = config("print.papers.{$defaultPaper}", []);
+            $fallbackModuleProfile = config("print.modules.audit_logs.profiles.{$defaultPaper}", []);
+
+            $resolved = array_merge($fallbackDefaults, $fallbackModuleProfile);
+        }
+
+        return $resolved;
     }
 }

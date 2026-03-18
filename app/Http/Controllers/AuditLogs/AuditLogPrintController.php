@@ -16,10 +16,11 @@ class AuditLogPrintController extends Controller
     public function preview(AuditLogPrintRequest $request)
     {
         $filters = $request->validated();
-        $report = $this->printService->buildReport($filters);
+        $payload = $this->printService->buildReport($filters);
 
         return view('audit-logs.print.index', [
-            'report' => $report,
+            'report' => $payload['report'],
+            'paperProfile' => $payload['paperProfile'],
             'filters' => $filters,
         ]);
     }
