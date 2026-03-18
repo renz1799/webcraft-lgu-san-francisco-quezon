@@ -122,6 +122,27 @@ Service methods should describe intent.
 
 ---
 
+
+# Commit Conventions
+
+All Core System commits must follow the Core commit strategy.
+
+Commit messages must follow:
+
+<type>(<scope>): <summary>
+
+Examples:
+
+refactor(print): introduce paper profile architecture  
+feat(tasks): add reassignment workflow  
+fix(auth): resolve login redirect issue  
+
+Commit splitting, staging discipline, and workflow rules are defined in:
+
+CORE_COMMIT_STRATEGY.md
+
+This ensures Git history remains clean, reviewable, and architecture-focused.
+
 ## Repository Methods
 
 Repository methods should describe query purpose.
