@@ -17,8 +17,8 @@
     }
 
     .audit-print-page {
-        width: 210mm;
-        height: 297mm;
+        width: {{ $paperProfile['width'] ?? '210mm' }};
+        height: {{ $paperProfile['height'] ?? '297mm' }};
         background: #fff;
         color: #111827;
         overflow: hidden;

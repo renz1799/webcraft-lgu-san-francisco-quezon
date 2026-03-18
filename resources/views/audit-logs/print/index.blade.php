@@ -2,8 +2,8 @@
 
 @section('content')
     <x-print.workspace
-        sidebar-width="clamp(320px, calc(297mm * 0.30), 390px)"
-        preview-width="min(210mm, calc(100vw - clamp(320px, calc(297mm * 0.30), 390px) - 160px))"
+        sidebar-width="clamp(320px, calc({{ $paperProfile['height'] ?? '297mm' }} * 0.30), 390px)"
+        preview-width="min({{ $paperProfile['preview_width'] ?? ($paperProfile['width'] ?? '210mm') }}, calc(100vw - clamp(320px, calc({{ $paperProfile['height'] ?? '297mm' }} * 0.30), 390px) - 160px))"
     >
         <x-slot:sidebar>
             @include('audit-logs.print.partials.controls', [
@@ -11,10 +11,11 @@
             ])
         </x-slot:sidebar>
 
-        @include('audit-logs.print.partials.pages', [
+        @include($paperProfile['pages_view'], [
             'report' => $report,
-            'headerImage' => asset('headers/a4_header_template_dark_2480x300.png'),
-            'footerImage' => asset('headers/a4_footer_template_dark_2480x250.png'),
+            'paperProfile' => $paperProfile,
+            'headerImage' => asset($paperProfile['header_image_web']),
+            'footerImage' => asset($paperProfile['footer_image_web']),
         ])
     </x-print.workspace>
 @endsection
@@ -22,5 +23,8 @@
 @push('styles')
     <x-print.workspace-styles />
     <x-print.workspace-panel-styles />
-    @include('audit-logs.print.partials.styles')
+
+    @include($paperProfile['styles_view'], [
+        'paperProfile' => $paperProfile,
+    ])
 @endpush

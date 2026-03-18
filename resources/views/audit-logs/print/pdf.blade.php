@@ -3,13 +3,17 @@
 <head>
     <meta charset="utf-8">
     <title>{{ $report->title }}</title>
-    @include('audit-logs.print.partials.pdf-styles')
+
+    @include($paperProfile['pdf_styles_view'], [
+        'paperProfile' => $paperProfile,
+    ])
 </head>
 <body>
-    @include('audit-logs.print.partials.pages', [
+    @include($paperProfile['pages_view'], [
         'report' => $report,
-        'headerImage' => public_path('headers/a4_header_template_dark_2480x300.png'),
-        'footerImage' => public_path('headers/a4_footer_template_dark_2480x250.png'),
+        'paperProfile' => $paperProfile,
+        'headerImage' => public_path($paperProfile['header_image_pdf']),
+        'footerImage' => public_path($paperProfile['footer_image_pdf']),
     ])
 </body>
 </html>

@@ -1,8 +1,10 @@
-@include('audit-logs.print.partials.base-styles')
+@include('audit-logs.print.partials.base-styles', [
+    'paperProfile' => $paperProfile,
+])
 
 <style>
     @page {
-        size: A4 portrait;
+        size: {{ $paperProfile['width'] ?? '210mm' }} {{ $paperProfile['height'] ?? '297mm' }};
         margin: 0;
     }
 

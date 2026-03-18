@@ -1,5 +1,7 @@
 @php
-    $rowsPerPage = 15;
+    $rowsPerPage = (int) ($paperProfile['rows_per_page'] ?? 15);
+    $rowsPerPage = max(1, $rowsPerPage);
+
     $pages = array_chunk($report->rows, $rowsPerPage);
     $totalPages = count($pages);
 @endphp
