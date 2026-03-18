@@ -19,6 +19,8 @@ class Task extends Model
     public const STATUS_CANCELLED = 'cancelled';
 
     protected $fillable = [
+        'module_id',
+        'department_id',
         'title',
         'description',
         'type',
@@ -43,9 +45,19 @@ class Task extends Model
         'cancelled_at' => 'datetime',
     ];
 
-        protected $appends = [
+    protected $appends = [
         'assigned_to_name',
     ];
+
+    public function module(): BelongsTo
+    {
+        return $this->belongsTo(Module::class, 'module_id', 'id');
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id', 'id');
+    }
 
     public function events(): HasMany
     {
@@ -64,18 +76,17 @@ class Task extends Model
 
     public function assignee(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'assigned_to_user_id');
+        return $this->belongsTo(User::class, 'assigned_to_user_id', 'id');
     }
 
     public function getAssignedToNameAttribute(): string
     {
         $user = $this->assignee;
 
-        if (!$user) {
+        if (! $user) {
             return '—';
         }
 
-        // Prefer profile full name, fallback to username
         return $user->profile?->full_name
             ?: ($user->username ?: '—');
     }

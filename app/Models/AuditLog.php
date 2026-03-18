@@ -3,46 +3,57 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class AuditLog extends Model
 {
-    public $incrementing = false;
-    protected $keyType = 'string';
+    use HasUuids;
+
     protected $table = 'audit_logs';
 
     protected $fillable = [
-        'id','actor_id','actor_type','subject_type','subject_id','action', 'module_name',
-        'message','request_method','request_url','ip','user_agent',
-        'changes_old','changes_new','meta',
+        'module_id',
+        'department_id',
+        'actor_id',
+        'actor_type',
+        'subject_type',
+        'subject_id',
+        'action',
+        'message',
+        'request_method',
+        'request_url',
+        'ip',
+        'user_agent',
+        'changes_old',
+        'changes_new',
+        'meta',
     ];
 
     protected $casts = [
         'changes_old' => 'array',
         'changes_new' => 'array',
-        'meta'        => 'array',
+        'meta' => 'array',
     ];
 
-    protected static function booted(): void
+    public function module(): BelongsTo
     {
-        static::creating(function ($m) {
-            if (empty($m->id)) {
-                $m->id = (string) \Illuminate\Support\Str::uuid();
-            }
-        });
+        return $this->belongsTo(Module::class, 'module_id', 'id');
     }
 
-        // NEW: who did it
-    public function actor(): MorphTo
+    public function department(): BelongsTo
     {
-        return $this->morphTo();
+        return $this->belongsTo(Department::class, 'department_id', 'id');
     }
 
-    // Already had subject() earlier; include if missing:
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_id', 'id');
+    }
+
     public function subject(): MorphTo
     {
-        // allows resolving soft-deleted subjects
         return $this->morphTo()->withTrashed();
     }
-
 }

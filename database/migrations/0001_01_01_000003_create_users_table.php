@@ -8,7 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // USERS (UUID PK + soft deletes)
         Schema::create('users', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
@@ -18,23 +17,33 @@ return new class extends Migration
 
             $table->string('password');
 
-            // business fields
+            // platform/account fields
             $table->string('user_type')->default('Viewer');
             $table->boolean('is_active')->default(true);
+            $table->boolean('must_change_password')->default(false);
+
+            // LGU default/home office
+            $table->uuid('primary_department_id')->nullable();
 
             $table->rememberToken();
             $table->timestamps();
-            $table->softDeletes();   // <— soft delete support
+            $table->softDeletes();
+
+            $table->index('is_active');
+            $table->index('primary_department_id');
+
+            $table->foreign('primary_department_id')
+                ->references('id')
+                ->on('departments')
+                ->nullOnDelete();
         });
 
-        // PASSWORD RESET TOKENS (Laravel 11 default style)
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
-        // SESSIONS (FK to users.id (uuid))
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->uuid('user_id')->nullable()->index();
@@ -44,14 +53,14 @@ return new class extends Migration
             $table->integer('last_activity')->index();
 
             $table->foreign('user_id')
-                ->references('id')->on('users')
+                ->references('id')
+                ->on('users')
                 ->cascadeOnDelete();
         });
     }
 
     public function down(): void
     {
-        // Drop in FK-safe order
         Schema::dropIfExists('sessions');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('users');

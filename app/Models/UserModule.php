@@ -6,23 +6,29 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class GoogleToken extends Model
+class UserModule extends Model
 {
     use HasUuids;
 
     protected $fillable = [
+        'user_id',
         'module_id',
         'department_id',
-        'connected_by_user_id',
-        'provider',
-        'access_token',
-        'refresh_token',
-        'expires_at',
+        'is_active',
+        'granted_at',
+        'revoked_at',
     ];
 
     protected $casts = [
-        'expires_at' => 'datetime',
+        'is_active' => 'boolean',
+        'granted_at' => 'datetime',
+        'revoked_at' => 'datetime',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
 
     public function module(): BelongsTo
     {
@@ -32,10 +38,5 @@ class GoogleToken extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id', 'id');
-    }
-
-    public function connectedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'connected_by_user_id', 'id');
     }
 }
