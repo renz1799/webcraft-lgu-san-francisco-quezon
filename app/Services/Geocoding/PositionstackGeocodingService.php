@@ -8,27 +8,40 @@ use Illuminate\Support\Facades\Log;
 
 class PositionstackGeocodingService implements GeocodingServiceInterface
 {
-    public function reverseGeocode(float $lat, float $lng): string
+    public function reverseGeocode(float $latitude, float $longitude): string
     {
         try {
-            $response = Http::retry(2, 200)
-                ->timeout(5)
-                ->get('http://api.positionstack.com/v1/reverse', [
+            $response = Http::timeout(5)
+                ->get('https://api.positionstack.com/v1/reverse', [
                     'access_key' => config('services.positionstack.key'),
-                    'query'      => "{$lat},{$lng}",
-                    'limit'      => 1,
-                ]);
+                    'query' => $latitude . ',' . $longitude,
+                    'limit' => 1,
+                ])
+                ->throw();
 
-            if ($response->ok() && ($data = $response->json()['data'][0] ?? null)) {
-                $cityOrCounty = $data['locality'] ?? $data['county'] ?? 'Unknown City';
-                $province     = $data['region']   ?? 'Unknown Province';
-                $country      = $data['country']  ?? 'Unknown Country';
-                return "{$cityOrCounty}, {$province}, {$country}";
+            $data = $response->json('data.0');
+
+            if (! is_array($data)) {
+                return 'Unknown Address';
             }
-        } catch (\Throwable $e) {
-            Log::error('Positionstack reverseGeocode failed', ['error' => $e->getMessage()]);
-        }
 
-        return 'Unknown Address';
+            $parts = array_filter([
+                $data['locality'] ?? null,
+                $data['region'] ?? null,
+                $data['country'] ?? null,
+            ]);
+
+            return $parts !== []
+                ? implode(', ', $parts)
+                : 'Unknown Address';
+        } catch (\Throwable $e) {
+            Log::warning('Positionstack reverse geocoding failed.', [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'message' => $e->getMessage(),
+            ]);
+
+            return 'Unknown Address';
+        }
     }
 }
