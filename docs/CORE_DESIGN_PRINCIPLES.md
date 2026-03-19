@@ -7,6 +7,7 @@ This document defines the design philosophy behind the Webcraft Core System.
 ARCHITECTURE.md defines structure.
 CORE_SERVICE_RULES.md defines service boundaries.
 CORE_REFACTOR_GUIDELINES.md defines refactor timing.
+CONVENTIONS.md defines implementation patterns.
 
 This document defines how architectural decisions should be evaluated.
 
@@ -20,7 +21,7 @@ when to introduce module/department scope
 
 These principles protect:
 
-long-term maintainability
+long‑term maintainability
 platform clarity
 architectural stability
 module scalability
@@ -56,10 +57,6 @@ Modules answer:
 
 WHEN something happens.
 
-Detailed boundary rules are defined in:
-
-CORE_SERVICE_RULES.md
-
 ---
 
 # Principle 2: Generic Before Specific
@@ -89,7 +86,7 @@ Good Core code should feel:
 predictable
 stable
 consistent
-context-aware
+context‑aware
 
 Core should avoid:
 
@@ -124,16 +121,12 @@ Structure creates longevity.
 Each class should have:
 
 one purpose
-one architectural layer
+one architectural role
 one reason to change
 
 If a class answers multiple concerns:
 
 it likely needs splitting.
-
-Refactor mechanics are defined in:
-
-CORE_REFACTOR_GUIDELINES.md
 
 ---
 
@@ -145,21 +138,17 @@ Prefer:
 
 multiple focused classes
 
-over:
+Over:
 
 one expanding class.
 
-Good supporting roles include:
+Typical supporting roles:
 
-Builder
-Resolver
-Dispatcher
-Provider
-Context Resolver
-
-Refactor triggers are defined in:
-
-CORE_REFACTOR_GUIDELINES.md
+Builder → data shaping
+Resolver → contextual lookup
+Dispatcher → delivery
+Provider → data aggregation
+Data → structured contracts
 
 ---
 
@@ -175,10 +164,6 @@ explicit payload contracts
 explicit context contracts
 
 before complex logic.
-
-Detailed DTO usage guidance lives in:
-
-CONVENTIONS.md
 
 Contracts stabilize architecture.
 
@@ -208,10 +193,6 @@ If infrastructure references domain workflows:
 
 architecture is drifting.
 
-Boundary rules live in:
-
-CORE_SERVICE_RULES.md
-
 ---
 
 # Principle 9: Presentation Is Not Data Access
@@ -220,15 +201,11 @@ Repositories answer:
 
 How do we get data?
 
-Presentation answers:
+Builders/Presenters answer:
 
 How should it appear?
 
-Do not mix these responsibilities.
-
-Structural separation is defined in:
-
-ARCHITECTURE.md
+Never mix these responsibilities.
 
 ---
 
@@ -240,9 +217,13 @@ When responsibilities grow:
 
 split them.
 
-Refactor timing guidance is defined in:
+Preferred extraction targets:
 
-CORE_REFACTOR_GUIDELINES.md
+Builders
+Resolvers
+Providers
+Data objects
+Supporting services
 
 ---
 
@@ -263,15 +244,11 @@ Core should not know:
 module workflows
 module wording
 module UI
-module-specific branching
+module‑specific branching
 
 If Core needs module knowledge:
 
 logic belongs in the module.
-
-Detailed rules:
-
-CORE_SERVICE_RULES.md
 
 ---
 
@@ -351,10 +328,6 @@ Goal:
 
 clarity.
 
-Refactor timing rules:
-
-CORE_REFACTOR_GUIDELINES.md
-
 ---
 
 # Principle 17: Core Evolves Carefully
@@ -397,15 +370,9 @@ platform health.
 
 Do not weaken Core for one module.
 
-Example warning cases:
-
-adding module-specific conditions into shared services
-removing relational scope for convenience
-weakening module isolation
-
 ---
 
-# Principle 20: Architecture Is A Long-Term Asset
+# Principle 20: Architecture Is A Long‑Term Asset
 
 Architecture is not overhead.
 
@@ -433,20 +400,6 @@ Convenience defines shortcuts.
 
 Correctness must win.
 
-Example:
-
-Correct:
-
-store module_id
-store department_id
-use CurrentContext for defaults
-
-Wrong:
-
-skip scope because only one module exists today.
-
-Future modules always arrive.
-
 ---
 
 # Principle 22: Shared Identity Must Be Separated From Access
@@ -471,7 +424,7 @@ Mixing these concepts causes architecture leakage.
 
 # Principle 23: Deterministic Identity Over Random Structure
 
-System-owned records should prefer stable identity when needed.
+System‑owned records should prefer stable identity when needed.
 
 Examples:
 
@@ -486,7 +439,65 @@ seeding
 integration safety
 debugging
 
-Use stable IDs for platform identity when appropriate.
+---
+
+# Principle 24: Role Separation Is Architectural Separation
+
+Core structure should separate by architectural role first:
+
+Repositories
+Services
+Builders
+Data
+Support
+Infrastructure
+
+Inside each role:
+
+organize by concern.
+
+This improves:
+
+traceability
+scalability
+maintainability
+
+---
+
+# Principle 25: Builders Exist To Protect Boundaries
+
+Builders exist to prevent repositories and services from accumulating shaping logic.
+
+If a class starts:
+
+repeating payload arrays
+building datatable rows
+building action payloads
+formatting display structures
+
+Extract a Builder.
+
+Builders protect architecture purity.
+
+---
+
+# Principle 26: Contracts Should Mirror Structure
+
+Contracts should mirror implementation structure.
+
+Example:
+
+Services/Contracts/Access/X
+Services/Access/X
+
+Builders/Contracts/User/X
+Builders/User/X
+
+This improves:
+
+readability
+traceability
+refactor safety
 
 ---
 

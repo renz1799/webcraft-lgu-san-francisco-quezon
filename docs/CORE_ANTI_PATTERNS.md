@@ -23,8 +23,6 @@ CORE_SERVICE_RULES.md defines boundaries.
 CORE_REFACTOR_GUIDELINES.md defines how to refactor safely.
 CONVENTIONS.md defines implementation discipline.
 
-This document identifies what to watch for.
-
 ---
 
 # Anti-Pattern 1: The God Service
@@ -39,25 +37,20 @@ many unrelated methods
 growing constructor dependencies
 module-specific logic inside Core
 mixed infrastructure and business logic
-module access logic mixed with unrelated workflows
-
-## Why This Is Dangerous
-
-God services become:
-
-hard to test
-hard to modify
-hard to reason about
-
-They also attract unrelated logic.
+payload shaping inside services
+route generation inside services
 
 ## Correct Direction
 
 Split responsibilities into focused classes.
 
-Refactor guidance:
+Typical splits:
 
-CORE_REFACTOR_GUIDELINES.md
+Builder → structure
+Resolver → context
+Provider → data
+Dispatcher → transport
+AccessService → access rules
 
 ---
 
@@ -73,22 +66,10 @@ notifyInspectionSubmitted()
 
 inside Core.
 
-## Why This Is Dangerous
-
-Core becomes:
-
-module aware
-hard to reuse
-hard to scale
-
 ## Correct Direction
 
 Core provides capability.
 Modules provide scenarios.
-
-Boundary rules:
-
-CORE_SERVICE_RULES.md
 
 ---
 
@@ -101,28 +82,16 @@ Repositories performing UI shaping.
 Examples:
 
 row mapping
-display labels
 formatted dates
 UI flags
-module badge labels
-department display strings
-
-## Why This Is Dangerous
-
-Repositories become:
-
-UI dependent
-hard to reuse
-tied to one output format
+display labels
+action URL generation
+datatable structures
 
 ## Correct Direction
 
 Repositories return data.
-Presentation handles display.
-
-Structural rules:
-
-ARCHITECTURE.md
+Builders shape structures.
 
 ---
 
@@ -139,25 +108,17 @@ undocumented keys
 mixed responsibilities
 context keys added without contract discipline
 
-## Why This Is Dangerous
-
-Generic methods become:
-
-unpredictable
-fragile
-hard to maintain
-
 ## Correct Direction
 
 Maintain clear contracts.
 
-Payload discipline:
+If method grows:
 
-CONVENTIONS.md
+split into:
 
-Refactor timing:
-
-CORE_REFACTOR_GUIDELINES.md
+Builder
+DTO
+Service
 
 ---
 
@@ -171,24 +132,12 @@ Example:
 
 route('tasks.show')
 
-inside shared service.
-
-## Why This Is Dangerous
-
-Creates coupling between:
-
-infrastructure
-presentation
-module-specific route assumptions
+inside shared service or repository.
 
 ## Correct Direction
 
-Modules generate URLs.
-Core receives URLs as data.
-
-Boundary rules:
-
-CORE_SERVICE_RULES.md
+Modules or UI Builders generate URLs.
+Core receives URLs as data only.
 
 ---
 
@@ -204,21 +153,13 @@ object $entity
 mixed $payload
 array $contextWithoutDefinition
 
-## Why This Is Dangerous
-
-Weak contracts cause:
-
-unclear expectations
-maintenance friction
-runtime surprises
-
 ## Correct Direction
 
-Prefer explicit contracts.
+Prefer explicit contracts:
 
-DTO guidance:
-
-CONVENTIONS.md
+DTOs
+Interfaces
+Explicit parameters
 
 ---
 
@@ -230,26 +171,13 @@ Core reading request context directly.
 
 Examples:
 
+auth()->user()
 Request::user()
 Request::ip()
-auth()->user() inside shared infrastructure logic
-
-## Why This Is Dangerous
-
-Breaks usage in:
-
-queues
-console commands
-background jobs
-seeders
 
 ## Correct Direction
 
 Pass context explicitly or resolve via resolver.
-
-Service boundary rules:
-
-CORE_SERVICE_RULES.md
 
 ---
 
@@ -265,22 +193,11 @@ service doing presentation
 repository doing UI mapping
 controller doing business logic
 resolver doing orchestration
-
-## Why This Is Dangerous
-
-Creates:
-
-unclear responsibilities
-tight coupling
-hard debugging
+builder running workflows
 
 ## Correct Direction
 
 Each class should belong to one layer.
-
-Layer definitions:
-
-ARCHITECTURE.md
 
 ---
 
@@ -295,23 +212,11 @@ Examples:
 hidden branching
 implicit behavior
 magic detection
-automatic module guessing without explicit rules
-
-## Why This Is Dangerous
-
-Smart infrastructure becomes:
-
-fragile
-hard to debug
-hard to predict
+automatic module guessing
 
 ## Correct Direction
 
 Prefer explicit contracts and flows.
-
-Design principles:
-
-CORE_DESIGN_PRINCIPLES.md
 
 ---
 
@@ -325,25 +230,14 @@ Examples:
 
 module-specific branching
 feature-specific conditions
-DTS-only assumptions in shared services
-GSO-specific storage decisions in shared services
-
-## Why This Is Dangerous
-
-Creates:
-
-Core drift
-architecture pollution
+DTS-only assumptions
+GSO-only storage logic
 
 ## Correct Direction
 
 If only one module needs it:
 
 it belongs in the module.
-
-Core eligibility rules:
-
-CORE_SERVICE_RULES.md
 
 ---
 
@@ -358,29 +252,14 @@ Examples:
 notifications without module_id
 tasks without module_id
 audit_logs without module_id
-shared records relying only on module_name strings
-
-## Why This Is Dangerous
-
-Cross-module filtering becomes difficult.
-Reporting becomes harder.
-Joins become weaker.
-Module isolation becomes fragile.
+shared records relying on module_name
 
 ## Correct Direction
 
-Shared tables should include relational module identification.
-
-Prefer:
+Shared tables should include:
 
 module_id
 department_id when applicable
-
-Do not rely on string names as the primary relational identity.
-
-Structural rules:
-
-ARCHITECTURE.md
 
 ---
 
@@ -390,21 +269,16 @@ ARCHITECTURE.md
 
 Continuously adding methods to services instead of splitting.
 
-## Why This Is Dangerous
-
-Large services become:
-
-fragile
-slow to modify
-hard to reason about
-
 ## Correct Direction
 
 Prefer composition.
 
-Refactor triggers:
+Extract:
 
-CORE_REFACTOR_GUIDELINES.md
+Builders
+Resolvers
+Providers
+Data objects
 
 ---
 
@@ -414,20 +288,9 @@ CORE_REFACTOR_GUIDELINES.md
 
 Creating abstractions before reuse exists.
 
-## Why This Is Dangerous
-
-Creates:
-
-unnecessary complexity
-maintenance overhead
-
 ## Correct Direction
 
 Abstract when patterns stabilize.
-
-Design guidance:
-
-CORE_DESIGN_PRINCIPLES.md
 
 ---
 
@@ -443,20 +306,11 @@ small UI logic in repo
 small domain logic in Core
 small shortcuts
 one-off module hacks
-repeated direct config lookups instead of a resolver
-
-## Why This Is Dangerous
-
-Small violations accumulate into major refactors.
+repeated direct config lookups
 
 ## Correct Direction
 
 Fix boundary violations early.
-
-Boundary definitions:
-
-ARCHITECTURE.md
-CORE_SERVICE_RULES.md
 
 ---
 
@@ -471,21 +325,11 @@ Examples:
 service growing rapidly
 mixed responsibilities
 unclear contracts
-repeated module lookup logic appearing in many classes
-
-## Why This Matters
-
-These are refactor signals.
-
-Ignoring them creates debt.
+repeated context lookup logic
 
 ## Correct Direction
 
 Refactor early when responsibilities blur.
-
-Refactor triggers:
-
-CORE_REFACTOR_GUIDELINES.md
 
 ---
 
@@ -493,34 +337,16 @@ CORE_REFACTOR_GUIDELINES.md
 
 ## Description
 
-Reading environment values directly in services, repositories, models, or domain workflows.
-
-Examples:
-
-env('APP_MODULE_ID')
-env('APP_DEFAULT_DEPARTMENT_ID')
-
-## Why This Is Dangerous
-
-Creates:
-
-config caching problems
-hard-to-test code
-inconsistent platform context resolution
-leaky runtime assumptions
+Reading environment values directly in services, repositories, or domain workflows.
 
 ## Correct Direction
 
 Use:
 
-config() inside configuration-aware infrastructure
-CurrentContext for runtime platform resolution
+config()
+CurrentContext
 
-Never use env() directly outside config files.
-
-Conventions:
-
-CONVENTIONS.md
+Never use env() outside config.
 
 ---
 
@@ -528,35 +354,13 @@ CONVENTIONS.md
 
 ## Description
 
-Multiple classes resolving current module or default department independently.
-
-Examples:
-
-Module::find(config('module.id'))
-Department::first()
-manual fallback chains repeated across seeders and services
-
-## Why This Is Dangerous
-
-Creates:
-
-drift
-inconsistent defaults
-unpredictable behavior
-duplicate logic
+Multiple classes resolving module or department independently.
 
 ## Correct Direction
 
-Use a dedicated runtime resolver such as:
+Use centralized resolver:
 
 CurrentContext
-
-This keeps module and default department resolution centralized.
-
-Structural rules:
-
-ARCHITECTURE.md
-CONVENTIONS.md
 
 ---
 
@@ -564,29 +368,14 @@ CONVENTIONS.md
 
 ## Description
 
-Assuming that a user in `users` can automatically access every module website in the shared database.
-
-## Why This Is Dangerous
-
-Creates:
-
-cross-module login leakage
-weak isolation
-security ambiguity
-incorrect assumptions about user scope
+Assuming users automatically access every module.
 
 ## Correct Direction
 
-Shared identity and module access must be separate.
+Separate:
 
-Use:
-
-users for shared identity
-user_modules for access mapping
-
-Architecture rules:
-
-ARCHITECTURE.md
+users → identity
+user_modules → access
 
 ---
 
@@ -594,28 +383,13 @@ ARCHITECTURE.md
 
 ## Description
 
-Using the configured default department as if it defines all department access for the application.
-
-## Why This Is Dangerous
-
-Confuses:
-
-runtime default context
-actual user access scope
-record ownership scope
-
-This is especially dangerous in a platform-style CORE site that manages multiple departments.
+Using default department as full access boundary.
 
 ## Correct Direction
 
-Treat configured department as:
+Default department is context only.
 
-default context only
-
-Actual access must come from relational data such as:
-
-user_modules.department_id
-record-level department_id
+Access must come from relational data.
 
 ---
 
@@ -623,27 +397,82 @@ record-level department_id
 
 ## Description
 
-Letting Laravel auto-generate long composite index names for module/department scoped tables.
-
-## Why This Is Dangerous
-
-Creates:
-
-migration failures in MySQL
-index name length errors
-fragile schema evolution
+Letting Laravel auto-generate long composite index names.
 
 ## Correct Direction
 
-Manually name long composite indexes.
+Manually name indexes.
 
-Example:
+---
 
-notif_module_dept_user_created_idx
+# Anti-Pattern 21: Builders Inside Service Folders
 
-db conventions:
+## Description
 
-CONVENTIONS.md
+Placing builders inside Services folders instead of a dedicated Builders role.
+
+Example bad structure:
+
+Services/User/UserDatatableBuilder
+
+## Why This Is Dangerous
+
+Blurs architectural roles.
+Makes responsibilities unclear.
+Encourages service growth.
+
+## Correct Direction
+
+Builders belong in:
+
+app/Builders
+
+Organized by concern.
+
+---
+
+# Anti-Pattern 22: Flat Contracts With Concern-Based Implementations
+
+## Description
+
+Contracts stored flat while implementations are concern-based.
+
+Example bad:
+
+Services/Contracts/ModuleAccessServiceInterface
+Services/Access/ModuleAccessService
+
+## Correct Direction
+
+Mirror structure:
+
+Services/Contracts/Access/X
+Services/Access/X
+
+Builders/Contracts/User/X
+Builders/User/X
+
+---
+
+# Anti-Pattern 23: Services Doing Structure Work
+
+## Description
+
+Services constructing rows, payload arrays, or action structures.
+
+Examples:
+
+building datatable rows
+building action URLs
+building display arrays
+repeating payload structures
+
+## Correct Direction
+
+Extract Builders.
+
+Services orchestrate.
+Builders construct.
 
 ---
 
@@ -651,15 +480,15 @@ CONVENTIONS.md
 
 Architecture may be drifting if:
 
-Core references modules directly in workflow logic
+Core references modules directly
 repositories format UI
 services contain presentation
-generic payloads are unclear
+services shape payloads
+builders appear inside services
+contracts not mirrored
 shared tables lack relational module context
-code uses env() outside config files
-multiple classes resolve current module differently
-users table is treated as module access control
-default department is treated as hard access boundary
+code uses env() outside config
+multiple classes resolve context differently
 
 If these appear:
 
@@ -675,7 +504,7 @@ generic
 stable
 predictable
 context-aware
-module-agnostic in behavior
+module-agnostic
 
 Modules must remain:
 

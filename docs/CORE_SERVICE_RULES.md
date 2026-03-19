@@ -60,6 +60,7 @@ transporting
 normalizing
 resolving platform context
 enforcing shared structure
+coordinating shared access rules
 
 Core services should not:
 
@@ -68,6 +69,9 @@ decide recipients
 define domain workflows
 contain module wording
 contain department workflow assumptions
+shape UI rows
+format display payloads
+generate action URLs
 
 Example:
 
@@ -144,10 +148,63 @@ route('tasks.show',$id)
 
 Good:
 
-Module builds URL.
-Core receives URL as data.
+Module or UI-facing Builder builds URL.
+Core receives URL as data when needed.
 
 Core should treat URLs as payload only.
+
+---
+
+# Service vs Builder Rule
+
+Services coordinate workflows.
+
+Builders shape structures.
+
+Services may:
+
+coordinate repositories
+call builders
+call dispatchers
+call resolvers
+call providers
+coordinate access logic
+
+Services must not become structure-shaping classes.
+
+If a service starts repeating:
+
+payload arrays
+row arrays
+action arrays
+display formatting
+
+Extract a Builder.
+
+---
+
+# Builder Support Rule
+
+Builders are first-class support classes for services.
+
+Builders may be used for:
+
+payload construction
+response shaping
+row shaping
+action shaping
+option shaping
+
+Builders must not:
+
+query persistence
+run workflows
+perform authorization
+call external services
+resolve application state on their own
+
+Builders support services.
+They do not replace services.
 
 ---
 
@@ -166,7 +223,7 @@ Avoid undocumented keys.
 
 If payload complexity grows:
 
-prefer structured DTOs (see CONVENTIONS.md).
+prefer structured DTOs or Builders.
 
 Generic services must not become dumping grounds.
 
@@ -258,6 +315,7 @@ unrelated responsibilities
 module knowledge
 growing dependencies
 context resolution mixed with workflows
+payload shaping mixed with orchestration
 
 When a service grows beyond one responsibility:
 
@@ -270,10 +328,7 @@ Builder → structure
 Resolver → context
 Provider → data sourcing
 AccessService → module access logic
-
-Refactor timing guidance is defined in:
-
-CORE_REFACTOR_GUIDELINES.md
+Data → structured contracts
 
 ---
 
@@ -395,6 +450,28 @@ provider abstraction
 Modules should manage:
 
 how integrations are used in workflows.
+
+---
+
+# Concern Mirroring Rule
+
+Service contracts should mirror service implementations by concern.
+
+Correct:
+
+App\Services\Contracts\Access\ModuleAccessServiceInterface
+App\Services\Access\ModuleAccessService
+
+App\Services\Contracts\Audit\AuditLogServiceInterface
+App\Services\Audit\AuditLogService
+
+Avoid flat contract namespaces when implementations are concern based.
+
+Mirrored structure improves:
+
+traceability
+maintainability
+refactor safety
 
 ---
 

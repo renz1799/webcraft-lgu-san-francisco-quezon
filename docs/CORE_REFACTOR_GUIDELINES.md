@@ -8,6 +8,7 @@ ARCHITECTURE.md defines structure.
 CORE_SERVICE_RULES.md defines Core boundaries.
 CORE_DESIGN_PRINCIPLES.md defines design philosophy.
 CORE_ANTI_PATTERNS.md defines warning signals.
+CONVENTIONS.md defines implementation patterns.
 
 This document defines how Core should evolve safely.
 
@@ -40,6 +41,8 @@ stronger contracts
 reusable capabilities
 less module awareness
 better context isolation
+role separation
+concern isolation
 
 Do not refactor toward:
 
@@ -65,10 +68,7 @@ Examples:
 service handling orchestration + presentation
 repository handling querying + UI mapping
 service resolving context + executing workflows
-
-Structural boundaries:
-
-ARCHITECTURE.md
+service shaping payloads + coordinating processes
 
 Preferred direction:
 
@@ -84,22 +84,20 @@ many unrelated methods
 growing constructor dependencies
 module knowledge appearing
 department workflow assumptions appearing
-
-Warning patterns:
-
-CORE_ANTI_PATTERNS.md
+payload shaping mixed with orchestration
 
 Preferred direction:
 
 split into focused roles.
 
-Examples:
+Common extraction targets:
 
-Dispatcher → transport
 Builder → structure
 Resolver → context
 Provider → data sourcing
-AccessService → module access mapping
+Dispatcher → transport
+AccessService → access mapping
+Data → structured contracts
 
 ---
 
@@ -115,16 +113,13 @@ display labels
 formatted timestamps
 UI flags
 table row shaping
+action URL generation
 module display names
 department display names
 
-Structural rules:
-
-ARCHITECTURE.md
-
 Preferred direction:
 
-extract Presenter or Transformer.
+extract Builder or Presenter.
 
 ---
 
@@ -138,10 +133,6 @@ contracts become unclear
 vague types appear
 context parameters become repetitive
 
-DTO usage conventions:
-
-CONVENTIONS.md
-
 DTOs should clarify contracts, not add ceremony.
 
 ---
@@ -154,10 +145,6 @@ multiple modules need it
 behavior is generic
 no module branching required
 independent of department workflows
-
-Core eligibility rules:
-
-CORE_SERVICE_RULES.md
 
 If reuse is theoretical:
 
@@ -174,12 +161,9 @@ domain events
 module recipients
 feature wording
 department workflow logic
+UI decisions
 
 This is a refactor signal.
-
-Boundary rules:
-
-CORE_SERVICE_RULES.md
 
 Preferred direction:
 
@@ -189,20 +173,18 @@ move scenario logic back to module.
 
 # Rule 7: Extract Builders When Structure Logic Grows
 
-Extract Builder when services spend effort constructing structured data.
+Extract Builder when classes spend effort constructing structured data.
 
 Examples:
 
-audit display sections
+datatable rows
+action payloads
 report payloads
 notification payloads
-module-aware payloads
+option lists
+display sections
 
 Builders focus on structure, not orchestration.
-
-Naming conventions:
-
-CONVENTIONS.md
 
 ---
 
@@ -226,10 +208,6 @@ Recommended example:
 
 CurrentContext
 
-Naming conventions:
-
-CONVENTIONS.md
-
 ---
 
 # Rule 9: Extract Providers When Data Sourcing Expands
@@ -245,10 +223,6 @@ Repositories remain persistence-focused.
 
 Providers source data for use cases.
 
-Structural layering:
-
-ARCHITECTURE.md
-
 ---
 
 # Rule 10: Keep Repositories Focused On Data Access
@@ -260,15 +234,13 @@ Examples:
 display labels
 formatted timestamps
 row shaping
+action payloads
 module UI fields
-
-Structural rules:
-
-ARCHITECTURE.md
+route generation
 
 Preferred direction:
 
-move shaping to presenters.
+move shaping to Builders.
 
 ---
 
@@ -280,10 +252,6 @@ payload shape becomes inconsistent
 undocumented keys appear
 method serves unrelated use cases
 context parameters vary per caller
-
-Payload discipline:
-
-CONVENTIONS.md
 
 Preferred direction:
 
@@ -300,8 +268,6 @@ interface clarity
 boundary clarity
 class naming
 context clarity
-
-Refactoring is not just moving code.
 
 Successful refactors improve understanding.
 
@@ -344,10 +310,7 @@ Examples:
 Repository formatting UI
 Service building display payloads
 Resolver doing orchestration
-
-Naming rules:
-
-CONVENTIONS.md
+Builder running workflows
 
 Preferred direction:
 
@@ -367,10 +330,6 @@ future module compatibility
 platform scalability
 module isolation
 
-Design philosophy:
-
-CORE_DESIGN_PRINCIPLES.md
-
 ---
 
 # Rule 17: Do Not Abstract Too Early
@@ -382,10 +341,6 @@ Avoid abstraction when:
 only one use case exists
 behavior still evolving
 
-Design guidance:
-
-CORE_DESIGN_PRINCIPLES.md
-
 ---
 
 # Rule 18: Do Not Delay Boundary Refactors
@@ -394,13 +349,9 @@ High priority refactor signals:
 
 Core gaining module logic
 repository gaining UI shaping
+service gaining payload shaping
 generic contracts becoming unclear
 context resolution duplication
-
-Boundary definitions:
-
-ARCHITECTURE.md
-CORE_SERVICE_RULES.md
 
 These should be addressed early.
 
@@ -413,10 +364,6 @@ When tables become cross-module:
 add module identification
 add department identification
 add indexed filters
-
-Structural rules:
-
-ARCHITECTURE.md
 
 ---
 
@@ -436,6 +383,40 @@ hidden logic in generic services.
 
 ---
 
+# Rule 21: Extract Builders Before Expanding Services
+
+When deciding between:
+
+adding more methods to a service
+or extracting a support class
+
+Prefer:
+
+extracting a Builder.
+
+Services should orchestrate.
+Builders should construct.
+
+---
+
+# Rule 22: Mirror Contracts During Refactors
+
+When extracting new services or builders:
+
+also extract their contracts.
+
+Maintain mirrored structure.
+
+Example:
+
+Builders/Contracts/User/X
+Builders/User/X
+
+Services/Contracts/Access/X
+Services/Access/X
+
+---
+
 # Refactor Priority Guide
 
 ### High Priority
@@ -444,6 +425,7 @@ Refactor when:
 
 Core contains module logic
 repositories contain UI shaping
+services contain structure shaping
 generic contracts unclear
 module isolation is violated
 
@@ -474,9 +456,10 @@ When refactoring Core:
 1 Identify responsibility drift
 2 Define new boundary
 3 Introduce new class
-4 Migrate callers gradually
-5 Remove old path
-6 Update documentation
+4 Introduce contract if shared
+5 Migrate callers gradually
+6 Remove old path
+7 Update documentation
 
 Refactor should strengthen clarity, not just move code.
 

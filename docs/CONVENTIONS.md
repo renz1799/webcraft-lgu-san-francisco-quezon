@@ -12,6 +12,89 @@ This document defines how code should be written within that structure.
 
 ---
 
+# Core Structural Philosophy
+
+The Core System follows these structural priorities:
+
+1. Separation by architectural role
+2. Separation by concern/domain inside each role
+3. Mirrored contract and implementation namespaces
+4. Single responsibility per class
+5. Composition over expansion
+
+Preferred structure pattern:
+
+app/
+├── Builders/
+├── Data/
+├── Repositories/
+├── Services/
+├── Support/
+
+Inside each role:
+
+app/Services/Access/
+app/Services/Audit/
+app/Services/Login/
+app/Builders/User/
+app/Builders/Login/
+
+NOT:
+
+app/Services/AuthService.php
+app/Services/UserAccessService.php
+app/Builders/LoginAttemptBuilder.php
+
+Flat structures are discouraged when the system grows.
+
+---
+
+# Folder Organization Rules
+
+## Role First, Concern Second
+
+Top level folders must represent architectural roles.
+
+Inside each role, folders must represent concerns.
+
+Correct:
+
+app/Services/Access/ModuleAccessService.php
+app/Services/Access/UserAccessService.php
+app/Services/Audit/AuditLogService.php
+
+app/Builders/User/UserDatatableRowBuilder.php
+app/Builders/Login/LoginAttemptLogBuilder.php
+
+Incorrect:
+
+app/Services/ModuleAccessService.php
+app/Services/UserAccessService.php
+app/Builders/UserDatatableRowBuilder.php
+
+---
+
+## Mirrored Contract Rule
+
+Contracts must mirror their implementation concern.
+
+Correct:
+
+App\Services\Contracts\Access\ModuleAccessServiceInterface
+App\Services\Access\ModuleAccessService
+
+App\Builders\Contracts\User\UserDatatableRowBuilderInterface
+App\Builders\User\UserDatatableRowBuilder
+
+Incorrect:
+
+App\Services\Contracts\ModuleAccessServiceInterface
+App\Services\Access\ModuleAccessService
+
+Contracts should never remain flat when implementations are concern based.
+
+---
+
 # Naming Conventions
 
 ## Class Naming
@@ -66,6 +149,31 @@ Use Dispatcher.
 If a service builds structured data:
 
 Use Builder.
+
+---
+
+## Builder Naming
+
+Builders must describe what structure they produce.
+
+Pattern:
+
+Entity + Purpose + Builder
+
+Examples:
+
+UserDatatableRowBuilder
+UserDatatableActionBuilder
+LoginAttemptLogBuilder
+AuditDisplayBuilder
+
+Builders should never be named vaguely.
+
+Avoid:
+
+DataBuilder
+PayloadBuilder
+StructureBuilder
 
 ---
 
@@ -189,49 +297,52 @@ Commit splitting, staging discipline, and workflow rules are defined in:
 
 CORE_COMMIT_STRATEGY.md
 
-This ensures Git history remains clean, reviewable, and architecture-focused.
+---
+
+# Builder Conventions
+
+## Builder Responsibilities
+
+Builders construct structured payloads.
+
+Builders may:
+
+shape arrays
+shape DTOs
+build datatable rows
+build action payloads
+build display structures
+assemble response fragments
+
+Builders must NOT:
+
+query database
+run workflows
+call external APIs
+perform authorization
+contain business rules
+
+Builders are structure only.
 
 ---
 
-# Payload Conventions
+## Builder Extraction Rule
 
-## Generic Payload Naming
+Extract a Builder when a class starts:
 
-Generic payload keys should be consistent.
+repeating payload arrays
+repeating row structures
+repeating display formatting
+repeating action payloads
+exceeding single responsibility
 
-Common examples:
+Common extraction targets:
 
-action
-module_id
-department_id
-entity_type
-entity_id
-message
-meta
-display
-
-Payload contracts should remain predictable.
-
-For complex payloads, prefer DTO usage.
-
-`module_name` may still appear only as a display or snapshot field when historical readability is needed, but relational Core payloads should prefer `module_id`.
-
----
-
-## DTO Usage Guidelines
-
-Use DTO when:
-
-payload grows beyond simple structure
-payload reused across services
-generic service contract needs clarity
-module/department context must travel explicitly
-
-DTO should improve clarity, not add ceremony.
-
-DTO should not contain business logic.
-
-DTO should represent structured data only.
+Row builders
+Action builders
+Payload builders
+Option builders
+Display builders
 
 ---
 
@@ -253,9 +364,11 @@ format UI
 build display labels
 format timestamps
 generate UI flags
+generate routes
+shape datatable rows
 resolve runtime context directly from env
 
-Presentation shaping belongs in presenters.
+Presentation shaping belongs in Builders or Presenters.
 
 ---
 
@@ -271,8 +384,6 @@ Optional:
 
 recordsTotal
 recordsFiltered
-
-This keeps frontend integration consistent.
 
 ---
 
@@ -296,48 +407,67 @@ actor filters
 
 Avoid heavy broad text search as primary filter.
 
-Use relational filters such as `module_id` and `department_id` instead of string matching on names.
-
 ---
 
-# Presenter Conventions
+# Core Service Provider Conventions
 
-Presenters should answer:
+## Import Organization
 
-"How should this appear?"
-
-Presenters may format:
-
-display names
-dates
-badges
-row structures
-labels
-module/department display labels
-
-Presenters should not:
-
-query database
-execute workflows
-resolve runtime context
+Imports should be grouped by concern.
 
 Example:
 
-AuditLogTablePresenter
+/* Audit Logs */
+Repositories
+Services
+Builders
+
+/* Authentication */
+Repositories
+Services
+Builders
+
+This improves traceability.
 
 ---
 
-# Builder Conventions
+## Registration Organization
 
-Builders construct structured payloads.
+Registration must remain grouped by architectural role.
 
-Examples:
+registerRepositories()
+registerApplicationBuilders()
+registerApplicationServices()
+registerInfrastructureServices()
 
-AuditDisplayBuilder
-ReportPayloadBuilder
-NotificationPayloadBuilder
+Never mix roles inside one registration method.
 
-Builders should focus on structure, not orchestration.
+---
+
+## Builder Registration
+
+Builders must be registered in:
+
+registerApplicationBuilders()
+
+Not inside services.
+
+---
+
+# Data Conventions
+
+Data objects should follow the same concern pattern.
+
+Correct:
+
+app/Data/Login/LoginAttemptData.php
+app/Data/User/UserRowData.php
+app/Data/Print/PrintDefinitionData.php
+
+Avoid:
+
+app/Data/LoginAttemptData.php
+app/Data/UserRowData.php
 
 ---
 
@@ -355,8 +485,6 @@ Resolvers should not execute business workflows.
 
 Resolvers should be the preferred mechanism for runtime module and default department resolution.
 
-Do not duplicate module lookup logic across services, repositories, or controllers.
-
 ---
 
 # Provider Conventions
@@ -370,34 +498,6 @@ DashboardMetricsProvider
 ModuleAccessProvider
 
 Use providers when data comes from multiple sources.
-
----
-
-# Frontend Conventions
-
-## Module JS Structure
-
-Pattern:
-
-resources/js/module/feature.js
-
-Submodules:
-
-resources/js/module/feature/*.js
-
-Keep files small and focused.
-
----
-
-## Datatable JS Pattern
-
-Standard file split:
-
-table.js → table setup
-filters.js → filter logic
-actions.js → row actions
-
-This improves maintainability.
 
 ---
 
@@ -420,10 +520,6 @@ APP_DEFAULT_DEPARTMENT_ID
 APP_DEFAULT_DEPARTMENT_CODE
 APP_DEFAULT_DEPARTMENT_NAME
 
-Runtime identity describes which site or application instance is currently running.
-
-It does not replace relational identity in transactional records.
-
 ---
 
 ## Relational Identity
@@ -436,256 +532,7 @@ module_id
 department_id
 user_id
 
-Avoid using names as relational identity:
-
-module_name
-department_name
-
-Names may still be used as display or snapshot fields when historical readability is required.
-
----
-
-## Current Context Rule
-
-Current module and default department must be resolved through `CurrentContext`.
-
-Correct:
-
-$context = app(CurrentContext::class);
-$moduleId = $context->moduleId();
-$departmentId = $context->defaultDepartmentId();
-
-Avoid repeated ad hoc lookups such as:
-
-Module::find(config('module.id'))
-Department::first()
-
----
-
-## Access Identity
-
-User access to module sites must be controlled through `user_modules`.
-
-A valid user account does not automatically imply access to all module websites.
-
-`user_modules` should determine:
-
-user_id
-module_id
-department_id
-is_active
-
-This prevents cross-module login leakage in a shared database architecture.
-
----
-
-# Seeder Conventions
-
-Seeders must follow dependency order.
-
-Correct order:
-
-ModuleSeeder
-DepartmentSeeder
-PermissionsSeeder
-UserSeeder
-TaskSeeder
-NotificationSeeder
-
-Never assume order.
-
-Never use:
-
-Department::first()
-Module::first()
-
-Always prefer:
-
-CurrentContext
-
-Example:
-
-$context = app(CurrentContext::class);
-
-System identity seeders should use deterministic IDs when representing platform-owned records.
-
----
-
-# Model Conventions
-
-All models that use factories must include:
-
-use HasFactory;
-
-All UUID models must include the project-standard UUID trait or UUID behavior used by the model.
-
-Examples:
-
-use HasUuids;
-use HasUuid;
-
-Use the project-standard trait already adopted by that model family.
-
-Example:
-
-class Module extends Model
-{
-use HasFactory, HasUuids;
-}
-
-Models should expose relational methods for module and department scope when those columns exist.
-
-Examples:
-
-module()
-department()
-userModules()
-
----
-
-# Factory Rules
-
-Factories must respect relational integrity.
-
-If a factory references:
-
-module_id
-department_id
-user_id
-
-It must create valid related records or be explicitly overridden by the seeder/test using it.
-
-Never leave foreign keys invalid.
-
----
-
-# Database Conventions
-
-## Index Naming Rules
-
-Composite indexes must be manually named.
-
-Never allow Laravel to auto-name long indexes when the generated name may exceed MySQL limits.
-
-Bad:
-
-$table->index(['module_id', 'department_id', 'user_id', 'created_at']);
-
-Good:
-
-$table->index(
-['module_id', 'department_id', 'user_id', 'created_at'],
-'notif_module_dept_user_created_idx'
-);
-
-Reason:
-
-MySQL 64 character limit.
-
----
-
-## Migration Rules
-
-Base migrations may be refactored only during Core development.
-
-After production:
-
-Never edit old migrations.
-
-Use forward-only patch migrations.
-
-Development workflow:
-
-edit migration
-migrate:fresh
-test
-repeat
-
-Production workflow:
-
-create new migration only.
-
----
-
-## Transaction Scope Rule
-
-When creating shared operational records:
-
-Always include `module_id` when module scope exists.
-
-Include `department_id` when department scope is relevant.
-
-Examples:
-
-Tasks
-Notifications
-Audit Logs
-Google Tokens
-
-Example:
-
-Task::create([
-'module_id' => current_context()->moduleId(),
-'department_id' => current_context()->defaultDepartmentId(),
-]);
-
-Use the runtime context only as a default/fallback when more specific business scope is not already known.
-
----
-
-## System Identity UUID Pattern
-
-System entities may use fixed UUIDs.
-
-This allows deterministic seeding.
-
-Example pattern:
-
-Modules:
-10000000-0000-0000-0000-000000000001
-
-Departments:
-20000000-0000-0000-0000-000000000001
-
-Roles (optional future):
-30000000-0000-0000-0000-000000000001
-
-Benefits:
-
-• predictable records
-• stable references
-• safer migrations
-• easier debugging
-
-Do not generate random UUIDs for platform-owned system identities when stability is required.
-
----
-
-# Naming Conventions For Database Fields
-
-Tables:
-
-snake_case plural
-
-Models:
-
-Singular PascalCase
-
-Columns:
-
-snake_case
-
-Foreign keys:
-
-*_id
-
-Examples:
-
-module_id
-department_id
-user_id
-primary_department_id
-connected_by_user_id
+Avoid using names as relational identity.
 
 ---
 
@@ -699,25 +546,20 @@ follows layered flow
 controller remains thin
 repository handles queries
 service handles orchestration
-module/department scope is explicit where required
+builders handle shaping
 
 Code quality:
 
 clear naming
 consistent method patterns
 no UI logic in repositories
-no duplicated context resolution logic
+no duplicated context logic
 
 Integration:
 
 audit logging added if needed
 datatable baseline followed where applicable
 module isolation preserved where applicable
-
-Frontend:
-
-JS modules properly split
-filters follow baseline pattern
 
 ---
 
