@@ -7,11 +7,12 @@ use App\Repositories\Contracts\LoginDetailRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Contracts\AuthServiceInterface;
 use App\Services\Contracts\GeocodingServiceInterface;
+use App\Services\Contracts\ModuleAccessServiceInterface;
+use App\Support\CurrentContext;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthService implements AuthServiceInterface
 {
@@ -19,6 +20,8 @@ class AuthService implements AuthServiceInterface
         private readonly UserRepositoryInterface $users,
         private readonly LoginDetailRepositoryInterface $loginDetails,
         private readonly GeocodingServiceInterface $geocoder,
+        private readonly ModuleAccessServiceInterface $moduleAccess,
+        private readonly CurrentContext $currentContext,
     ) {}
 
     public function register(array $data): User
@@ -145,6 +148,25 @@ class AuthService implements AuthServiceInterface
             return false;
         }
 
+                $moduleId = (string) $this->currentContext->moduleId();
+
+        if ($moduleId === '' || ! $this->moduleAccess->hasActiveModuleAccess($user, $moduleId)) {
+            $this->loginDetails->create([
+                'user_id'    => $user->id,
+                'email'      => $email,
+                'ip_address' => $ip,
+                'device'     => $ua,
+                'location'   => $locationUrl,
+                'address'    => $address,
+                'latitude'   => $lat,
+                'longitude'  => $lng,
+                'success'    => false,
+                'reason'     => 'module_access_denied',
+            ]);
+
+            return false;
+        }
+        
         // Credentials valid — let Laravel log them in
         if (! \Illuminate\Support\Facades\Auth::attempt(['email' => $email, 'password' => $password], $remember)) {
             $this->loginDetails->create([

@@ -45,7 +45,8 @@ use App\Services\Contracts\{
     TaskShowActionProviderInterface,
     UserProfileServiceInterface,
     GoogleDriveOAuthServiceInterface,
-    GoogleDriveGlobalServiceInterface
+    GoogleDriveGlobalServiceInterface,
+    ModuleAccessServiceInterface
 };
 use App\Services\Auth\AuthService;
 use App\Services\Geocoding\PositionstackGeocodingService;
@@ -69,6 +70,8 @@ use App\Services\AuditLogs\AuditLogPrintService;
 // Infrastructure Services
 use App\Services\Contracts\Infrastructure\PdfGeneratorInterface;
 use App\Services\Infrastructure\ChromePdfGenerator;
+
+use App\Services\Access\ModuleAccessService;
 
 class CoreServiceProvider extends ServiceProvider
 {
@@ -115,6 +118,8 @@ class CoreServiceProvider extends ServiceProvider
 
             // Print / export use cases
             AuditLogPrintServiceInterface::class => AuditLogPrintService::class,
+
+            ModuleAccessServiceInterface::class => ModuleAccessService::class,
         ], true);
     }
 
