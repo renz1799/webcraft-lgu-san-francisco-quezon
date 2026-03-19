@@ -12,17 +12,19 @@ This document defines how architectural decisions should be evaluated.
 
 Use these principles when deciding:
 
-where logic belongs  
-when to generalize  
-when to split responsibilities  
-when to move logic into Core  
+where logic belongs
+when to generalize
+when to split responsibilities
+when to move logic into Core
+when to introduce module/department scope
 
 These principles protect:
 
-long-term maintainability  
-platform clarity  
-architectural stability  
-module scalability  
+long-term maintainability
+platform clarity
+architectural stability
+module scalability
+platform isolation
 
 ---
 
@@ -30,10 +32,11 @@ module scalability
 
 Use this document when:
 
-you are unsure if something belongs in Core  
-you are deciding whether to generalize logic  
-you are evaluating architectural tradeoffs  
-you are deciding whether to split responsibilities  
+you are unsure if something belongs in Core
+you are deciding whether to generalize logic
+you are evaluating architectural tradeoffs
+you are deciding whether to split responsibilities
+you are introducing shared platform identity concepts
 
 This document provides decision heuristics, not implementation rules.
 
@@ -83,15 +86,17 @@ Do not move domain behavior into Core.
 
 Good Core code should feel:
 
-predictable  
-stable  
-consistent  
+predictable
+stable
+consistent
+context-aware
 
 Core should avoid:
 
-special cases  
-domain assumptions  
-feature branching  
+special cases
+domain assumptions
+feature branching
+hidden context resolution
 
 Predictability is more valuable than cleverness.
 
@@ -105,7 +110,7 @@ Prefer:
 
 clean boundaries
 
-over:
+Over:
 
 shortcuts.
 
@@ -118,9 +123,9 @@ Structure creates longevity.
 
 Each class should have:
 
-one purpose  
-one architectural layer  
-one reason to change  
+one purpose
+one architectural layer
+one reason to change
 
 If a class answers multiple concerns:
 
@@ -146,10 +151,11 @@ one expanding class.
 
 Good supporting roles include:
 
-Builder  
-Resolver  
-Dispatcher  
-Provider  
+Builder
+Resolver
+Dispatcher
+Provider
+Context Resolver
 
 Refactor triggers are defined in:
 
@@ -163,9 +169,10 @@ Define structure before behavior.
 
 Prefer:
 
-clear interfaces  
-DTOs  
-explicit payload contracts  
+clear interfaces
+DTOs
+explicit payload contracts
+explicit context contracts
 
 before complex logic.
 
@@ -181,18 +188,21 @@ Contracts stabilize architecture.
 
 Infrastructure should not know:
 
-tasks  
-inspections  
-RIS  
-DTS  
-inventory  
+tasks
+inspections
+RIS
+DTS
+inventory
+module workflows
 
 Infrastructure should know:
 
-notification  
-audit  
-storage  
-dispatch  
+notification
+audit
+storage
+dispatch
+context resolution
+module isolation mechanics
 
 If infrastructure references domain workflows:
 
@@ -250,9 +260,10 @@ Composition keeps Core flexible.
 
 Core should not know:
 
-module workflows  
-module wording  
-module UI  
+module workflows
+module wording
+module UI
+module-specific branching
 
 If Core needs module knowledge:
 
@@ -270,9 +281,10 @@ Core is built for systems not yet written.
 
 Design decisions should consider:
 
-future LGU systems  
-future workflow modules  
-future platform expansion  
+future LGU systems
+future workflow modules
+future platform expansion
+future integrations
 
 Ask:
 
@@ -288,15 +300,18 @@ Core candidate.
 
 Avoid:
 
-hidden behavior  
-implicit assumptions  
-magic payloads  
+hidden behavior
+implicit assumptions
+magic payloads
+automatic module guessing
+implicit department resolution
 
 Prefer:
 
-explicit naming  
-explicit contracts  
-explicit flows  
+explicit naming
+explicit contracts
+explicit flows
+explicit relational scope
 
 Explicit systems scale better.
 
@@ -308,9 +323,10 @@ Follow existing patterns unless improvement is clear.
 
 Consistency reduces:
 
-bugs  
-cognitive load  
-maintenance cost  
+bugs
+cognitive load
+maintenance cost
+architecture fragmentation
 
 Architecture should evolve deliberately.
 
@@ -320,14 +336,16 @@ Architecture should evolve deliberately.
 
 Refactor toward:
 
-clearer boundaries  
-simpler responsibilities  
-better separation  
+clearer boundaries
+simpler responsibilities
+better separation
+better context isolation
 
 Avoid refactoring toward:
 
-unnecessary abstraction  
-pattern obsession  
+unnecessary abstraction
+pattern obsession
+overengineering
 
 Goal:
 
@@ -345,9 +363,10 @@ Core changes affect multiple modules.
 
 Prefer:
 
-additive evolution  
-safe transitions  
-documented changes  
+additive evolution
+safe transitions
+documented changes
+deterministic identity patterns
 
 Core stability protects platform stability.
 
@@ -378,6 +397,12 @@ platform health.
 
 Do not weaken Core for one module.
 
+Example warning cases:
+
+adding module-specific conditions into shared services
+removing relational scope for convenience
+weakening module isolation
+
 ---
 
 # Principle 20: Architecture Is A Long-Term Asset
@@ -386,12 +411,82 @@ Architecture is not overhead.
 
 It prevents:
 
-future bugs  
-expensive refactors  
-feature friction  
-engineering confusion  
+future bugs
+expensive refactors
+feature friction
+engineering confusion
+platform instability
 
 Every clean boundary today prevents problems later.
+
+---
+
+# Principle 21: Context Before Convenience
+
+When designing shared functionality:
+
+Always consider module and department context first.
+
+Context defines correctness.
+
+Convenience defines shortcuts.
+
+Correctness must win.
+
+Example:
+
+Correct:
+
+store module_id
+store department_id
+use CurrentContext for defaults
+
+Wrong:
+
+skip scope because only one module exists today.
+
+Future modules always arrive.
+
+---
+
+# Principle 22: Shared Identity Must Be Separated From Access
+
+Users represent identity.
+
+user_modules represent access.
+
+Never merge these concepts.
+
+Identity answers:
+
+Who is this person?
+
+Access answers:
+
+Where can they operate?
+
+Mixing these concepts causes architecture leakage.
+
+---
+
+# Principle 23: Deterministic Identity Over Random Structure
+
+System-owned records should prefer stable identity when needed.
+
+Examples:
+
+system modules
+default departments
+platform roles
+
+Deterministic identity improves:
+
+migrations
+seeding
+integration safety
+debugging
+
+Use stable IDs for platform identity when appropriate.
 
 ---
 
@@ -399,11 +494,12 @@ Every clean boundary today prevents problems later.
 
 Add to Core only if:
 
-multiple modules can use it  
-no domain wording exists  
-no module workflows exist  
-no module branching required  
-reusable without modification  
+multiple modules can use it
+no domain wording exists
+no module workflows exist
+no module branching required
+reusable without modification
+independent from one department or workflow
 
 Otherwise:
 

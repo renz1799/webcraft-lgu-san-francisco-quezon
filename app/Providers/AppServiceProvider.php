@@ -30,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(ThemePreferencesRepositoryInterface::class) // ← add
             );
         });
+
+            $this->app->singleton(CurrentContext::class, function () {
+            return new CurrentContext();
+        });
     }
 
     /**

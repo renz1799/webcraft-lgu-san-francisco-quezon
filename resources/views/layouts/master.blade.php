@@ -12,7 +12,7 @@
         <meta name="force-password-change" content="{{ auth()->check() && auth()->user()->must_change_password ? '1' : '0' }}">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <!-- TITLE -->
-		<title> Ynex - Laravel Tailwind CSS Admin & Dashboard Template </title>
+		<title> Webcraft Core System </title>
 
         <!-- FAVICON -->
         <link rel="icon" href="{{asset('build/assets/images/brand-logos/favicon.ico')}}" type="image/x-icon">

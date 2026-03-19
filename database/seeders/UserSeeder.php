@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserModule;
 use App\Models\UserProfile;
+use App\Support\CurrentContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -15,12 +15,17 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            $moduleId = config('module.id');
+            $context = app(CurrentContext::class);
 
-            $department = Department::query()->orderBy('created_at')->first();
+            $moduleId = $context->moduleId();
+            $departmentId = $context->defaultDepartmentId();
 
-            if (! $department) {
-                throw new \RuntimeException('UserSeeder: no department found. Seed departments first.');
+            if (! $moduleId) {
+                throw new \RuntimeException('UserSeeder: current module not found. Run ModuleSeeder first.');
+            }
+
+            if (! $departmentId) {
+                throw new \RuntimeException('UserSeeder: default department not found. Run DepartmentSeeder first.');
             }
 
             $adminRole = Role::firstOrCreate(['name' => 'Administrator']);
@@ -29,7 +34,7 @@ class UserSeeder extends Seeder
             $admin = User::factory()
                 ->admin()
                 ->create([
-                    'primary_department_id' => $department->id,
+                    'primary_department_id' => $departmentId,
                 ]);
 
             UserProfile::factory()->create([
@@ -44,7 +49,7 @@ class UserSeeder extends Seeder
                 [
                     'user_id' => $admin->id,
                     'module_id' => $moduleId,
-                    'department_id' => $department->id,
+                    'department_id' => $departmentId,
                 ],
                 [
                     'is_active' => true,
@@ -57,7 +62,7 @@ class UserSeeder extends Seeder
                 ->count(5)
                 ->mustChangePassword()
                 ->create([
-                    'primary_department_id' => $department->id,
+                    'primary_department_id' => $departmentId,
                 ]);
 
             foreach ($staffUsers as $staff) {
@@ -71,7 +76,7 @@ class UserSeeder extends Seeder
                     [
                         'user_id' => $staff->id,
                         'module_id' => $moduleId,
-                        'department_id' => $department->id,
+                        'department_id' => $departmentId,
                     ],
                     [
                         'is_active' => true,

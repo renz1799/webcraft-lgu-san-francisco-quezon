@@ -6,11 +6,13 @@ This document defines architectural anti-patterns that must be avoided when deve
 
 These patterns usually appear gradually as systems grow and are a primary cause of:
 
-technical debt  
-architecture drift  
-fragile services  
-unclear responsibilities  
-platform instability  
+technical debt
+architecture drift
+fragile services
+unclear responsibilities
+platform instability
+module leakage
+context inconsistency
 
 This document acts as an early warning system.
 
@@ -19,6 +21,7 @@ If code starts resembling these patterns, review architecture boundaries.
 ARCHITECTURE.md defines structure.
 CORE_SERVICE_RULES.md defines boundaries.
 CORE_REFACTOR_GUIDELINES.md defines how to refactor safely.
+CONVENTIONS.md defines implementation discipline.
 
 This document identifies what to watch for.
 
@@ -32,18 +35,19 @@ A service accumulating too many responsibilities.
 
 Typical symptoms:
 
-many unrelated methods  
-growing constructor dependencies  
-module-specific logic inside Core  
-mixed infrastructure and business logic  
+many unrelated methods
+growing constructor dependencies
+module-specific logic inside Core
+mixed infrastructure and business logic
+module access logic mixed with unrelated workflows
 
 ## Why This Is Dangerous
 
 God services become:
 
-hard to test  
-hard to modify  
-hard to reason about  
+hard to test
+hard to modify
+hard to reason about
 
 They also attract unrelated logic.
 
@@ -73,9 +77,9 @@ inside Core.
 
 Core becomes:
 
-module aware  
-hard to reuse  
-hard to scale  
+module aware
+hard to reuse
+hard to scale
 
 ## Correct Direction
 
@@ -96,18 +100,20 @@ Repositories performing UI shaping.
 
 Examples:
 
-row mapping  
-display labels  
-formatted dates  
-UI flags  
+row mapping
+display labels
+formatted dates
+UI flags
+module badge labels
+department display strings
 
 ## Why This Is Dangerous
 
 Repositories become:
 
-UI dependent  
-hard to reuse  
-tied to one output format  
+UI dependent
+hard to reuse
+tied to one output format
 
 ## Correct Direction
 
@@ -128,17 +134,18 @@ Flexible methods accumulating unrelated use cases.
 
 Symptoms:
 
-inconsistent payloads  
-undocumented keys  
-mixed responsibilities  
+inconsistent payloads
+undocumented keys
+mixed responsibilities
+context keys added without contract discipline
 
 ## Why This Is Dangerous
 
 Generic methods become:
 
-unpredictable  
-fragile  
-hard to maintain  
+unpredictable
+fragile
+hard to maintain
 
 ## Correct Direction
 
@@ -170,8 +177,9 @@ inside shared service.
 
 Creates coupling between:
 
-infrastructure  
-presentation  
+infrastructure
+presentation
+module-specific route assumptions
 
 ## Correct Direction
 
@@ -192,16 +200,17 @@ Methods using loose types.
 
 Examples:
 
-object $entity  
-mixed $payload  
+object $entity
+mixed $payload
+array $contextWithoutDefinition
 
 ## Why This Is Dangerous
 
 Weak contracts cause:
 
-unclear expectations  
-maintenance friction  
-runtime surprises  
+unclear expectations
+maintenance friction
+runtime surprises
 
 ## Correct Direction
 
@@ -221,18 +230,18 @@ Core reading request context directly.
 
 Examples:
 
-Request::user()  
+Request::user()
 Request::ip()
-
-inside Core services.
+auth()->user() inside shared infrastructure logic
 
 ## Why This Is Dangerous
 
 Breaks usage in:
 
-queues  
-console commands  
-background jobs  
+queues
+console commands
+background jobs
+seeders
 
 ## Correct Direction
 
@@ -252,17 +261,18 @@ Classes operating across architectural layers.
 
 Examples:
 
-service doing presentation  
-repository doing UI mapping  
-controller doing business logic  
+service doing presentation
+repository doing UI mapping
+controller doing business logic
+resolver doing orchestration
 
 ## Why This Is Dangerous
 
 Creates:
 
-unclear responsibilities  
-tight coupling  
-hard debugging  
+unclear responsibilities
+tight coupling
+hard debugging
 
 ## Correct Direction
 
@@ -282,17 +292,18 @@ Infrastructure trying to be too smart.
 
 Examples:
 
-hidden branching  
-implicit behavior  
-magic detection  
+hidden branching
+implicit behavior
+magic detection
+automatic module guessing without explicit rules
 
 ## Why This Is Dangerous
 
 Smart infrastructure becomes:
 
-fragile  
-hard to debug  
-hard to predict  
+fragile
+hard to debug
+hard to predict
 
 ## Correct Direction
 
@@ -312,15 +323,17 @@ Changing Core to simplify one module.
 
 Examples:
 
-module-specific branching  
-feature-specific conditions  
+module-specific branching
+feature-specific conditions
+DTS-only assumptions in shared services
+GSO-specific storage decisions in shared services
 
 ## Why This Is Dangerous
 
 Creates:
 
-Core drift  
-architecture pollution  
+Core drift
+architecture pollution
 
 ## Correct Direction
 
@@ -338,21 +351,32 @@ CORE_SERVICE_RULES.md
 
 ## Description
 
-Shared tables lacking module context.
+Shared tables lacking relational context.
 
 Examples:
 
-notifications without module_name.
+notifications without module_id
+tasks without module_id
+audit_logs without module_id
+shared records relying only on module_name strings
 
 ## Why This Is Dangerous
 
 Cross-module filtering becomes difficult.
-
 Reporting becomes harder.
+Joins become weaker.
+Module isolation becomes fragile.
 
 ## Correct Direction
 
-Shared tables should include module identification.
+Shared tables should include relational module identification.
+
+Prefer:
+
+module_id
+department_id when applicable
+
+Do not rely on string names as the primary relational identity.
 
 Structural rules:
 
@@ -370,9 +394,9 @@ Continuously adding methods to services instead of splitting.
 
 Large services become:
 
-fragile  
-slow to modify  
-hard to reason about  
+fragile
+slow to modify
+hard to reason about
 
 ## Correct Direction
 
@@ -394,8 +418,8 @@ Creating abstractions before reuse exists.
 
 Creates:
 
-unnecessary complexity  
-maintenance overhead  
+unnecessary complexity
+maintenance overhead
 
 ## Correct Direction
 
@@ -415,9 +439,11 @@ Small violations accumulating over time.
 
 Examples:
 
-small UI logic in repo  
-small domain logic in Core  
-small shortcuts  
+small UI logic in repo
+small domain logic in Core
+small shortcuts
+one-off module hacks
+repeated direct config lookups instead of a resolver
 
 ## Why This Is Dangerous
 
@@ -429,7 +455,7 @@ Fix boundary violations early.
 
 Boundary definitions:
 
-ARCHITECTURE.md  
+ARCHITECTURE.md
 CORE_SERVICE_RULES.md
 
 ---
@@ -442,9 +468,10 @@ Ignoring early architecture signals.
 
 Examples:
 
-service growing rapidly  
-mixed responsibilities  
-unclear contracts  
+service growing rapidly
+mixed responsibilities
+unclear contracts
+repeated module lookup logic appearing in many classes
 
 ## Why This Matters
 
@@ -462,15 +489,177 @@ CORE_REFACTOR_GUIDELINES.md
 
 ---
 
+# Anti-Pattern 16: Direct env() Usage In Business Code
+
+## Description
+
+Reading environment values directly in services, repositories, models, or domain workflows.
+
+Examples:
+
+env('APP_MODULE_ID')
+env('APP_DEFAULT_DEPARTMENT_ID')
+
+## Why This Is Dangerous
+
+Creates:
+
+config caching problems
+hard-to-test code
+inconsistent platform context resolution
+leaky runtime assumptions
+
+## Correct Direction
+
+Use:
+
+config() inside configuration-aware infrastructure
+CurrentContext for runtime platform resolution
+
+Never use env() directly outside config files.
+
+Conventions:
+
+CONVENTIONS.md
+
+---
+
+# Anti-Pattern 17: Repeated Ad Hoc Context Resolution
+
+## Description
+
+Multiple classes resolving current module or default department independently.
+
+Examples:
+
+Module::find(config('module.id'))
+Department::first()
+manual fallback chains repeated across seeders and services
+
+## Why This Is Dangerous
+
+Creates:
+
+drift
+inconsistent defaults
+unpredictable behavior
+duplicate logic
+
+## Correct Direction
+
+Use a dedicated runtime resolver such as:
+
+CurrentContext
+
+This keeps module and default department resolution centralized.
+
+Structural rules:
+
+ARCHITECTURE.md
+CONVENTIONS.md
+
+---
+
+# Anti-Pattern 18: Shared Users Without Module Access Boundaries
+
+## Description
+
+Assuming that a user in `users` can automatically access every module website in the shared database.
+
+## Why This Is Dangerous
+
+Creates:
+
+cross-module login leakage
+weak isolation
+security ambiguity
+incorrect assumptions about user scope
+
+## Correct Direction
+
+Shared identity and module access must be separate.
+
+Use:
+
+users for shared identity
+user_modules for access mapping
+
+Architecture rules:
+
+ARCHITECTURE.md
+
+---
+
+# Anti-Pattern 19: Treating Default Department As Access Restriction
+
+## Description
+
+Using the configured default department as if it defines all department access for the application.
+
+## Why This Is Dangerous
+
+Confuses:
+
+runtime default context
+actual user access scope
+record ownership scope
+
+This is especially dangerous in a platform-style CORE site that manages multiple departments.
+
+## Correct Direction
+
+Treat configured department as:
+
+default context only
+
+Actual access must come from relational data such as:
+
+user_modules.department_id
+record-level department_id
+
+---
+
+# Anti-Pattern 20: Long Auto-Generated Composite Index Names
+
+## Description
+
+Letting Laravel auto-generate long composite index names for module/department scoped tables.
+
+## Why This Is Dangerous
+
+Creates:
+
+migration failures in MySQL
+index name length errors
+fragile schema evolution
+
+## Correct Direction
+
+Manually name long composite indexes.
+
+Example:
+
+notif_module_dept_user_created_idx
+
+db conventions:
+
+CONVENTIONS.md
+
+---
+
 # Common Warning Signals
 
 Architecture may be drifting if:
 
-Core references modules  
-repositories format UI  
-services contain presentation  
-generic payloads unclear  
-shared tables lack module context  
+Core references modules directly in workflow logic
+repositories format UI
+services contain presentation
+generic payloads are unclear
+shared tables lack relational module context
+code uses env() outside config files
+multiple classes resolve current module differently
+users table is treated as module access control
+default department is treated as hard access boundary
 
 If these appear:
 
@@ -482,14 +671,16 @@ review boundaries.
 
 Core must remain:
 
-generic  
-stable  
-predictable  
+generic
+stable
+predictable
+context-aware
+module-agnostic in behavior
 
 Modules must remain:
 
-flexible  
-domain aware  
-feature driven  
+flexible
+domain aware
+feature driven
 
 Never invert this relationship.

@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Department;
-use App\Models\Module;
 use App\Models\Notification;
 use App\Models\User;
+use App\Support\CurrentContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -13,16 +12,17 @@ class NotificationSeeder extends Seeder
 {
     public function run(): void
     {
-        $module = Module::query()->find(config('module.id'));
+        $context = app(CurrentContext::class);
 
-        if (! $module) {
+        $moduleId = $context->moduleId();
+        $departmentId = $context->defaultDepartmentId();
+
+        if (! $moduleId) {
             throw new \RuntimeException('NotificationSeeder: current module not found. Run ModuleSeeder first.');
         }
 
-        $department = Department::query()->orderBy('created_at')->first();
-
-        if (! $department) {
-            throw new \RuntimeException('NotificationSeeder: no department found. Seed departments first.');
+        if (! $departmentId) {
+            throw new \RuntimeException('NotificationSeeder: default department not found. Run DepartmentSeeder first.');
         }
 
         $actor = User::query()
@@ -40,8 +40,8 @@ class NotificationSeeder extends Seeder
 
         Notification::factory()->create([
             'id' => (string) Str::uuid(),
-            'module_id' => $module->id,
-            'department_id' => $department->id,
+            'module_id' => $moduleId,
+            'department_id' => $departmentId,
             'actor_user_id' => $actor->id,
             'notifiable_user_id' => $recipient->id,
             'type' => 'task.assigned',
@@ -59,8 +59,8 @@ class NotificationSeeder extends Seeder
             ->read()
             ->create([
                 'id' => (string) Str::uuid(),
-                'module_id' => $module->id,
-                'department_id' => $department->id,
+                'module_id' => $moduleId,
+                'department_id' => $departmentId,
                 'actor_user_id' => $actor->id,
                 'notifiable_user_id' => $recipient->id,
                 'type' => 'task.assigned',

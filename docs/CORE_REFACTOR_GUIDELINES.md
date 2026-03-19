@@ -13,18 +13,20 @@ This document defines how Core should evolve safely.
 
 Use this document when deciding:
 
-when to split classes  
-when to extract responsibilities  
-when to introduce DTOs  
-when to move logic into Core  
-when to move logic out of Core  
+when to split classes
+when to extract responsibilities
+when to introduce DTOs
+when to move logic into Core
+when to move logic out of Core
+when to introduce module/department context
 
 Refactoring in Core protects:
 
-architectural clarity  
-platform stability  
-module compatibility  
-long-term maintainability  
+architectural clarity
+platform stability
+module compatibility
+long-term maintainability
+platform scalability
 
 ---
 
@@ -32,23 +34,25 @@ long-term maintainability
 
 Refactor toward:
 
-smaller responsibilities  
-clearer boundaries  
-stronger contracts  
-reusable capabilities  
-less module awareness  
+smaller responsibilities
+clearer boundaries
+stronger contracts
+reusable capabilities
+less module awareness
+better context isolation
 
 Do not refactor toward:
 
-unnecessary abstraction  
-pattern-for-pattern's-sake  
-speculative complexity  
+unnecessary abstraction
+pattern-for-pattern's-sake
+speculative complexity
+platform coupling to one module
 
 Goal:
 
-clarity  
-stability  
-predictability  
+clarity
+stability
+predictability
 
 ---
 
@@ -58,8 +62,9 @@ Refactor when a class handles more than one architectural concern.
 
 Examples:
 
-service handling orchestration + presentation  
-repository handling querying + UI mapping  
+service handling orchestration + presentation
+repository handling querying + UI mapping
+service resolving context + executing workflows
 
 Structural boundaries:
 
@@ -75,9 +80,10 @@ split responsibilities.
 
 Refactor when services show growth signals:
 
-many unrelated methods  
-growing constructor dependencies  
-module knowledge appearing  
+many unrelated methods
+growing constructor dependencies
+module knowledge appearing
+department workflow assumptions appearing
 
 Warning patterns:
 
@@ -89,10 +95,11 @@ split into focused roles.
 
 Examples:
 
-Dispatcher → transport  
-Builder → structure  
-Resolver → context  
-Provider → data sourcing  
+Dispatcher → transport
+Builder → structure
+Resolver → context
+Provider → data sourcing
+AccessService → module access mapping
 
 ---
 
@@ -104,10 +111,12 @@ Refactor presentation logic out of repositories/services when it answers:
 
 Examples:
 
-display labels  
-formatted timestamps  
-UI flags  
-table row shaping  
+display labels
+formatted timestamps
+UI flags
+table row shaping
+module display names
+department display names
 
 Structural rules:
 
@@ -123,10 +132,11 @@ extract Presenter or Transformer.
 
 Use DTO when:
 
-payload has many fields  
-payload reused across services  
-contracts become unclear  
-vague types appear  
+payload has many fields
+payload reused across services
+contracts become unclear
+vague types appear
+context parameters become repetitive
 
 DTO usage conventions:
 
@@ -140,9 +150,10 @@ DTOs should clarify contracts, not add ceremony.
 
 Move logic into Core when:
 
-multiple modules need it  
-behavior is generic  
-no module branching required  
+multiple modules need it
+behavior is generic
+no module branching required
+independent of department workflows
 
 Core eligibility rules:
 
@@ -158,10 +169,11 @@ keep logic in module first.
 
 If Core starts needing:
 
-module workflows  
-domain events  
-module recipients  
-feature wording  
+module workflows
+domain events
+module recipients
+feature wording
+department workflow logic
 
 This is a refactor signal.
 
@@ -181,9 +193,10 @@ Extract Builder when services spend effort constructing structured data.
 
 Examples:
 
-audit display sections  
-report payloads  
-notification payloads  
+audit display sections
+report payloads
+notification payloads
+module-aware payloads
 
 Builders focus on structure, not orchestration.
 
@@ -199,13 +212,19 @@ Extract Resolver when environment/context lookup spreads.
 
 Examples:
 
-current actor resolution  
-tenant resolution  
-request context  
+current actor resolution
+tenant resolution
+request context
+module resolution
+default department resolution
 
 Resolvers answer:
 
 "What context is needed?"
+
+Recommended example:
+
+CurrentContext
 
 Naming conventions:
 
@@ -217,9 +236,10 @@ CONVENTIONS.md
 
 Introduce Provider when data comes from:
 
-multiple repositories  
-aggregated sources  
-computed data  
+multiple repositories
+aggregated sources
+computed data
+module-aware datasets
 
 Repositories remain persistence-focused.
 
@@ -237,9 +257,10 @@ Refactor repository code when UI shaping appears.
 
 Examples:
 
-display labels  
-formatted timestamps  
-row shaping  
+display labels
+formatted timestamps
+row shaping
+module UI fields
 
 Structural rules:
 
@@ -255,9 +276,10 @@ move shaping to presenters.
 
 Refactor generic methods when:
 
-payload shape becomes inconsistent  
-undocumented keys appear  
-method serves unrelated use cases  
+payload shape becomes inconsistent
+undocumented keys appear
+method serves unrelated use cases
+context parameters vary per caller
 
 Payload discipline:
 
@@ -273,10 +295,11 @@ clarify contracts or split responsibilities.
 
 Good refactors improve:
 
-type clarity  
-interface clarity  
-boundary clarity  
-class naming  
+type clarity
+interface clarity
+boundary clarity
+class naming
+context clarity
 
 Refactoring is not just moving code.
 
@@ -290,10 +313,10 @@ Because Core affects modules, prefer safe transitions.
 
 Preferred workflow:
 
-introduce new abstraction  
-migrate usage gradually  
-preserve compatibility  
-remove legacy path later  
+introduce new abstraction
+migrate usage gradually
+preserve compatibility
+remove legacy path later
 
 Avoid disruptive rewrites.
 
@@ -303,9 +326,10 @@ Avoid disruptive rewrites.
 
 Refactor when tests become difficult due to:
 
-mixed responsibilities  
-hidden context  
-unclear contracts  
+mixed responsibilities
+hidden context
+unclear contracts
+context resolution duplication
 
 Testing friction often signals architecture drift.
 
@@ -317,8 +341,9 @@ Refactor when class names no longer match behavior.
 
 Examples:
 
-Repository formatting UI  
-Service building display payloads  
+Repository formatting UI
+Service building display payloads
+Resolver doing orchestration
 
 Naming rules:
 
@@ -338,8 +363,9 @@ Will this still be clean with more modules?
 
 Refactor toward:
 
-future module compatibility  
-platform scalability  
+future module compatibility
+platform scalability
+module isolation
 
 Design philosophy:
 
@@ -353,8 +379,8 @@ Refactor only when patterns stabilize.
 
 Avoid abstraction when:
 
-only one use case exists  
-behavior still evolving  
+only one use case exists
+behavior still evolving
 
 Design guidance:
 
@@ -366,13 +392,14 @@ CORE_DESIGN_PRINCIPLES.md
 
 High priority refactor signals:
 
-Core gaining module logic  
-repository gaining UI shaping  
-generic contracts becoming unclear  
+Core gaining module logic
+repository gaining UI shaping
+generic contracts becoming unclear
+context resolution duplication
 
 Boundary definitions:
 
-ARCHITECTURE.md  
+ARCHITECTURE.md
 CORE_SERVICE_RULES.md
 
 These should be addressed early.
@@ -383,8 +410,9 @@ These should be addressed early.
 
 When tables become cross-module:
 
-add module identification  
-add indexed filters  
+add module identification
+add department identification
+add indexed filters
 
 Structural rules:
 
@@ -398,8 +426,9 @@ Good Core refactors simplify usage.
 
 Prefer:
 
-clear module payload  
-simple Core capability  
+clear module payload
+simple Core capability
+explicit context parameters
 
 Over:
 
@@ -413,24 +442,26 @@ hidden logic in generic services.
 
 Refactor when:
 
-Core contains module logic  
-repositories contain UI shaping  
-generic contracts unclear  
+Core contains module logic
+repositories contain UI shaping
+generic contracts unclear
+module isolation is violated
 
 ### Medium Priority
 
 Refactor when:
 
-payload complexity increases  
-context lookup repeats  
-display shaping grows  
+payload complexity increases
+context lookup repeats
+display shaping grows
+platform identity duplication appears
 
 ### Low Priority
 
 Refactor when:
 
-code is acceptable but could be cleaner  
-pattern still emerging  
+code is acceptable but could be cleaner
+pattern still emerging
 
 Do not delay boundary refactors.
 
@@ -440,12 +471,12 @@ Do not delay boundary refactors.
 
 When refactoring Core:
 
-1 Identify responsibility drift  
-2 Define new boundary  
-3 Introduce new class  
-4 Migrate callers gradually  
-5 Remove old path  
-6 Update documentation  
+1 Identify responsibility drift
+2 Define new boundary
+3 Introduce new class
+4 Migrate callers gradually
+5 Remove old path
+6 Update documentation
 
 Refactor should strengthen clarity, not just move code.
 
@@ -455,15 +486,16 @@ Refactor should strengthen clarity, not just move code.
 
 Refactor Core toward:
 
-smaller  
-clearer  
-more explicit  
-more stable  
+smaller
+clearer
+more explicit
+more stable
+more context-aware
 
 Not toward:
 
-more complex  
-more abstract  
-more clever  
+more complex
+more abstract
+more clever
 
 The best Core refactors reduce confusion and improve reuse.

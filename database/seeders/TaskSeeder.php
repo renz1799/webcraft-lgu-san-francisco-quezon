@@ -2,12 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\Department;
-use App\Models\Module;
 use App\Models\Notification;
 use App\Models\Task;
 use App\Models\TaskEvent;
 use App\Models\User;
+use App\Support\CurrentContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -15,16 +14,17 @@ class TaskSeeder extends Seeder
 {
     public function run(): void
     {
-        $module = Module::query()->find(config('module.id'));
+        $context = app(CurrentContext::class);
 
-        if (! $module) {
+        $moduleId = $context->moduleId();
+        $departmentId = $context->defaultDepartmentId();
+
+        if (! $moduleId) {
             throw new \RuntimeException('TaskSeeder: current module not found. Run ModuleSeeder first.');
         }
 
-        $department = Department::query()->orderBy('created_at')->first();
-
-        if (! $department) {
-            throw new \RuntimeException('TaskSeeder: no department found. Seed departments first.');
+        if (! $departmentId) {
+            throw new \RuntimeException('TaskSeeder: default department not found. Run DepartmentSeeder first.');
         }
 
         $admin = User::query()
@@ -44,14 +44,14 @@ class TaskSeeder extends Seeder
             throw new \RuntimeException('TaskSeeder: no staff user found. Seed staff users first.');
         }
 
-        DB::transaction(function () use ($module, $department, $admin, $sampleStaff) {
+        DB::transaction(function () use ($moduleId, $departmentId, $admin, $sampleStaff) {
             TaskEvent::query()->forceDelete();
             Task::query()->forceDelete();
             Notification::query()->forceDelete();
 
             $t1 = Task::create([
-                'module_id' => $module->id,
-                'department_id' => $department->id,
+                'module_id' => $moduleId,
+                'department_id' => $departmentId,
                 'title' => 'Release Sticker (Inventory Item)',
                 'description' => 'Generate and release property sticker for newly received item.',
                 'type' => 'release_sticker',
@@ -73,11 +73,11 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'assigned', 'note' => 'Assigned to admin.', 'meta' => ['to_user_id' => $admin->id], 'at' => now()->subDays(2)],
             ]);
 
-            $this->seedNotificationForTask($t1, $module->id, $department->id, $admin->id, $admin->id, 'assigned');
+            $this->seedNotificationForTask($t1, $moduleId, $departmentId, $admin->id, $admin->id, 'assigned');
 
             $t2 = Task::create([
-                'module_id' => $module->id,
-                'department_id' => $department->id,
+                'module_id' => $moduleId,
+                'department_id' => $departmentId,
                 'title' => 'Print WeBill',
                 'description' => 'Print WeBill for customer pickup.',
                 'type' => 'print_we_bill',
@@ -100,11 +100,11 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'comment', 'note' => 'Need signature from officer-in-charge.', 'at' => now()->subHours(18)],
             ]);
 
-            $this->seedNotificationForTask($t2, $module->id, $department->id, $admin->id, $admin->id, 'assigned');
+            $this->seedNotificationForTask($t2, $moduleId, $departmentId, $admin->id, $admin->id, 'assigned');
 
             $t3 = Task::create([
-                'module_id' => $module->id,
-                'department_id' => $department->id,
+                'module_id' => $moduleId,
+                'department_id' => $departmentId,
                 'title' => 'Release Documents (DV/ORS)',
                 'description' => 'Prepare and release required documents.',
                 'type' => 'release_document',
@@ -128,11 +128,11 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'status_changed', 'from' => 'in_progress', 'to' => 'done', 'note' => 'Ready to pick up.', 'at' => now()->subDays(4)],
             ]);
 
-            $this->seedNotificationForTask($t3, $module->id, $department->id, $admin->id, $admin->id, 'assigned');
+            $this->seedNotificationForTask($t3, $moduleId, $departmentId, $admin->id, $admin->id, 'assigned');
 
             $p1 = Task::create([
-                'module_id' => $module->id,
-                'department_id' => $department->id,
+                'module_id' => $moduleId,
+                'department_id' => $departmentId,
                 'title' => 'Pooled: Release Sticker (Any Admin can claim)',
                 'description' => 'A pooled task visible to admin role; anyone can claim.',
                 'type' => 'release_sticker',
@@ -152,11 +152,11 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'created', 'note' => 'Pooled task created.', 'at' => now()->subHours(10)],
             ]);
 
-            $this->seedNotificationForTask($p1, $module->id, $department->id, $admin->id, $admin->id, 'pooled');
+            $this->seedNotificationForTask($p1, $moduleId, $departmentId, $admin->id, $admin->id, 'pooled');
 
             $p2 = Task::create([
-                'module_id' => $module->id,
-                'department_id' => $department->id,
+                'module_id' => $moduleId,
+                'department_id' => $departmentId,
                 'title' => 'Pooled: Print Gate Pass (Admin/Staff)',
                 'description' => 'Visible to admin and staff roles.',
                 'type' => 'print_gate_pass',
@@ -181,11 +181,11 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'comment', 'note' => 'Staff noted: Waiting for supporting document.', 'at' => now()->subHours(2)],
             ]);
 
-            $this->seedNotificationForTask($p2, $module->id, $department->id, $admin->id, $admin->id, 'pooled');
+            $this->seedNotificationForTask($p2, $moduleId, $departmentId, $admin->id, $admin->id, 'pooled');
 
             $p3 = Task::create([
-                'module_id' => $module->id,
-                'department_id' => $department->id,
+                'module_id' => $moduleId,
+                'department_id' => $departmentId,
                 'title' => 'Pooled: Staff-only Task (should not show for admin if strict)',
                 'description' => 'Visible only to staff role.',
                 'type' => 'staff_only_demo',

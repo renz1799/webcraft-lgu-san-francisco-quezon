@@ -9,6 +9,7 @@ The goal is to keep Git history:
 * Architecture-focused
 * Easy to scan later
 * Useful for debugging, rollback, and refactoring
+* Traceable across platform evolution
 
 This is not just a naming rule.
 It is a **change management standard** for the Core System.
@@ -43,6 +44,7 @@ A good Git log should explain:
 * where it changed
 * why it changed
 * whether it was a feature, refactor, fix, or cleanup
+* whether it impacts platform structure
 
 The log should be understandable without opening every diff.
 
@@ -83,6 +85,7 @@ Examples:
 * new workflow capability
 * new paper profile support
 * new module behavior
+* new platform capability
 
 Example:
 
@@ -103,11 +106,13 @@ Examples:
 * layout separation
 * config consolidation
 * controller simplification
+* module isolation improvements
+* context resolution improvements
 
 Example:
 
 ```text
-refactor(print): separate paper layouts from report content
+refactor(core): introduce CurrentContext resolver
 ```
 
 ---
@@ -122,11 +127,12 @@ Examples:
 * preview and PDF mismatch
 * incorrect pagination
 * broken asset resolution
+* incorrect module scoping
 
 Example:
 
 ```text
-fix(print): correct audit log pdf route binding
+fix(core): correct module isolation check in access service
 ```
 
 ---
@@ -140,11 +146,12 @@ Examples:
 * query optimization
 * payload reduction
 * print generation efficiency
+* index improvements
 
 Example:
 
 ```text
-perf(audit): optimize print report dataset retrieval
+perf(audit): optimize audit log filtering indexes
 ```
 
 ---
@@ -157,13 +164,14 @@ Examples:
 
 * standard updates
 * glossary additions
-* print architecture docs
+* architecture docs
 * commit strategy docs
+* platform documentation alignment
 
 Example:
 
 ```text
-docs(core): add commit strategy standard
+docs(core): update architecture for module isolation
 ```
 
 ---
@@ -178,11 +186,12 @@ Examples:
 * deleting unused files
 * housekeeping
 * tooling maintenance
+* seeder adjustments without behavior change
 
 Example:
 
 ```text
-chore(print): remove legacy unused print partials
+chore(core): remove legacy module_name column references
 ```
 
 ---
@@ -206,6 +215,8 @@ Recommended scopes:
 * `notifications`
 * `access`
 * `profile`
+* `departments`
+* `modules`
 
 Examples:
 
@@ -224,7 +235,7 @@ Use combined scopes only when one logical change truly spans multiple domains.
 Example:
 
 ```text
-refactor(print,audit): migrate audit logs to paper profile architecture
+refactor(core,auth): introduce module access enforcement
 ```
 
 Use combined scopes sparingly.
@@ -245,7 +256,7 @@ The summary line must be:
 Good:
 
 ```text
-refactor(print): introduce paper profile configuration
+refactor(core): introduce module and department context
 feat(print): add paper selector to workspace controls
 fix(print): resolve preview route name mismatch
 ```
@@ -271,16 +282,17 @@ Use additional `-m` lines to explain:
 * architectural intent
 * boundaries of the change
 * why the change matters
+* platform impact
 
 Use them when the change affects structure, standards, or long-term maintainability.
 
 Example:
 
 ```bash
-git commit -m "refactor(print): resolve paper profiles in print service" \
--m "Merge paper defaults with module profile overrides" \
--m "Pass resolved profile to preview and PDF rendering" \
--m "Keep controller orchestration only"
+git commit -m "refactor(core): introduce module context architecture" \
+-m "Add modules and departments relational scope" \
+-m "Introduce CurrentContext resolver" \
+-m "Prepare system for multi-module platform deployment"
 ```
 
 Avoid overly long paragraphs.
@@ -298,59 +310,61 @@ Examples of good split order:
 
 1. configuration
 2. backend orchestration
-3. view architecture
-4. UI behavior
-5. docs
+3. data structure
+4. view architecture
+5. UI behavior
+6. docs
 
 Example sequence:
 
 ```text
-refactor(print): introduce paper profile configuration
-refactor(print): resolve paper profiles in print service
-refactor(print): convert audit log print to paper profile layout
-feat(print): add multi paper selection support
+refactor(core): introduce modules table
+refactor(core): introduce departments table
+refactor(core): add module_id to shared tables
+refactor(core): introduce CurrentContext resolver
+feat(core): enforce module access validation
 ```
 
 This is preferred over one large mixed commit.
 
 ---
 
-# Preferred Commit Order for Refactors
+# Preferred Commit Order for Platform Refactors
 
-When a feature includes multiple layers, commit in this order when practical:
+When a platform feature includes multiple layers, commit in this order when practical:
 
-## 1. Architecture / config
-
-Examples:
-
-* new config contract
-* new interfaces
-* new structure rules
-
-## 2. Backend flow
+## 1. Architecture / schema
 
 Examples:
 
-* request updates
+* new tables
+* new indexes
+* identity changes
+* platform structure
+
+## 2. Core flow
+
+Examples:
+
 * service orchestration
-* controller alignment
-* repository usage changes
+* access enforcement
+* context resolution
+* repository updates
 
-## 3. View or rendering structure
-
-Examples:
-
-* Blade restructuring
-* layout extraction
-* new rendering paths
-
-## 4. UI capability
+## 3. Module integration
 
 Examples:
 
-* selector added
-* button behavior updated
-* interactive workflow added
+* module service updates
+* module workflow alignment
+
+## 4. UI / behavior
+
+Examples:
+
+* selectors
+* workflows
+* controls
 
 ## 5. Documentation
 
@@ -393,6 +407,7 @@ Use `git add -p` when:
 
 * one file contains multiple logical changes
 * refactor and feature edits are mixed together
+* platform refactor and module edits overlap
 * you need to split a large change into clean commits
 
 Interactive staging is preferred over creating messy combined commits.
@@ -424,14 +439,15 @@ Example:
 Bad:
 
 ```text
-feat(print): add paper profile support and move all layout files
+feat(core): add module architecture and migrate all tables
 ```
 
 Better split:
 
 ```text
-refactor(print): introduce paper profile layout structure
-feat(print): add multi paper profile selection
+refactor(core): introduce module architecture
+refactor(core): migrate shared tables to module_id
+feat(core): enforce module access rules
 ```
 
 ---
@@ -443,7 +459,7 @@ When correcting a regression introduced during refactor or feature work, use a s
 Example:
 
 ```text
-fix(print): correct audit log print route names in controls
+fix(core): correct department foreign key constraint
 ```
 
 Do not hide fixes inside unrelated refactor commits after the fact.
@@ -457,9 +473,9 @@ Standards and documentation updates should usually be committed separately from 
 Examples:
 
 ```text
-docs(core): add commit strategy standard
-docs(print): update workspace rules for paper profiles
-docs(print): document service paper profile resolution
+docs(core): update conventions for module context
+docs(core): align glossary with platform identity terms
+docs(core): update service rules for context resolution
 ```
 
 This makes the standards timeline easier to follow.
@@ -477,27 +493,28 @@ Never do these:
 * skip checking `git diff --staged`
 * hide bug fixes inside unrelated commits
 * combine unrelated modules in one commit just because they were edited together
+* commit platform schema and module workflow changes together
 
 ---
 
 # Good Examples
 
-## Print architecture sequence
+## Platform architecture sequence
 
 ```text
-refactor(print): introduce paper profile configuration
-refactor(print): resolve paper profiles in print service
-refactor(print): convert audit log print to paper profile layout
-feat(print): add multi paper selection support
-fix(print): correct audit log pdf route binding
+refactor(core): introduce modules table
+refactor(core): introduce departments table
+refactor(core): add module_id and department_id to shared tables
+refactor(core): introduce CurrentContext resolver
+feat(core): enforce module access isolation
 ```
 
 ## Documentation sequence
 
 ```text
-docs(print): update workspace standard for multi paper support
-docs(print): update service standard for paper profile resolution
-docs(core): add commit strategy standard
+docs(core): update conventions for module context
+docs(core): update architecture for department scope
+docs(core): update glossary for platform identity terms
 ```
 
 ## Module feature sequence
@@ -564,6 +581,7 @@ A good reviewer should be able to understand:
 * feature introduction
 * bug fixes
 * standards alignment
+* platform evolution
 
 from commit history alone.
 
@@ -577,6 +595,7 @@ Core System commits must always optimize for:
 * reviewability
 * architecture traceability
 * future maintainability
+* platform evolution traceability
 
 A clean Git history is part of the system design.
 

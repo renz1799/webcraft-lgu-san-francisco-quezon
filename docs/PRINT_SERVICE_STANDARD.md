@@ -10,6 +10,7 @@ This standard ensures that all print services:
 * Resolve paper profiles consistently
 * Keep preview and PDF contracts aligned
 * Remain reusable as more reports are added
+* Remain module‑aware without becoming module‑dependent
 
 This document focuses on **backend orchestration and service contracts**.
 Workspace layout and rendering rules belong to PRINT_WORKSPACE_STANDARD.
@@ -39,6 +40,28 @@ Core printing must implement:
 Not:
 
 **Many duplicated services per paper size**
+
+---
+
+# Platform Awareness Rule
+
+Print services must remain reusable across modules.
+
+They must support module context but must not contain module workflows.
+
+Print services may know:
+
+* module identity
+* module print configuration
+* paper capabilities
+
+Print services must not know:
+
+* module workflows
+* module business rules
+* module UI behavior
+
+Context should be passed or resolved through platform context (ex: CurrentContext).
 
 ---
 
@@ -119,6 +142,7 @@ The print service is the orchestration center for printable reports.
 The service owns:
 
 * resolving the active paper profile
+* resolving module print configuration
 * calling repositories
 * delegating report content building
 * preparing preview payloads
@@ -131,6 +155,7 @@ The service must not:
 * contain CSS decisions
 * hardcode paper sizes
 * duplicate report builder logic per paper size
+* contain module workflow logic
 
 ---
 
@@ -282,6 +307,26 @@ This supports platform defaults with module-specific overrides.
 
 ---
 
+# Module Context Rule
+
+Print services should not hardcode module names.
+
+Module identity should come from:
+
+* configuration
+* route binding
+* CurrentContext
+
+Avoid:
+
+hardcoded module strings.
+
+Prefer:
+
+config driven module identification.
+
+---
+
 # Fallback Rule
 
 Fallback behavior must be explicit.
@@ -420,6 +465,7 @@ Never do these:
 * paginate printable pages inside services
 * let preview and PDF use different profile resolution logic
 * pass raw request `paper_profile` directly to views without resolution
+* hardcode module identity inside services
 
 ---
 

@@ -9,6 +9,7 @@ This standard ensures that all print workspaces:
 * Keep preview and PDF layouts identical
 * Separate report content from paper layout
 * Remain scalable as more reports are added
+* Remain reusable across modules
 
 This document focuses on **workspace layout and rendering rules**.
 Backend orchestration rules belong to PRINT_SERVICE_STANDARD.
@@ -32,6 +33,32 @@ Multiple paper profiles
 NOT:
 
 Multiple report implementations per paper size.
+
+---
+
+# Platform Awareness Rule
+
+Print workspaces must support multiple modules without embedding module logic.
+
+Workspaces may know:
+
+* module print configuration
+* allowed papers
+* default paper
+
+Workspaces must not know:
+
+* module workflows
+* module business rules
+* module service logic
+
+Module identity should come from:
+
+* route context
+* configuration
+* CurrentContext
+
+Avoid hardcoded module assumptions.
 
 ---
 
@@ -125,7 +152,7 @@ Never hardcode dimensions like:
 297mm
 ```
 
-A4 portrait remains the baseline default profile, but preview must always use the resolved paper profile.
+Preview must always use the resolved paper profile.
 
 ---
 
@@ -199,6 +226,8 @@ resources/views/{module}/print/
     ├─ letter-portrait/
     └─ future paper profiles
 ```
+
+Folder naming must match paper codes.
 
 ---
 
@@ -399,6 +428,8 @@ Do NOT hardcode header/footer paths
 Do NOT mix report data with layout decisions
 
 Do NOT create separate reports per paper size
+
+Do NOT hardcode module identity inside views
 
 ---
 

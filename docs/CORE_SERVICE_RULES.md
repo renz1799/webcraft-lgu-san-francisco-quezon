@@ -16,11 +16,12 @@ This document defines what Core services may and may not do.
 
 A service belongs in Core only if:
 
-multiple modules can use it  
-it contains no domain workflows  
-it contains no module wording  
-it requires no module branching  
-it can be reused without modification  
+multiple modules can use it
+it contains no domain workflows
+it contains no module wording
+it requires no module branching
+it can be reused without modification
+it operates correctly regardless of department context
 
 If any of these fail:
 
@@ -28,18 +29,23 @@ it belongs in the module.
 
 Core should contain:
 
-capabilities  
-infrastructure  
-transport  
-storage  
-dispatching  
+capabilities
+infrastructure
+transport
+storage
+dispatching
+runtime context resolution
+module isolation support
+shared identity services
+shared integration storage
 
 Modules should contain:
 
-events  
-workflows  
-recipients  
-business rules  
+events
+workflows
+recipients
+business rules
+module policies
 
 ---
 
@@ -47,18 +53,21 @@ business rules
 
 Core services should focus on:
 
-dispatching  
-storing  
-recording  
-transporting  
-normalizing  
+dispatching
+storing
+recording
+transporting
+normalizing
+resolving platform context
+enforcing shared structure
 
 Core services should not:
 
-decide business events  
-decide recipients  
-define domain workflows  
-contain module wording  
+decide business events
+decide recipients
+define domain workflows
+contain module wording
+contain department workflow assumptions
 
 Example:
 
@@ -101,10 +110,11 @@ Scenario logic must remain in modules.
 
 Core services must not contain:
 
-module titles  
-domain messages  
-feature wording  
-UI text  
+module titles
+domain messages
+feature wording
+UI text
+department-specific messaging
 
 Bad:
 
@@ -123,9 +133,10 @@ Wording belongs to domain logic.
 
 Core services must not generate:
 
-route URLs  
-module navigation links  
-UI navigation hints  
+route URLs
+module navigation links
+UI navigation hints
+module route assumptions
 
 Bad:
 
@@ -146,9 +157,10 @@ Generic services may accept structured payloads.
 
 Payload must be:
 
-explicit  
-predictable  
-documented  
+explicit
+predictable
+documented
+context-aware when required
 
 Avoid undocumented keys.
 
@@ -164,14 +176,16 @@ Generic services must not become dumping grounds.
 
 Avoid vague method signatures such as:
 
-object $entity  
-mixed $payload  
+object $entity
+mixed $payload
+array $contextWithoutDefinition
 
 Prefer:
 
-explicit models  
-interfaces  
-DTOs  
+explicit models
+interfaces
+DTOs
+explicit context parameters
 
 Clear contracts protect Core stability.
 
@@ -181,27 +195,55 @@ Clear contracts protect Core stability.
 
 Core services should not assume:
 
-HTTP request  
-session  
-controller context  
+HTTP request
+session
+controller context
+web-only execution
 
 Because Core must also work in:
 
-queues  
-console commands  
-scheduled jobs  
-background processing  
+queues
+console commands
+scheduled jobs
+background processing
+seeders
 
 Context should be:
 
-passed explicitly  
-resolved via resolver classes  
+passed explicitly
+resolved via resolver classes
 
-Future patterns may include:
+Recommended pattern:
 
-AuditContextResolver
+CurrentContext
 
 Core should remain environment-agnostic.
+
+---
+
+# Context Resolution Rule
+
+Core services should not independently resolve module or department context repeatedly.
+
+Bad:
+
+Module::find(config('module.id'))
+Department::first()
+manual env reads
+
+Good:
+
+Use a centralized resolver:
+
+CurrentContext
+
+Example:
+
+$context = app(CurrentContext::class);
+$moduleId = $context->moduleId();
+$departmentId = $context->defaultDepartmentId();
+
+This prevents context drift and duplicated lookup logic.
 
 ---
 
@@ -211,10 +253,11 @@ Core services must remain focused.
 
 Warning signs:
 
-too many methods  
-unrelated responsibilities  
-module knowledge  
-growing dependencies  
+too many methods
+unrelated responsibilities
+module knowledge
+growing dependencies
+context resolution mixed with workflows
 
 When a service grows beyond one responsibility:
 
@@ -222,10 +265,11 @@ split it.
 
 Typical split patterns:
 
-Dispatcher → transport  
-Builder → structure  
-Resolver → context  
-Provider → data sourcing  
+Dispatcher → transport
+Builder → structure
+Resolver → context
+Provider → data sourcing
+AccessService → module access logic
 
 Refactor timing guidance is defined in:
 
@@ -239,22 +283,72 @@ Core must remain neutral.
 
 Core must not know:
 
-tasks  
-inspections  
-RIS  
-DTS  
-inventory  
+tasks
+inspections
+RIS
+DTS workflows
+inventory workflows
+module UI decisions
 
 Core may know:
 
-notification  
-audit  
-storage  
-dispatch  
+notification
+audit
+storage
+dispatch
+context resolution
+module access mapping
+department structure
 
 If Core needs domain knowledge:
 
 logic belongs in module.
+
+---
+
+# Shared Identity Rule
+
+Core may manage shared identity concepts such as:
+
+users
+modules
+departments
+user_modules
+integration tokens
+
+Core may define structure.
+
+Modules define behavior using that structure.
+
+Example:
+
+Core:
+ModuleAccessService
+
+Module:
+DtsUserAssignmentService
+
+---
+
+# Relational Scope Rule
+
+Core services that persist shared operational data should support relational scope when applicable.
+
+Examples:
+
+module_id
+department_id
+
+Examples of affected services:
+
+Audit logging
+Notifications
+Tasks
+Integration storage
+
+Core should support scope.
+
+Modules decide how scope is used.
 
 ---
 
@@ -264,18 +358,43 @@ Framework coupling is acceptable in infrastructure layers when intentional.
 
 Examples:
 
-Laravel Eloquent  
-Laravel queues  
-Laravel mail  
+Laravel Eloquent
+Laravel queues
+Laravel mail
+Laravel events
 
 But framework details should not leak into:
 
-domain conventions  
-generic service contracts  
+domain conventions
+generic service contracts
+module boundaries
 
 Infrastructure may depend on framework.
 
 Core contracts should remain framework-stable.
+
+---
+
+# Integration Service Rule
+
+Core may contain services managing external integrations when they are reusable.
+
+Examples:
+
+Google token storage
+Drive integration support
+Mail providers
+SMS providers
+
+Core should manage:
+
+credential storage
+connection lifecycle
+provider abstraction
+
+Modules should manage:
+
+how integrations are used in workflows.
 
 ---
 
