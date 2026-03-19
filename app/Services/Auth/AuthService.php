@@ -2,18 +2,14 @@
 
 namespace App\Services\Auth;
 
-use App\Models\User;
 use App\Repositories\Contracts\LoginDetailRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\Contracts\AuthServiceInterface;
-use App\Services\Contracts\GeocodingServiceInterface;
 use App\Services\Contracts\Access\ModuleAccessServiceInterface;
+use App\Services\Contracts\Auth\AuthServiceInterface;
+use App\Services\Contracts\GeocodingServiceInterface;
 use App\Builders\Contracts\Login\LoginAttemptLogBuilderInterface;
 use App\Support\CurrentContext;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 
 class AuthService implements AuthServiceInterface
 {
@@ -25,38 +21,6 @@ class AuthService implements AuthServiceInterface
         private readonly CurrentContext $currentContext,
         private readonly LoginAttemptLogBuilderInterface $loginAttemptLogBuilder,
     ) {}
-
-    public function register(array $data): User
-    {
-        $actor = auth()->user();
-        if (! $actor || ! $actor->hasRole('Administrator')) {
-            abort(403, 'Only Administratoristrators may create users.');
-        }
-
-        $reqId = (string) Str::uuid();
-
-        $roleInput = trim((string) ($data['role'] ?? ''));
-        $email     = mb_strtolower(trim((string) ($data['email'] ?? '')));
-        $username  = trim((string) ($data['username'] ?? ''));
-
-        if ($roleInput === 'Administrator' && ! $actor->hasRole('Administrator')) {
-            abort(403, 'You may not assign the Administrator role.');
-        }
-
-        return DB::transaction(function () use ($username, $email, $data, $roleInput, $reqId, $actor) {
-            $user = $this->users->create([
-                'username'             => $username,
-                'email'                => $email,
-                'password'             => Hash::make((string) $data['password']),
-                'is_active'            => true,
-                'must_change_password' => true,
-            ]);
-
-            $this->users->assignRoleAndSyncPermissions($user, $roleInput);
-
-            return $user;
-        });
-    }
 
     public function attemptLogin(array $data): bool
     {
@@ -85,82 +49,16 @@ class AuthService implements AuthServiceInterface
         /** @var \App\Models\User|null $user */
         $user = $this->users->findByEmail($email);
 
-        if (! $user) {
-            $this->loginDetails->create(
-                $this->loginAttemptLogBuilder->build(
-                    userId: null,
-                    email: $email,
-                    ip: $ip,
-                    userAgent: $ua,
-                    locationUrl: $locationUrl,
-                    address: $address,
-                    latitude: $lat,
-                    longitude: $lng,
-                    success: false,
-                    reason: 'unknown_email',
-                )
-            );
-
+        if (! $user || ! $user->is_active) {
             return false;
         }
 
-        if (! $user->is_active) {
-            $this->loginDetails->create(
-                $this->loginAttemptLogBuilder->build(
-                    userId: (string) $user->id,
-                    email: $email,
-                    ip: $ip,
-                    userAgent: $ua,
-                    locationUrl: $locationUrl,
-                    address: $address,
-                    latitude: $lat,
-                    longitude: $lng,
-                    success: false,
-                    reason: 'inactive',
-                )
-            );
+        if (! $user->hasAnyRole(['Administrator', 'Department Head'])) {
+            $moduleId = (string) $this->currentContext->moduleId();
 
-            return false;
-        }
-
-        if (! Hash::check($password, $user->password)) {
-            $this->loginDetails->create(
-                $this->loginAttemptLogBuilder->build(
-                    userId: (string) $user->id,
-                    email: $email,
-                    ip: $ip,
-                    userAgent: $ua,
-                    locationUrl: $locationUrl,
-                    address: $address,
-                    latitude: $lat,
-                    longitude: $lng,
-                    success: false,
-                    reason: 'invalid_password',
-                )
-            );
-
-            return false;
-        }
-
-        $moduleId = (string) $this->currentContext->moduleId();
-
-        if ($moduleId === '' || ! $this->moduleAccess->hasActiveModuleAccess($user, $moduleId)) {
-            $this->loginDetails->create(
-                $this->loginAttemptLogBuilder->build(
-                    userId: (string) $user->id,
-                    email: $email,
-                    ip: $ip,
-                    userAgent: $ua,
-                    locationUrl: $locationUrl,
-                    address: $address,
-                    latitude: $lat,
-                    longitude: $lng,
-                    success: false,
-                    reason: 'module_access_denied',
-                )
-            );
-
-            return false;
+            if (! $this->moduleAccess->hasActiveModuleAccess($user, $moduleId)) {
+                return false;
+            }
         }
 
         if (! Auth::attempt(['email' => $email, 'password' => $password], $remember)) {

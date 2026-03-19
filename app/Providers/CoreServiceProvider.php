@@ -58,12 +58,28 @@ use App\Repositories\Eloquent\EloquentLoginDetailRepository;
 
 
 // Services
-use App\Services\Contracts\AuthServiceInterface;
+use App\Services\Contracts\Auth\RegisterUserServiceInterface;
+use App\Services\Contracts\Auth\RegistrationOptionsServiceInterface;
+use App\Services\Contracts\Auth\AuthServiceInterface;
 use App\Services\Auth\AuthService;
 
 // Builders
 use App\Builders\Contracts\Login\LoginAttemptLogBuilderInterface;
 use App\Builders\Login\LoginAttemptLogBuilder;
+
+/*
+|--------------------------------------------------------------------------
+| Authentication / Register
+|--------------------------------------------------------------------------
+*/
+
+//Services
+use App\Services\Auth\RegisterUserService;
+use App\Services\Auth\RegistrationOptionsService;
+
+// Builders
+use App\Builders\Auth\RegistrationRoleOptionsBuilder;
+use App\Builders\Contracts\Auth\RegistrationRoleOptionsBuilderInterface;
 
 /*
 |--------------------------------------------------------------------------
@@ -211,6 +227,9 @@ class CoreServiceProvider extends ServiceProvider
             // Authentication / Login
             LoginAttemptLogBuilderInterface::class => LoginAttemptLogBuilder::class,
 
+            // Authentication / Register
+            RegistrationRoleOptionsBuilderInterface::class => RegistrationRoleOptionsBuilder::class,
+
             // Users
             UserDatatableRowBuilderInterface::class => UserDatatableRowBuilder::class,
             UserDatatableActionBuilderInterface::class => UserDatatableActionBuilder::class,
@@ -229,6 +248,10 @@ class CoreServiceProvider extends ServiceProvider
 
             // Authentication / Login
             AuthServiceInterface::class => AuthService::class,
+
+            // Authentication / Register
+            RegisterUserServiceInterface::class => RegisterUserService::class,
+            RegistrationOptionsServiceInterface::class => RegistrationOptionsService::class,
 
             // Access Control
             UserAccessServiceInterface::class => UserAccessService::class,

@@ -2,37 +2,37 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Data\Auth\RegisterUserData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
-use App\Services\Contracts\AuthServiceInterface;
+use App\Services\Contracts\Auth\AuthServiceInterface;
+use App\Services\Contracts\Auth\RegisterUserServiceInterface;
+use App\Services\Contracts\Auth\RegistrationOptionsServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
-use App\Models\Role;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly AuthServiceInterface $auth) {}
+    public function __construct(
+        private readonly AuthServiceInterface $auth,
+        private readonly RegisterUserServiceInterface $registerUser,
+        private readonly RegistrationOptionsServiceInterface $registrationOptions,
+    ) {}
 
     public function showSignUpForm(): View
     {
         return view('auth.sign-up', [
-            'roles' => $this->registrationRoles(),
+            'roles' => $this->registrationOptions->roles(),
         ]);
     }
 
     public function registrationOptions(): JsonResponse
     {
         return response()->json([
-            'roles' => $this->registrationRoles()
-                ->map(fn (Role $role) => [
-                    'id' => (string) $role->id,
-                    'name' => (string) $role->name,
-                ])
-                ->values()
-                ->all(),
+            'roles' => $this->registrationOptions->roleOptions(),
         ]);
     }
 
@@ -43,7 +43,10 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request): RedirectResponse|JsonResponse
     {
-        $user = $this->auth->register($request->validated());
+        $user = $this->registerUser->register(
+            actor: $request->user(),
+            data: RegisterUserData::fromArray($request->validated()),
+        );
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -62,7 +65,7 @@ class AuthController extends Controller
     public function login(LoginRequest $request)
     {
         $payload = array_merge($request->validated(), [
-            'ip'         => $request->ip(),
+            'ip' => $request->ip(),
             'user_agent' => Str::limit((string) $request->header('User-Agent', ''), 255, ''),
         ]);
 
@@ -87,17 +90,4 @@ class AuthController extends Controller
 
         return redirect('/login');
     }
-
-    private function registrationRoles()
-    {
-        return Role::query()
-            ->where('guard_name', 'web')
-            ->whereNull('deleted_at')
-            ->where('name', '!=', 'Administrator')
-            ->orderBy('name')
-            ->get(['id', 'name']);
-    }
 }
-
-
-
