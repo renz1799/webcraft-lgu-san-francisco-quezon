@@ -6,6 +6,8 @@ use App\Models\Role;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Builders\Contracts\User\UserDatatableRowBuilderInterface;
+use App\Builders\Contracts\User\UserDatatableActionBuilderInterface;
+use App\Builders\Contracts\User\UserTaskReassignOptionBuilderInterface;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,6 +20,9 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     public function __construct(
         private readonly UserDatatableRowBuilderInterface $userDatatableRowBuilder,
+        private readonly UserDatatableActionBuilderInterface $userDatatableActionBuilder,
+        private readonly UserTaskReassignOptionBuilderInterface $userTaskReassignOptionBuilder,
+        
     ) {}
 
     /** Create a user */
@@ -122,7 +127,12 @@ class EloquentUserRepository implements UserRepositoryInterface
         )
             ->forPage($page, $size)
             ->get()
-            ->map(fn (User $user) => $this->userDatatableRowBuilder->build($user))
+            ->map(function (User $user) {
+                return array_merge(
+                    $this->userDatatableRowBuilder->build($user),
+                    $this->userDatatableActionBuilder->build($user),
+                );
+            })
             ->values()
             ->all();
 
@@ -143,14 +153,7 @@ class EloquentUserRepository implements UserRepositoryInterface
             ->where('is_active', true)
             ->orderBy('username')
             ->get(['id', 'username'])
-            ->map(function (User $u) {
-                $name = $u->profile?->full_name ?: ($u->username ?: 'Unknown User');
-
-                return [
-                    'id' => (string) $u->id,
-                    'name' => trim((string) $name),
-                ];
-            })
+            ->map(fn (User $user) => $this->userTaskReassignOptionBuilder->build($user))
             ->values()
             ->all();
     }

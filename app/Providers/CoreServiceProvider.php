@@ -13,8 +13,20 @@ use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\EloquentUserRepository;
 
 // Builders
-use App\Builders\Contracts\User\UserDatatableRowBuilderInterface;
-use App\Builders\User\UserDatatableRowBuilder;
+use App\Builders\Contracts\User\UserDatatableRowBuilderInterface; //datatable
+use App\Builders\User\UserDatatableRowBuilder; //datatable
+use App\Builders\Contracts\User\UserDatatableActionBuilderInterface; //datatable actions
+use App\Builders\User\UserDatatableActionBuilder; //datatable actions
+
+/*
+|--------------------------------------------------------------------------
+| Tasks
+|--------------------------------------------------------------------------
+*/
+
+// Builders
+use App\Builders\Contracts\User\UserTaskReassignOptionBuilderInterface;
+use App\Builders\User\UserTaskReassignOptionBuilder;
 
 /*
 |--------------------------------------------------------------------------
@@ -201,6 +213,10 @@ class CoreServiceProvider extends ServiceProvider
 
             // Users
             UserDatatableRowBuilderInterface::class => UserDatatableRowBuilder::class,
+            UserDatatableActionBuilderInterface::class => UserDatatableActionBuilder::class,
+            //Tasks
+            UserTaskReassignOptionBuilderInterface::class => UserTaskReassignOptionBuilder::class,
+            
         ]);
     }
 
