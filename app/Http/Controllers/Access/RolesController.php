@@ -9,7 +9,7 @@ use App\Http\Requests\Roles\RestoreRoleRequest;
 use App\Http\Requests\Roles\StoreRoleRequest;
 use App\Http\Requests\Roles\UpdateRoleRequest;
 use App\Models\Role;
-use App\Services\Contracts\RoleServiceInterface;
+use App\Services\Contracts\Access\RoleServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;

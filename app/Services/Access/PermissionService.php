@@ -4,8 +4,8 @@ namespace App\Services\Access;
 
 use App\Models\Permission;
 use App\Repositories\Contracts\PermissionRepositoryInterface;
-use App\Services\Contracts\AuditLogServiceInterface;
-use App\Services\Contracts\PermissionServiceInterface;
+use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Services\Contracts\Access\PermissionServiceInterface;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 

@@ -1,6 +1,6 @@
 <?php
-// app/Services/Contracts/AuditLogServiceInterface.php
-namespace App\Services\Contracts;
+
+namespace App\Services\Contracts\AuditLogs;
 
 use App\Models\AuditLog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;

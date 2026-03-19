@@ -5,8 +5,8 @@ namespace App\Services\Access;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Repositories\Contracts\RoleRepositoryInterface;
-use App\Services\Contracts\AuditLogServiceInterface;
-use App\Services\Contracts\RoleServiceInterface;
+use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Services\Contracts\Access\RoleServiceInterface;
 
 class RoleService implements RoleServiceInterface
 {

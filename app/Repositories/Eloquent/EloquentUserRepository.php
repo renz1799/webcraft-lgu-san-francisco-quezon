@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquent;
 use App\Models\Role;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Builders\Contracts\User\UserDatatableRowBuilderInterface;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,11 @@ use Spatie\Permission\PermissionRegistrar;
 
 class EloquentUserRepository implements UserRepositoryInterface
 {
+
+    public function __construct(
+        private readonly UserDatatableRowBuilderInterface $userDatatableRowBuilder,
+    ) {}
+
     /** Create a user */
     public function create(array $data): User
     {
@@ -116,7 +122,7 @@ class EloquentUserRepository implements UserRepositoryInterface
         )
             ->forPage($page, $size)
             ->get()
-            ->map(fn (User $user) => $this->mapDatatableRow($user))
+            ->map(fn (User $user) => $this->userDatatableRowBuilder->build($user))
             ->values()
             ->all();
 
@@ -299,24 +305,5 @@ class EloquentUserRepository implements UserRepositoryInterface
         return $q->orderByDesc('created_at');
     }
 
-    private function mapDatatableRow(User $user): array
-    {
-        $isArchived = $user->deleted_at !== null;
-
-        return [
-            'id' => (string) $user->id,
-            'username' => (string) ($user->username ?? '-'),
-            'email' => (string) ($user->email ?? '-'),
-            'role' => optional($user->roles->first())->name ?? 'No Role Assigned',
-            'created_at' => $user->created_at?->toDateTimeString(),
-            'created_at_text' => $user->created_at?->format('M d, Y h:i A') ?? '-',
-            'is_active' => (bool) $user->is_active,
-            'is_archived' => $isArchived,
-            'edit_url' => $isArchived ? null : route('access.users.edit', $user),
-            'status_url' => $isArchived ? null : route('access.users.status.update', $user),
-            'delete_url' => $isArchived ? null : route('access.users.destroy', $user),
-            'restore_url' => $isArchived ? route('access.users.restore', $user) : null,
-        ];
-    }
 }
 

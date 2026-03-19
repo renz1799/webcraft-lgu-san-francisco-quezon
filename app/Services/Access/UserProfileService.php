@@ -4,8 +4,8 @@ namespace App\Services\Access;
 
 use App\Models\User;
 use App\Models\LoginDetail;
-use App\Services\Contracts\UserProfileServiceInterface;
-use App\Services\Contracts\AuditLogServiceInterface;
+use App\Services\Contracts\Access\UserProfileServiceInterface;
+use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;

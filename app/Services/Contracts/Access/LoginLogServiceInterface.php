@@ -1,7 +1,7 @@
 <?php
 // app/Services/Contracts/LoginLogServiceInterface.php
 
-namespace App\Services\Contracts;
+namespace App\Services\Contracts\Access;
 
 interface LoginLogServiceInterface
 {

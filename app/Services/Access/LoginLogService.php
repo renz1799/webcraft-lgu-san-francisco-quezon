@@ -3,7 +3,7 @@
 namespace App\Services\Access;
 
 use App\Repositories\Contracts\LoginDetailRepositoryInterface;
-use App\Services\Contracts\LoginLogServiceInterface;
+use App\Services\Contracts\Access\LoginLogServiceInterface;
 use Carbon\Carbon;
 
 class LoginLogService implements LoginLogServiceInterface

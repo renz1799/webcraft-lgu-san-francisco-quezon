@@ -3,7 +3,7 @@
 namespace App\Services\Access;
 
 use App\Models\User;
-use App\Services\Contracts\ModuleAccessServiceInterface;
+use App\Services\Contracts\Access\ModuleAccessServiceInterface;
 
 class ModuleAccessService implements ModuleAccessServiceInterface
 {

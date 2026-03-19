@@ -10,7 +10,7 @@ use App\Http\Requests\Users\UpdateUserModulePermissionsRequest;
 use App\Http\Requests\Users\UpdateUserStatusRequest;
 use App\Http\Requests\Users\ViewUserPermissionsRequest;
 use App\Models\User;
-use App\Services\Contracts\UserAccessServiceInterface;
+use App\Services\Contracts\Access\UserAccessServiceInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 

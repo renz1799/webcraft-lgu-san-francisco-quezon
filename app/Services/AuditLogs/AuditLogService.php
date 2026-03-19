@@ -1,10 +1,10 @@
 <?php
 // app/Services/Audit/AuditLogService.php
-namespace App\Services\Audit;
+namespace App\Services\AuditLogs;
 
 use App\Models\AuditLog;
 use App\Repositories\Contracts\AuditLogRepositoryInterface;
-use App\Services\Contracts\AuditLogServiceInterface;
+use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Request;

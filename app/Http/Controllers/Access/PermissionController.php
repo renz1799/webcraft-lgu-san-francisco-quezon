@@ -9,7 +9,7 @@ use App\Http\Requests\Permissions\RestorePermissionRequest;
 use App\Http\Requests\Permissions\StorePermissionRequest;
 use App\Http\Requests\Permissions\UpdatePermissionRequest;
 use App\Models\Permission;
-use App\Services\Contracts\PermissionServiceInterface;
+use App\Services\Contracts\Access\PermissionServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
