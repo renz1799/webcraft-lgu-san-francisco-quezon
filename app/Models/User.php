@@ -11,6 +11,8 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -50,12 +52,12 @@ class User extends Authenticatable
         return $this->belongsTo(Department::class, 'primary_department_id', 'id');
     }
 
-    public function profile()
+    public function profile(): HasOne
     {
         return $this->hasOne(UserProfile::class, 'user_id', 'id');
     }
 
-    public function loginDetails()
+    public function loginDetails(): HasMany
     {
         return $this->hasMany(LoginDetail::class, 'user_id', 'id');
     }
