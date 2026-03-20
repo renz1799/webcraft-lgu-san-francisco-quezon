@@ -2,7 +2,7 @@
 
 namespace App\Services\Geocoding;
 
-use App\Services\Contracts\GeocodingServiceInterface;
+use App\Services\Contracts\Geocoding\GeocodingServiceInterface;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 

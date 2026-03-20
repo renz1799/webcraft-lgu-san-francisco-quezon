@@ -4,8 +4,8 @@ namespace App\Services\Tasks;
 
 use App\Builders\Contracts\Tasks\TaskTimelineContextMetaBuilderInterface;
 use App\Models\Task;
-use App\Services\Contracts\TaskServiceInterface;
-use App\Services\Contracts\TaskTimelineServiceInterface;
+use App\Services\Contracts\Tasks\TaskServiceInterface;
+use App\Services\Contracts\Tasks\TaskTimelineServiceInterface;
 use InvalidArgumentException;
 
 class TaskTimelineService implements TaskTimelineServiceInterface

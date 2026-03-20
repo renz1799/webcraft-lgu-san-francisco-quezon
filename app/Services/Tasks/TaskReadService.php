@@ -11,8 +11,8 @@ use App\Policies\TaskPolicy;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\Contracts\TaskReadServiceInterface;
-use App\Services\Contracts\TaskShowActionProviderInterface;
+use App\Services\Contracts\Tasks\TaskReadServiceInterface;
+use App\Services\Contracts\Tasks\TaskShowActionProviderInterface;
 use App\Support\CurrentContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Tasks;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tasks\TaskTableDataRequest;
-use App\Services\Contracts\TaskReadServiceInterface;
+use App\Services\Contracts\Tasks\TaskReadServiceInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

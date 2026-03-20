@@ -5,7 +5,7 @@ namespace App\Services\Notifications;
 use App\Models\Notification;
 use App\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\Contracts\NotificationServiceInterface;
+use App\Services\Contracts\Notifications\NotificationServiceInterface;
 use App\Support\CurrentContext;
 use Carbon\Carbon;
 

@@ -6,7 +6,7 @@ use App\Repositories\Contracts\LoginDetailRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Contracts\Access\ModuleAccessServiceInterface;
 use App\Services\Contracts\Auth\AuthServiceInterface;
-use App\Services\Contracts\GeocodingServiceInterface;
+use App\Services\Contracts\Geocoding\GeocodingServiceInterface;
 use App\Builders\Contracts\Login\LoginAttemptLogBuilderInterface;
 use App\Support\CurrentContext;
 use Illuminate\Support\Facades\Auth;

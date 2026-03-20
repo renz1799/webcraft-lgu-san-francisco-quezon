@@ -8,7 +8,7 @@ use App\Models\User;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\Contracts\TaskServiceInterface;
+use App\Services\Contracts\Tasks\TaskServiceInterface;
 use App\Services\Contracts\Tasks\TaskNotificationServiceInterface;
 use App\Support\CurrentContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;

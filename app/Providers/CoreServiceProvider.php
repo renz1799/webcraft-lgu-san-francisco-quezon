@@ -129,7 +129,7 @@ use App\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Repositories\Eloquent\EloquentNotificationRepository;
 
 // Services
-use App\Services\Contracts\NotificationServiceInterface;
+use App\Services\Contracts\Notifications\NotificationServiceInterface;
 use App\Services\Notifications\NotificationService;
 
 /*
@@ -145,10 +145,10 @@ use App\Repositories\Eloquent\EloquentTaskEventRepository;
 use App\Repositories\Eloquent\EloquentTaskRepository;
 
 // Services
-use App\Services\Contracts\TaskReadServiceInterface;
-use App\Services\Contracts\TaskServiceInterface;
-use App\Services\Contracts\TaskShowActionProviderInterface;
-use App\Services\Contracts\TaskTimelineServiceInterface;
+use App\Services\Contracts\Tasks\TaskReadServiceInterface;
+use App\Services\Contracts\Tasks\TaskServiceInterface;
+use App\Services\Contracts\Tasks\TaskShowActionProviderInterface;
+use App\Services\Contracts\Tasks\TaskTimelineServiceInterface;
 use App\Services\Contracts\Tasks\TaskNotificationServiceInterface;
 use App\Services\Tasks\TaskReadService;
 use App\Services\Tasks\TaskNotificationService;
@@ -195,7 +195,7 @@ use App\Repositories\Eloquent\EloquentThemePreferencesRepository;
 */
 
 // Services
-use App\Services\Contracts\GeocodingServiceInterface;
+use App\Services\Contracts\Geocoding\GeocodingServiceInterface;
 use App\Services\Contracts\Infrastructure\PdfGeneratorInterface;
 use App\Services\Geocoding\PositionstackGeocodingService;
 use App\Services\Infrastructure\ChromePdfGenerator;

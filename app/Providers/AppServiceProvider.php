@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Services\Contracts\TaskReadServiceInterface;
+use App\Services\Contracts\Tasks\TaskReadServiceInterface;
 use App\Support\CurrentContext;
 use App\Services\UI\ThemeService;
 use Illuminate\Support\Facades\Auth;

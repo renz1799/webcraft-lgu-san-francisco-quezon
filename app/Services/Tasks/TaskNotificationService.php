@@ -7,7 +7,7 @@ use App\Models\Notification;
 use App\Models\Task;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\Contracts\NotificationServiceInterface;
+use App\Services\Contracts\Notifications\NotificationServiceInterface;
 use App\Services\Contracts\Tasks\TaskNotificationServiceInterface;
 
 class TaskNotificationService implements TaskNotificationServiceInterface
