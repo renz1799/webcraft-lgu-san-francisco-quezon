@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class ModelHasPermission extends Model
 {
@@ -12,22 +14,32 @@ class ModelHasPermission extends Model
     protected $table = 'model_has_permissions';
     public $incrementing = false;
     protected $keyType = 'string';
+    public $timestamps = false;
 
-    protected $fillable = ['permission_id', 'model_type', 'model_id'];
+    protected $fillable = [
+        'module_id',
+        'permission_id',
+        'model_type',
+        'model_id',
+    ];
 
-    /**
-     * Define a relationship to permissions.
-     */
-    public function permission()
+    public function module(): BelongsTo
+    {
+        return $this->belongsTo(Module::class, 'module_id', 'id');
+    }
+
+    public function permission(): BelongsTo
     {
         return $this->belongsTo(Permission::class, 'permission_id', 'id');
     }
 
-    /**
-     * Define a polymorphic relationship to models.
-     */
-    public function model()
+    public function model(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function scopeForModule($query, string $moduleId)
+    {
+        return $query->where('module_id', $moduleId);
     }
 }

@@ -63,9 +63,9 @@ Optional additional context may be added using multiple `-m` lines.
 Example:
 
 ```bash
-git commit -m "refactor(print): introduce paper profile architecture" \
--m "Separate report content from paper layout" \
--m "Introduce config driven paper definitions" \
+git commit -m "refactor(print): introduce paper profile architecture" ^
+-m "Separate report content from paper layout" ^
+-m "Introduce config driven paper definitions" ^
 -m "Prepare system for scalable multi paper support"
 ```
 
@@ -289,9 +289,9 @@ Use them when the change affects structure, standards, or long-term maintainabil
 Example:
 
 ```bash
-git commit -m "refactor(core): introduce module context architecture" \
--m "Add modules and departments relational scope" \
--m "Introduce CurrentContext resolver" \
+git commit -m "refactor(core): introduce module context architecture" ^
+-m "Add modules and departments relational scope" ^
+-m "Introduce CurrentContext resolver" ^
 -m "Prepare system for multi-module platform deployment"
 ```
 

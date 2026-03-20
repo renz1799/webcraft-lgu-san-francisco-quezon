@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission as SpatiePermission;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -15,27 +17,36 @@ class Permission extends SpatiePermission
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = ['id', 'name', 'page', 'guard_name'];
+    protected $fillable = [
+        'id',
+        'module_id',
+        'name',
+        'page',
+        'guard_name',
+    ];
 
     protected static function boot()
     {
         parent::boot();
 
-        // Ensure a UUID
         static::creating(function ($model) {
             if (empty($model->id)) {
-                $model->id = (string) \Str::uuid();
+                $model->id = (string) Str::uuid();
             }
         });
 
-        // Clear Spatie cache on changes (includes soft delete / restore)
         $forget = fn () => app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         static::created($forget);
         static::updated($forget);
-        static::deleted($forget);   // fires on soft delete
-        static::restored($forget);  // fires on restore
+        static::deleted($forget);
+        static::restored($forget);
         static::forceDeleted($forget);
+    }
+
+    public function module(): BelongsTo
+    {
+        return $this->belongsTo(Module::class, 'module_id', 'id');
     }
 
     public function roles(): BelongsToMany
@@ -50,12 +61,17 @@ class Permission extends SpatiePermission
         );
     }
 
-    // Optional: you don't need to override create(), Spatie handles fillable.
+    public function scopeForModule($query, string $moduleId)
+    {
+        return $query->where('module_id', $moduleId);
+    }
+
     public static function create(array $attributes = [])
     {
         if (empty($attributes['id'])) {
-            $attributes['id'] = (string) \Str::uuid();
+            $attributes['id'] = (string) Str::uuid();
         }
+
         return parent::create($attributes);
     }
 }
