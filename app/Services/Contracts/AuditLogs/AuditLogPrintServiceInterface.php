@@ -2,8 +2,6 @@
 
 namespace App\Services\Contracts\AuditLogs;
 
-use App\Data\AuditLogs\AuditLogPrintData;
-
 interface AuditLogPrintServiceInterface
 {
     public function buildReport(array $filters): array;

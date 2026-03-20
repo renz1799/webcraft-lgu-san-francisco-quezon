@@ -144,14 +144,16 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Audit Logs + Restore (Administrator ONLY)
+    | Audit Logs + Restore
     |--------------------------------------------------------------------------
     */
-    Route::middleware(['role:Administrator'])->group(function () {
+    Route::middleware(['role_or_permission:Administrator|admin|view Audit Logs'])->group(function () {
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 
         Route::get('/audit-logs/data', [AuditLogController::class, 'data'])->name('audit-logs.data');
+    });
 
+    Route::middleware(['role_or_permission:Administrator|admin|modify Allow Data Restoration'])->group(function () {
         Route::post('/audit/restore', [AuditRestoreController::class, 'restore'])
             ->name('audit.restore');
     });
@@ -164,11 +166,11 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     //PRINTING 
     Route::get('/audit-logs/print', [AuditLogPrintController::class, 'preview'])
         ->name('audit-logs.print.index')
-        ->middleware(['auth']);
+        ->middleware(['role_or_permission:Administrator|admin|view Audit Logs']);
 
     Route::get('/audit-logs/print/pdf', [AuditLogPrintController::class, 'downloadPdf'])
         ->name('audit-logs.print.pdf')
-        ->middleware(['auth']);
+        ->middleware(['role_or_permission:Administrator|admin|view Audit Logs']);
 
     /*
     |--------------------------------------------------------------------------

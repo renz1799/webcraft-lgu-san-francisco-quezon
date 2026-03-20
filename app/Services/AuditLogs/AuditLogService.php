@@ -5,6 +5,7 @@ namespace App\Services\AuditLogs;
 use App\Models\AuditLog;
 use App\Repositories\Contracts\AuditLogRepositoryInterface;
 use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Support\CurrentContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Request;
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Request;
 class AuditLogService implements AuditLogServiceInterface
 {
     public function __construct(
-        private readonly AuditLogRepositoryInterface $logs
+        private readonly AuditLogRepositoryInterface $logs,
+        private readonly CurrentContext $context,
     ) {}
 
     public function record(
@@ -28,6 +30,8 @@ class AuditLogService implements AuditLogServiceInterface
         $meta = $this->mergeDisplayIntoMeta($meta, $display);
 
         return $this->logs->create([
+            'module_id'      => $this->context->moduleId(),
+            'department_id'  => $this->context->defaultDepartmentId(),
             'actor_id'       => optional($req->user())->id,
             'actor_type'     => $req->user() ? get_class($req->user()) : null,
             'subject_type'   => $subject ? get_class($subject) : null,

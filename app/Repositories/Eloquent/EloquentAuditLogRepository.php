@@ -12,6 +12,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class EloquentAuditLogRepository implements AuditLogRepositoryInterface
 {
@@ -71,13 +72,10 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
         }
 
         return $q->with([
-            'actor' => function (MorphTo $morph) {
-                $morph->constrain([
-                    User::class => fn (Builder $qq) => $qq->withTrashed()
-                        ->select('id', 'username', 'email', 'deleted_at')
-                        ->with(['profile:id,user_id,first_name,middle_name,last_name,name_extension']),
-                ]);
-            },
+            'module:id,code,name',
+            'actor' => fn ($qq) => $qq->withTrashed()
+                ->select('id', 'username', 'email', 'deleted_at')
+                ->with(['profile:id,user_id,first_name,middle_name,last_name,name_extension']),
             'subject' => function (MorphTo $morph) {
                 $morph->constrain([
                     User::class => fn (Builder $qq) => $qq->withTrashed()
@@ -92,7 +90,18 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
 
     private function buildFilteredQuery(array $filters, bool $withRelations = true): Builder
     {
-        $q = $this->buildBaseQuery($withRelations);
+        return $this->applyFilters(
+            $this->buildBaseQuery($withRelations),
+            $filters,
+        );
+    }
+
+    private function applyFilters(Builder $q, array $filters): Builder
+    {
+        $module = trim((string) ($filters['module'] ?? $filters['module_name'] ?? ''));
+        if ($module !== '') {
+            $this->applyModuleFilter($q, $module);
+        }
 
         $search = trim((string) ($filters['search'] ?? ''));
         if ($search !== '') {
@@ -144,20 +153,9 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
             $q->whereDate('created_at', '<=', $dateTo);
         }
 
-        $subjectTypeInput = trim((string) ($filters['subject_type'] ?? ''));
-        if ($subjectTypeInput !== '') {
-            $short = strtolower($subjectTypeInput);
-            $map = [
-                'user' => User::class,
-                'permission' => Permission::class,
-                'role' => Role::class,
-            ];
-
-            if (isset($map[$short])) {
-                $q->where('subject_type', $map[$short]);
-            } elseif (in_array($subjectTypeInput, $map, true)) {
-                $q->where('subject_type', $subjectTypeInput);
-            }
+        $subjectType = $this->normalizeSubjectTypeFilter($filters['subject_type'] ?? null);
+        if ($subjectType !== null) {
+            $q->where('subject_type', $subjectType);
         }
 
         return $q;
@@ -170,12 +168,7 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
         $old = (array) ($log->changes_old ?? []);
         $new = (array) ($log->changes_new ?? []);
 
-        $subjectTypeShort = match ($log->subject_type) {
-            User::class => 'user',
-            Permission::class => 'permission',
-            Role::class => 'role',
-            default => null,
-        };
+        $subjectTypeShort = $this->subjectTypeShort($log->subject_type);
 
         $isTrashed = $subject && method_exists($subject, 'trashed') && $subject->trashed();
         $maybeDeletedAction = str_ends_with((string) $log->action, '.deleted');
@@ -280,33 +273,50 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
 
     public function findForPrint(array $filters): Collection
     {
-        return AuditLog::query()
-            ->with(['actor'])
-            ->when($filters['date_from'] ?? null, function ($query, $value) {
-                $query->whereDate('created_at', '>=', $value);
-            })
-            ->when($filters['date_to'] ?? null, function ($query, $value) {
-                $query->whereDate('created_at', '<=', $value);
-            })
-            ->when($filters['module_name'] ?? null, function ($query, $value) {
-                $query->where('module_name', $value);
-            })
-            ->when($filters['action'] ?? null, function ($query, $value) {
-                $query->where('action', $value);
-            })
-            ->when($filters['actor_id'] ?? null, function ($query, $value) {
-                $query->where('actor_id', $value);
-            })
-            ->when($filters['subject_type'] ?? null, function ($query, $value) {
-                $query->where('subject_type', $value);
-            })
-            ->when($filters['search'] ?? null, function ($query, $value) {
-                $query->where(function ($inner) use ($value) {
-                    $inner->where('message', 'like', "%{$value}%")
-                        ->orWhere('action', 'like', "%{$value}%");
-                });
-            })
-            ->orderByDesc('created_at')
-            ->get();
+        return $this->buildFilteredQuery($filters)->get();
+    }
+
+    private function applyModuleFilter(Builder $q, string $module): void
+    {
+        if (Str::isUuid($module)) {
+            $q->where('module_id', $module);
+
+            return;
+        }
+
+        $term = '%' . $module . '%';
+
+        $q->whereHas('module', function (Builder $moduleQuery) use ($term) {
+            $moduleQuery->where('name', 'like', $term)
+                ->orWhere('code', 'like', $term);
+        });
+    }
+
+    private function normalizeSubjectTypeFilter(mixed $subjectTypeInput): ?string
+    {
+        $subjectType = trim((string) $subjectTypeInput);
+
+        if ($subjectType === '') {
+            return null;
+        }
+
+        return match (strtolower($subjectType)) {
+            'user' => User::class,
+            'permission' => Permission::class,
+            'role' => Role::class,
+            default => in_array($subjectType, [User::class, Permission::class, Role::class], true)
+                ? $subjectType
+                : null,
+        };
+    }
+
+    private function subjectTypeShort(?string $subjectType): ?string
+    {
+        return match ($subjectType) {
+            User::class => 'user',
+            Permission::class => 'permission',
+            Role::class => 'role',
+            default => null,
+        };
     }
 }

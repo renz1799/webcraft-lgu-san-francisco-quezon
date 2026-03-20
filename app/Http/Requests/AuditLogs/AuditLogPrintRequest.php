@@ -2,13 +2,21 @@
 
 namespace App\Http\Requests\AuditLogs;
 
+use App\Models\Permission;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AuditLogPrintRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check();
+        $user = $this->user();
+
+        return $user && (
+            $user->hasAnyRole(['Administrator', 'admin']) ||
+            $user->can('view Audit Logs')
+        );
     }
 
     public function rules(): array
@@ -16,10 +24,10 @@ class AuditLogPrintRequest extends FormRequest
         return [
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
-            'module_name' => ['nullable', 'string', 'max:100'],
+            'module' => ['nullable', 'string', 'max:100'],
             'action' => ['nullable', 'string', 'max:150'],
-            'actor_id' => ['nullable', 'integer'],
-            'subject_type' => ['nullable', 'string', 'max:255'],
+            'actor_id' => ['nullable', 'uuid'],
+            'subject_type' => ['nullable', 'in:user,permission,role'],
             'search' => ['nullable', 'string', 'max:255'],
             'paper_profile' => ['nullable', 'string', 'max:100'],
         ];
@@ -27,12 +35,39 @@ class AuditLogPrintRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'module_name' => $this->string('module_name')->trim()->value() ?: null,
-            'action' => $this->string('action')->trim()->value() ?: null,
-            'subject_type' => $this->string('subject_type')->trim()->value() ?: null,
-            'search' => $this->string('search')->trim()->value() ?: null,
-            'paper_profile' => $this->string('paper_profile')->trim()->value() ?: null,
-        ]);
+        $clean = [];
+
+        foreach ($this->all() as $key => $value) {
+            if (! is_string($value)) {
+                $clean[$key] = $value;
+                continue;
+            }
+
+            $value = trim($value);
+            $clean[$key] = $value === '' ? null : $value;
+        }
+
+        $clean['module'] = $clean['module'] ?? ($clean['module_name'] ?? null);
+        $clean['subject_type'] = $this->normalizeSubjectType($clean['subject_type'] ?? null);
+
+        unset($clean['module_name']);
+
+        $this->replace($clean);
+    }
+
+    private function normalizeSubjectType(mixed $value): ?string
+    {
+        $subjectType = trim((string) $value);
+
+        if ($subjectType === '') {
+            return null;
+        }
+
+        return match ($subjectType) {
+            User::class => 'user',
+            Permission::class => 'permission',
+            Role::class => 'role',
+            default => strtolower($subjectType),
+        };
     }
 }

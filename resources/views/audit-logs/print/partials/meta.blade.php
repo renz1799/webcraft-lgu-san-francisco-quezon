@@ -6,9 +6,9 @@
         <div><strong>Total Records:</strong> {{ $report->total }}</div>
         <div><strong>Date From:</strong> {{ $report->filters['date_from'] ?? '-' }}</div>
         <div><strong>Date To:</strong> {{ $report->filters['date_to'] ?? '-' }}</div>
-        <div><strong>Module:</strong> {{ $report->filters['module_name'] ?? '-' }}</div>
+        <div><strong>Module:</strong> {{ $report->filters['module'] ?? '-' }}</div>
         <div><strong>Action:</strong> {{ $report->filters['action'] ?? '-' }}</div>
-        <div><strong>Subject Type:</strong> {{ $report->filters['subject_type'] ?? '-' }}</div>
+        <div><strong>Subject Type:</strong> {{ filled($report->filters['subject_type'] ?? null) ? ucfirst((string) $report->filters['subject_type']) : '-' }}</div>
         <div><strong>Search:</strong> {{ $report->filters['search'] ?? '-' }}</div>
     </div>
 </div>

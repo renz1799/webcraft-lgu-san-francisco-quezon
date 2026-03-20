@@ -3,11 +3,9 @@
 namespace App\Services\AuditLogs;
 
 use App\Builders\AuditLogs\AuditLogPrintReportBuilder;
-use App\Data\AuditLogs\AuditLogPrintData;
 use App\Repositories\Contracts\AuditLogRepositoryInterface;
 use App\Services\Contracts\AuditLogs\AuditLogPrintServiceInterface;
 use App\Services\Contracts\Infrastructure\PdfGeneratorInterface;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 class AuditLogPrintService implements AuditLogPrintServiceInterface

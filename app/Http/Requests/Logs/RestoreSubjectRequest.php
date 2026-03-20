@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\CurrentContext;
 
 class RestoreSubjectRequest extends FormRequest
 {
@@ -29,8 +30,8 @@ class RestoreSubjectRequest extends FormRequest
             return false;
         }
 
-        // ALLOW: Administrator role OR the specific permission
-        if (! ($actor->hasRole('Administrator') || $actor->can('modify Allow Data Restoration'))) {
+        // ALLOW: administrator role variants OR the specific permission
+        if (! ($actor->hasAnyRole(['Administrator', 'admin']) || $actor->can('modify Allow Data Restoration'))) {
             Log::warning('audit.restore: actor not allowed', [
                 'actor_id' => $actor->id,
                 'roles'    => $actor->getRoleNames()->all(),
@@ -50,7 +51,13 @@ class RestoreSubjectRequest extends FormRequest
             return false;
         }
 
-        $exists = $class::withTrashed()->whereKey($this->input('id'))->exists();
+        $query = $this->subjectQuery($class);
+        if (! $query) {
+            Log::warning('audit.restore: missing module context', ['class' => $class]);
+            return false;
+        }
+
+        $exists = $query->whereKey($this->input('id'))->exists();
         if (! $exists) {
             Log::warning('audit.restore: subject not found', [
                 'class' => $class,
@@ -66,7 +73,10 @@ class RestoreSubjectRequest extends FormRequest
     public function model()
     {
         $class = $this->resolveClass();
-        return $class ? $class::withTrashed()->findOrFail($this->input('id')) : null;
+
+        return $class
+            ? $this->subjectQuery($class)?->findOrFail($this->input('id'))
+            : null;
     }
 
     /** Whitelist of restorable types. Add more as needed. */
@@ -96,5 +106,31 @@ class RestoreSubjectRequest extends FormRequest
         }
 
         return null;
+    }
+
+    protected function subjectQuery(string $class)
+    {
+        $query = $class::withTrashed();
+
+        if (! $this->requiresModuleScope($class)) {
+            return $query;
+        }
+
+        $moduleId = $this->currentContext()->moduleId();
+        if (! $moduleId) {
+            return null;
+        }
+
+        return $query->where('module_id', $moduleId);
+    }
+
+    protected function requiresModuleScope(string $class): bool
+    {
+        return in_array($class, [Permission::class, Role::class], true);
+    }
+
+    protected function currentContext(): CurrentContext
+    {
+        return app(CurrentContext::class);
     }
 }

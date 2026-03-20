@@ -9,10 +9,17 @@
         ])
         ->all();
 
+    $subjectTypeOptions = [
+        '' => 'All subjects',
+        'user' => 'User',
+        'permission' => 'Permission',
+        'role' => 'Role',
+    ];
+
     $pdfParams = array_filter([
         'date_from' => $filters['date_from'] ?? null,
         'date_to' => $filters['date_to'] ?? null,
-        'module_name' => $filters['module_name'] ?? null,
+        'module' => $filters['module'] ?? null,
         'action' => $filters['action'] ?? null,
         'actor_id' => $filters['actor_id'] ?? null,
         'subject_type' => $filters['subject_type'] ?? null,
@@ -61,14 +68,14 @@
                 </div>
 
                 <div class="core-print-sidebar__field">
-                    <label for="module_name" class="form-label">Module</label>
+                    <label for="module" class="form-label">Module</label>
                     <input
                         type="text"
-                        name="module_name"
-                        id="module_name"
-                        value="{{ $filters['module_name'] ?? '' }}"
+                        name="module"
+                        id="module"
+                        value="{{ $filters['module'] ?? '' }}"
                         class="form-control"
-                        placeholder="e.g. access"
+                        placeholder="Code or name"
                     >
                 </div>
 
@@ -87,25 +94,28 @@
                 <div class="core-print-sidebar__field">
                     <label for="actor_id" class="form-label">Actor ID</label>
                     <input
-                        type="number"
+                        type="text"
                         name="actor_id"
                         id="actor_id"
                         value="{{ $filters['actor_id'] ?? '' }}"
                         class="form-control"
-                        placeholder="e.g. 1"
+                        placeholder="UUID"
                     >
                 </div>
 
                 <div class="core-print-sidebar__field">
                     <label for="subject_type" class="form-label">Subject Type</label>
-                    <input
-                        type="text"
+                    <select
                         name="subject_type"
                         id="subject_type"
-                        value="{{ $filters['subject_type'] ?? '' }}"
                         class="form-control"
-                        placeholder="Model or type"
                     >
+                        @foreach ($subjectTypeOptions as $code => $label)
+                            <option value="{{ $code }}" @selected(($filters['subject_type'] ?? '') === $code)>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="core-print-sidebar__field">

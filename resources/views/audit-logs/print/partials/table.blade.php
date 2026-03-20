@@ -13,11 +13,11 @@
         @forelse ($rows as $row)
             <tr>
                 <td>{{ $row['datetime'] ?? '-' }}</td>
-                <td>{{ $row['module_name'] ?? '-' }}</td>
+                <td>{{ $row['module'] ?? '-' }}</td>
                 <td>{{ $row['action'] ?? '-' }}</td>
                 <td>{{ $row['message'] ?? '-' }}</td>
                 <td>{{ $row['actor_name'] ?? '-' }}</td>
-                <td>{{ $row['subject_type'] ?? '-' }} #{{ $row['subject_id'] ?? '-' }}</td>
+                <td>{{ $row['subject'] ?? '-' }}</td>
             </tr>
         @empty
             <tr>

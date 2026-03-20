@@ -5,7 +5,8 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Repositories\Contracts\AuditLogRepositoryInterface;
-use App\Services\Audit\AuditLogService;
+use App\Services\AuditLogs\AuditLogService;
+use App\Support\CurrentContext;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Request as RequestFacade;
 use Mockery;
@@ -23,6 +24,7 @@ class AuditLogServiceTest extends TestCase
     public function test_record_stores_structured_display_in_meta_without_breaking_existing_fields(): void
     {
         $logs = Mockery::mock(AuditLogRepositoryInterface::class);
+        $context = Mockery::mock(CurrentContext::class);
 
         $actor = new User();
         $actor->forceFill(['id' => 'actor-1', 'username' => 'actor.user']);
@@ -41,9 +43,14 @@ class AuditLogServiceTest extends TestCase
         $this->app->instance('request', $request);
         RequestFacade::swap($request);
 
+        $context->shouldReceive('moduleId')->once()->andReturn('module-1');
+        $context->shouldReceive('defaultDepartmentId')->once()->andReturn('department-1');
+
         $logs->shouldReceive('create')
             ->once()
             ->with(Mockery::on(function (array $payload): bool {
+                $this->assertSame('module-1', $payload['module_id']);
+                $this->assertSame('department-1', $payload['department_id']);
                 $this->assertSame('actor-1', $payload['actor_id']);
                 $this->assertSame(User::class, $payload['actor_type']);
                 $this->assertSame(User::class, $payload['subject_type']);
@@ -72,7 +79,7 @@ class AuditLogServiceTest extends TestCase
             }))
             ->andReturn(new AuditLog());
 
-        $service = new AuditLogService($logs);
+        $service = new AuditLogService($logs, $context);
 
         $service->record(
             action: 'user.permissions.synced',
@@ -109,6 +116,7 @@ class AuditLogServiceTest extends TestCase
     public function test_record_without_display_keeps_meta_shape_unchanged(): void
     {
         $logs = Mockery::mock(AuditLogRepositoryInterface::class);
+        $context = Mockery::mock(CurrentContext::class);
 
         $request = Mockery::mock(HttpRequest::class);
         $request->shouldReceive('setUserResolver')->andReturnSelf();
@@ -120,16 +128,21 @@ class AuditLogServiceTest extends TestCase
         $this->app->instance('request', $request);
         RequestFacade::swap($request);
 
+        $context->shouldReceive('moduleId')->once()->andReturn(null);
+        $context->shouldReceive('defaultDepartmentId')->once()->andReturn(null);
+
         $logs->shouldReceive('create')
             ->once()
             ->with(Mockery::on(function (array $payload): bool {
+                $this->assertNull($payload['module_id']);
+                $this->assertNull($payload['department_id']);
                 $this->assertSame(['source' => 'audit.restore.endpoint'], $payload['meta']);
 
                 return true;
             }))
             ->andReturn(new AuditLog());
 
-        $service = new AuditLogService($logs);
+        $service = new AuditLogService($logs, $context);
 
         $service->record(
             action: 'user.restored',
