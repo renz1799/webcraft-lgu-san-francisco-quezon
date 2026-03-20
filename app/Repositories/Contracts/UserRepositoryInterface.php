@@ -4,6 +4,7 @@ namespace App\Repositories\Contracts;
 
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 interface UserRepositoryInterface
 {
@@ -24,7 +25,11 @@ interface UserRepositoryInterface
 
     public function datatable(array $filters, int $page = 1, int $size = 15): array;
 
-    public function listForTaskReassign(): array;
+    public function findInModule(string $id, string $moduleId): ?User;
+
+    public function findActiveInModule(string $id, string $moduleId): ?User;
+
+    public function getActiveUsersForModule(string $moduleId): Collection;
 
     public function getUserIdsByRoles(array $roleNames): array;
 }

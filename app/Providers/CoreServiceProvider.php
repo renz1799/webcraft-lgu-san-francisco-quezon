@@ -22,7 +22,11 @@ use App\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
 use App\Builders\Contracts\Access\RoleAuditDisplayBuilderInterface;
 use App\Builders\Contracts\Tasks\TaskAdminStatsBuilderInterface;
 use App\Builders\Contracts\Tasks\TaskDatatableRowBuilderInterface;
+use App\Builders\Contracts\Tasks\TaskNotificationPayloadBuilderInterface;
 use App\Builders\Contracts\Tasks\TaskReassignmentNoteBuilderInterface;
+use App\Builders\Contracts\Tasks\TaskTimelineContextMetaBuilderInterface;
+use App\Builders\Contracts\GoogleDrive\GoogleDriveFileMetadataBuilderInterface;
+use App\Builders\Contracts\GoogleDrive\GoogleDriveFolderNameSanitizerInterface;
 use App\Builders\User\UserDatatableActionBuilder;
 use App\Builders\User\UserDatatableRowBuilder;
 use App\Builders\User\UserTaskReassignOptionBuilder;
@@ -30,7 +34,11 @@ use App\Builders\Access\PermissionAuditDisplayBuilder;
 use App\Builders\Access\RoleAuditDisplayBuilder;
 use App\Builders\Tasks\TaskAdminStatsBuilder;
 use App\Builders\Tasks\TaskDatatableRowBuilder;
+use App\Builders\Tasks\TaskNotificationPayloadBuilder;
 use App\Builders\Tasks\TaskReassignmentNoteBuilder;
+use App\Builders\Tasks\TaskTimelineContextMetaBuilder;
+use App\Builders\GoogleDrive\GoogleDriveFileMetadataBuilder;
+use App\Builders\GoogleDrive\GoogleDriveFolderNameSanitizer;
 
 /*
 |--------------------------------------------------------------------------
@@ -141,7 +149,9 @@ use App\Services\Contracts\TaskReadServiceInterface;
 use App\Services\Contracts\TaskServiceInterface;
 use App\Services\Contracts\TaskShowActionProviderInterface;
 use App\Services\Contracts\TaskTimelineServiceInterface;
+use App\Services\Contracts\Tasks\TaskNotificationServiceInterface;
 use App\Services\Tasks\TaskReadService;
+use App\Services\Tasks\TaskNotificationService;
 use App\Services\Tasks\TaskService;
 use App\Services\Tasks\TaskShowActionProvider;
 use App\Services\Tasks\TaskTimelineService;
@@ -157,10 +167,16 @@ use App\Repositories\Contracts\GoogleTokenRepositoryInterface;
 use App\Repositories\Eloquent\EloquentGoogleTokenRepository;
 
 // Services
-use App\Services\Contracts\GoogleDrive\GoogleDriveGlobalServiceInterface;
-use App\Services\Contracts\GoogleDrive\GoogleDriveOAuthServiceInterface;
-use App\Services\GoogleDrive\GoogleDriveGlobalService;
-use App\Services\GoogleDrive\GoogleDriveOAuthService;
+use App\Services\Contracts\GoogleDrive\GoogleDriveClientFactoryInterface;
+use App\Services\Contracts\GoogleDrive\GoogleDriveConnectionServiceInterface;
+use App\Services\Contracts\GoogleDrive\GoogleDriveFileServiceInterface;
+use App\Services\Contracts\GoogleDrive\GoogleDriveFolderServiceInterface;
+use App\Services\Contracts\GoogleDrive\GoogleDriveSettingsProviderInterface;
+use App\Services\GoogleDrive\GoogleDriveClientFactory;
+use App\Services\GoogleDrive\GoogleDriveConnectionService;
+use App\Services\GoogleDrive\GoogleDriveFileService;
+use App\Services\GoogleDrive\GoogleDriveFolderService;
+use App\Services\GoogleDrive\GoogleDriveSettingsProvider;
 
 /*
 |--------------------------------------------------------------------------
@@ -250,6 +266,12 @@ class CoreServiceProvider extends ServiceProvider
             TaskDatatableRowBuilderInterface::class => TaskDatatableRowBuilder::class,
             TaskAdminStatsBuilderInterface::class => TaskAdminStatsBuilder::class,
             TaskReassignmentNoteBuilderInterface::class => TaskReassignmentNoteBuilder::class,
+            TaskNotificationPayloadBuilderInterface::class => TaskNotificationPayloadBuilder::class,
+            TaskTimelineContextMetaBuilderInterface::class => TaskTimelineContextMetaBuilder::class,
+
+            // Google Drive
+            GoogleDriveFileMetadataBuilderInterface::class => GoogleDriveFileMetadataBuilder::class,
+            GoogleDriveFolderNameSanitizerInterface::class => GoogleDriveFolderNameSanitizer::class,
         ]);
     }
 
@@ -284,11 +306,15 @@ class CoreServiceProvider extends ServiceProvider
             TaskReadServiceInterface::class => TaskReadService::class,
             TaskServiceInterface::class => TaskService::class,
             TaskTimelineServiceInterface::class => TaskTimelineService::class,
+            TaskNotificationServiceInterface::class => TaskNotificationService::class,
             TaskShowActionProviderInterface::class => TaskShowActionProvider::class,
 
             // Google Drive
-            GoogleDriveOAuthServiceInterface::class => GoogleDriveOAuthService::class,
-            GoogleDriveGlobalServiceInterface::class => GoogleDriveGlobalService::class,
+            GoogleDriveSettingsProviderInterface::class => GoogleDriveSettingsProvider::class,
+            GoogleDriveClientFactoryInterface::class => GoogleDriveClientFactory::class,
+            GoogleDriveConnectionServiceInterface::class => GoogleDriveConnectionService::class,
+            GoogleDriveFolderServiceInterface::class => GoogleDriveFolderService::class,
+            GoogleDriveFileServiceInterface::class => GoogleDriveFileService::class,
         ], true);
     }
 

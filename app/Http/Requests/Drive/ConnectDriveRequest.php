@@ -10,7 +10,10 @@ class ConnectDriveRequest extends FormRequest
     {
         $u = $this->user();
 
-        return $u && ($u->hasRole('Administrator') || $u->can('modify Google Drive Connection'));
+        return (bool) $u && (
+            $u->hasAnyRole(['Administrator', 'admin'])
+            || $u->can('modify Google Drive Connection')
+        );
     }
 
     public function rules(): array

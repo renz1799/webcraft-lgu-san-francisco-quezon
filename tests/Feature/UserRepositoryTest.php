@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Builders\Contracts\User\UserDatatableActionBuilderInterface;
 use App\Builders\Contracts\User\UserDatatableRowBuilderInterface;
-use App\Builders\Contracts\User\UserTaskReassignOptionBuilderInterface;
 use App\Builders\User\UserDatatableRowBuilder;
 use App\Models\Role;
 use App\Models\User;
@@ -138,13 +137,10 @@ class UserRepositoryTest extends TestCase
         $actionBuilder = Mockery::mock(UserDatatableActionBuilderInterface::class);
         $actionBuilder->shouldReceive('build')->andReturn([]);
 
-        $taskReassignBuilder = Mockery::mock(UserTaskReassignOptionBuilderInterface::class);
-        $taskReassignBuilder->shouldIgnoreMissing();
-
         $context = Mockery::mock(CurrentContext::class);
         $context->shouldReceive('moduleId')->andReturn($moduleId);
 
-        return new EloquentUserRepository($rowBuilder, $actionBuilder, $taskReassignBuilder, $context);
+        return new EloquentUserRepository($rowBuilder, $actionBuilder, $context);
     }
 
     private function createSchema(): void

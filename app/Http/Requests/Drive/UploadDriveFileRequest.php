@@ -8,9 +8,7 @@ class UploadDriveFileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // later:
-        // return $this->user()->can('create Drive Files');
-        return true;
+        return (bool) $this->user();
     }
 
     public function rules(): array

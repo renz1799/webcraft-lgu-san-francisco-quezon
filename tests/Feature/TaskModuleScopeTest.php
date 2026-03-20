@@ -6,10 +6,12 @@ use App\Builders\Tasks\TaskAdminStatsBuilder;
 use App\Builders\Tasks\TaskDatatableRowBuilder;
 use App\Builders\Tasks\TaskReassignmentNoteBuilder;
 use App\Builders\User\UserTaskReassignOptionBuilder;
+use App\Models\Notification;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserProfile;
-use App\Services\Contracts\NotificationServiceInterface;
+use App\Policies\TaskPolicy;
+use App\Services\Contracts\Tasks\TaskNotificationServiceInterface;
 use App\Services\Tasks\TaskReadService;
 use App\Services\Tasks\TaskService;
 use App\Services\Tasks\TaskShowActionProvider;
@@ -49,32 +51,29 @@ class TaskModuleScopeTest extends TestCase
         $context->shouldReceive('defaultDepartmentId')->andReturn('department-1');
         app()->instance(CurrentContext::class, $context);
 
-        $notifications = Mockery::mock(NotificationServiceInterface::class);
-        $notifications->shouldReceive('notifyTaskAssigned')
+        $notifications = Mockery::mock(TaskNotificationServiceInterface::class);
+        $notifications->shouldReceive('notifyAssigned')
             ->once()
             ->withArgs(function (
-                string $assigneeUserId,
+                Task $task,
                 string $actorUserId,
-                string $taskId,
-                string $taskTitle,
-                ?string $url,
-                ?string $moduleId,
-                ?string $departmentId
+                string $assigneeUserId
             ) use ($actor, $assignee): bool {
+                $this->assertNotSame('', (string) $task->id);
+                $this->assertSame('module-1', $task->module_id);
+                $this->assertSame('department-1', $task->department_id);
                 $this->assertSame((string) $assignee->id, $assigneeUserId);
                 $this->assertSame((string) $actor->id, $actorUserId);
-                $this->assertSame('Review workflow packet', $taskTitle);
-                $this->assertNull($url);
-                $this->assertSame('module-1', $moduleId);
-                $this->assertSame('department-1', $departmentId);
-                $this->assertNotSame('', $taskId);
+                $this->assertSame('Review workflow packet', $task->title);
 
                 return true;
-            });
+            })
+            ->andReturn(new Notification());
 
         $service = new TaskService(
             app(\App\Repositories\Contracts\TaskRepositoryInterface::class),
             app(\App\Repositories\Contracts\TaskEventRepositoryInterface::class),
+            app(\App\Repositories\Contracts\UserRepositoryInterface::class),
             $notifications,
             $context,
             new TaskReassignmentNoteBuilder(new UserTaskReassignOptionBuilder()),
@@ -134,6 +133,8 @@ class TaskModuleScopeTest extends TestCase
         $readService = new TaskReadService(
             app(\App\Repositories\Contracts\TaskRepositoryInterface::class),
             app(\App\Repositories\Contracts\TaskEventRepositoryInterface::class),
+            app(\App\Repositories\Contracts\UserRepositoryInterface::class),
+            new TaskPolicy(),
             $context,
             new TaskDatatableRowBuilder(),
             new TaskAdminStatsBuilder(),

@@ -6,13 +6,9 @@ use App\Models\GoogleToken;
 
 interface GoogleTokenRepositoryInterface
 {
-    public function upsertForUser(string $userId, array $data): GoogleToken;
+    public function upsertForContext(string $moduleId, string $departmentId, array $data): GoogleToken;
 
-    public function findForUser(string $userId): ?GoogleToken;
+    public function findForContext(string $moduleId, string $departmentId): ?GoogleToken;
 
-    public function upsertGlobal(array $data): GoogleToken;
-
-    public function getGlobal(): ?GoogleToken;
-
-    public function deleteGlobal(): void;
+    public function deleteForContext(string $moduleId, string $departmentId): void;
 }

@@ -2,10 +2,10 @@
 
 namespace App\Services\Tasks;
 
+use App\Builders\Contracts\Tasks\TaskTimelineContextMetaBuilderInterface;
 use App\Models\Task;
 use App\Services\Contracts\TaskServiceInterface;
 use App\Services\Contracts\TaskTimelineServiceInterface;
-use Illuminate\Support\Arr;
 use InvalidArgumentException;
 
 class TaskTimelineService implements TaskTimelineServiceInterface
@@ -16,60 +16,8 @@ class TaskTimelineService implements TaskTimelineServiceInterface
 
     public function __construct(
         private readonly TaskServiceInterface $tasks,
+        private readonly TaskTimelineContextMetaBuilderInterface $taskTimelineContextMetaBuilder,
     ) {}
-
-    public function findLatestBySubject(string $subjectType, string $subjectId): ?Task
-    {
-        return $this->tasks->findLatestBySubject($subjectType, $subjectId);
-    }
-
-    public function createUnassigned(
-        string $actorUserId,
-        string $title,
-        ?string $description = null,
-        ?string $type = null,
-        ?string $subjectType = null,
-        ?string $subjectId = null,
-        array $data = []
-    ): Task {
-        return $this->tasks->createUnassigned(
-            actorUserId: $actorUserId,
-            title: $title,
-            description: $description,
-            type: $type,
-            subjectType: $subjectType,
-            subjectId: $subjectId,
-            data: $data
-        );
-    }
-
-    public function updateTaskAssignmentAndData(
-        string $taskId,
-        ?string $assignedToUserId,
-        array $data
-    ): Task {
-        return $this->tasks->updateTaskAssignmentAndData($taskId, $assignedToUserId, $data);
-    }
-
-    public function recordEvent(
-        string $actorUserId,
-        string $taskId,
-        string $eventType,
-        ?string $note = null,
-        array $meta = [],
-        ?string $fromStatus = null,
-        ?string $toStatus = null
-    ): void {
-        $this->tasks->recordEvent(
-            actorUserId: $actorUserId,
-            taskId: $taskId,
-            eventType: $eventType,
-            note: $note,
-            meta: $meta,
-            fromStatus: $fromStatus,
-            toStatus: $toStatus
-        );
-    }
 
     public function syncSubjectTaskContext(
         string $actorUserId,
@@ -130,14 +78,20 @@ class TaskTimelineService implements TaskTimelineServiceInterface
         $mergedData = array_replace_recursive($previousData, $data);
 
         $targetAssignee = $this->resolveTargetAssignee($task, $assignmentMode, $assignedToUserId);
+        $changeSet = $this->taskTimelineContextMetaBuilder->build(
+            task: $task,
+            previousData: $previousData,
+            mergedData: $mergedData,
+            assignmentMode: $assignmentMode,
+            targetAssignee: $targetAssignee,
+            title: $title,
+            description: $description,
+            type: $type,
+            subjectType: $subjectType,
+            subjectId: $subjectId,
+        );
 
-        $changedDataKeys = $this->diffDataKeys($previousData, $mergedData);
-        $assigneeChanged = (string) ($task->assigned_to_user_id ?? '') !== (string) ($targetAssignee ?? '');
-        $titleChanged = $title !== null && $task->title !== $title;
-        $descriptionChanged = $description !== null && $task->description !== $description;
-        $typeChanged = $type !== null && $task->type !== $type;
-
-        if ($changedDataKeys === [] && ! $assigneeChanged && ! $titleChanged && ! $descriptionChanged && ! $typeChanged) {
+        if (! $changeSet['has_changes']) {
             return $task;
         }
 
@@ -157,18 +111,7 @@ class TaskTimelineService implements TaskTimelineServiceInterface
             taskId: (string) $updatedTask->id,
             eventType: 'timeline_context_updated',
             note: $note ?? 'Task timeline context updated.',
-            meta: [
-                'subject_type' => $subjectType,
-                'subject_id' => $subjectId,
-                'assignment_mode' => $assignmentMode,
-                'changed_data_keys' => $changedDataKeys,
-                'assignee_changed' => $assigneeChanged,
-                'from_assigned_to_user_id' => $task->assigned_to_user_id,
-                'to_assigned_to_user_id' => $targetAssignee,
-                'title_changed' => $titleChanged,
-                'description_changed' => $descriptionChanged,
-                'type_changed' => $typeChanged,
-            ],
+            meta: $changeSet['meta'],
             fromStatus: (string) $task->status,
             toStatus: (string) $updatedTask->status,
         );
@@ -226,23 +169,5 @@ class TaskTimelineService implements TaskTimelineServiceInterface
         if (! in_array($assignmentMode, [self::ASSIGNMENT_KEEP, self::ASSIGNMENT_SET, self::ASSIGNMENT_CLEAR], true)) {
             throw new InvalidArgumentException('Invalid assignment mode. Allowed values: keep, set, clear.');
         }
-    }
-
-    private function diffDataKeys(array $before, array $after): array
-    {
-        $beforeFlat = Arr::dot($before);
-        $afterFlat = Arr::dot($after);
-
-        $keys = array_unique(array_merge(array_keys($beforeFlat), array_keys($afterFlat)));
-        sort($keys);
-
-        $changed = [];
-        foreach ($keys as $key) {
-            if (($beforeFlat[$key] ?? null) !== ($afterFlat[$key] ?? null)) {
-                $changed[] = (string) $key;
-            }
-        }
-
-        return $changed;
     }
 }

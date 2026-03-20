@@ -4,25 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\Notification;
 use App\Repositories\Contracts\NotificationRepositoryInterface;
-use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Notifications\NotificationService;
 use App\Support\CurrentContext;
-use Illuminate\Support\Facades\Route;
 use Mockery;
 use Tests\TestCase;
 
 class NotificationServiceTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        if (! Route::has('tasks.show')) {
-            Route::get('/tasks/{task}', fn () => 'task')->name('tasks.show');
-        }
-    }
-
     protected function tearDown(): void
     {
         Mockery::close();
@@ -33,7 +22,6 @@ class NotificationServiceTest extends TestCase
     public function test_notify_users_by_roles_fans_out_to_role_members_and_excludes_actor_by_default(): void
     {
         $notifications = Mockery::mock(NotificationRepositoryInterface::class);
-        $taskEvents = Mockery::mock(TaskEventRepositoryInterface::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
 
@@ -70,7 +58,7 @@ class NotificationServiceTest extends TestCase
                 return true;
             }));
 
-        $service = new NotificationService($notifications, $taskEvents, $users, $context);
+        $service = new NotificationService($notifications, $users, $context);
 
         $service->notifyUsersByRoles(
             roleNames: ['Administrator', 'Staff'],
@@ -87,10 +75,9 @@ class NotificationServiceTest extends TestCase
         );
     }
 
-    public function test_notify_task_assigned_uses_default_task_url_when_url_is_not_provided(): void
+    public function test_notify_user_uses_current_context_defaults_when_module_and_department_are_not_provided(): void
     {
         $notifications = Mockery::mock(NotificationRepositoryInterface::class);
-        $taskEvents = Mockery::mock(TaskEventRepositoryInterface::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
 
@@ -100,88 +87,68 @@ class NotificationServiceTest extends TestCase
         $notifications->shouldReceive('create')
             ->once()
             ->with(Mockery::on(function (array $payload): bool {
-                $this->assertSame('assignee-1', $payload['notifiable_user_id']);
+                $this->assertSame('recipient-1', $payload['notifiable_user_id']);
                 $this->assertSame('actor-1', $payload['actor_user_id']);
                 $this->assertSame('task_assigned', $payload['type']);
                 $this->assertSame('tasks', $payload['entity_type']);
                 $this->assertSame('task-1', $payload['entity_id']);
                 $this->assertSame('module-1', $payload['module_id']);
                 $this->assertSame('department-1', $payload['department_id']);
-                $this->assertSame(route('tasks.show', 'task-1'), $payload['data']['url']);
+                $this->assertSame('/tasks/task-1', $payload['data']['url']);
 
                 return true;
             }))
             ->andReturnUsing(fn (array $payload) => new Notification($payload));
 
-        $service = new NotificationService($notifications, $taskEvents, $users, $context);
+        $service = new NotificationService($notifications, $users, $context);
 
-        $notification = $service->notifyTaskAssigned(
-            assigneeUserId: 'assignee-1',
+        $notification = $service->notifyUser(
+            notifiableUserId: 'recipient-1',
             actorUserId: 'actor-1',
-            taskId: 'task-1',
-            taskTitle: 'Review AIR draft',
+            type: 'task_assigned',
+            title: 'New Task Assigned',
+            message: 'You were assigned: Review AIR draft',
+            entityType: 'tasks',
+            entityId: 'task-1',
+            data: [
+                'task_id' => 'task-1',
+                'url' => '/tasks/task-1',
+            ],
         );
 
         $this->assertInstanceOf(Notification::class, $notification);
-        $this->assertSame(route('tasks.show', 'task-1'), $notification->data['url']);
+        $this->assertSame('/tasks/task-1', $notification->data['url']);
     }
 
-    public function test_notify_inspection_submitted_wraps_the_generic_role_based_notification_flow(): void
+    public function test_notify_users_deduplicates_and_filters_empty_recipient_ids(): void
     {
         $notifications = Mockery::mock(NotificationRepositoryInterface::class);
-        $taskEvents = Mockery::mock(TaskEventRepositoryInterface::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
 
         $context->shouldReceive('moduleId')->andReturn('module-1');
         $context->shouldReceive('defaultDepartmentId')->andReturn('department-1');
 
-        $users->shouldReceive('getUserIdsByRoles')
-            ->once()
-            ->with(['Administrator', 'admin', 'Staff'])
-            ->andReturn(['actor-1', 'reviewer-2']);
-
         $notifications->shouldReceive('insertMany')
             ->once()
             ->with(Mockery::on(function (array $rows): bool {
-                $this->assertCount(1, $rows);
-
-                $row = $rows[0];
-
-                $this->assertSame('reviewer-2', $row['notifiable_user_id']);
-                $this->assertSame('inspection_submitted', $row['type']);
-                $this->assertSame('Inspection Submitted', $row['title']);
-                $this->assertSame('inspections', $row['entity_type']);
-                $this->assertSame('inspection-1', $row['entity_id']);
-                $this->assertSame('module-1', $row['module_id']);
-                $this->assertSame('department-1', $row['department_id']);
-
-                $data = json_decode($row['data'], true, 512, JSON_THROW_ON_ERROR);
-
-                $this->assertSame('inspection-1', $data['inspection_id']);
-                $this->assertSame('PO-001', $data['po_number']);
-                $this->assertSame('DV-001', $data['dv_number']);
-                $this->assertSame('submitted', $data['status']);
-                $this->assertSame('task-9', $data['task_id']);
-                $this->assertSame('/inspections/inspection-1', $data['url']);
+                $this->assertCount(2, $rows);
+                $this->assertSame(['reviewer-2', 'reviewer-3'], collect($rows)->pluck('notifiable_user_id')->sort()->values()->all());
 
                 return true;
             }));
 
-        $inspection = (object) [
-            'id' => 'inspection-1',
-            'po_number' => 'PO-001',
-            'dv_number' => 'DV-001',
-            'status' => 'submitted',
-            'url' => '/inspections/inspection-1',
-        ];
+        $service = new NotificationService($notifications, $users, $context);
 
-        $service = new NotificationService($notifications, $taskEvents, $users, $context);
-
-        $service->notifyInspectionSubmitted(
-            inspection: $inspection,
+        $service->notifyUsers(
+            recipientUserIds: ['reviewer-2', '', 'reviewer-2', 'reviewer-3', null],
             actorUserId: 'actor-1',
-            taskId: 'task-9',
+            type: 'inspection_submitted',
+            title: 'Inspection Submitted',
+            message: 'Inspection submitted for review.',
+            entityType: 'inspections',
+            entityId: 'inspection-1',
+            data: ['inspection_id' => 'inspection-1'],
         );
     }
 }

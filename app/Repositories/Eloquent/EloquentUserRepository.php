@@ -7,11 +7,11 @@ use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Builders\Contracts\User\UserDatatableRowBuilderInterface;
 use App\Builders\Contracts\User\UserDatatableActionBuilderInterface;
-use App\Builders\Contracts\User\UserTaskReassignOptionBuilderInterface;
 use Carbon\Carbon;
 use App\Support\CurrentContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class EloquentUserRepository implements UserRepositoryInterface
@@ -20,7 +20,6 @@ class EloquentUserRepository implements UserRepositoryInterface
     public function __construct(
         private readonly UserDatatableRowBuilderInterface $userDatatableRowBuilder,
         private readonly UserDatatableActionBuilderInterface $userDatatableActionBuilder,
-        private readonly UserTaskReassignOptionBuilderInterface $userTaskReassignOptionBuilder,
         private readonly CurrentContext $context,
     ) {}
 
@@ -120,17 +119,27 @@ class EloquentUserRepository implements UserRepositoryInterface
         ];
     }
 
-    public function listForTaskReassign(): array
+    public function findInModule(string $id, string $moduleId): ?User
     {
-        return User::query()
-            ->with(['profile:id,user_id,first_name,middle_name,last_name,name_extension'])
-            ->whereNull('deleted_at')
+        return $this->buildModuleUserQuery($moduleId)
+            ->whereKey($id)
+            ->first();
+    }
+
+    public function findActiveInModule(string $id, string $moduleId): ?User
+    {
+        return $this->buildModuleUserQuery($moduleId)
+            ->whereKey($id)
+            ->where('is_active', true)
+            ->first();
+    }
+
+    public function getActiveUsersForModule(string $moduleId): Collection
+    {
+        return $this->buildModuleUserQuery($moduleId)
             ->where('is_active', true)
             ->orderBy('username')
-            ->get(['id', 'username'])
-            ->map(fn (User $user) => $this->userTaskReassignOptionBuilder->build($user))
-            ->values()
-            ->all();
+            ->get(['id', 'username']);
     }
 
     public function getUserIdsByRoles(array $roleNames): array
@@ -318,6 +327,17 @@ class EloquentUserRepository implements UserRepositoryInterface
         }
 
         return $moduleId;
+    }
+
+    private function buildModuleUserQuery(string $moduleId): Builder
+    {
+        return User::query()
+            ->with(['profile:id,user_id,first_name,middle_name,last_name,name_extension'])
+            ->whereNull('deleted_at')
+            ->whereHas('userModules', function (Builder $query) use ($moduleId) {
+                $query->where('module_id', $moduleId)
+                    ->where('is_active', true);
+            });
     }
 
 }

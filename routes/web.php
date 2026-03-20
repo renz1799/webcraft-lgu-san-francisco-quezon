@@ -8,8 +8,7 @@ use App\Http\Controllers\AuditLogs\AuditLogPrintController;
 use App\Http\Controllers\AuditLogs\AuditRestoreController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Dashboard\DashboardsController;
-use App\Http\Controllers\Drive\DriveGlobalController;
-use App\Http\Controllers\Drive\DriveOAuthController;
+use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\Logs\LoginLogController;
 use App\Http\Controllers\Notifications\NotificationController;
 use App\Http\Controllers\Profile\UserProfileController;
@@ -227,21 +226,15 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->whereUuid('id')
         ->name('tasks.restore');
 
-    Route::get('/drive/oauth', [DriveOAuthController::class, 'index'])->name('drive.oauth.index');
-    Route::post('/drive/oauth/connect', [DriveOAuthController::class, 'connect'])->name('drive.oauth.connect');
-    Route::get('/google/drive/callback', [DriveOAuthController::class, 'callback'])->name('drive.oauth.callback');
-    Route::post('/drive/oauth/upload', [DriveOAuthController::class, 'upload'])->name('drive.oauth.upload');
-    Route::get('/drive/oauth/preview/{fileId}', [DriveOAuthController::class, 'preview'])
-        ->name('drive.oauth.preview')
-        ->middleware(['auth']);
-
-    Route::get('/drive/global', [DriveGlobalController::class, 'index'])->name('drive.global.index');
-    Route::post('/drive/global/connect', [DriveGlobalController::class, 'connect'])->name('drive.global.connect');
-    Route::get('/google/drive/callback', [DriveGlobalController::class, 'callback'])->name('drive.global.callback');
-    Route::post('/drive/global/disconnect', [DriveGlobalController::class, 'disconnect'])->name('drive.global.disconnect');
-    Route::post('/drive/global/upload', [DriveGlobalController::class, 'upload'])->name('drive.global.upload');
-    Route::get('/drive/global/preview/{fileId}', [DriveGlobalController::class, 'preview'])
-        ->name('drive.global.preview')
+    Route::get('/drive', [GoogleDriveController::class, 'index'])->name('drive.index');
+    Route::get('/drive/global', [GoogleDriveController::class, 'index']);
+    Route::get('/drive/oauth', [GoogleDriveController::class, 'index']);
+    Route::post('/drive/connect', [GoogleDriveController::class, 'connect'])->name('drive.connect');
+    Route::get('/google/drive/callback', [GoogleDriveController::class, 'callback'])->name('drive.callback');
+    Route::post('/drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('drive.disconnect');
+    Route::post('/drive/upload', [GoogleDriveController::class, 'upload'])->name('drive.upload');
+    Route::get('/drive/preview/{fileId}', [GoogleDriveController::class, 'preview'])
+        ->name('drive.preview')
         ->middleware(['auth']);
 
     /*

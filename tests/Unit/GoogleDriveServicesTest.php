@@ -2,13 +2,24 @@
 
 namespace Tests\Unit;
 
+use App\Builders\GoogleDrive\GoogleDriveFileMetadataBuilder;
+use App\Builders\GoogleDrive\GoogleDriveFolderNameSanitizer;
+use App\Models\GoogleToken;
 use App\Repositories\Contracts\GoogleTokenRepositoryInterface;
-use App\Services\GoogleDrive\GoogleDriveGlobalService;
+use App\Services\Contracts\GoogleDrive\GoogleDriveClientFactoryInterface;
+use App\Services\Contracts\GoogleDrive\GoogleDriveSettingsProviderInterface;
+use App\Services\GoogleDrive\GoogleDriveConnectionService;
+use App\Services\GoogleDrive\GoogleDriveFileService;
+use App\Services\GoogleDrive\GoogleDriveFolderService;
+use App\Support\CurrentContext;
+use Google\Client as GoogleClient;
+use Google\Service\Drive as GoogleDrive;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Crypt;
 use Mockery;
 use Tests\TestCase;
 
-class GoogleDriveGlobalServiceTest extends TestCase
+class GoogleDriveServicesTest extends TestCase
 {
     protected function tearDown(): void
     {
@@ -17,14 +28,56 @@ class GoogleDriveGlobalServiceTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_sanitize_folder_name_returns_a_drive_safe_human_readable_value(): void
+    public function test_connection_service_uses_current_context_and_preserves_existing_refresh_token(): void
     {
-        $service = $this->makeService(new FakeDriveService());
+        $tokens = Mockery::mock(GoogleTokenRepositoryInterface::class);
+        $clientFactory = Mockery::mock(GoogleDriveClientFactoryInterface::class);
+        $context = Mockery::mock(CurrentContext::class);
+        $client = Mockery::mock(GoogleClient::class);
 
-        $this->assertSame('PO-2026-01 Main Office', $service->sanitizeFolderName(" PO/2026:01   Main Office "));
+        $context->shouldReceive('moduleId')->once()->andReturn('module-1');
+        $context->shouldReceive('defaultDepartmentId')->once()->andReturn('department-1');
+
+        $clientFactory->shouldReceive('makeClient')
+            ->once()
+            ->andReturn($client);
+
+        $client->shouldReceive('fetchAccessTokenWithAuthCode')
+            ->once()
+            ->with('oauth-code')
+            ->andReturn([
+                'access_token' => 'new-access-token',
+                'expires_in' => 3600,
+            ]);
+
+        $tokens->shouldReceive('findForContext')
+            ->once()
+            ->with('module-1', 'department-1')
+            ->andReturn(new GoogleToken([
+                'refresh_token' => Crypt::encryptString('persisted-refresh-token'),
+            ]));
+
+        $tokens->shouldReceive('upsertForContext')
+            ->once()
+            ->with(
+                'module-1',
+                'department-1',
+                Mockery::on(function (array $payload): bool {
+                    $this->assertSame('user-1', $payload['connected_by_user_id']);
+                    $this->assertSame('new-access-token', $payload['access_token']);
+                    $this->assertSame('persisted-refresh-token', $payload['refresh_token']);
+                    $this->assertNotNull($payload['expires_at']);
+
+                    return true;
+                })
+            );
+
+        $service = new GoogleDriveConnectionService($tokens, $clientFactory, $context);
+
+        $service->handleCallback('oauth-code', 'user-1');
     }
 
-    public function test_ensure_folder_returns_existing_child_folder_without_creating_a_duplicate(): void
+    public function test_folder_service_sanitizes_names_and_reuses_existing_child_folder(): void
     {
         $drive = new FakeDriveService();
         $drive->files->existingFolder = (object) [
@@ -33,7 +86,14 @@ class GoogleDriveGlobalServiceTest extends TestCase
             'parents' => ['root-folder'],
         ];
 
-        $service = $this->makeService($drive);
+        $factory = Mockery::mock(GoogleDriveClientFactoryInterface::class);
+        $factory->shouldReceive('makeAuthorizedDrive')
+            ->once()
+            ->andReturn($drive);
+
+        $service = new GoogleDriveFolderService($factory, new GoogleDriveFolderNameSanitizer());
+
+        $this->assertSame('PO-2026-01 Main Office', $service->sanitizeFolderName(" PO/2026:01   Main Office "));
 
         $result = $service->ensureFolder('PO/2026:01', 'root-folder');
 
@@ -45,26 +105,7 @@ class GoogleDriveGlobalServiceTest extends TestCase
         $this->assertStringContainsString("name = 'PO-2026-01'", $drive->files->listOptions[0]['q']);
     }
 
-    public function test_ensure_folder_creates_the_child_folder_when_missing(): void
-    {
-        $drive = new FakeDriveService();
-        $drive->files->createResult = (object) [
-            'id' => 'folder-2',
-            'name' => 'PO-2026-01',
-            'parents' => ['root-folder'],
-        ];
-
-        $service = $this->makeService($drive);
-
-        $result = $service->ensureFolder('PO/2026:01', 'root-folder');
-
-        $this->assertSame('folder-2', $result['drive_folder_id']);
-        $this->assertTrue($result['created']);
-        $this->assertCount(1, $drive->files->createCalls);
-        $this->assertSame(['root-folder'], $drive->files->createCalls[0]['file']->parents);
-    }
-
-    public function test_upload_accepts_a_target_folder_and_can_make_the_file_public(): void
+    public function test_file_service_upload_and_copy_delegate_to_drive_and_build_metadata(): void
     {
         $drive = new FakeDriveService();
         $drive->files->createResult = (object) [
@@ -77,22 +118,6 @@ class GoogleDriveGlobalServiceTest extends TestCase
             'createdTime' => '2026-03-11T00:00:00Z',
             'parents' => ['target-folder'],
         ];
-
-        $service = $this->makeService($drive);
-        $file = UploadedFile::fake()->create('photo.jpg', 12, 'image/jpeg');
-
-        $result = $service->upload($file, null, true, 'target-folder');
-
-        $this->assertSame('file-1', $result['drive_file_id']);
-        $this->assertSame('target-folder', $result['folder_id']);
-        $this->assertTrue($result['is_public']);
-        $this->assertCount(1, $drive->permissions->createCalls);
-        $this->assertSame(['target-folder'], $drive->files->createCalls[0]['file']->parents);
-    }
-
-    public function test_copy_file_supports_target_folder_override(): void
-    {
-        $drive = new FakeDriveService();
         $drive->files->getResults['source-1'] = (object) [
             'id' => 'source-1',
             'name' => 'inspection-photo.jpg',
@@ -114,19 +139,37 @@ class GoogleDriveGlobalServiceTest extends TestCase
             'parents' => ['inventory-folder'],
         ];
 
-        $service = $this->makeService($drive);
+        $factory = Mockery::mock(GoogleDriveClientFactoryInterface::class);
+        $factory->shouldReceive('makeAuthorizedDrive')
+            ->times(3)
+            ->andReturn($drive);
 
-        $result = $service->copyFile('source-1', 'inventory-photo.jpg', 'inventory-folder');
+        $settings = Mockery::mock(GoogleDriveSettingsProviderInterface::class);
+        $settings->shouldReceive('defaultFolderId')->once()->andReturn('target-folder');
+        $settings->shouldReceive('defaultMakePublic')->never();
 
-        $this->assertSame('copy-1', $result['drive_file_id']);
-        $this->assertSame('source-1', $result['source_file_id']);
-        $this->assertSame('inventory-folder', $result['folder_id']);
+        $service = new GoogleDriveFileService(
+            $factory,
+            $settings,
+            new GoogleDriveFileMetadataBuilder(),
+        );
+
+        $file = UploadedFile::fake()->create('photo.jpg', 12, 'image/jpeg');
+
+        $upload = $service->upload($file, null, true, null);
+
+        $this->assertSame('file-1', $upload['drive_file_id']);
+        $this->assertSame('target-folder', $upload['folder_id']);
+        $this->assertTrue($upload['is_public']);
+        $this->assertCount(1, $drive->permissions->createCalls);
+        $this->assertSame(['target-folder'], $drive->files->createCalls[0]['file']->parents);
+
+        $copy = $service->copyFile('source-1', 'inventory-photo.jpg', 'inventory-folder');
+
+        $this->assertSame('copy-1', $copy['drive_file_id']);
+        $this->assertSame('source-1', $copy['source_file_id']);
+        $this->assertSame('inventory-folder', $copy['folder_id']);
         $this->assertSame(['inventory-folder'], $drive->files->copyCalls[0]['file']->parents);
-    }
-    public function test_delete_file_delegates_to_drive_with_all_drives_support(): void
-    {
-        $drive = new FakeDriveService();
-        $service = $this->makeService($drive);
 
         $service->deleteFile('drive-file-1');
 
@@ -134,31 +177,12 @@ class GoogleDriveGlobalServiceTest extends TestCase
         $this->assertSame('drive-file-1', $drive->files->deleteCalls[0]['file_id']);
         $this->assertTrue($drive->files->deleteCalls[0]['options']['supportsAllDrives']);
     }
-
-    private function makeService(FakeDriveService $drive): GoogleDriveGlobalService
-    {
-        $tokens = Mockery::mock(GoogleTokenRepositoryInterface::class);
-
-        return new class($tokens, $drive) extends GoogleDriveGlobalService {
-            public function __construct(
-                GoogleTokenRepositoryInterface $tokens,
-                private readonly FakeDriveService $drive,
-            ) {
-                parent::__construct($tokens);
-            }
-
-            protected function makeAuthorizedDrive()
-            {
-                return $this->drive;
-            }
-        };
-    }
 }
 
-final class FakeDriveService
+final class FakeDriveService extends GoogleDrive
 {
-    public FakeDriveFilesResource $files;
-    public FakeDrivePermissionsResource $permissions;
+    public $files;
+    public $permissions;
 
     public function __construct()
     {
@@ -219,6 +243,15 @@ final class FakeDriveFilesResource
             'file_id' => $fileId,
             'options' => $options,
         ];
+
+        if ($options['alt'] ?? null) {
+            return new class {
+                public function getBody(): string
+                {
+                    return 'file-bytes';
+                }
+            };
+        }
 
         if (! array_key_exists($fileId, $this->getResults)) {
             throw new \RuntimeException("Missing fake file metadata for {$fileId}.");

@@ -7,8 +7,9 @@ use App\Models\Task;
 use App\Models\User;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
-use App\Services\Contracts\NotificationServiceInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Contracts\TaskServiceInterface;
+use App\Services\Contracts\Tasks\TaskNotificationServiceInterface;
 use App\Support\CurrentContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,8 @@ class TaskService implements TaskServiceInterface
     public function __construct(
         private readonly TaskRepositoryInterface $tasks,
         private readonly TaskEventRepositoryInterface $taskEvents,
-        private readonly NotificationServiceInterface $notificationService,
+        private readonly UserRepositoryInterface $users,
+        private readonly TaskNotificationServiceInterface $taskNotifications,
         private readonly CurrentContext $context,
         private readonly TaskReassignmentNoteBuilderInterface $taskReassignmentNoteBuilder,
     ) {}
@@ -79,13 +81,10 @@ class TaskService implements TaskServiceInterface
                 ]
             );
 
-            $this->notificationService->notifyTaskAssigned(
-                assigneeUserId: (string) $assignee->id,
+            $this->taskNotifications->notifyAssigned(
+                task: $task,
                 actorUserId: $actorUserId,
-                taskId: (string) $task->id,
-                taskTitle: $task->title,
-                moduleId: (string) $task->module_id,
-                departmentId: $task->department_id ? (string) $task->department_id : null,
+                assigneeUserId: (string) $assignee->id,
             );
 
             return $task;
@@ -301,16 +300,11 @@ class TaskService implements TaskServiceInterface
                 toStatus: $toStatus
             );
 
-            $this->notificationService->notifyTaskParticipants(
+            $this->taskNotifications->notifyStatusChanged(
                 task: $task,
                 actorUserId: $actorUserId,
-                type: 'task_status_changed',
-                title: 'Task Status Updated',
-                message: "Task \"{$task->title}\" changed from {$fromStatus} to {$toStatus}.",
-                data: [
-                    'from_status' => $fromStatus,
-                    'to_status' => $toStatus,
-                ]
+                fromStatus: $fromStatus,
+                toStatus: $toStatus,
             );
 
             return $task;
@@ -363,22 +357,10 @@ class TaskService implements TaskServiceInterface
                 toStatus: (string) $task->status
             );
 
-            $this->notificationService->notifyTaskParticipants(
+            $this->taskNotifications->notifyReassigned(
                 task: $task,
                 actorUserId: $actorUserId,
-                type: 'task_reassigned',
-                title: 'Task Reassigned',
-                message: "Task \"{$task->title}\" was reassigned."
-            );
-
-            $this->notificationService->notifyTaskAssigned(
-                assigneeUserId: (string) $toUser->id,
-                actorUserId: $actorUserId,
-                taskId: (string) $task->id,
-                taskTitle: (string) $task->title,
-                url: route('tasks.show', (string) $task->id),
-                moduleId: (string) $task->module_id,
-                departmentId: $task->department_id ? (string) $task->department_id : null,
+                newAssigneeUserId: (string) $toUser->id,
             );
 
             return $task;
@@ -409,13 +391,7 @@ class TaskService implements TaskServiceInterface
                 ]
             );
 
-            $this->notificationService->notifyTaskParticipants(
-                task: $task,
-                actorUserId: $actorUserId,
-                type: 'task_claimed',
-                title: 'Task Claimed',
-                message: "Task \"{$task->title}\" was claimed."
-            );
+            $this->taskNotifications->notifyClaimed($task, $actorUserId);
 
             return $task;
         });
@@ -498,27 +474,12 @@ class TaskService implements TaskServiceInterface
             return null;
         }
 
-        return User::query()
-            ->with(['profile'])
-            ->whereKey($userId)
-            ->whereHas('userModules', function ($query) {
-                $query->where('module_id', $this->requireModuleId())
-                    ->where('is_active', true);
-            })
-            ->first();
+        return $this->users->findInModule($userId, $this->requireModuleId());
     }
 
     private function findActiveCurrentModuleUserOrFail(string $userId): User
     {
-        $user = User::query()
-            ->with(['profile'])
-            ->whereKey($userId)
-            ->where('is_active', true)
-            ->whereHas('userModules', function ($query) {
-                $query->where('module_id', $this->requireModuleId())
-                    ->where('is_active', true);
-            })
-            ->first();
+        $user = $this->users->findActiveInModule($userId, $this->requireModuleId());
 
         if ($user) {
             return $user;
