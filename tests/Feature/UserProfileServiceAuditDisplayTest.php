@@ -4,9 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\Access\UserProfileService;
-use App\Services\Contracts\AuditLogServiceInterface;
-use ReflectionMethod;
+use App\Services\Contracts\Access\LoginLogServiceInterface;
+use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use Mockery;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class UserProfileServiceAuditDisplayTest extends TestCase
@@ -21,6 +22,7 @@ class UserProfileServiceAuditDisplayTest extends TestCase
     public function test_profile_updated_display_highlights_changed_fields(): void
     {
         $audit = Mockery::mock(AuditLogServiceInterface::class);
+        $loginLogs = Mockery::mock(LoginLogServiceInterface::class);
 
         $user = new User();
         $user->forceFill([
@@ -30,7 +32,7 @@ class UserProfileServiceAuditDisplayTest extends TestCase
         ]);
         $user->setRelation('profile', (object) ['full_name' => 'Craig Scot Schamberger']);
 
-        $service = new UserProfileService($audit);
+        $service = new UserProfileService($audit, $loginLogs);
         $method = new ReflectionMethod($service, 'buildProfileUpdatedDisplay');
         $method->setAccessible(true);
 

@@ -3,7 +3,7 @@
 namespace App\Services\Access;
 
 use App\Models\User;
-use App\Models\LoginDetail;
+use App\Services\Contracts\Access\LoginLogServiceInterface;
 use App\Services\Contracts\Access\UserProfileServiceInterface;
 use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use Illuminate\Http\UploadedFile;
@@ -14,15 +14,13 @@ use Illuminate\Support\Facades\Storage;
 class UserProfileService implements UserProfileServiceInterface
 {
     public function __construct(
-        private readonly AuditLogServiceInterface $audit
+        private readonly AuditLogServiceInterface $audit,
+        private readonly LoginLogServiceInterface $loginLogs,
     ) {}
 
     public function getProfileData(User $user): array
     {
-        $loginDetails = LoginDetail::where('user_id', $user->id)
-            ->latest()
-            ->take(4)
-            ->get();
+        $loginDetails = $this->loginLogs->recentForUser($user, 4);
 
         return compact('user', 'loginDetails');
     }
@@ -215,5 +213,4 @@ class UserProfileService implements UserProfileServiceInterface
         return (string) ($user->username ?: $user->email ?: 'User');
     }
 }
-
 

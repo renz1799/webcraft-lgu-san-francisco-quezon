@@ -27,6 +27,7 @@ class AuthService implements AuthServiceInterface
         $email    = mb_strtolower(trim((string) ($data['email'] ?? '')));
         $password = (string) ($data['password'] ?? '');
         $remember = (bool) ($data['remember'] ?? false);
+        $moduleId = $this->currentContext->moduleId();
 
         $ip  = $data['ip'] ?? request()->ip();
         $ua  = $data['user_agent'] ?? request()->userAgent();
@@ -49,21 +50,46 @@ class AuthService implements AuthServiceInterface
         /** @var \App\Models\User|null $user */
         $user = $this->users->findByEmail($email);
 
-        if (! $user || ! $user->is_active) {
+        if (! $user) {
+            $this->recordLoginAttempt(
+                moduleId: $moduleId,
+                userId: null,
+                email: $email,
+                ip: $ip,
+                userAgent: $ua,
+                locationUrl: $locationUrl,
+                address: $address,
+                latitude: $lat,
+                longitude: $lng,
+                success: false,
+                reason: 'unknown_email',
+            );
+
+            return false;
+        }
+
+        if (! $user->is_active) {
+            $this->recordLoginAttempt(
+                moduleId: $moduleId,
+                userId: (string) $user->id,
+                email: $email,
+                ip: $ip,
+                userAgent: $ua,
+                locationUrl: $locationUrl,
+                address: $address,
+                latitude: $lat,
+                longitude: $lng,
+                success: false,
+                reason: 'inactive',
+            );
+
             return false;
         }
 
         if (! $user->hasAnyRole(['Administrator', 'Department Head'])) {
-            $moduleId = (string) $this->currentContext->moduleId();
-
             if (! $this->moduleAccess->hasActiveModuleAccess($user, $moduleId)) {
-                return false;
-            }
-        }
-
-        if (! Auth::attempt(['email' => $email, 'password' => $password], $remember)) {
-            $this->loginDetails->create(
-                $this->loginAttemptLogBuilder->build(
+                $this->recordLoginAttempt(
+                    moduleId: $moduleId,
                     userId: (string) $user->id,
                     email: $email,
                     ip: $ip,
@@ -73,8 +99,26 @@ class AuthService implements AuthServiceInterface
                     latitude: $lat,
                     longitude: $lng,
                     success: false,
-                    reason: 'guard_reject',
-                )
+                    reason: 'module_access_denied',
+                );
+
+                return false;
+            }
+        }
+
+        if (! Auth::attempt(['email' => $email, 'password' => $password], $remember)) {
+            $this->recordLoginAttempt(
+                moduleId: $moduleId,
+                userId: (string) $user->id,
+                email: $email,
+                ip: $ip,
+                userAgent: $ua,
+                locationUrl: $locationUrl,
+                address: $address,
+                latitude: $lat,
+                longitude: $lng,
+                success: false,
+                reason: 'invalid_password',
             );
 
             return false;
@@ -89,19 +133,18 @@ class AuthService implements AuthServiceInterface
             }
         }
 
-        $this->loginDetails->create(
-            $this->loginAttemptLogBuilder->build(
-                userId: (string) Auth::id(),
-                email: $email,
-                ip: $ip,
-                userAgent: $ua,
-                locationUrl: $locationUrl,
-                address: $address,
-                latitude: $lat,
-                longitude: $lng,
-                success: true,
-                reason: 'ok',
-            )
+        $this->recordLoginAttempt(
+            moduleId: $moduleId,
+            userId: (string) Auth::id(),
+            email: $email,
+            ip: $ip,
+            userAgent: $ua,
+            locationUrl: $locationUrl,
+            address: $address,
+            latitude: $lat,
+            longitude: $lng,
+            success: true,
+            reason: 'ok',
         );
 
         return true;
@@ -112,5 +155,35 @@ class AuthService implements AuthServiceInterface
         Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
+    }
+
+    private function recordLoginAttempt(
+        ?string $moduleId,
+        ?string $userId,
+        string $email,
+        ?string $ip,
+        ?string $userAgent,
+        ?string $locationUrl,
+        ?string $address,
+        mixed $latitude,
+        mixed $longitude,
+        bool $success,
+        string $reason,
+    ): void {
+        $this->loginDetails->create(
+            $this->loginAttemptLogBuilder->build(
+                moduleId: $moduleId,
+                userId: $userId,
+                email: $email,
+                ip: (string) $ip,
+                userAgent: $userAgent,
+                locationUrl: $locationUrl,
+                address: $address,
+                latitude: $latitude,
+                longitude: $longitude,
+                success: $success,
+                reason: $reason,
+            )
+        );
     }
 }

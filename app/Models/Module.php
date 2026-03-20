@@ -47,4 +47,9 @@ class Module extends Model
     {
         return $this->hasMany(AuditLog::class, 'module_id', 'id');
     }
+
+    public function loginDetails(): HasMany
+    {
+        return $this->hasMany(LoginDetail::class, 'module_id', 'id');
+    }
 }

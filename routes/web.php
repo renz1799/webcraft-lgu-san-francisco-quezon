@@ -137,7 +137,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     | Login Logs (Administrator ONLY)
     |--------------------------------------------------------------------------
     */
-    Route::middleware(['role:Administrator'])->group(function () {
+    Route::middleware(['role_or_permission:Administrator|admin|view Login Logs'])->group(function () {
         Route::get('/login-logs', [LoginLogController::class, 'index'])->name('logs.index');
         Route::get('/login-logs/data', [LoginLogController::class, 'data'])->name('logs.data');
     });
@@ -254,6 +254,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->middleware('role:Administrator')
         ->name('theme.colors.update');
 });
+
 
 
 

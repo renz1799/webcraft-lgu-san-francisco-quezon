@@ -3,15 +3,28 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\LoginDetail;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 interface LoginDetailRepositoryInterface
 {
     public function create(array $data): LoginDetail;
 
-    /** Base query for DataTables (optionally join users for sorting/search by username). */
-    public function datatableBaseQuery(bool $joinUsers = false): Builder;
+    /**
+     * Manual pagination payload for Tabulator.
+     *
+     * Return shape:
+     * [
+     *   'data' => array<array>,
+     *   'last_page' => int,
+     *   'total' => int,
+     *   'recordsTotal' => int,
+     *   'recordsFiltered' => int,
+     * ]
+     */
+    public function datatable(string $moduleId, array $filters, int $page = 1, int $size = 15): array;
 
-    /** Total rows in login_details (unfiltered). */
-    public function countAll(): int;
+    /**
+     * @return Collection<int, LoginDetail>
+     */
+    public function recentForUser(string $moduleId, string $userId, int $limit = 4): Collection;
 }

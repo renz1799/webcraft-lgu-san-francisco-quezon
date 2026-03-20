@@ -7,6 +7,7 @@ use App\Builders\Contracts\Login\LoginAttemptLogBuilderInterface;
 class LoginAttemptLogBuilder implements LoginAttemptLogBuilderInterface
 {
     public function build(
+        ?string $moduleId,
         ?string $userId,
         string $email,
         string $ip,
@@ -19,6 +20,7 @@ class LoginAttemptLogBuilder implements LoginAttemptLogBuilderInterface
         string $reason,
     ): array {
         return [
+            'module_id'  => $moduleId,
             'user_id'    => $userId,
             'email'      => $email,
             'ip_address' => $ip,

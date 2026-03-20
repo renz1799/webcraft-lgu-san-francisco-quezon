@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Jenssegers\Agent\Agent;
 
 class LoginDetail extends Model
@@ -12,7 +13,7 @@ class LoginDetail extends Model
     use HasFactory, HasUuid;
 
     protected $fillable = [
-        'user_id','email','ip_address','device','location','address',
+        'module_id','user_id','email','ip_address','device','location','address',
         'latitude','longitude','success','reason',
     ];
 
@@ -61,7 +62,12 @@ class LoginDetail extends Model
         return 'Unknown Device';
     }
 
-    public function user()
+    public function module(): BelongsTo
+    {
+        return $this->belongsTo(Module::class, 'module_id', 'id');
+    }
+
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }

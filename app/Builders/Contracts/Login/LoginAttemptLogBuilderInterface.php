@@ -5,6 +5,7 @@ namespace App\Builders\Contracts\Login;
 interface LoginAttemptLogBuilderInterface
 {
     public function build(
+        ?string $moduleId,
         ?string $userId,
         string $email,
         string $ip,
