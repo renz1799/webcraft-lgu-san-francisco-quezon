@@ -25,6 +25,7 @@
     const morePanel = document.getElementById("audit-more-panel");
     const moreClose = document.getElementById("audit-more-close");
 
+    const module = document.getElementById("audit-module");
     const action = document.getElementById("audit-action");
     const actorId = document.getElementById("audit-actor-id");
     const subjectType = document.getElementById("audit-subject-type");
@@ -39,6 +40,7 @@
 
     const filters = {
       search: "",
+      module: "",
       action: "",
       actor_id: "",
       subject_type: "",
@@ -50,6 +52,7 @@
 
     function syncFromUI() {
       filters.search = (search?.value || "").trim();
+      filters.module = (module?.value || "").trim();
       filters.action = (action?.value || "").trim();
       filters.actor_id = (actorId?.value || "").trim();
       filters.subject_type = (subjectType?.value || "").trim();
@@ -59,6 +62,7 @@
 
     function countAdvanced() {
       let n = 0;
+      if ((module?.value || "").trim() !== "") n++;
       if ((action?.value || "").trim() !== "") n++;
       if ((actorId?.value || "").trim() !== "") n++;
       if ((subjectType?.value || "").trim() !== "") n++;
@@ -264,6 +268,7 @@
     advReset?.addEventListener("click", (e) => {
       e.preventDefault();
 
+      if (module) module.value = "";
       if (action) action.value = "";
       if (actorId) actorId.value = "";
       if (subjectType) subjectType.value = "";
@@ -281,6 +286,7 @@
       e.preventDefault();
 
       if (search) search.value = "";
+      if (module) module.value = "";
       if (action) action.value = "";
       if (actorId) actorId.value = "";
       if (subjectType) subjectType.value = "";
@@ -297,3 +303,4 @@
     countAdvanced();
   });
 })();
+

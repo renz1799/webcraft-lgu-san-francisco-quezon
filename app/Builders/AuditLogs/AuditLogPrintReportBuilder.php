@@ -2,6 +2,7 @@
 
 namespace App\Builders\AuditLogs;
 
+use App\Builders\Contracts\AuditLogs\AuditLogPrintReportBuilderInterface;
 use App\Data\AuditLogs\AuditLogPrintData;
 use App\Models\Permission;
 use App\Models\Role;
@@ -9,7 +10,7 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
-class AuditLogPrintReportBuilder
+class AuditLogPrintReportBuilder implements AuditLogPrintReportBuilderInterface
 {
     public function build(Collection $logs, array $filters): AuditLogPrintData
     {
@@ -41,7 +42,7 @@ class AuditLogPrintReportBuilder
             return 'System';
         }
 
-        $profileName = trim((string) ($actor->profile->full_name ?? ''));
+        $profileName = trim((string) ($actor->profile?->full_name ?? ''));
         if ($profileName !== '') {
             return $profileName;
         }
@@ -65,12 +66,12 @@ class AuditLogPrintReportBuilder
     {
         $module = $log->module;
 
-        $name = trim((string) ($module->name ?? ''));
+        $name = trim((string) ($module?->name ?? ''));
         if ($name !== '') {
             return $name;
         }
 
-        $code = trim((string) ($module->code ?? ''));
+        $code = trim((string) ($module?->code ?? ''));
         if ($code !== '') {
             return $code;
         }
@@ -106,7 +107,7 @@ class AuditLogPrintReportBuilder
 
     private function resolveUserName(User $user, mixed $log): string
     {
-        $profileName = trim((string) ($user->profile->full_name ?? ''));
+        $profileName = trim((string) ($user->profile?->full_name ?? ''));
         if ($profileName !== '') {
             return $profileName;
         }
@@ -177,3 +178,4 @@ class AuditLogPrintReportBuilder
         return trim($label !== '' ? "{$label} [{$id}]" : "[{$id}]");
     }
 }
+

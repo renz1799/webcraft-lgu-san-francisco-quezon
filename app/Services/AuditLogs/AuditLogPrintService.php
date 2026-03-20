@@ -2,7 +2,7 @@
 
 namespace App\Services\AuditLogs;
 
-use App\Builders\AuditLogs\AuditLogPrintReportBuilder;
+use App\Builders\Contracts\AuditLogs\AuditLogPrintReportBuilderInterface;
 use App\Repositories\Contracts\AuditLogRepositoryInterface;
 use App\Services\Contracts\AuditLogs\AuditLogPrintServiceInterface;
 use App\Services\Contracts\Infrastructure\PdfGeneratorInterface;
@@ -12,7 +12,7 @@ class AuditLogPrintService implements AuditLogPrintServiceInterface
 {
     public function __construct(
         private readonly AuditLogRepositoryInterface $auditLogRepository,
-        private readonly AuditLogPrintReportBuilder $reportBuilder,
+        private readonly AuditLogPrintReportBuilderInterface $reportBuilder,
         private readonly PdfGeneratorInterface $pdfGenerator,
     ) {
     }

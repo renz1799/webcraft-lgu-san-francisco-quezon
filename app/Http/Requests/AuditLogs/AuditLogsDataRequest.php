@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Logs;
+namespace App\Http\Requests\AuditLogs;
 
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -21,12 +21,11 @@ class AuditLogsDataRequest extends FormRequest
         return [
             'page' => ['nullable', 'integer', 'min:1'],
             'size' => ['nullable', 'integer', 'min:1', 'max:100'],
-
+            'module' => ['nullable', 'string', 'max:100'],
             'search' => ['nullable', 'string', 'max:200'],
             'action' => ['nullable', 'string', 'max:255'],
             'actor_id' => ['nullable', 'uuid'],
             'subject_type' => ['nullable', 'in:user,permission,role'],
-
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ];

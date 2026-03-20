@@ -85,6 +85,7 @@
 
       return {
         search: "",
+        module: "",
         action: "",
         actor_id: "",
         subject_type: "",
@@ -282,4 +283,5 @@
     setInfoText("Loading...");
   });
 })();
+
 

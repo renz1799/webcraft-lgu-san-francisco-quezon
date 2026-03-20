@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Builders\AuditLogs\AuditLogMetaBuilder;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Repositories\Contracts\AuditLogRepositoryInterface;
 use App\Services\AuditLogs\AuditLogService;
+use App\Support\AuditRequestContextResolver;
 use App\Support\CurrentContext;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Request as RequestFacade;
@@ -63,7 +65,6 @@ class AuditLogServiceTest extends TestCase
                 $this->assertSame('PHPUnit Agent', $payload['user_agent']);
                 $this->assertSame(['direct_permissions' => []], $payload['changes_old']);
                 $this->assertSame(['direct_permissions' => ['modify Tasks']], $payload['changes_new']);
-
                 $this->assertSame('users.edit', $payload['meta']['source']);
                 $this->assertSame('Permissions updated for Craig Scot Schamberger', $payload['meta']['display']['summary']);
                 $this->assertSame('Craig Scot Schamberger', $payload['meta']['display']['subject_label']);
@@ -79,7 +80,12 @@ class AuditLogServiceTest extends TestCase
             }))
             ->andReturn(new AuditLog());
 
-        $service = new AuditLogService($logs, $context);
+        $service = new AuditLogService(
+            $logs,
+            $context,
+            new AuditLogMetaBuilder(),
+            new AuditRequestContextResolver(),
+        );
 
         $service->record(
             action: 'user.permissions.synced',
@@ -136,17 +142,22 @@ class AuditLogServiceTest extends TestCase
             ->with(Mockery::on(function (array $payload): bool {
                 $this->assertNull($payload['module_id']);
                 $this->assertNull($payload['department_id']);
-                $this->assertSame(['source' => 'audit.restore.endpoint'], $payload['meta']);
+                $this->assertSame(['source' => 'audit.restore.service'], $payload['meta']);
 
                 return true;
             }))
             ->andReturn(new AuditLog());
 
-        $service = new AuditLogService($logs, $context);
+        $service = new AuditLogService(
+            $logs,
+            $context,
+            new AuditLogMetaBuilder(),
+            new AuditRequestContextResolver(),
+        );
 
         $service->record(
             action: 'user.restored',
-            meta: ['source' => 'audit.restore.endpoint'],
+            meta: ['source' => 'audit.restore.service'],
         );
     }
 }

@@ -55,6 +55,12 @@
 
             <div class="p-3 space-y-3">
               <div>
+                <label class="ti-form-label">Module</label>
+                <input id="audit-module" type="text" class="ti-form-input w-full" placeholder="Code or name" />
+                <div class="text-xs text-[#8c9097] mt-1">Matches module code or module name.</div>
+              </div>
+
+              <div>
                 <label class="ti-form-label">Action</label>
                 <input id="audit-action" type="text" class="ti-form-input w-full" placeholder="e.g. user.role.changed" />
                 <div class="text-xs text-[#8c9097] mt-1">Matches audit action text.</div>
@@ -123,5 +129,3 @@
     };
   </script>
 @endpush
-
-

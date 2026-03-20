@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Builders\AuditLogs\AuditLogPrintReportBuilder;
+use App\Builders\Contracts\AuditLogs\AuditLogPrintReportBuilderInterface;
 use App\Data\AuditLogs\AuditLogPrintData;
 use App\Repositories\Contracts\AuditLogRepositoryInterface;
 use App\Services\AuditLogs\AuditLogPrintService;
@@ -41,7 +41,7 @@ class AuditLogPrintServiceTest extends TestCase
         );
 
         $repository = Mockery::mock(AuditLogRepositoryInterface::class);
-        $builder = Mockery::mock(AuditLogPrintReportBuilder::class);
+        $builder = Mockery::mock(AuditLogPrintReportBuilderInterface::class);
         $pdf = Mockery::mock(PdfGeneratorInterface::class);
 
         $repository->shouldReceive('findForPrint')
@@ -86,7 +86,7 @@ class AuditLogPrintServiceTest extends TestCase
         );
 
         $repository = Mockery::mock(AuditLogRepositoryInterface::class);
-        $builder = Mockery::mock(AuditLogPrintReportBuilder::class);
+        $builder = Mockery::mock(AuditLogPrintReportBuilderInterface::class);
         $pdf = Mockery::mock(PdfGeneratorInterface::class);
 
         $repository->shouldReceive('findForPrint')

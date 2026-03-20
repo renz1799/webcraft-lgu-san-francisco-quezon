@@ -1,23 +1,22 @@
 <?php
 
-namespace App\Http\Requests\Logs;
+namespace App\Http\Requests\AuditLogs;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Log;
-use App\Models\User;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\User;
 use App\Support\CurrentContext;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
 
 class RestoreSubjectRequest extends FormRequest
 {
     public function rules(): array
     {
-        // we accept any string here; mapping/whitelisting happens in authorize()
         return [
             'type' => ['required', 'string'],
-            'id'   => ['required', 'uuid'],
+            'id' => ['required', 'uuid'],
         ];
     }
 
@@ -30,12 +29,11 @@ class RestoreSubjectRequest extends FormRequest
             return false;
         }
 
-        // ALLOW: administrator role variants OR the specific permission
         if (! ($actor->hasAnyRole(['Administrator', 'admin']) || $actor->can('modify Allow Data Restoration'))) {
             Log::warning('audit.restore: actor not allowed', [
                 'actor_id' => $actor->id,
-                'roles'    => $actor->getRoleNames()->all(),
-                'perms'    => $actor->getAllPermissions()->pluck('name')->all(),
+                'roles' => $actor->getRoleNames()->all(),
+                'perms' => $actor->getAllPermissions()->pluck('name')->all(),
             ]);
             return false;
         }
@@ -61,7 +59,7 @@ class RestoreSubjectRequest extends FormRequest
         if (! $exists) {
             Log::warning('audit.restore: subject not found', [
                 'class' => $class,
-                'id'    => $this->input('id'),
+                'id' => $this->input('id'),
             ]);
             return false;
         }
@@ -69,7 +67,6 @@ class RestoreSubjectRequest extends FormRequest
         return true;
     }
 
-    /** Controller uses this to get the subject model instance. */
     public function model()
     {
         $class = $this->resolveClass();
@@ -79,28 +76,24 @@ class RestoreSubjectRequest extends FormRequest
             : null;
     }
 
-    /** Whitelist of restorable types. Add more as needed. */
     protected function typeMap(): array
     {
         return [
-            'user'       => User::class,
+            'user' => User::class,
             'permission' => Permission::class,
-            'role'       => Role::class,
+            'role' => Role::class,
         ];
     }
 
-    /** Accept both short keys (user) and FQCN (App\Models\User) but only if whitelisted. */
     protected function resolveClass(): ?string
     {
         $type = (string) $this->input('type');
-        $map  = $this->typeMap();
+        $map = $this->typeMap();
 
-        // short key
         if (isset($map[$type])) {
             return $map[$type];
         }
 
-        // FQCN (must match one of the whitelisted classes)
         if (in_array($type, $map, true)) {
             return $type;
         }

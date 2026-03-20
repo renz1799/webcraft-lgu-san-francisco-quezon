@@ -3,34 +3,28 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+
 /*
 |--------------------------------------------------------------------------
 | Users
 |--------------------------------------------------------------------------
 */
+
 // Repositories
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\EloquentUserRepository;
 
 // Builders
-use App\Builders\Contracts\User\UserDatatableRowBuilderInterface; //datatable
-use App\Builders\User\UserDatatableRowBuilder; //datatable
-use App\Builders\Contracts\User\UserDatatableActionBuilderInterface; //datatable actions
-use App\Builders\User\UserDatatableActionBuilder; //datatable actions
-use App\Builders\Contracts\Access\RoleAuditDisplayBuilderInterface;
-use App\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
-use App\Builders\Access\RoleAuditDisplayBuilder;
-use App\Builders\Access\PermissionAuditDisplayBuilder;
-
-/*
-|--------------------------------------------------------------------------
-| Tasks
-|--------------------------------------------------------------------------
-*/
-
-// Builders
+use App\Builders\Contracts\User\UserDatatableActionBuilderInterface;
+use App\Builders\Contracts\User\UserDatatableRowBuilderInterface;
 use App\Builders\Contracts\User\UserTaskReassignOptionBuilderInterface;
+use App\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
+use App\Builders\Contracts\Access\RoleAuditDisplayBuilderInterface;
+use App\Builders\User\UserDatatableActionBuilder;
+use App\Builders\User\UserDatatableRowBuilder;
 use App\Builders\User\UserTaskReassignOptionBuilder;
+use App\Builders\Access\PermissionAuditDisplayBuilder;
+use App\Builders\Access\RoleAuditDisplayBuilder;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,13 +36,21 @@ use App\Builders\User\UserTaskReassignOptionBuilder;
 use App\Repositories\Contracts\AuditLogRepositoryInterface;
 use App\Repositories\Eloquent\EloquentAuditLogRepository;
 
-// Services
-use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
-use App\Services\AuditLogs\AuditLogService;
+// Builders
+use App\Builders\Contracts\AuditLogs\AuditLogDatatableRowBuilderInterface;
+use App\Builders\Contracts\AuditLogs\AuditLogMetaBuilderInterface;
+use App\Builders\Contracts\AuditLogs\AuditLogPrintReportBuilderInterface;
+use App\Builders\AuditLogs\AuditLogDatatableRowBuilder;
+use App\Builders\AuditLogs\AuditLogMetaBuilder;
+use App\Builders\AuditLogs\AuditLogPrintReportBuilder;
 
-// Printing
+// Services
 use App\Services\Contracts\AuditLogs\AuditLogPrintServiceInterface;
+use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Services\Contracts\AuditLogs\AuditRestoreServiceInterface;
 use App\Services\AuditLogs\AuditLogPrintService;
+use App\Services\AuditLogs\AuditLogService;
+use App\Services\AuditLogs\AuditRestoreService;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,30 +62,19 @@ use App\Services\AuditLogs\AuditLogPrintService;
 use App\Repositories\Contracts\LoginDetailRepositoryInterface;
 use App\Repositories\Eloquent\EloquentLoginDetailRepository;
 
-
 // Services
+use App\Services\Contracts\Auth\AuthServiceInterface;
 use App\Services\Contracts\Auth\RegisterUserServiceInterface;
 use App\Services\Contracts\Auth\RegistrationOptionsServiceInterface;
-use App\Services\Contracts\Auth\AuthServiceInterface;
 use App\Services\Auth\AuthService;
-
-// Builders
-use App\Builders\Contracts\Login\LoginAttemptLogBuilderInterface;
-use App\Builders\Login\LoginAttemptLogBuilder;
-
-/*
-|--------------------------------------------------------------------------
-| Authentication / Register
-|--------------------------------------------------------------------------
-*/
-
-//Services
 use App\Services\Auth\RegisterUserService;
 use App\Services\Auth\RegistrationOptionsService;
 
 // Builders
-use App\Builders\Auth\RegistrationRoleOptionsBuilder;
 use App\Builders\Contracts\Auth\RegistrationRoleOptionsBuilderInterface;
+use App\Builders\Contracts\Login\LoginAttemptLogBuilderInterface;
+use App\Builders\Auth\RegistrationRoleOptionsBuilder;
+use App\Builders\Login\LoginAttemptLogBuilder;
 
 /*
 |--------------------------------------------------------------------------
@@ -101,21 +92,17 @@ use App\Repositories\Eloquent\EloquentRoleRepository;
 use App\Services\Contracts\Access\LoginLogServiceInterface;
 use App\Services\Contracts\Access\ModuleAccessServiceInterface;
 use App\Services\Contracts\Access\PermissionServiceInterface;
+use App\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
 use App\Services\Contracts\Access\RoleServiceInterface;
 use App\Services\Contracts\Access\UserAccessServiceInterface;
 use App\Services\Contracts\Access\UserProfileServiceInterface;
 use App\Services\Access\LoginLogService;
 use App\Services\Access\ModuleAccessService;
 use App\Services\Access\PermissionService;
+use App\Services\Access\RoleAssignments\ModuleRoleAssignmentService;
 use App\Services\Access\RoleService;
 use App\Services\Access\UserAccessService;
 use App\Services\Access\UserProfileService;
-
-//Role Services
-
-//Builders 
-use App\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
-use App\Services\Access\RoleAssignments\ModuleRoleAssignmentService;
 
 /*
 |--------------------------------------------------------------------------
@@ -231,6 +218,11 @@ class CoreServiceProvider extends ServiceProvider
     private function registerApplicationBuilders(): void
     {
         $this->bindMany([
+            // Audit Logs
+            AuditLogDatatableRowBuilderInterface::class => AuditLogDatatableRowBuilder::class,
+            AuditLogMetaBuilderInterface::class => AuditLogMetaBuilder::class,
+            AuditLogPrintReportBuilderInterface::class => AuditLogPrintReportBuilder::class,
+
             // Authentication / Login
             LoginAttemptLogBuilderInterface::class => LoginAttemptLogBuilder::class,
 
@@ -244,7 +236,6 @@ class CoreServiceProvider extends ServiceProvider
             // Users
             UserDatatableRowBuilderInterface::class => UserDatatableRowBuilder::class,
             UserDatatableActionBuilderInterface::class => UserDatatableActionBuilder::class,
-            //Tasks
             UserTaskReassignOptionBuilderInterface::class => UserTaskReassignOptionBuilder::class,
         ]);
     }
@@ -255,6 +246,7 @@ class CoreServiceProvider extends ServiceProvider
             // Audit Logs
             AuditLogServiceInterface::class => AuditLogService::class,
             AuditLogPrintServiceInterface::class => AuditLogPrintService::class,
+            AuditRestoreServiceInterface::class => AuditRestoreService::class,
 
             // Authentication / Login
             AuthServiceInterface::class => AuthService::class,

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Builders\AuditLogs\AuditLogDatatableRowBuilder;
 use App\Models\Role;
 use App\Repositories\Eloquent\EloquentAuditLogRepository;
 use Illuminate\Database\Schema\Blueprint;
@@ -25,6 +26,49 @@ class AuditLogPrintRepositoryTest extends TestCase
     }
 
     public function test_find_for_print_filters_by_module_actor_and_subject_type_using_real_fields(): void
+    {
+        $this->seedAuditData();
+
+        $result = $this->makeRepository()->findForPrint([
+            'module' => 'access',
+            'actor_id' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            'subject_type' => 'role',
+        ]);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('55555555-5555-4555-8555-555555555555', $result->first()->id);
+        $this->assertSame('Access Control', $result->first()->module->name);
+        $this->assertSame(Role::class, $result->first()->subject_type);
+        $this->assertSame('Craig Scot Schamberger', $result->first()->actor->profile->full_name);
+    }
+
+    public function test_datatable_filters_by_module_and_builds_restore_row_flags(): void
+    {
+        $this->seedAuditData();
+
+        DB::table('roles')
+            ->where('id', '33333333-3333-4333-8333-333333333333')
+            ->update(['deleted_at' => now()]);
+
+        $result = $this->makeRepository()->datatable([
+            'module' => 'ACCESS',
+            'subject_type' => 'role',
+        ], 1, 15);
+
+        $this->assertSame(1, $result['total']);
+        $this->assertSame('Craig Scot Schamberger', $result['data'][0]['actor_name']);
+        $this->assertSame('Role : Records Manager', $result['data'][0]['subject_label']);
+        $this->assertTrue($result['data'][0]['subject_show_restore']);
+        $this->assertSame('role', $result['data'][0]['subject_type_short']);
+        $this->assertNotEmpty($result['data'][0]['created_at_text']);
+    }
+
+    private function makeRepository(): EloquentAuditLogRepository
+    {
+        return new EloquentAuditLogRepository(new AuditLogDatatableRowBuilder());
+    }
+
+    private function seedAuditData(): void
     {
         DB::table('modules')->insert([
             [
@@ -105,8 +149,8 @@ class AuditLogPrintRepositoryTest extends TestCase
                 'actor_type' => \App\Models\User::class,
                 'subject_type' => Role::class,
                 'subject_id' => '33333333-3333-4333-8333-333333333333',
-                'action' => 'role.updated',
-                'message' => 'Role updated.',
+                'action' => 'role.deleted',
+                'message' => 'Role archived.',
                 'request_method' => 'POST',
                 'request_url' => 'https://example.test/access/roles/33333333-3333-4333-8333-333333333333',
                 'ip' => '127.0.0.1',
@@ -158,18 +202,6 @@ class AuditLogPrintRepositoryTest extends TestCase
                 'updated_at' => now()->subSeconds(30),
             ],
         ]);
-
-        $result = (new EloquentAuditLogRepository())->findForPrint([
-            'module' => 'access',
-            'actor_id' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-            'subject_type' => 'role',
-        ]);
-
-        $this->assertCount(1, $result);
-        $this->assertSame('55555555-5555-4555-8555-555555555555', $result->first()->id);
-        $this->assertSame('Access Control', $result->first()->module->name);
-        $this->assertSame(Role::class, $result->first()->subject_type);
-        $this->assertSame('Craig Scot Schamberger', $result->first()->actor->profile->full_name);
     }
 
     private function createSchema(): void
