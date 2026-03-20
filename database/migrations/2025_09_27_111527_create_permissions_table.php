@@ -12,17 +12,26 @@ return new class extends Migration {
         Schema::create($tableNames['permissions'], function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            // your business fields
+            $table->uuid('module_id');
             $table->string('name');
-            $table->string('page')->nullable();       // <— merged “add_page” here
+            $table->string('page')->nullable();
             $table->string('guard_name');
 
             $table->timestamps();
             $table->softDeletes();
 
-            // allow re-using names after a soft delete (NULL != NULL trick)
-            $table->unique(['name', 'guard_name', 'deleted_at'], 'permissions_name_guard_deleted_unique');
-            $table->index('page');
+            $table->foreign('module_id')
+                ->references('id')
+                ->on('modules')
+                ->onDelete('cascade');
+
+            $table->unique(
+                ['module_id', 'name', 'guard_name', 'deleted_at'],
+                'permissions_module_name_guard_deleted_unique'
+            );
+
+            $table->index('module_id', 'permissions_module_id_index');
+            $table->index('page', 'permissions_page_index');
         });
     }
 

@@ -7,32 +7,29 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        $teams       = config('permission.teams');
-        $tableNames  = config('permission.table_names');
-        $columnNames = config('permission.column_names');
+        $tableNames = config('permission.table_names');
 
-        Schema::create($tableNames['roles'], function (Blueprint $table) use ($teams, $columnNames) {
+        Schema::create($tableNames['roles'], function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            if ($teams || config('permission.testing')) {
-                $table->uuid($columnNames['team_foreign_key'])->nullable();
-                $table->index($columnNames['team_foreign_key'], 'roles_team_foreign_key_index');
-            }
-
+            $table->uuid('module_id');
             $table->string('name');
             $table->string('guard_name');
 
             $table->timestamps();
             $table->softDeletes();
 
-            if ($teams || config('permission.testing')) {
-                $table->unique(
-                    [$columnNames['team_foreign_key'], 'name', 'guard_name', 'deleted_at'],
-                    'roles_team_name_guard_deleted_unique'
-                );
-            } else {
-                $table->unique(['name', 'guard_name', 'deleted_at'], 'roles_name_guard_deleted_unique');
-            }
+            $table->foreign('module_id')
+                ->references('id')
+                ->on('modules')
+                ->onDelete('cascade');
+
+            $table->unique(
+                ['module_id', 'name', 'guard_name', 'deleted_at'],
+                'roles_module_name_guard_deleted_unique'
+            );
+
+            $table->index('module_id', 'roles_module_id_index');
         });
     }
 

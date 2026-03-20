@@ -26,7 +26,10 @@ return new class extends Migration {
                 ->on($tableNames['roles'])
                 ->onDelete('cascade');
 
-            $table->primary([$pivotPermKey, $pivotRoleKey], 'role_has_permissions_permission_id_role_id_primary');
+            $table->primary(
+                [$pivotPermKey, $pivotRoleKey],
+                'role_has_permissions_permission_id_role_id_primary'
+            );
         });
     }
 

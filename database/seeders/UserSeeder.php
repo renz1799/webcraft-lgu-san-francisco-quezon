@@ -9,6 +9,7 @@ use App\Models\UserProfile;
 use App\Support\CurrentContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -28,8 +29,27 @@ class UserSeeder extends Seeder
                 throw new \RuntimeException('UserSeeder: default department not found. Run DepartmentSeeder first.');
             }
 
-            $adminRole = Role::firstOrCreate(['name' => 'Administrator']);
-            $staffRole = Role::firstOrCreate(['name' => 'Staff']);
+            $adminRole = Role::query()->firstOrCreate(
+                [
+                    'module_id' => $moduleId,
+                    'name' => 'Administrator',
+                    'guard_name' => 'web',
+                ],
+                [
+                    'id' => (string) Str::uuid(),
+                ]
+            );
+
+            $staffRole = Role::query()->firstOrCreate(
+                [
+                    'module_id' => $moduleId,
+                    'name' => 'Staff',
+                    'guard_name' => 'web',
+                ],
+                [
+                    'id' => (string) Str::uuid(),
+                ]
+            );
 
             $admin = User::factory()
                 ->admin()
@@ -42,8 +62,6 @@ class UserSeeder extends Seeder
                 'first_name' => 'System',
                 'last_name' => 'Administrator',
             ]);
-
-            $admin->assignRole($adminRole);
 
             UserModule::updateOrCreate(
                 [
@@ -69,8 +87,6 @@ class UserSeeder extends Seeder
                 UserProfile::factory()->create([
                     'user_id' => $staff->id,
                 ]);
-
-                $staff->assignRole($staffRole);
 
                 UserModule::updateOrCreate(
                     [
