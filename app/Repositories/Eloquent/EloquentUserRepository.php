@@ -9,11 +9,10 @@ use App\Builders\Contracts\User\UserDatatableRowBuilderInterface;
 use App\Builders\Contracts\User\UserDatatableActionBuilderInterface;
 use App\Builders\Contracts\User\UserTaskReassignOptionBuilderInterface;
 use Carbon\Carbon;
+use App\Support\CurrentContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Spatie\Permission\PermissionRegistrar;
 
 class EloquentUserRepository implements UserRepositoryInterface
 {
@@ -22,7 +21,7 @@ class EloquentUserRepository implements UserRepositoryInterface
         private readonly UserDatatableRowBuilderInterface $userDatatableRowBuilder,
         private readonly UserDatatableActionBuilderInterface $userDatatableActionBuilder,
         private readonly UserTaskReassignOptionBuilderInterface $userTaskReassignOptionBuilder,
-        
+        private readonly CurrentContext $context,
     ) {}
 
     /** Create a user */
@@ -83,30 +82,6 @@ class EloquentUserRepository implements UserRepositoryInterface
         return $user ? (bool) $user->restore() : false;
     }
 
-    /**
-     * Assign a role (resolve by UUID or name) and sync default role permissions as directs.
-     * NOTE: Spatie already grants role permissions via Gate; syncing as directs keeps UI toggles in sync.
-     */
-    public function assignRoleAndSyncPermissions(User $user, string $roleInput): void
-    {
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        $role = Str::isUuid($roleInput)
-            ? Role::findById($roleInput, 'web')
-            : Role::findByName($roleInput, 'web');
-
-        $user->syncRoles([]);
-        $user->assignRole($role->name);
-
-        if ($role->permissions->isNotEmpty()) {
-            $user->syncPermissions($role->permissions);
-        } else {
-            $user->syncPermissions([]);
-        }
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
     public function datatable(array $filters, int $page = 1, int $size = 15): array
     {
         $page = max(1, (int) $page);
@@ -160,6 +135,7 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     public function getUserIdsByRoles(array $roleNames): array
     {
+        $moduleId = $this->requireModuleId();
         $requestedRoleNames = array_values(array_unique(array_filter(
             array_map(static fn ($roleName) => trim((string) $roleName), $roleNames)
         )));
@@ -169,7 +145,9 @@ class EloquentUserRepository implements UserRepositoryInterface
         }
 
         $existingRoleNames = Role::query()
+            ->where('module_id', $moduleId)
             ->where('guard_name', 'web')
+            ->whereNull('deleted_at')
             ->whereIn('name', $requestedRoleNames)
             ->pluck('name')
             ->map(fn ($name) => (string) $name)
@@ -182,6 +160,7 @@ class EloquentUserRepository implements UserRepositoryInterface
 
         if ($missingRoleNames !== []) {
             Log::warning('User role lookup skipped missing roles.', [
+                'module_id' => $moduleId,
                 'guard_name' => 'web',
                 'requested_roles' => $requestedRoleNames,
                 'missing_roles' => $missingRoleNames,
@@ -192,8 +171,22 @@ class EloquentUserRepository implements UserRepositoryInterface
             return [];
         }
 
-        return User::role($existingRoleNames, 'web')
-            ->pluck('id')
+        return User::query()
+            ->select('users.id')
+            ->join('model_has_roles', function ($join) use ($moduleId) {
+                $join->on('model_has_roles.model_id', '=', 'users.id')
+                    ->where('model_has_roles.model_type', '=', User::class)
+                    ->where('model_has_roles.module_id', '=', $moduleId);
+            })
+            ->join('roles', function ($join) use ($moduleId, $existingRoleNames) {
+                $join->on('roles.id', '=', 'model_has_roles.role_id')
+                    ->where('roles.module_id', '=', $moduleId)
+                    ->where('roles.guard_name', '=', 'web')
+                    ->whereNull('roles.deleted_at')
+                    ->whereIn('roles.name', $existingRoleNames);
+            })
+            ->distinct()
+            ->pluck('users.id')
             ->map(fn ($id) => (string) $id)
             ->filter()
             ->values()
@@ -202,8 +195,13 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     private function buildBaseDatatableQuery(string $archivedMode = 'active'): Builder
     {
+        $moduleId = $this->requireModuleId();
+
         $q = User::query()
-            ->with(['roles:id,name'])
+            ->with(['moduleRoleAssignments' => function ($query) use ($moduleId) {
+                $query->where('module_id', $moduleId)
+                    ->with(['role:id,name,module_id']);
+            }])
             ->select(['id', 'username', 'email', 'is_active', 'created_at', 'deleted_at', 'user_type'])
             ->where('user_type', '!=', 'Administrator');
 
@@ -218,15 +216,17 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     private function buildFilteredDatatableQuery(array $filters): Builder
     {
+        $moduleId = $this->requireModuleId();
         $q = $this->buildBaseDatatableQuery($this->resolveArchivedMode($filters));
 
         $search = trim((string) ($filters['search'] ?? $filters['q'] ?? ''));
         if ($search !== '') {
-            $q->where(function (Builder $sub) use ($search) {
+            $q->where(function (Builder $sub) use ($search, $moduleId) {
                 $sub->where('username', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhereHas('roles', function (Builder $rq) use ($search) {
-                        $rq->where('name', 'like', "%{$search}%");
+                    ->orWhereHas('moduleRoleAssignments.role', function (Builder $rq) use ($search, $moduleId) {
+                        $rq->where('roles.module_id', $moduleId)
+                            ->where('name', 'like', "%{$search}%");
                     });
             });
         }
@@ -243,8 +243,9 @@ class EloquentUserRepository implements UserRepositoryInterface
 
         $role = trim((string) ($filters['role'] ?? ''));
         if ($role !== '') {
-            $q->whereHas('roles', function (Builder $rq) use ($role) {
-                $rq->where('name', 'like', "%{$role}%");
+            $q->whereHas('moduleRoleAssignments.role', function (Builder $rq) use ($role, $moduleId) {
+                $rq->where('roles.module_id', $moduleId)
+                    ->where('name', 'like', "%{$role}%");
             });
         }
 
@@ -306,6 +307,17 @@ class EloquentUserRepository implements UserRepositoryInterface
         }
 
         return $q->orderByDesc('created_at');
+    }
+
+    private function requireModuleId(): string
+    {
+        $moduleId = $this->context->moduleId();
+
+        if (! $moduleId) {
+            throw new \RuntimeException('Current module context is not available.');
+        }
+
+        return $moduleId;
     }
 
 }

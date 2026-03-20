@@ -2,15 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Permission;
-use App\Models\Role;
-use App\Repositories\Contracts\PermissionRepositoryInterface;
-use App\Repositories\Contracts\RoleRepositoryInterface;
-use App\Services\Access\PermissionService;
-use App\Services\Access\RoleService;
-use App\Services\Contracts\AuditLogServiceInterface;
+use App\Builders\Access\PermissionAuditDisplayBuilder;
+use App\Builders\Access\RoleAuditDisplayBuilder;
 use Mockery;
-use ReflectionMethod;
 use Tests\TestCase;
 
 class RolePermissionAuditDisplayTest extends TestCase
@@ -24,15 +18,9 @@ class RolePermissionAuditDisplayTest extends TestCase
 
     public function test_role_updated_display_shows_permission_differences(): void
     {
-        $repo = Mockery::mock(RoleRepositoryInterface::class);
-        $audit = Mockery::mock(AuditLogServiceInterface::class);
+        $builder = new RoleAuditDisplayBuilder();
 
-        $service = new RoleService($repo, $audit);
-        $method = new ReflectionMethod($service, 'buildRoleUpdatedDisplay');
-        $method->setAccessible(true);
-
-        $display = $method->invoke(
-            $service,
+        $display = $builder->buildUpdatedDisplay(
             ['name' => 'Staff', 'permissions' => ['view Tasks']],
             ['name' => 'Staff', 'permissions' => ['view Tasks', 'modify Tasks', 'delete Tasks']]
         );
@@ -46,15 +34,9 @@ class RolePermissionAuditDisplayTest extends TestCase
 
     public function test_permission_updated_display_uses_human_labels(): void
     {
-        $repo = Mockery::mock(PermissionRepositoryInterface::class);
-        $audit = Mockery::mock(AuditLogServiceInterface::class);
+        $builder = new PermissionAuditDisplayBuilder();
 
-        $service = new PermissionService($repo, $audit);
-        $method = new ReflectionMethod($service, 'buildPermissionUpdatedDisplay');
-        $method->setAccessible(true);
-
-        $display = $method->invoke(
-            $service,
+        $display = $builder->buildUpdatedDisplay(
             ['name' => 'modify tasks', 'page' => 'tasks', 'guard_name' => 'web'],
             ['name' => 'delete tasks', 'page' => 'task_management', 'guard_name' => 'web']
         );

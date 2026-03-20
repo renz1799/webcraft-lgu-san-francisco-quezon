@@ -4,6 +4,7 @@ namespace App\Http\Requests\Permissions;
 
 use App\Http\Requests\BaseFormRequest;
 use App\Models\Permission;
+use App\Support\CurrentContext;
 use Illuminate\Validation\Rule;
 
 class UpdatePermissionRequest extends BaseFormRequest
@@ -12,7 +13,9 @@ class UpdatePermissionRequest extends BaseFormRequest
     {
         $u = $this->user();
 
-        return $u && $u->hasAnyRole(['Administrator', 'admin']);
+        return $u
+            && $u->hasAnyRole(['Administrator', 'admin'])
+            && $this->currentModuleId() !== null;
     }
 
     public function rules(): array
@@ -20,6 +23,7 @@ class UpdatePermissionRequest extends BaseFormRequest
         $permission = $this->route('permission');
         $permissionId = $permission instanceof Permission ? (string) $permission->id : null;
         $guard = $this->input('guard_name', 'web');
+        $moduleId = $this->currentModuleId() ?? '__missing_module__';
 
         return [
             'name' => [
@@ -27,7 +31,9 @@ class UpdatePermissionRequest extends BaseFormRequest
                 'regex:/^(view|modify|delete)\s+.+$/i',
                 Rule::unique('permissions', 'name')
                     ->ignore($permissionId, 'id')
-                    ->where('guard_name', $guard),
+                    ->where('module_id', $moduleId)
+                    ->where('guard_name', $guard)
+                    ->whereNull('deleted_at'),
             ],
             'page' => ['bail', 'required', 'string', 'max:255'],
             'guard_name' => ['bail', 'sometimes', 'in:web,api'],
@@ -63,5 +69,10 @@ class UpdatePermissionRequest extends BaseFormRequest
         return [
             'name.regex' => 'Name must start with "view", "modify", or "delete", e.g. "view Login Logs".',
         ];
+    }
+
+    private function currentModuleId(): ?string
+    {
+        return app(CurrentContext::class)->moduleId();
     }
 }

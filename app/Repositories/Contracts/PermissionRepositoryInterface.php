@@ -6,11 +6,11 @@ use App\Models\Permission;
 
 interface PermissionRepositoryInterface
 {
-    public function datatable(array $filters, int $page = 1, int $size = 15): array;
+    public function datatable(string $moduleId, array $filters, int $page = 1, int $size = 15): array;
 
-    public function findByIdWithTrashed(string $id): ?Permission;
+    public function findByIdWithTrashed(string $moduleId, string $id): ?Permission;
 
-    public function create(array $data): Permission;
+    public function create(string $moduleId, array $data): Permission;
 
     public function update(Permission $permission, array $data): Permission;
 

@@ -76,4 +76,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserModule::class, 'user_id', 'id');
     }
+
+    public function moduleRoleAssignments(): HasMany
+    {
+        return $this->hasMany(ModelHasRole::class, 'model_id', 'id')
+            ->where('model_type', self::class);
+    }
 }

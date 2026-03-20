@@ -2,9 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Builders\Contracts\User\UserDatatableActionBuilderInterface;
+use App\Builders\Contracts\User\UserDatatableRowBuilderInterface;
+use App\Builders\Contracts\User\UserTaskReassignOptionBuilderInterface;
+use App\Builders\User\UserDatatableRowBuilder;
 use App\Models\Role;
 use App\Models\User;
 use App\Repositories\Eloquent\EloquentUserRepository;
+use App\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -32,6 +37,7 @@ class UserRepositoryTest extends TestCase
     protected function tearDown(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        Mockery::close();
 
         parent::tearDown();
     }
@@ -40,15 +46,16 @@ class UserRepositoryTest extends TestCase
     {
         Log::spy();
 
-        $repository = new EloquentUserRepository();
-        $adminRole = Role::create(['name' => 'Administrator', 'guard_name' => 'web']);
-        $staffRole = Role::create(['name' => 'Staff', 'guard_name' => 'web']);
+        $repository = $this->makeRepository('module-1');
+        $adminRole = Role::query()->create(['id' => 'role-1', 'module_id' => 'module-1', 'name' => 'Administrator', 'guard_name' => 'web']);
+        $staffRole = Role::query()->create(['id' => 'role-2', 'module_id' => 'module-1', 'name' => 'Staff', 'guard_name' => 'web']);
+        Role::query()->create(['id' => 'role-3', 'module_id' => 'module-2', 'name' => 'Staff', 'guard_name' => 'web']);
 
         $adminUser = $this->createUser('admin-user', 'admin@example.com');
         $staffUser = $this->createUser('staff-user', 'staff@example.com');
 
-        $this->attachRole($adminUser, $adminRole);
-        $this->attachRole($staffUser, $staffRole);
+        $this->attachRole($adminUser, $adminRole, 'module-1');
+        $this->attachRole($staffUser, $staffRole, 'module-1');
 
         $ids = $repository->getUserIdsByRoles([' Administrator ', 'Inspector', 'Staff', 'Staff']);
 
@@ -62,7 +69,8 @@ class UserRepositoryTest extends TestCase
         Log::shouldHaveReceived('warning')->once()->with(
             'User role lookup skipped missing roles.',
             Mockery::on(function (array $context): bool {
-                return $context['guard_name'] === 'web'
+                return $context['module_id'] === 'module-1'
+                    && $context['guard_name'] === 'web'
                     && $context['requested_roles'] === ['Administrator', 'Inspector', 'Staff']
                     && $context['missing_roles'] === ['Inspector'];
             })
@@ -73,7 +81,7 @@ class UserRepositoryTest extends TestCase
     {
         Log::spy();
 
-        $repository = new EloquentUserRepository();
+        $repository = $this->makeRepository('module-1');
 
         $ids = $repository->getUserIdsByRoles(['Inspector', 'Approver']);
 
@@ -82,7 +90,8 @@ class UserRepositoryTest extends TestCase
         Log::shouldHaveReceived('warning')->once()->with(
             'User role lookup skipped missing roles.',
             Mockery::on(function (array $context): bool {
-                return $context['guard_name'] === 'web'
+                return $context['module_id'] === 'module-1'
+                    && $context['guard_name'] === 'web'
                     && $context['requested_roles'] === ['Inspector', 'Approver']
                     && $context['missing_roles'] === ['Inspector', 'Approver'];
             })
@@ -93,11 +102,49 @@ class UserRepositoryTest extends TestCase
     {
         Log::spy();
 
-        $repository = new EloquentUserRepository();
+        $repository = $this->makeRepository('module-1');
 
         $this->assertSame([], $repository->getUserIdsByRoles(['', '   ']));
 
         Log::shouldNotHaveReceived('warning');
+    }
+
+    public function test_datatable_uses_current_module_role_for_role_column(): void
+    {
+        $repository = $this->makeRepository('module-1', useRealRowBuilder: true);
+
+        $user = $this->createUser('staff-user', 'staff@example.com');
+        $moduleRole = Role::query()->create(['id' => 'role-1', 'module_id' => 'module-1', 'name' => 'Staff', 'guard_name' => 'web']);
+        $otherRole = Role::query()->create(['id' => 'role-2', 'module_id' => 'module-2', 'name' => 'Inspector', 'guard_name' => 'web']);
+
+        $this->attachRole($user, $otherRole, 'module-2');
+        $this->attachRole($user, $moduleRole, 'module-1');
+
+        $result = $repository->datatable([], 1, 15);
+
+        $this->assertSame('Staff', $result['data'][0]['role']);
+    }
+
+    private function makeRepository(string $moduleId, bool $useRealRowBuilder = false): EloquentUserRepository
+    {
+        $rowBuilder = $useRealRowBuilder
+            ? new UserDatatableRowBuilder()
+            : Mockery::mock(UserDatatableRowBuilderInterface::class);
+
+        if (! $useRealRowBuilder) {
+            $rowBuilder->shouldIgnoreMissing();
+        }
+
+        $actionBuilder = Mockery::mock(UserDatatableActionBuilderInterface::class);
+        $actionBuilder->shouldReceive('build')->andReturn([]);
+
+        $taskReassignBuilder = Mockery::mock(UserTaskReassignOptionBuilderInterface::class);
+        $taskReassignBuilder->shouldIgnoreMissing();
+
+        $context = Mockery::mock(CurrentContext::class);
+        $context->shouldReceive('moduleId')->andReturn($moduleId);
+
+        return new EloquentUserRepository($rowBuilder, $actionBuilder, $taskReassignBuilder, $context);
     }
 
     private function createSchema(): void
@@ -117,25 +164,27 @@ class UserRepositoryTest extends TestCase
 
         Schema::create('roles', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->uuid('module_id');
             $table->string('name');
             $table->string('guard_name');
             $table->timestamps();
             $table->softDeletes();
-            $table->unique(['name', 'guard_name', 'deleted_at'], 'roles_name_guard_deleted_unique');
+            $table->unique(['module_id', 'name', 'guard_name', 'deleted_at'], 'roles_module_name_guard_deleted_unique');
         });
 
         Schema::create('model_has_roles', function (Blueprint $table) {
+            $table->uuid('module_id');
             $table->uuid('role_id');
             $table->string('model_type');
             $table->uuid('model_id');
-            $table->index(['model_id', 'model_type'], 'model_has_roles_model_id_model_type_index');
-            $table->primary(['role_id', 'model_id', 'model_type'], 'model_has_roles_role_model_type_primary');
+            $table->index(['model_id', 'model_type', 'module_id'], 'model_has_roles_model_id_type_module_index');
+            $table->primary(['module_id', 'role_id', 'model_id', 'model_type'], 'model_has_roles_module_role_model_type_primary');
         });
     }
 
     private function createUser(string $username, string $email): User
     {
-        return User::create([
+        return User::query()->create([
             'username' => $username,
             'email' => $email,
             'password' => 'secret',
@@ -144,9 +193,10 @@ class UserRepositoryTest extends TestCase
         ]);
     }
 
-    private function attachRole(User $user, Role $role): void
+    private function attachRole(User $user, Role $role, string $moduleId): void
     {
         DB::table('model_has_roles')->insert([
+            'module_id' => $moduleId,
             'role_id' => (string) $role->id,
             'model_type' => User::class,
             'model_id' => (string) $user->id,

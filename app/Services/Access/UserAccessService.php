@@ -2,23 +2,28 @@
 
 namespace App\Services\Access;
 
-use App\Models\User;
+use App\Models\ModelHasPermission;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\User;
+use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
 use App\Services\Contracts\Access\UserAccessServiceInterface;
 use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
-use App\Repositories\Contracts\UserRepositoryInterface;
-use Spatie\Permission\PermissionRegistrar;
+use App\Support\CurrentContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Validation\ValidationException;
+use Spatie\Permission\PermissionRegistrar;
 
 class UserAccessService implements UserAccessServiceInterface
 {
     public function __construct(
-        private readonly UserRepositoryInterface $users, 
-        private readonly AuditLogServiceInterface $audit
+        private readonly UserRepositoryInterface $users,
+        private readonly AuditLogServiceInterface $audit,
+        private readonly CurrentContext $context,
+        private readonly ModuleRoleAssignmentServiceInterface $roleAssignments,
     ) {}
 
     /* ----------------------------- Queries ------------------------------ */
@@ -36,21 +41,34 @@ class UserAccessService implements UserAccessServiceInterface
 
     public function getUserPermissions(User $user): array
     {
+        $moduleId = $this->requireModuleId();
         $this->ensureDefaultRole($user);
 
-        $permissions = Permission::all()->groupBy(function ($p) {
-            return explode(' ', $p->name, 2)[1] ?? 'others';
-        });
+        $permissions = Permission::query()
+            ->where('module_id', $moduleId)
+            ->where('guard_name', 'web')
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->get()
+            ->groupBy(function (Permission $permission) {
+                return explode(' ', $permission->name, 2)[1] ?? 'others';
+            });
 
-        $userPermissions = $user->getDirectPermissions()->pluck('name')->toArray();
-        $roles           = Role::pluck('name')->toArray();
-        $currentRole     = $user->roles()->pluck('name')->first();
+        $userPermissions = $this->currentModuleDirectPermissionNames($user);
+        $roles = Role::query()
+            ->where('module_id', $moduleId)
+            ->where('guard_name', 'web')
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->pluck('name')
+            ->values()
+            ->all();
 
         return [
-            'permissions'     => $permissions,
+            'permissions' => $permissions,
             'userPermissions' => $userPermissions,
-            'roles'           => $roles,
-            'currentRole'     => $currentRole,
+            'roles' => $roles,
+            'currentRole' => $this->currentRoleName($user),
         ];
     }
 
@@ -58,20 +76,17 @@ class UserAccessService implements UserAccessServiceInterface
 
     public function updateUserRoleAndPermissions(User $user, ?string $roleName, array $permissionNames): void
     {
-        DB::transaction(function () use ($user, $roleName, $permissionNames) {
-            $beforeRole  = $user->roles()->pluck('name')->first();
-            $beforePerms = $user->permissions()->pluck('name')->values()->all();
+        $moduleId = $this->requireModuleId();
+
+        DB::transaction(function () use ($user, $roleName, $permissionNames, $moduleId) {
+            $beforeRole = $this->currentRoleName($user);
+            $beforePerms = $this->currentModuleDirectPermissionNames($user);
 
             if ($roleName && $roleName !== $beforeRole) {
-                // Role changed → reset roles + set role defaults
-                $user->syncRoles([]);
-                $newRole = Role::where('name', $roleName)->firstOrFail();
-                $user->assignRole($newRole);
+                $newRole = $this->resolveRoleForCurrentModule($moduleId, $roleName);
+                $this->roleAssignments->sync($user, [$newRole]);
+                $defaults = $this->permissionNamesForRole($newRole, $moduleId);
 
-                $defaults = $newRole->permissions;
-                $user->syncPermissions($defaults);
-
-                // Audit: role changed
                 $this->audit->record(
                     'user.role.changed',
                     $user,
@@ -84,54 +99,61 @@ class UserAccessService implements UserAccessServiceInterface
 
                 Log::info('Role updated; default permissions applied', [
                     'user_id' => $user->id,
-                    'role'    => $roleName,
-                    'perms'   => $defaults->pluck('name')->toArray(),
+                    'role' => $roleName,
+                    'perms' => $defaults,
                 ]);
-            } else {
-                // Only custom permissions changed
-                $permissionObjects = Permission::whereIn('name', $permissionNames)->get();
-                $user->syncPermissions($permissionObjects);
 
-                // Audit: direct permissions synced
-                $afterPerms = $user->permissions()->pluck('name')->values()->all();
-                $this->audit->record(
-                    'user.permissions.synced',
-                    $user,
-                    ['direct_permissions' => $beforePerms],
-                    ['direct_permissions' => $afterPerms],
-                    $this->meta(),
-                    null,
-                    $this->buildPermissionsSyncedDisplay($user, $beforePerms, $afterPerms)
-                );
-
-                Log::info('Custom permissions updated', [
-                    'user_id' => $user->id,
-                    'perms'   => $afterPerms,
-                ]);
+                return;
             }
 
-            app(PermissionRegistrar::class)->forgetCachedPermissions();
+            $permissionIds = $this->permissionIdsForCurrentModuleByNames($moduleId, $permissionNames);
+            $this->syncDirectPermissionsForCurrentModule($user, $permissionIds, $moduleId);
+            $afterPerms = $this->currentModuleDirectPermissionNames($user);
+
+            $this->audit->record(
+                'user.permissions.synced',
+                $user,
+                ['direct_permissions' => $beforePerms],
+                ['direct_permissions' => $afterPerms],
+                $this->meta(),
+                null,
+                $this->buildPermissionsSyncedDisplay($user, $beforePerms, $afterPerms)
+            );
+
+            Log::info('Custom permissions updated', [
+                'user_id' => $user->id,
+                'perms' => $afterPerms,
+            ]);
         });
     }
 
     public function ensureDefaultRole(User $user, string $defaultRole = 'User'): void
     {
-        if ($user->roles()->doesntExist()) {
-            $role = Role::firstOrCreate(['name' => $defaultRole, 'guard_name' => 'web']);
-            $user->assignRole($role);
+        $moduleId = $this->requireModuleId();
 
-            $this->audit->record(
-                'user.role.assigned_default',
-                $user,
-                ['role' => null],
-                ['role' => $defaultRole],
-                $this->meta(),
-                null,
-                $this->buildRoleAssignedDisplay($user, $defaultRole)
-            );
-
-            Log::info('Default role assigned', ['user_id' => $user->id, 'role' => $defaultRole]);
+        if ($this->currentRoleName($user) !== null) {
+            return;
         }
+
+        $role = Role::query()->firstOrCreate([
+            'module_id' => $moduleId,
+            'name' => $defaultRole,
+            'guard_name' => 'web',
+        ]);
+
+        $this->roleAssignments->assign($user, $role);
+
+        $this->audit->record(
+            'user.role.assigned_default',
+            $user,
+            ['role' => null],
+            ['role' => $defaultRole],
+            $this->meta(),
+            null,
+            $this->buildRoleAssignedDisplay($user, $defaultRole)
+        );
+
+        Log::info('Default role assigned', ['user_id' => $user->id, 'role' => $defaultRole]);
     }
 
     /** Soft delete the user (via repository). */
@@ -139,7 +161,7 @@ class UserAccessService implements UserAccessServiceInterface
     {
         $snapshot = $user->only(['id', 'username', 'email', 'user_type', 'is_active']);
 
-        $this->users->delete($user); // <— repo does soft delete
+        $this->users->delete($user);
 
         $this->audit->record(
             'user.deleted',
@@ -153,7 +175,7 @@ class UserAccessService implements UserAccessServiceInterface
 
         Log::info('User soft-deleted', [
             'deleted_by' => auth()->id(),
-            'user_id'    => $user->id,
+            'user_id' => $user->id,
         ]);
     }
 
@@ -199,26 +221,48 @@ class UserAccessService implements UserAccessServiceInterface
         );
 
         Log::info('User status updated', [
-            'user_id'   => $user->id,
+            'user_id' => $user->id,
             'is_active' => $isActive,
         ]);
     }
 
     public function getEditData(User $user): array
     {
-        $roles = Role::with('permissions:id,name,page')->get();
-        $permissions = Permission::all()->groupBy('page');
+        $moduleId = $this->requireModuleId();
 
-        $userRole = $user->roles()->first();
+        $roles = Role::query()
+            ->where('module_id', $moduleId)
+            ->where('guard_name', 'web')
+            ->whereNull('deleted_at')
+            ->with(['permissions' => function ($query) use ($moduleId) {
+                $query->where('permissions.module_id', $moduleId)
+                    ->select('permissions.id', 'permissions.name', 'permissions.page');
+            }])
+            ->orderBy('name')
+            ->get();
 
-        $userPermissions = $user->permissions->groupBy('page')->map(function ($perPage) {
-            return $perPage->mapToGroups(function ($permission) {
-                $parts = explode(' ', $permission->name);
-                $action = strtolower(array_shift($parts));  // "view", "modify", ...
-                $resource = implode(' ', $parts);
-                return [$resource => [$action]];
-            })->map(fn ($actions) => $actions->flatten()->unique()->values()->all());
-        });
+        $permissions = Permission::query()
+            ->where('module_id', $moduleId)
+            ->where('guard_name', 'web')
+            ->whereNull('deleted_at')
+            ->orderBy('page')
+            ->orderBy('name')
+            ->get()
+            ->groupBy('page');
+
+        $userRole = $this->currentRole($user);
+
+        $userPermissions = $this->currentModuleDirectPermissions($user)
+            ->groupBy('page')
+            ->map(function ($perPage) {
+                return $perPage->mapToGroups(function (Permission $permission) {
+                    $parts = explode(' ', $permission->name);
+                    $action = strtolower(array_shift($parts));
+                    $resource = implode(' ', $parts);
+
+                    return [$resource => [$action]];
+                })->map(fn ($actions) => $actions->flatten()->unique()->values()->all());
+            });
 
         return compact('user', 'roles', 'permissions', 'userPermissions', 'userRole');
     }
@@ -229,22 +273,20 @@ class UserAccessService implements UserAccessServiceInterface
      */
     public function syncNestedPermissions(User $user, array $nested, ?string $roleName = null): int
     {
+        $moduleId = $this->requireModuleId();
         $actor = auth()->user();
+
         if (! $actor || ! $actor->hasRole('Administrator')) {
             abort(403, 'Only administrators may manage user roles and permissions.');
         }
 
-        return DB::transaction(function () use ($user, $nested, $roleName) {
-            // Snapshot before
-            $beforeRole  = $user->roles()->pluck('name')->first();
-            $beforePerms = $user->permissions()->pluck('name')->values()->all();
+        return DB::transaction(function () use ($user, $nested, $roleName, $moduleId) {
+            $beforeRole = $this->currentRoleName($user);
+            $beforePerms = $this->currentModuleDirectPermissionNames($user);
 
-            // 0) Role reset (optional)
             if ($roleName) {
-                $user->syncRoles([]);
-                $role = Role::where('name', $roleName)->firstOrFail();
-                $user->assignRole($role);
-                $user->syncPermissions($role->permissions);
+                $role = $this->resolveRoleForCurrentModule($moduleId, $roleName);
+                $this->roleAssignments->sync($user, [$role]);
 
                 $this->audit->record(
                     'user.role.changed',
@@ -257,16 +299,14 @@ class UserAccessService implements UserAccessServiceInterface
                 );
 
                 Log::info('perm.update: role reset to defaults', [
-                    'user_id'  => $user->id,
-                    'role'     => $roleName,
-                    'defaults' => $role->permissions()->pluck('name', 'id')->take(20),
+                    'user_id' => $user->id,
+                    'role' => $roleName,
+                    'defaults' => array_slice($this->permissionNamesForRole($role, $moduleId), 0, 20),
                 ]);
             }
 
-            // 1) No nested payload → clear directs
             if (empty($nested)) {
-                $user->syncPermissions([]);
-                app(PermissionRegistrar::class)->forgetCachedPermissions();
+                $this->syncDirectPermissionsForCurrentModule($user, [], $moduleId);
 
                 $this->audit->record(
                     'user.permissions.synced',
@@ -279,33 +319,37 @@ class UserAccessService implements UserAccessServiceInterface
                 );
 
                 Log::info('perm.update: cleared all direct permissions', ['user_id' => $user->id]);
+
                 return 0;
             }
 
-            // 2) Build dictionary [page][resource][action] => id
             $pagesRequested = array_slice(array_keys($nested), 0, 50);
-            $pool = Permission::whereIn('page', $pagesRequested)->get();
+            $pool = Permission::query()
+                ->where('module_id', $moduleId)
+                ->where('guard_name', 'web')
+                ->whereNull('deleted_at')
+                ->whereIn('page', $pagesRequested)
+                ->get();
 
             Log::info('perm.update: pool summary', [
-                'user_id'      => $user->id,
-                'pages_req'    => $pagesRequested,
-                'pool_count'   => $pool->count(),
+                'user_id' => $user->id,
+                'pages_req' => $pagesRequested,
+                'pool_count' => $pool->count(),
                 'sample_names' => $pool->pluck('name')->take(20),
             ]);
 
             $dict = [];
-            foreach ($pool as $p) {
-                [$actionRaw, $resourceRaw] = explode(' ', $p->name, 2);
-                $page     = strtolower(trim((string) $p->page));
-                $action   = $this->normalizeAction($actionRaw ?? '');
+            foreach ($pool as $permission) {
+                [$actionRaw, $resourceRaw] = explode(' ', $permission->name, 2);
+                $page = strtolower(trim((string) $permission->page));
+                $action = $this->normalizeAction($actionRaw ?? '');
                 $resource = strtolower(trim($resourceRaw ?? ''));
-                $dict[$page][$resource][$action] = $p->id;
+                $dict[$page][$resource][$action] = $permission->id;
             }
 
-            // 3) Resolve incoming nested → ids
-            $ids     = [];
-            $found   = [];
-            $misses  = [];
+            $ids = [];
+            $found = [];
+            $misses = [];
 
             foreach ($nested as $page => $resources) {
                 $pKey = strtolower(trim($page));
@@ -313,17 +357,18 @@ class UserAccessService implements UserAccessServiceInterface
                     $rKey = strtolower(trim($resource));
                     foreach ((array) $actions as $action) {
                         $aKey = $this->normalizeAction($action);
-                        $id   = $dict[$pKey][$rKey][$aKey] ?? null;
+                        $id = $dict[$pKey][$rKey][$aKey] ?? null;
 
                         if ($id) {
                             $ids[] = $id;
                             if (count($found) < 25) {
-                                $found[] = compact('pKey','rKey','aKey','id');
+                                $found[] = compact('pKey', 'rKey', 'aKey', 'id');
                             }
-                        } else {
-                            if (count($misses) < 25) {
-                                $misses[] = compact('pKey','rKey','aKey');
-                            }
+                            continue;
+                        }
+
+                        if (count($misses) < 25) {
+                            $misses[] = compact('pKey', 'rKey', 'aKey');
                         }
                     }
                 }
@@ -331,11 +376,8 @@ class UserAccessService implements UserAccessServiceInterface
 
             $ids = array_values(array_unique($ids));
 
-            // 4) Apply + audit
-            $user->syncPermissions($ids);
-            app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-            $afterPerms = $user->permissions()->pluck('name')->values()->all();
+            $this->syncDirectPermissionsForCurrentModule($user, $ids, $moduleId);
+            $afterPerms = $this->currentModuleDirectPermissionNames($user);
 
             $this->audit->record(
                 'user.permissions.synced',
@@ -345,35 +387,32 @@ class UserAccessService implements UserAccessServiceInterface
                 [
                     ...$this->meta(),
                     'resolve_found_sample' => $found,
-                    'resolve_miss_sample'  => $misses,
+                    'resolve_miss_sample' => $misses,
                 ],
                 'via nested permissions UI',
                 $this->buildPermissionsSyncedDisplay($user, $beforePerms, $afterPerms, $found, $misses)
             );
 
             Log::info('perm.update: mapping result', [
-                'user_id'      => $user->id,
-                'apply_count'  => count($ids),
+                'user_id' => $user->id,
+                'apply_count' => count($ids),
                 'found_sample' => $found,
-                'miss_sample'  => $misses,
+                'miss_sample' => $misses,
             ]);
 
             return count($ids);
         });
     }
 
-
     /** Generate a cryptographically secure alphanumeric string (8 chars). */
     public function resetPasswordToTemporary(User $user): string
     {
-
         $temp = $this->generateAlphaNum(8);
 
         $user->forceFill([
             'password' => Hash::make($temp),
             'must_change_password' => true,
         ])->save();
-
 
         $this->audit->record(
             'user.password.reset',
@@ -387,10 +426,10 @@ class UserAccessService implements UserAccessServiceInterface
 
         Log::info('password.reset: admin initiated temp password', [
             'user_id' => $user->id,
-            'by'      => auth()->id(),
+            'by' => auth()->id(),
         ]);
 
-        return $temp; // do NOT log or store the plaintext
+        return $temp;
     }
 
     /* ----------------------------- Helpers ------------------------------ */
@@ -401,12 +440,12 @@ class UserAccessService implements UserAccessServiceInterface
         $key = strtolower(trim($action));
         $aliases = [
             'modify' => 'edit',
-            'edit'   => 'edit',
+            'edit' => 'edit',
             'update' => 'update',
-            'view'   => 'view',
-            'show'   => 'view',
+            'view' => 'view',
+            'show' => 'view',
             'create' => 'create',
-            'add'    => 'create',
+            'add' => 'create',
             'delete' => 'delete',
             'remove' => 'delete',
             'export' => 'export',
@@ -432,7 +471,7 @@ class UserAccessService implements UserAccessServiceInterface
     ): array {
         $added = array_values(array_diff($afterPerms, $beforePerms));
         $removed = array_values(array_diff($beforePerms, $afterPerms));
-        $currentRole = $user->roles()->pluck('name')->first();
+        $currentRole = $this->currentRoleName($user);
 
         $systemNotes = [];
         if ($resolvedSelections !== []) {
@@ -572,7 +611,7 @@ class UserAccessService implements UserAccessServiceInterface
                 ],
             ],
             'request_details' => [
-                'Current Role' => $user->roles()->pluck('name')->first() ?: 'No Role Assigned',
+                'Current Role' => $this->currentRoleName($user) ?: 'No Role Assigned',
             ],
         ];
     }
@@ -595,7 +634,7 @@ class UserAccessService implements UserAccessServiceInterface
                 ],
             ],
             'request_details' => [
-                'Current Role' => $user->roles()->pluck('name')->first() ?: 'No Role Assigned',
+                'Current Role' => $this->currentRoleName($user) ?: 'No Role Assigned',
             ],
         ];
     }
@@ -664,9 +703,9 @@ class UserAccessService implements UserAccessServiceInterface
      */
     private function generateAlphaNum(int $length = 8): string
     {
-        $upper   = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-        $lower   = 'abcdefghijkmnopqrstuvwxyz';
-        $digits  = '23456789';
+        $upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $lower = 'abcdefghijkmnopqrstuvwxyz';
+        $digits = '23456789';
         $alphabet = $upper . $lower . $digits;
 
         $max = strlen($alphabet) - 1;
@@ -676,20 +715,175 @@ class UserAccessService implements UserAccessServiceInterface
             $buf .= $alphabet[random_int(0, $max)];
         }
 
-        // enforce classes
         $len = $length - 1;
-        if (!preg_match('/[A-Z]/', $buf)) {
+        if (! preg_match('/[A-Z]/', $buf)) {
             $buf[random_int(0, $len)] = $upper[random_int(0, strlen($upper) - 1)];
         }
-        if (!preg_match('/[a-z]/', $buf)) {
+        if (! preg_match('/[a-z]/', $buf)) {
             $buf[random_int(0, $len)] = $lower[random_int(0, strlen($lower) - 1)];
         }
-        if (!preg_match('/\d/', $buf)) {
+        if (! preg_match('/\d/', $buf)) {
             $buf[random_int(0, $len)] = $digits[random_int(0, strlen($digits) - 1)];
         }
 
         return $buf;
     }
+
+    private function requireModuleId(): string
+    {
+        $moduleId = $this->context->moduleId();
+
+        if (! $moduleId) {
+            throw new \RuntimeException('Current module context is not available.');
+        }
+
+        return $moduleId;
+    }
+
+    private function currentRole(User $user): ?Role
+    {
+        $role = $this->roleAssignments->roles($user)->first();
+
+        return $role instanceof Role ? $role : null;
+    }
+
+    private function currentRoleName(User $user): ?string
+    {
+        return $this->currentRole($user)?->name;
+    }
+
+    private function currentModuleDirectPermissions(User $user)
+    {
+        $moduleId = $this->requireModuleId();
+
+        return Permission::query()
+            ->select('permissions.*')
+            ->join('model_has_permissions', function ($join) use ($user, $moduleId) {
+                $join->on('model_has_permissions.permission_id', '=', 'permissions.id')
+                    ->where('model_has_permissions.module_id', '=', $moduleId)
+                    ->where('model_has_permissions.model_type', '=', User::class)
+                    ->where('model_has_permissions.model_id', '=', $user->id);
+            })
+            ->where('permissions.module_id', $moduleId)
+            ->where('permissions.guard_name', 'web')
+            ->whereNull('permissions.deleted_at')
+            ->orderBy('permissions.page')
+            ->orderBy('permissions.name')
+            ->get();
+    }
+
+    private function currentModuleDirectPermissionNames(User $user): array
+    {
+        return $this->currentModuleDirectPermissions($user)
+            ->pluck('name')
+            ->values()
+            ->all();
+    }
+
+    private function permissionIdsForCurrentModuleByNames(string $moduleId, array $permissionNames): array
+    {
+        $names = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $permissionName): string => trim((string) $permissionName), $permissionNames)
+        )));
+
+        if ($names === []) {
+            return [];
+        }
+
+        $permissionIds = Permission::query()
+            ->where('module_id', $moduleId)
+            ->where('guard_name', 'web')
+            ->whereNull('deleted_at')
+            ->whereIn('name', $names)
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        if (count($permissionIds) !== count($names)) {
+            throw ValidationException::withMessages([
+                'permissions' => 'Selected permissions must belong to the current module.',
+            ]);
+        }
+
+        return $permissionIds;
+    }
+
+    private function syncDirectPermissionsForCurrentModule(User $user, array $permissionIds, string $moduleId): void
+    {
+        $permissionIds = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $permissionId): string => trim((string) $permissionId), $permissionIds)
+        )));
+
+        $existingPermissions = ModelHasPermission::query()
+            ->where('module_id', $moduleId)
+            ->where('model_type', User::class)
+            ->where('model_id', $user->id);
+
+        if ($permissionIds === []) {
+            $existingPermissions->delete();
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+            return;
+        }
+
+        $validPermissionIds = Permission::query()
+            ->where('module_id', $moduleId)
+            ->where('guard_name', 'web')
+            ->whereNull('deleted_at')
+            ->whereIn('id', $permissionIds)
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        if (count($validPermissionIds) !== count($permissionIds)) {
+            throw ValidationException::withMessages([
+                'permissions' => 'Selected permissions must belong to the current module.',
+            ]);
+        }
+
+        $existingPermissions
+            ->whereNotIn('permission_id', $validPermissionIds)
+            ->delete();
+
+        foreach ($validPermissionIds as $permissionId) {
+            ModelHasPermission::query()->updateOrCreate(
+                [
+                    'module_id' => $moduleId,
+                    'permission_id' => $permissionId,
+                    'model_type' => User::class,
+                    'model_id' => $user->id,
+                ],
+                []
+            );
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function resolveRoleForCurrentModule(string $moduleId, string $roleName): Role
+    {
+        $role = Role::query()
+            ->where('module_id', $moduleId)
+            ->where('guard_name', 'web')
+            ->whereNull('deleted_at')
+            ->where('name', trim($roleName))
+            ->first();
+
+        if (! $role) {
+            throw ValidationException::withMessages([
+                'role' => 'Selected role must belong to the current module.',
+            ]);
+        }
+
+        return $role;
+    }
+
+    private function permissionNamesForRole(Role $role, string $moduleId): array
+    {
+        return $role->permissions()
+            ->where('permissions.module_id', $moduleId)
+            ->pluck('permissions.name')
+            ->values()
+            ->all();
+    }
 }
-
-

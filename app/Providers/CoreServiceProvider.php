@@ -17,6 +17,10 @@ use App\Builders\Contracts\User\UserDatatableRowBuilderInterface; //datatable
 use App\Builders\User\UserDatatableRowBuilder; //datatable
 use App\Builders\Contracts\User\UserDatatableActionBuilderInterface; //datatable actions
 use App\Builders\User\UserDatatableActionBuilder; //datatable actions
+use App\Builders\Contracts\Access\RoleAuditDisplayBuilderInterface;
+use App\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
+use App\Builders\Access\RoleAuditDisplayBuilder;
+use App\Builders\Access\PermissionAuditDisplayBuilder;
 
 /*
 |--------------------------------------------------------------------------
@@ -107,8 +111,11 @@ use App\Services\Access\RoleService;
 use App\Services\Access\UserAccessService;
 use App\Services\Access\UserProfileService;
 
-//Builders 
+//Role Services
 
+//Builders 
+use App\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
+use App\Services\Access\RoleAssignments\ModuleRoleAssignmentService;
 
 /*
 |--------------------------------------------------------------------------
@@ -230,12 +237,15 @@ class CoreServiceProvider extends ServiceProvider
             // Authentication / Register
             RegistrationRoleOptionsBuilderInterface::class => RegistrationRoleOptionsBuilder::class,
 
+            // Access Control
+            RoleAuditDisplayBuilderInterface::class => RoleAuditDisplayBuilder::class,
+            PermissionAuditDisplayBuilderInterface::class => PermissionAuditDisplayBuilder::class,
+
             // Users
             UserDatatableRowBuilderInterface::class => UserDatatableRowBuilder::class,
             UserDatatableActionBuilderInterface::class => UserDatatableActionBuilder::class,
             //Tasks
             UserTaskReassignOptionBuilderInterface::class => UserTaskReassignOptionBuilder::class,
-            
         ]);
     }
 
@@ -260,6 +270,7 @@ class CoreServiceProvider extends ServiceProvider
             LoginLogServiceInterface::class => LoginLogService::class,
             UserProfileServiceInterface::class => UserProfileService::class,
             ModuleAccessServiceInterface::class => ModuleAccessService::class,
+            ModuleRoleAssignmentServiceInterface::class => ModuleRoleAssignmentService::class,
 
             // Notifications
             NotificationServiceInterface::class => NotificationService::class,

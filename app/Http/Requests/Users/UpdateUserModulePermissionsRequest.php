@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Users;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Support\CurrentContext;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 
@@ -68,10 +69,21 @@ class UpdateUserModulePermissionsRequest extends BaseFormRequest
 
     public function rules(): array
     {
+        $moduleId = $this->currentModuleId();
+
         return [
             'role' => [
                 'sometimes', 'nullable', 'string',
-                Rule::exists('roles', 'name')->where('guard_name', 'web'),
+                Rule::exists('roles', 'name')->where(function ($query) use ($moduleId) {
+                    $query->where('guard_name', 'web')
+                        ->whereNull('deleted_at');
+
+                    if ($moduleId) {
+                        $query->where('module_id', $moduleId);
+                    } else {
+                        $query->whereRaw('1 = 0');
+                    }
+                }),
             ],
 
             'permissions'       => ['sometimes', 'array', 'max:50'],
@@ -79,5 +91,10 @@ class UpdateUserModulePermissionsRequest extends BaseFormRequest
             'permissions.*.*'   => ['array', 'max:50'], // resource
             'permissions.*.*.*' => ['string', 'in:view,create,update,edit,modify,delete,export'],
         ];
+    }
+
+    private function currentModuleId(): ?string
+    {
+        return app(CurrentContext::class)->moduleId();
     }
 }

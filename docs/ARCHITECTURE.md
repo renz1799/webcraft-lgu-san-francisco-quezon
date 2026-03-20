@@ -651,16 +651,18 @@ roles/permissions decide what user can do inside module
 
 # Dependency Injection Pattern
 
-Bindings centralized in:
+Most application bindings are centralized in:
 
-app/Providers/RepositoryServiceProvider.php
+app/Providers/CoreServiceProvider.php
+
+Platform-wide shared container services such as `CurrentContext` may be registered in:
+
+app/Providers/AppServiceProvider.php
 
 Use interface-based injection for:
 
 controllers
 services
-
-Resolvers such as `CurrentContext` may be registered as shared container services when they represent platform-wide runtime context.
 
 Avoid concrete coupling in upper layers.
 

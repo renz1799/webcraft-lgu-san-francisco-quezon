@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Permissions;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Support\CurrentContext;
 use Illuminate\Validation\Rule;
 
 class StorePermissionRequest extends BaseFormRequest
@@ -11,17 +12,23 @@ class StorePermissionRequest extends BaseFormRequest
     {
         $u = $this->user();
 
-        return $u && $u->hasAnyRole(['Administrator', 'admin']);
+        return $u
+            && $u->hasAnyRole(['Administrator', 'admin'])
+            && $this->currentModuleId() !== null;
     }
 
     public function rules(): array
     {
+        $moduleId = $this->currentModuleId() ?? '__missing_module__';
+
         return [
             'name' => [
                 'bail', 'required', 'string', 'max:255',
                 'regex:/^(view|modify|delete)\s+.+$/i',
                 Rule::unique('permissions', 'name')
-                    ->where('guard_name', $this->input('guard_name', 'web')),
+                    ->where('module_id', $moduleId)
+                    ->where('guard_name', $this->input('guard_name', 'web'))
+                    ->whereNull('deleted_at'),
             ],
             'page' => ['bail', 'required', 'string', 'max:255'],
             'guard_name' => ['bail', 'sometimes', 'in:web,api'],
@@ -57,5 +64,10 @@ class StorePermissionRequest extends BaseFormRequest
         return [
             'name.regex' => 'Name must start with "view", "modify", or "delete", e.g. "view Login Logs".',
         ];
+    }
+
+    private function currentModuleId(): ?string
+    {
+        return app(CurrentContext::class)->moduleId();
     }
 }

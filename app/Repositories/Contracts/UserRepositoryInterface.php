@@ -22,8 +22,6 @@ interface UserRepositoryInterface
 
     public function paginate(int $perPage = 30): LengthAwarePaginator;
 
-    public function assignRoleAndSyncPermissions(User $user, string $roleName): void;
-
     public function datatable(array $filters, int $page = 1, int $size = 15): array;
 
     public function listForTaskReassign(): array;

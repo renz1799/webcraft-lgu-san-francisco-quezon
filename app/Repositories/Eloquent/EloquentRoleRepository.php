@@ -11,22 +11,22 @@ use Spatie\Permission\PermissionRegistrar;
 
 class EloquentRoleRepository implements RoleRepositoryInterface
 {
-    public function datatable(array $filters, int $page = 1, int $size = 15): array
+    public function datatable(string $moduleId, array $filters, int $page = 1, int $size = 15): array
     {
         $page = max(1, (int) $page);
         $size = max(1, min((int) $size, 100));
         $archivedMode = $this->resolveArchivedMode($filters);
 
-        $recordsTotal = (clone $this->buildBaseDatatableQuery($archivedMode))->count();
+        $recordsTotal = (clone $this->buildBaseDatatableQuery($moduleId, $archivedMode))->count();
 
-        $filteredForCount = $this->buildFilteredDatatableQuery($filters);
+        $filteredForCount = $this->buildFilteredDatatableQuery($moduleId, $filters);
         $recordsFiltered = (clone $filteredForCount)->count();
 
         $lastPage = $recordsFiltered > 0 ? (int) ceil($recordsFiltered / $size) : 1;
         $page = min($page, $lastPage);
 
         $rows = $this->applyDatatableSort(
-            $this->buildFilteredDatatableQuery($filters),
+            $this->buildFilteredDatatableQuery($moduleId, $filters),
             $filters
         )
             ->forPage($page, $size)
@@ -44,9 +44,10 @@ class EloquentRoleRepository implements RoleRepositoryInterface
         ];
     }
 
-    public function create(array $data): Role
+    public function create(string $moduleId, array $data): Role
     {
         $role = Role::create([
+            'module_id' => $moduleId,
             'name' => trim((string) $data['name']),
             'guard_name' => $data['guard_name'] ?? 'web',
         ]);
@@ -67,14 +68,16 @@ class EloquentRoleRepository implements RoleRepositoryInterface
         return $role->refresh();
     }
 
-    public function syncPermissions(Role $role, array $permissionIds): void
+    public function syncPermissions(Role $role, string $moduleId, array $permissionIds): void
     {
         if (empty($permissionIds)) {
             $role->syncPermissions([]);
         } else {
             $perms = Permission::query()
+                ->where('module_id', $moduleId)
                 ->whereIn('id', $permissionIds)
                 ->where('guard_name', 'web')
+                ->whereNull('deleted_at')
                 ->get();
 
             $role->syncPermissions($perms);
@@ -90,9 +93,12 @@ class EloquentRoleRepository implements RoleRepositoryInterface
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
-    public function findByIdWithTrashed(string $id): ?Role
+    public function findByIdWithTrashed(string $moduleId, string $id): ?Role
     {
-        return Role::withTrashed()->find($id);
+        return Role::withTrashed()
+            ->where('module_id', $moduleId)
+            ->whereKey($id)
+            ->first();
     }
 
     public function restore(Role $role): bool
@@ -110,12 +116,20 @@ class EloquentRoleRepository implements RoleRepositoryInterface
         return $ok;
     }
 
-    private function buildBaseDatatableQuery(string $archivedMode = 'active'): Builder
+    private function buildBaseDatatableQuery(string $moduleId, string $archivedMode = 'active'): Builder
     {
         $q = Role::query()
-            ->with(['permissions:id,name,page'])
-            ->withCount('permissions')
-            ->select(['id', 'name', 'guard_name', 'created_at', 'deleted_at']);
+            ->where('module_id', $moduleId)
+            ->select(['id', 'name', 'guard_name', 'created_at', 'deleted_at'])
+            ->with([
+                'permissions' => fn ($query) => $query
+                    ->where('permissions.module_id', $moduleId)
+                    ->select('permissions.id', 'permissions.name', 'permissions.page'),
+            ])
+            ->withCount([
+                'permissions as permissions_count' => fn ($query) => $query
+                    ->where('permissions.module_id', $moduleId),
+            ]);
 
         if ($archivedMode === 'all') {
             $q->withTrashed();
@@ -126,17 +140,21 @@ class EloquentRoleRepository implements RoleRepositoryInterface
         return $q;
     }
 
-    private function buildFilteredDatatableQuery(array $filters): Builder
+    private function buildFilteredDatatableQuery(string $moduleId, array $filters): Builder
     {
-        $q = $this->buildBaseDatatableQuery($this->resolveArchivedMode($filters));
+        $q = $this->buildBaseDatatableQuery($moduleId, $this->resolveArchivedMode($filters));
 
         $search = trim((string) ($filters['search'] ?? $filters['q'] ?? ''));
         if ($search !== '') {
-            $q->where(function (Builder $sub) use ($search) {
+            $q->where(function (Builder $sub) use ($moduleId, $search) {
                 $sub->where('name', 'like', "%{$search}%")
-                    ->orWhereHas('permissions', function (Builder $pq) use ($search) {
-                        $pq->where('name', 'like', "%{$search}%")
-                            ->orWhere('page', 'like', "%{$search}%");
+                    ->orWhereHas('permissions', function (Builder $pq) use ($moduleId, $search) {
+                        $pq->where('permissions.module_id', $moduleId)
+                            ->where(function (Builder $permissionSearch) use ($search) {
+                                $permissionSearch
+                                    ->where('permissions.name', 'like', "%{$search}%")
+                                    ->orWhere('permissions.page', 'like', "%{$search}%");
+                            });
                     });
             });
         }
@@ -148,9 +166,13 @@ class EloquentRoleRepository implements RoleRepositoryInterface
 
         $permission = trim((string) ($filters['permission'] ?? ''));
         if ($permission !== '') {
-            $q->whereHas('permissions', function (Builder $pq) use ($permission) {
-                $pq->where('name', 'like', "%{$permission}%")
-                    ->orWhere('page', 'like', "%{$permission}%");
+            $q->whereHas('permissions', function (Builder $pq) use ($moduleId, $permission) {
+                $pq->where('permissions.module_id', $moduleId)
+                    ->where(function (Builder $permissionSearch) use ($permission) {
+                        $permissionSearch
+                            ->where('permissions.name', 'like', "%{$permission}%")
+                            ->orWhere('permissions.page', 'like', "%{$permission}%");
+                    });
             });
         }
 

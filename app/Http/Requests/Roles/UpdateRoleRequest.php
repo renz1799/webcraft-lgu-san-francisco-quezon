@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Roles;
 
+use App\Support\CurrentContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,20 +11,40 @@ class UpdateRoleRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
-        return $user && ($user->hasRole('Administrator'));
+        return $user
+            && $user->hasRole('Administrator')
+            && $this->currentModuleId() !== null;
     }
 
     public function rules(): array
     {
         $role = $this->route('role'); // implicit model binding
+        $moduleId = $this->currentModuleId() ?? '__missing_module__';
 
         return [
             'name'          => [
-                'required','string','max:255',
-                Rule::unique('roles','name')->ignore($role->id, 'id'),
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('roles', 'name')
+                    ->ignore($role->id, 'id')
+                    ->where('module_id', $moduleId)
+                    ->where('guard_name', 'web')
+                    ->whereNull('deleted_at'),
             ],
             'permissions'   => ['array'],
-            'permissions.*' => ['uuid','exists:permissions,id'],
+            'permissions.*' => [
+                'uuid',
+                Rule::exists('permissions', 'id')
+                    ->where('module_id', $moduleId)
+                    ->where('guard_name', 'web')
+                    ->whereNull('deleted_at'),
+            ],
         ];
+    }
+
+    private function currentModuleId(): ?string
+    {
+        return app(CurrentContext::class)->moduleId();
     }
 }

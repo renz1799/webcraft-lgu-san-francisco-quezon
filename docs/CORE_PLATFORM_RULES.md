@@ -168,7 +168,7 @@ Context should come from:
 
 configuration
 route context
-CurrentContext resolver
+CurrentContext
 
 Context must define:
 

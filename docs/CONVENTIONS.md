@@ -122,7 +122,7 @@ AuditRecordData
 AuditLogTablePresenter
 NotificationDispatcher
 AuditContextResolver
-CurrentContextResolver
+CurrentContext
 
 ---
 

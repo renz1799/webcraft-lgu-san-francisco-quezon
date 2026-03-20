@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Access\UserAccessService;
-use App\Services\Contracts\AuditLogServiceInterface;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
+use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Support\CurrentContext;
 use Mockery;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -24,12 +26,8 @@ class UserAccessServiceAuditDisplayTest extends TestCase
     {
         $users = Mockery::mock(UserRepositoryInterface::class);
         $audit = Mockery::mock(AuditLogServiceInterface::class);
-
-        $rolesRelation = Mockery::mock(BelongsToMany::class);
-        $rolesRelation->shouldReceive('pluck')
-            ->once()
-            ->with('name')
-            ->andReturn(collect(['Staff']));
+        $context = Mockery::mock(CurrentContext::class);
+        $roleAssignments = Mockery::mock(ModuleRoleAssignmentServiceInterface::class);
 
         $user = Mockery::mock(User::class)->makePartial();
         $user->forceFill([
@@ -38,9 +36,13 @@ class UserAccessServiceAuditDisplayTest extends TestCase
             'email' => 'cordelia52@example.net',
         ]);
         $user->setRelation('profile', (object) ['full_name' => 'Craig Scot Schamberger']);
-        $user->shouldReceive('roles')->andReturn($rolesRelation);
 
-        $service = new UserAccessService($users, $audit);
+        $roleAssignments->shouldReceive('roles')
+            ->once()
+            ->with($user)
+            ->andReturn(collect([new Role(['name' => 'Staff'])]));
+
+        $service = new UserAccessService($users, $audit, $context, $roleAssignments);
 
         $method = new ReflectionMethod($service, 'buildPermissionsSyncedDisplay');
         $method->setAccessible(true);
@@ -73,12 +75,8 @@ class UserAccessServiceAuditDisplayTest extends TestCase
     {
         $users = Mockery::mock(UserRepositoryInterface::class);
         $audit = Mockery::mock(AuditLogServiceInterface::class);
-
-        $rolesRelation = Mockery::mock(BelongsToMany::class);
-        $rolesRelation->shouldReceive('pluck')
-            ->once()
-            ->with('name')
-            ->andReturn(collect(['Administrator']));
+        $context = Mockery::mock(CurrentContext::class);
+        $roleAssignments = Mockery::mock(ModuleRoleAssignmentServiceInterface::class);
 
         $user = Mockery::mock(User::class)->makePartial();
         $user->forceFill([
@@ -87,9 +85,13 @@ class UserAccessServiceAuditDisplayTest extends TestCase
             'email' => 'admin@example.net',
         ]);
         $user->setRelation('profile', (object) ['full_name' => 'System Reta Administrator V']);
-        $user->shouldReceive('roles')->andReturn($rolesRelation);
 
-        $service = new UserAccessService($users, $audit);
+        $roleAssignments->shouldReceive('roles')
+            ->once()
+            ->with($user)
+            ->andReturn(collect([new Role(['name' => 'Administrator'])]));
+
+        $service = new UserAccessService($users, $audit, $context, $roleAssignments);
 
         $roleMethod = new ReflectionMethod($service, 'buildRoleChangedDisplay');
         $roleMethod->setAccessible(true);

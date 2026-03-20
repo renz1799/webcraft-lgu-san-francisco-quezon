@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserModule;
 use App\Models\UserProfile;
+use App\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
 use App\Support\CurrentContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ class UserSeeder extends Seeder
     {
         DB::transaction(function () {
             $context = app(CurrentContext::class);
+            $roleAssignments = app(ModuleRoleAssignmentServiceInterface::class);
 
             $moduleId = $context->moduleId();
             $departmentId = $context->defaultDepartmentId();
@@ -76,6 +78,8 @@ class UserSeeder extends Seeder
                 ]
             );
 
+            $roleAssignments->assign($admin, $adminRole);
+
             $staffUsers = User::factory()
                 ->count(5)
                 ->mustChangePassword()
@@ -100,6 +104,8 @@ class UserSeeder extends Seeder
                         'revoked_at' => null,
                     ]
                 );
+
+                $roleAssignments->assign($staff, $staffRole);
             }
         });
     }

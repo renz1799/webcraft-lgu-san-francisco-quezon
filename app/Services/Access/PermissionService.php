@@ -2,10 +2,13 @@
 
 namespace App\Services\Access;
 
+use App\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
 use App\Models\Permission;
 use App\Repositories\Contracts\PermissionRepositoryInterface;
 use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use App\Services\Contracts\Access\PermissionServiceInterface;
+use App\Support\CurrentContext;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 
@@ -14,35 +17,39 @@ class PermissionService implements PermissionServiceInterface
     public function __construct(
         private readonly PermissionRepositoryInterface $repo,
         private readonly AuditLogServiceInterface $audit,
+        private readonly CurrentContext $context,
+        private readonly PermissionAuditDisplayBuilderInterface $auditDisplayBuilder,
     ) {}
 
     public function datatable(array $params): array
     {
+        $moduleId = $this->requireModuleId();
         $page = max(1, (int) ($params['page'] ?? 1));
         $size = max(1, min((int) ($params['size'] ?? 15), 100));
 
         $filters = $params;
         unset($filters['page'], $filters['size']);
 
-        return $this->repo->datatable($filters, $page, $size);
+        return $this->repo->datatable($moduleId, $filters, $page, $size);
     }
 
     public function create(array $data): Permission
     {
+        $moduleId = $this->requireModuleId();
         $payload = [
             'guard_name' => $data['guard_name'] ?? 'web',
             'name' => trim($data['name']),
             'page' => trim($data['page']),
         ];
 
-        $permission = $this->repo->create($payload);
+        $permission = $this->repo->create($moduleId, $payload);
 
         $this->safeAudit(
             action: 'permission.created',
             permission: $permission,
             old: null,
             new: Arr::only($permission->toArray(), ['id', 'name', 'page', 'guard_name']),
-            display: $this->buildPermissionCreatedDisplay($permission)
+            display: $this->auditDisplayBuilder->buildCreatedDisplay($permission)
         );
 
         return $permission;
@@ -50,6 +57,8 @@ class PermissionService implements PermissionServiceInterface
 
     public function update(Permission $permission, array $data): Permission
     {
+        $moduleId = $this->requireModuleId();
+        $this->ensurePermissionBelongsToCurrentModule($permission, $moduleId);
         $before = Arr::only($permission->toArray(), ['id', 'name', 'page', 'guard_name']);
 
         $updated = $this->repo->update($permission, [
@@ -65,7 +74,7 @@ class PermissionService implements PermissionServiceInterface
             permission: $updated,
             old: $before,
             new: $after,
-            display: $this->buildPermissionUpdatedDisplay($before, $after)
+            display: $this->auditDisplayBuilder->buildUpdatedDisplay($before, $after)
         );
 
         return $updated;
@@ -73,6 +82,8 @@ class PermissionService implements PermissionServiceInterface
 
     public function delete(Permission $permission): void
     {
+        $moduleId = $this->requireModuleId();
+        $this->ensurePermissionBelongsToCurrentModule($permission, $moduleId);
         $snapshot = Arr::only($permission->toArray(), ['id', 'name', 'page', 'guard_name']);
 
         $this->repo->delete($permission);
@@ -82,19 +93,22 @@ class PermissionService implements PermissionServiceInterface
             permission: $permission,
             old: $snapshot,
             new: ['deleted_at' => now()->toDateTimeString()],
-            display: $this->buildPermissionDeletedDisplay($permission)
+            display: $this->auditDisplayBuilder->buildDeletedDisplay($permission)
         );
     }
 
     public function restorePermission(string|Permission $permission): bool
     {
+        $moduleId = $this->requireModuleId();
         $model = $permission instanceof Permission
             ? $permission
-            : $this->repo->findByIdWithTrashed($permission);
+            : $this->repo->findByIdWithTrashed($moduleId, $permission);
 
         if (! $model) {
             return false;
         }
+
+        $this->ensurePermissionBelongsToCurrentModule($model, $moduleId);
 
         $deletedAt = $model->deleted_at?->toDateTimeString();
         $ok = $this->repo->restore($model);
@@ -110,7 +124,7 @@ class PermissionService implements PermissionServiceInterface
             permission: $model,
             old: ['deleted_at' => $deletedAt],
             new: ['restored_at' => now()->toDateTimeString()],
-            display: $this->buildPermissionRestoredDisplay($model)
+            display: $this->auditDisplayBuilder->buildRestoredDisplay($model)
         );
 
         return true;
@@ -120,13 +134,11 @@ class PermissionService implements PermissionServiceInterface
     {
         try {
             $this->audit->record(
-                $action,
-                $permission,
-                $old ?? [],
-                $new ?? [],
-                $this->meta(),
-                null,
-                $display
+                action: $action,
+                subject: $permission,
+                changesOld: $old ?? [],
+                changesNew: $new ?? [],
+                display: $display
             );
         } catch (\Throwable $e) {
             Log::warning('audit.record_failed', [
@@ -137,134 +149,23 @@ class PermissionService implements PermissionServiceInterface
         }
     }
 
-    private function meta(): array
+    private function requireModuleId(): string
     {
-        return [
-            'ip' => request()->ip(),
-            'ua' => request()->userAgent(),
-        ];
+        $moduleId = $this->context->moduleId();
+
+        if (! $moduleId) {
+            throw new \RuntimeException('Current module context is not available.');
+        }
+
+        return $moduleId;
     }
 
-    private function buildPermissionCreatedDisplay(Permission $permission): array
+    private function ensurePermissionBelongsToCurrentModule(Permission $permission, string $moduleId): void
     {
-        return [
-            'summary' => 'Permission created: ' . $this->permissionDisplayName($permission->name),
-            'subject_label' => $this->permissionDisplayName($permission->name),
-            'sections' => [
-                [
-                    'title' => 'Permission Details',
-                    'items' => [
-                        [
-                            'label' => 'Permission Name',
-                            'before' => 'None',
-                            'after' => $this->permissionDisplayName($permission->name),
-                        ],
-                        [
-                            'label' => 'Page',
-                            'before' => 'None',
-                            'after' => $this->pageDisplayName($permission->page),
-                        ],
-                    ],
-                ],
-            ],
-            'request_details' => [
-                'Guard' => $permission->guard_name,
-            ],
-        ];
-    }
+        if ($permission->module_id === $moduleId) {
+            return;
+        }
 
-    private function buildPermissionUpdatedDisplay(array $before, array $after): array
-    {
-        return [
-            'summary' => 'Permission updated: ' . $this->permissionDisplayName($after['name'] ?? $before['name'] ?? 'Permission'),
-            'subject_label' => $this->permissionDisplayName($after['name'] ?? $before['name'] ?? 'Permission'),
-            'sections' => [
-                [
-                    'title' => 'Permission Details',
-                    'items' => [
-                        [
-                            'label' => 'Permission Name',
-                            'before' => $this->permissionDisplayName($before['name'] ?? 'None'),
-                            'after' => $this->permissionDisplayName($after['name'] ?? 'None'),
-                        ],
-                        [
-                            'label' => 'Page',
-                            'before' => $this->pageDisplayName($before['page'] ?? 'None'),
-                            'after' => $this->pageDisplayName($after['page'] ?? 'None'),
-                        ],
-                        [
-                            'label' => 'Guard',
-                            'before' => $before['guard_name'] ?? 'None',
-                            'after' => $after['guard_name'] ?? 'None',
-                        ],
-                    ],
-                ],
-            ],
-        ];
-    }
-
-    private function buildPermissionDeletedDisplay(Permission $permission): array
-    {
-        return [
-            'summary' => 'Permission archived: ' . $this->permissionDisplayName($permission->name),
-            'subject_label' => $this->permissionDisplayName($permission->name),
-            'sections' => [
-                [
-                    'title' => 'Permission Lifecycle',
-                    'items' => [
-                        [
-                            'label' => 'Archive Status',
-                            'before' => 'Active Record',
-                            'after' => 'Archived',
-                        ],
-                    ],
-                ],
-            ],
-            'request_details' => [
-                'Page' => $this->pageDisplayName($permission->page),
-            ],
-        ];
-    }
-
-    private function buildPermissionRestoredDisplay(Permission $permission): array
-    {
-        return [
-            'summary' => 'Permission restored: ' . $this->permissionDisplayName($permission->name),
-            'subject_label' => $this->permissionDisplayName($permission->name),
-            'sections' => [
-                [
-                    'title' => 'Permission Lifecycle',
-                    'items' => [
-                        [
-                            'label' => 'Archive Status',
-                            'before' => 'Archived',
-                            'after' => 'Active Record',
-                        ],
-                    ],
-                ],
-            ],
-            'request_details' => [
-                'Page' => $this->pageDisplayName($permission->page),
-            ],
-        ];
-    }
-
-    private function permissionDisplayName(string $name): string
-    {
-        return str($name)
-            ->replaceMatches('/\s+/', ' ')
-            ->trim()
-            ->title()
-            ->value();
-    }
-
-    private function pageDisplayName(string $page): string
-    {
-        return str($page)
-            ->replaceMatches('/[_\s]+/', ' ')
-            ->trim()
-            ->title()
-            ->value();
+        throw (new ModelNotFoundException())->setModel(Permission::class, [$permission->getKey()]);
     }
 }
-
