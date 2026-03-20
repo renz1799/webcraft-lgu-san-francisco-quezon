@@ -246,9 +246,11 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->name('theme.style.update');
 
     Route::post('/theme/colors', [ThemeController::class, 'updateColors'])
-        ->middleware('role:Administrator')
+        ->middleware('role_or_permission:Administrator|admin')
         ->name('theme.colors.update');
 });
+
+
 
 
 

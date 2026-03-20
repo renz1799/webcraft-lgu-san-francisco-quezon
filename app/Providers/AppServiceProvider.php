@@ -2,84 +2,71 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\ThemePreferencesRepositoryInterface;
 use App\Services\Contracts\Tasks\TaskReadServiceInterface;
-use App\Support\CurrentContext;
 use App\Services\UI\ThemeService;
+use App\Support\CurrentContext;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use App\Repositories\Contracts\ThemePreferencesRepositoryInterface;
-use Illuminate\Support\Facades\Cache;
-
-// ✅ add these imports
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register application services.
-     */
     public function register(): void
     {
-        // ThemeService singleton with cache + repo
         $this->app->singleton(ThemeService::class, function ($app) {
             return new ThemeService(
                 $app->make(CacheRepository::class),
-                $app->make(ThemePreferencesRepositoryInterface::class) // ← add
+                $app->make(ThemePreferencesRepositoryInterface::class),
+                $app->make(CurrentContext::class),
             );
         });
 
-            $this->app->singleton(CurrentContext::class, function () {
+        $this->app->singleton(CurrentContext::class, function () {
             return new CurrentContext();
         });
     }
 
-    /**
-     * Bootstrap application services.
-     */
     public function boot(ThemeService $theme): void
     {
-        /**
-         * ✅ Named rate limiter for login attempts
-         * Keyed by email + IP (better than IP-only, avoids office-wide lockout)
-         */
         RateLimiter::for('login', function (Request $request) {
-            $email = (string) $request->input('email', '');
-            $email = mb_strtolower(trim($email));
-
-            // If email is missing for some reason, fall back to IP-only
+            $email = mb_strtolower(trim((string) $request->input('email', '')));
             $key = $email !== '' ? ($email . '|' . $request->ip()) : $request->ip();
 
             return Limit::perMinute(5)->by($key);
         });
 
-        View::composer('*', function ($view) use ($theme) {
+        View::composer(['layouts.master', 'layouts.custom-master'], function ($view) use ($theme) {
             $user = Auth::user();
 
-            $themeStyle  = $user
+            $themeStyle = $user
                 ? $theme->getUserStyle((string) $user->id)
                 : ThemeService::defaults()['style'];
 
-            $themeColors = $theme->getGlobalColors();
+            $themeColors = $theme->getModuleColors();
 
-            // ✅ TASK COUNTS (cached, safe)
+            $view->with('themeStyle', $themeStyle)
+                ->with('themeColors', $themeColors);
+        });
+
+        View::composer('layouts.master', function ($view) {
+            $user = Auth::user();
             $taskCounts = null;
 
             if ($user) {
                 $cacheKey = 'task_counts:' . $user->id;
 
                 $taskCounts = Cache::remember($cacheKey, now()->addSeconds(20), function () use ($user) {
-                    return app(TaskReadServiceInterface::class)
-                        ->sidebarCounts($user);
+                    return app(TaskReadServiceInterface::class)->sidebarCounts($user);
                 });
             }
 
-            $view->with('themeStyle', $themeStyle)
-                ->with('themeColors', $themeColors)
-                ->with('taskCounts', $taskCounts);
+            $view->with('taskCounts', $taskCounts);
         });
     }
 }

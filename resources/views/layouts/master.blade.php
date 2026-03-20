@@ -27,6 +27,8 @@
         @include('layouts.components.styles')
 
         
+        @include('layouts.components.theme-bootstrap')
+
         <!-- MAIN JS -->
         <script src="{{asset('build/assets/main.js')}}"></script>
 
@@ -109,6 +111,7 @@
 
         <!-- CUSTOM-SWITCHER JS -->
         @vite('resources/assets/js/custom-switcher.js')
+        @vite('resources/js/theme-switcher.js')
         @if (auth()->check() && auth()->user()->must_change_password)
             @vite('resources/js/force-password-change.js')
         @endif
@@ -118,4 +121,5 @@
 
 	</body>
 </html>
+
 

@@ -52,4 +52,9 @@ class Module extends Model
     {
         return $this->hasMany(LoginDetail::class, 'module_id', 'id');
     }
+
+    public function appSettings(): HasMany
+    {
+        return $this->hasMany(AppSetting::class, 'module_id', 'id');
+    }
 }

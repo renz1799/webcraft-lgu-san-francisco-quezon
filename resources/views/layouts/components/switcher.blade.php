@@ -1,5 +1,9 @@
+@php
+    $canEditThemeColors = auth()->check() && auth()->user()?->hasAnyRole(['Administrator', 'admin']);
+@endphp
 
-            <div id="hs-overlay-switcher" class="hs-overlay hidden ti-offcanvas ti-offcanvas-right" tabindex="-1">
+
+            <div id="hs-overlay-switcher" class="hs-overlay hidden ti-offcanvas ti-offcanvas-right" tabindex="-1" data-update-colors-url="{{ $canEditThemeColors ? route('theme.colors.update') : '' }}" data-theme-colors='@json($themeColors ?? [])' data-can-edit-colors="{{ $canEditThemeColors ? '1' : '0' }}">
                 <div class="ti-offcanvas-header z-10 relative">
                     <h5 class="ti-offcanvas-title">
                     Switcher
@@ -18,11 +22,13 @@
                         id="switcher-item-1" data-hs-tab="#switcher-1" aria-controls="switcher-1" role="tab">
                         Theme Style
                     </button>
+                    @if ($canEditThemeColors)
                     <button type="button"
                         class="hs-tab-active:bg-success/20 w-full !py-2 !px-4 hs-tab-active:border-b-transparent text-defaultsize border-0 hs-tab-active:text-success dark:hs-tab-active:bg-success/20 dark:hs-tab-active:border-b-white/10 dark:hs-tab-active:text-success -mb-px  bg-white font-semibold text-center  text-defaulttextcolor dark:text-defaulttextcolor/70 rounded-none hover:text-gray-700 dark:bg-bodybg dark:border-white/10  dark:hover:text-gray-300"
                         id="switcher-item-2" data-hs-tab="#switcher-2" aria-controls="switcher-2" role="tab">
                         Theme Colors
                     </button>
+                    @endif
                     </div>
                 </div>
                 <div class="ti-offcanvas-body" id="switcher-body">
@@ -220,7 +226,7 @@
                         </div>
                     </div>
                     </div>
-                    <div id="switcher-2" class="hidden" role="tabpanel" aria-labelledby="switcher-item-2">
+                    <div id="switcher-2" class="hidden{{ $canEditThemeColors ? '' : ' !hidden' }}" role="tabpanel" aria-labelledby="switcher-item-2" @unless($canEditThemeColors) aria-hidden="true" @endunless>
                     <div class="theme-colors">
                         <p class="switcher-style-head">Menu Colors:</p>
                         <div class="flex switcher-style space-x-3 rtl:space-x-reverse">

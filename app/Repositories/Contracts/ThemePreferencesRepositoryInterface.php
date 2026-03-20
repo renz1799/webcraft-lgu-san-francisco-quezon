@@ -8,7 +8,7 @@ interface ThemePreferencesRepositoryInterface
     public function getUserStyle(string $userId): array;
     public function upsertUserStyle(string $userId, array $style): void;
 
-    // global colors (admin)
-    public function getGlobalColors(): array;
-    public function upsertGlobalColors(array $colors): void;
+    // module-wide theme colors
+    public function getModuleColors(string $moduleId): array;
+    public function upsertModuleColors(string $moduleId, array $colors): void;
 }

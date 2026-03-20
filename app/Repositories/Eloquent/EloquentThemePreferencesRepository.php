@@ -2,8 +2,8 @@
 
 namespace App\Repositories\Eloquent;
 
-use App\Models\UserPreference;
 use App\Models\AppSetting;
+use App\Models\UserPreference;
 use App\Repositories\Contracts\ThemePreferencesRepositoryInterface;
 
 class EloquentThemePreferencesRepository implements ThemePreferencesRepositoryInterface
@@ -25,19 +25,23 @@ class EloquentThemePreferencesRepository implements ThemePreferencesRepositoryIn
         );
     }
 
-    public function getGlobalColors(): array
+    public function getModuleColors(string $moduleId): array
     {
         $row = AppSetting::query()
+            ->where('module_id', $moduleId)
             ->where('key', 'theme.colors')
             ->first();
 
         return (array) ($row?->value ?? []);
     }
 
-    public function upsertGlobalColors(array $colors): void
+    public function upsertModuleColors(string $moduleId, array $colors): void
     {
         AppSetting::updateOrCreate(
-            ['key' => 'theme.colors'],
+            [
+                'module_id' => $moduleId,
+                'key' => 'theme.colors',
+            ],
             ['value' => $colors]
         );
     }
