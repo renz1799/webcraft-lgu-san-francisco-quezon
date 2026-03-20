@@ -42,7 +42,7 @@ class TaskTableDataRequest extends FormRequest
             'status' => ['nullable', 'in:pending,in_progress,done,cancelled'],
             'assigned_to' => ['nullable', 'string', 'max:150'],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
-            'date_to' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
 
             'sorters' => ['nullable', 'array'],
             'sorters.*.field' => ['nullable', 'string', 'max:100'],

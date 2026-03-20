@@ -2,13 +2,14 @@
 
 namespace App\Providers;
 
+use App\Services\Contracts\TaskReadServiceInterface;
+use App\Support\CurrentContext;
 use App\Services\UI\ThemeService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use App\Repositories\Contracts\ThemePreferencesRepositoryInterface;
-use App\Repositories\Contracts\TaskRepositoryInterface;
 use Illuminate\Support\Facades\Cache;
 
 // ✅ add these imports
@@ -71,10 +72,8 @@ class AppServiceProvider extends ServiceProvider
                 $cacheKey = 'task_counts:' . $user->id;
 
                 $taskCounts = Cache::remember($cacheKey, now()->addSeconds(20), function () use ($user) {
-                    $roles = $user->getRoleNames()->all();
-
-                    return app(TaskRepositoryInterface::class)
-                        ->countsForSidebar((string) $user->id, $roles);
+                    return app(TaskReadServiceInterface::class)
+                        ->sidebarCounts($user);
                 });
             }
 
@@ -84,4 +83,3 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 }
-

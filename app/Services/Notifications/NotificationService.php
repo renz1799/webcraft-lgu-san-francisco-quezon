@@ -8,6 +8,7 @@ use App\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Contracts\NotificationServiceInterface;
+use App\Support\CurrentContext;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +18,7 @@ class NotificationService implements NotificationServiceInterface
         private readonly NotificationRepositoryInterface $notifications,
         private readonly TaskEventRepositoryInterface $taskEvents,
         private readonly UserRepositoryInterface $users,
+        private readonly CurrentContext $context,
     ) {}
 
     public function notifyUsersByRoles(
@@ -53,6 +55,8 @@ class NotificationService implements NotificationServiceInterface
             entityType: $entityType,
             entityId: $entityId,
             data: $data,
+            moduleId: $this->context->moduleId(),
+            departmentId: $this->context->defaultDepartmentId(),
         );
     }
 
@@ -61,22 +65,26 @@ class NotificationService implements NotificationServiceInterface
         string $actorUserId,
         string $taskId,
         string $taskTitle,
-        ?string $url = null
+        ?string $url = null,
+        ?string $moduleId = null,
+        ?string $departmentId = null
     ): Notification {
         $url ??= route('tasks.show', $taskId);
 
         return $this->notifications->create([
+            'module_id' => $moduleId ?: $this->context->moduleId(),
+            'department_id' => $departmentId ?: $this->context->defaultDepartmentId(),
             'notifiable_user_id' => $assigneeUserId,
-            'actor_user_id'      => $actorUserId,
-            'type'               => 'task_assigned',
-            'title'              => 'New Task Assigned',
-            'message'            => "You were assigned: {$taskTitle}",
-            'entity_type'        => 'tasks',
-            'entity_id'          => $taskId,
-            'data'               => [
-                'task_id'    => $taskId,
+            'actor_user_id' => $actorUserId,
+            'type' => 'task_assigned',
+            'title' => 'New Task Assigned',
+            'message' => "You were assigned: {$taskTitle}",
+            'entity_type' => 'tasks',
+            'entity_id' => $taskId,
+            'data' => [
+                'task_id' => $taskId,
                 'task_title' => $taskTitle,
-                'url'        => $url,
+                'url' => $url,
             ],
         ]);
     }
@@ -115,7 +123,7 @@ class NotificationService implements NotificationServiceInterface
             ]
         )));
 
-        $adminIds = $this->users->getUserIdsByRoles(['Administrator']);
+        $adminIds = $this->users->getUserIdsByRoles(['Administrator', 'admin']);
 
         $recipients = array_values(array_diff(
             array_unique(array_merge($candidateIds, $adminIds)),
@@ -132,8 +140,10 @@ class NotificationService implements NotificationServiceInterface
             entityId: (string) $task->id,
             data: array_merge($data, [
                 'task_id' => (string) $task->id,
-                'url'     => route('tasks.show', $task->id),
+                'url' => route('tasks.show', $task->id),
             ]),
+            moduleId: $task->module_id ? (string) $task->module_id : $this->context->moduleId(),
+            departmentId: $task->department_id ? (string) $task->department_id : $this->context->defaultDepartmentId(),
         );
     }
 
@@ -151,7 +161,7 @@ class NotificationService implements NotificationServiceInterface
         }
 
         $this->notifyUsersByRoles(
-            roleNames: ['Administrator', 'Staff'],
+            roleNames: ['Administrator', 'admin', 'Staff'],
             actorUserId: $actorUserId,
             type: 'inspection_submitted',
             title: 'Inspection Submitted',
@@ -160,11 +170,11 @@ class NotificationService implements NotificationServiceInterface
             entityId: (string) $inspection->id,
             data: [
                 'inspection_id' => (string) $inspection->id,
-                'po_number'     => $inspection->po_number,
-                'dv_number'     => $inspection->dv_number,
-                'status'        => $inspection->status,
-                'url'           => $url,
-                'task_id'       => $taskId,
+                'po_number' => $inspection->po_number,
+                'dv_number' => $inspection->dv_number,
+                'status' => $inspection->status,
+                'url' => $url,
+                'task_id' => $taskId,
             ],
             excludeActor: true,
         );
@@ -181,7 +191,9 @@ class NotificationService implements NotificationServiceInterface
         string $message,
         string $entityType,
         string $entityId,
-        array $data = []
+        array $data = [],
+        ?string $moduleId = null,
+        ?string $departmentId = null
     ): void {
         $now = Carbon::now();
 
@@ -193,17 +205,19 @@ class NotificationService implements NotificationServiceInterface
             }
 
             $rows[] = [
-                'id'                 => (string) \Illuminate\Support\Str::uuid(),
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'module_id' => $moduleId,
+                'department_id' => $departmentId,
                 'notifiable_user_id' => $userId,
-                'actor_user_id'      => $actorUserId,
-                'type'               => $type,
-                'title'              => $title,
-                'message'            => $message,
-                'entity_type'        => $entityType,
-                'entity_id'          => $entityId,
-                'data'               => json_encode($data),
-                'created_at'         => $now,
-                'updated_at'         => $now,
+                'actor_user_id' => $actorUserId,
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'data' => json_encode($data),
+                'created_at' => $now,
+                'updated_at' => $now,
             ];
         }
 

@@ -2,12 +2,15 @@
 
 namespace App\Services\Tasks;
 
+use App\Builders\Contracts\Tasks\TaskReassignmentNoteBuilderInterface;
 use App\Models\Task;
 use App\Models\User;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Services\Contracts\NotificationServiceInterface;
 use App\Services\Contracts\TaskServiceInterface;
+use App\Support\CurrentContext;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -17,6 +20,8 @@ class TaskService implements TaskServiceInterface
         private readonly TaskRepositoryInterface $tasks,
         private readonly TaskEventRepositoryInterface $taskEvents,
         private readonly NotificationServiceInterface $notificationService,
+        private readonly CurrentContext $context,
+        private readonly TaskReassignmentNoteBuilderInterface $taskReassignmentNoteBuilder,
     ) {}
 
     public function createAndAssign(
@@ -39,13 +44,19 @@ class TaskService implements TaskServiceInterface
             $subjectId,
             $data
         ) {
+            $moduleId = $this->requireModuleId();
+            $departmentId = $this->context->defaultDepartmentId();
+            $assignee = $this->findActiveCurrentModuleUserOrFail($assigneeUserId);
+
             $task = $this->tasks->create([
+                'module_id' => $moduleId,
+                'department_id' => $departmentId,
                 'title' => $title,
                 'description' => $description,
                 'type' => $type,
                 'status' => Task::STATUS_PENDING,
                 'created_by_user_id' => $actorUserId,
-                'assigned_to_user_id' => $assigneeUserId,
+                'assigned_to_user_id' => (string) $assignee->id,
                 'subject_type' => $subjectType,
                 'subject_id' => $subjectId,
                 'data' => $data,
@@ -64,15 +75,17 @@ class TaskService implements TaskServiceInterface
                 eventType: 'assigned',
                 note: 'Task assigned.',
                 meta: [
-                    'to_user_id' => $assigneeUserId,
+                    'to_user_id' => (string) $assignee->id,
                 ]
             );
 
             $this->notificationService->notifyTaskAssigned(
-                assigneeUserId: $assigneeUserId,
+                assigneeUserId: (string) $assignee->id,
                 actorUserId: $actorUserId,
                 taskId: (string) $task->id,
-                taskTitle: $task->title
+                taskTitle: $task->title,
+                moduleId: (string) $task->module_id,
+                departmentId: $task->department_id ? (string) $task->department_id : null,
             );
 
             return $task;
@@ -98,6 +111,8 @@ class TaskService implements TaskServiceInterface
             $data
         ) {
             $task = $this->tasks->create([
+                'module_id' => $this->requireModuleId(),
+                'department_id' => $this->context->defaultDepartmentId(),
                 'title' => $title,
                 'description' => $description,
                 'type' => $type,
@@ -122,7 +137,13 @@ class TaskService implements TaskServiceInterface
 
     public function findLatestBySubject(string $subjectType, string $subjectId): ?Task
     {
-        return $this->tasks->findLatestBySubject($subjectType, $subjectId);
+        $moduleId = $this->context->moduleId();
+
+        if (! $moduleId) {
+            return null;
+        }
+
+        return $this->tasks->findLatestBySubject($subjectType, $subjectId, $moduleId);
     }
 
     public function updateTaskAssignmentAndData(
@@ -166,7 +187,7 @@ class TaskService implements TaskServiceInterface
                 throw new InvalidArgumentException('Invalid assignment mode. Allowed values: keep, set, clear.');
             }
 
-            $task = $this->tasks->findOrFail($taskId);
+            $task = $this->findTaskOrFail($taskId);
 
             $targetData = $mergeData
                 ? array_replace_recursive((array) ($task->data ?? []), $data)
@@ -174,7 +195,7 @@ class TaskService implements TaskServiceInterface
 
             $targetAssignee = match ($assignmentMode) {
                 'keep' => $task->assigned_to_user_id,
-                'set' => $assignedToUserId,
+                'set' => $assignedToUserId ? (string) $this->findActiveCurrentModuleUserOrFail($assignedToUserId)->id : null,
                 'clear' => null,
             };
 
@@ -239,7 +260,7 @@ class TaskService implements TaskServiceInterface
         }
 
         return DB::transaction(function () use ($actorUserId, $taskId, $toStatus, $note) {
-            $task = $this->tasks->findOrFail($taskId);
+            $task = $this->findTaskOrFail($taskId);
             $fromStatus = (string) $task->status;
 
             if ($fromStatus === $toStatus) {
@@ -299,7 +320,7 @@ class TaskService implements TaskServiceInterface
     public function addComment(string $actorUserId, string $taskId, string $note): void
     {
         DB::transaction(function () use ($actorUserId, $taskId, $note) {
-            $task = $this->tasks->findOrFail($taskId);
+            $task = $this->findTaskOrFail($taskId);
 
             $this->recordEvent(
                 actorUserId: $actorUserId,
@@ -322,42 +343,22 @@ class TaskService implements TaskServiceInterface
             $newAssigneeUserId,
             $note
         ) {
-            $task = $this->tasks->findOrFail($taskId);
+            $task = $this->findTaskOrFail($taskId);
 
-            $fromUserId = $task->assigned_to_user_id;
-            $fromUser = $fromUserId ? User::with('profile')->find($fromUserId) : null;
-            $toUser = User::with('profile')->find($newAssigneeUserId);
+            $fromUser = $this->findCurrentModuleUser($task->assigned_to_user_id);
+            $toUser = $this->findActiveCurrentModuleUserOrFail($newAssigneeUserId);
 
-            $fromName = $fromUser?->profile?->full_name
-                ?? $fromUser?->username
-                ?? 'Unassigned';
-
-            $toName = $toUser?->profile?->full_name
-                ?? $toUser?->username
-                ?? 'Unassigned';
-
-            $task->assigned_to_user_id = $newAssigneeUserId;
+            $task->assigned_to_user_id = (string) $toUser->id;
             $this->tasks->save($task);
 
-            $customNote = trim((string) $note);
-            $lines = ["Task reassigned: {$fromName} -> {$toName}."];
-
-            if ($customNote !== '') {
-                $lines[] = "Note: {$customNote}";
-            }
-
-            $finalNote = implode("\n", $lines);
+            $reassignment = $this->taskReassignmentNoteBuilder->build($fromUser, $toUser, $note);
 
             $this->recordEvent(
                 actorUserId: $actorUserId,
                 taskId: (string) $task->id,
                 eventType: 'task_reassigned',
-                note: $finalNote,
-                meta: [
-                    'from_user_id' => $fromUserId,
-                    'to_user_id' => $newAssigneeUserId,
-                    'custom_note' => $customNote !== '' ? $customNote : null,
-                ],
+                note: $reassignment['note'],
+                meta: $reassignment['meta'],
                 fromStatus: (string) $task->status,
                 toStatus: (string) $task->status
             );
@@ -371,11 +372,13 @@ class TaskService implements TaskServiceInterface
             );
 
             $this->notificationService->notifyTaskAssigned(
-                assigneeUserId: (string) $newAssigneeUserId,
+                assigneeUserId: (string) $toUser->id,
                 actorUserId: $actorUserId,
                 taskId: (string) $task->id,
                 taskTitle: (string) $task->title,
-                url: route('tasks.show', (string) $task->id)
+                url: route('tasks.show', (string) $task->id),
+                moduleId: (string) $task->module_id,
+                departmentId: $task->department_id ? (string) $task->department_id : null,
             );
 
             return $task;
@@ -385,11 +388,13 @@ class TaskService implements TaskServiceInterface
     public function claim(string $actorUserId, string $taskId, ?string $note = null): Task
     {
         return DB::transaction(function () use ($actorUserId, $taskId, $note) {
-            $task = $this->tasks->findOrFail($taskId);
+            $task = $this->findTaskOrFail($taskId);
 
             if (! empty($task->assigned_to_user_id)) {
                 return $task;
             }
+
+            $this->findActiveCurrentModuleUserOrFail($actorUserId);
 
             $task->assigned_to_user_id = $actorUserId;
             $this->tasks->save($task);
@@ -419,7 +424,7 @@ class TaskService implements TaskServiceInterface
     public function archive(string $actorUserId, string $taskId): void
     {
         DB::transaction(function () use ($actorUserId, $taskId) {
-            $task = $this->tasks->findOrFail($taskId);
+            $task = $this->findTaskOrFail($taskId);
 
             if ($task->trashed()) {
                 return;
@@ -439,7 +444,7 @@ class TaskService implements TaskServiceInterface
     public function restore(string $actorUserId, string $taskId): bool
     {
         return DB::transaction(function () use ($actorUserId, $taskId) {
-            $task = $this->tasks->findOrFailWithTrashed($taskId);
+            $task = $this->findTaskOrFailWithTrashed($taskId);
 
             if (! $task->trashed()) {
                 return true;
@@ -461,14 +466,64 @@ class TaskService implements TaskServiceInterface
         });
     }
 
-    public function datatable(array $params): array
+    private function findTaskOrFail(string $taskId): Task
     {
-        $page = max(1, (int) ($params['page'] ?? 1));
-        $size = max(1, min((int) ($params['size'] ?? 15), 100));
+        return $this->tasks->findOrFail($taskId, $this->requireModuleId());
+    }
 
-        $filters = $params;
-        unset($filters['page'], $filters['size']);
+    private function findTaskOrFailWithTrashed(string $taskId): Task
+    {
+        return $this->tasks->findOrFailWithTrashed($taskId, $this->requireModuleId());
+    }
 
-        return $this->tasks->datatable($filters, $page, $size);
+    private function requireModuleId(): string
+    {
+        $moduleId = (string) ($this->context->moduleId() ?? '');
+
+        if ($moduleId !== '') {
+            return $moduleId;
+        }
+
+        $exception = new ModelNotFoundException();
+        $exception->setModel(Task::class);
+
+        throw $exception;
+    }
+
+    private function findCurrentModuleUser(?string $userId): ?User
+    {
+        $userId = trim((string) $userId);
+
+        if ($userId === '') {
+            return null;
+        }
+
+        return User::query()
+            ->with(['profile'])
+            ->whereKey($userId)
+            ->whereHas('userModules', function ($query) {
+                $query->where('module_id', $this->requireModuleId())
+                    ->where('is_active', true);
+            })
+            ->first();
+    }
+
+    private function findActiveCurrentModuleUserOrFail(string $userId): User
+    {
+        $user = User::query()
+            ->with(['profile'])
+            ->whereKey($userId)
+            ->where('is_active', true)
+            ->whereHas('userModules', function ($query) {
+                $query->where('module_id', $this->requireModuleId())
+                    ->where('is_active', true);
+            })
+            ->first();
+
+        if ($user) {
+            return $user;
+        }
+
+        throw new InvalidArgumentException('Assignee is not available in the current module.');
     }
 }

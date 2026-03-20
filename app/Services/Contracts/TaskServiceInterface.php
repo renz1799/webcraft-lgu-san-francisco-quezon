@@ -81,6 +81,4 @@ interface TaskServiceInterface
     public function archive(string $actorUserId, string $taskId): void;
 
     public function restore(string $actorUserId, string $taskId): bool;
-
-    public function datatable(array $params): array;
 }

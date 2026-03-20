@@ -15,23 +15,26 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         return Task::create($data);
     }
 
-    public function findLatestBySubject(string $subjectType, string $subjectId): ?Task
+    public function findLatestBySubject(string $subjectType, string $subjectId, ?string $moduleId = null): ?Task
     {
-        return Task::query()
+        return $this->queryInModule($moduleId)
             ->where('subject_type', $subjectType)
             ->where('subject_id', $subjectId)
             ->orderByDesc('created_at')
             ->first();
     }
 
-    public function findOrFail(string $id): Task
+    public function findOrFail(string $id, ?string $moduleId = null): Task
     {
-        return Task::query()->findOrFail($id);
+        return $this->queryInModule($moduleId)
+            ->findOrFail($id);
     }
 
-    public function findOrFailWithTrashed(string $id): Task
+    public function findOrFailWithTrashed(string $id, ?string $moduleId = null): Task
     {
-        return Task::withTrashed()->findOrFail($id);
+        return $this->queryInModule($moduleId)
+            ->withTrashed()
+            ->findOrFail($id);
     }
 
     public function save(Task $task): Task
@@ -51,38 +54,34 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         return (bool) $task->restore();
     }
 
-    public function paginateForAssignee(string $userId, int $perPage = 20): LengthAwarePaginator
+    public function paginateForAssignee(string $userId, int $perPage = 20, ?string $moduleId = null): LengthAwarePaginator
     {
-        return Task::query()
+        return $this->queryInModule($moduleId)
             ->where('assigned_to_user_id', $userId)
             ->orderByRaw("FIELD(status, 'pending', 'in_progress', 'done', 'cancelled')")
             ->orderByDesc('created_at')
             ->paginate($perPage);
     }
 
-    public function getAvailableForRoles(array $roles, int $limit = 20)
+    public function getAvailableForRoles(array $roles, int $limit = 20, ?string $moduleId = null)
     {
-        return Task::query()
-            ->whereNull('assigned_to_user_id')
-            ->whereIn('status', [Task::STATUS_PENDING, Task::STATUS_IN_PROGRESS])
-            ->where(function (Builder $q) use ($roles) {
-                $q->whereNull('data->eligible_roles');
-
-                foreach ($roles as $role) {
-                    $q->orWhereJsonContains('data->eligible_roles', $role);
-                }
-            })
+        return $this->applyEligibleRoleScope(
+            $this->queryInModule($moduleId)
+                ->whereNull('assigned_to_user_id')
+                ->whereIn('status', [Task::STATUS_PENDING, Task::STATUS_IN_PROGRESS]),
+            $roles
+        )
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get();
     }
 
-    public function datatable(array $filters, int $page = 1, int $size = 15): array
+    public function datatable(array $filters, int $page = 1, int $size = 15, ?string $moduleId = null): array
     {
         $page = max(1, (int) $page);
         $size = max(1, min((int) $size, 100));
 
-        $query = $this->buildDatatableQuery($filters);
+        $query = $this->buildDatatableQuery($filters, $moduleId);
 
         $total = (clone $query)->count();
         $lastPage = $total > 0 ? (int) ceil($total / $size) : 1;
@@ -91,7 +90,6 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         $rows = $this->applyDatatableSort($query, $filters)
             ->forPage($page, $size)
             ->get()
-            ->map(fn (Task $task) => $this->mapDatatableRow($task, $filters))
             ->values()
             ->all();
 
@@ -102,24 +100,19 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         ];
     }
 
-    public function countsForSidebar(string $userId, array $roles): array
+    public function countsForSidebar(string $userId, array $roles, ?string $moduleId = null): array
     {
-        $my = Task::query()
+        $my = $this->queryInModule($moduleId)
             ->where('assigned_to_user_id', $userId)
             ->whereNotIn('status', [Task::STATUS_DONE, Task::STATUS_CANCELLED])
             ->count();
 
-        $claimable = Task::query()
-            ->whereNull('assigned_to_user_id')
-            ->whereIn('status', [Task::STATUS_PENDING, Task::STATUS_IN_PROGRESS])
-            ->where(function (Builder $qb) use ($roles) {
-                $qb->whereNull('data->eligible_roles');
-
-                foreach ($roles as $role) {
-                    $qb->orWhereJsonContains('data->eligible_roles', $role);
-                }
-            })
-            ->count();
+        $claimable = $this->applyEligibleRoleScope(
+            $this->queryInModule($moduleId)
+                ->whereNull('assigned_to_user_id')
+                ->whereIn('status', [Task::STATUS_PENDING, Task::STATUS_IN_PROGRESS]),
+            $roles
+        )->count();
 
         return [
             'my' => $my,
@@ -127,7 +120,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         ];
     }
 
-    public function adminDashboardStats(int $months = 6): array
+    public function adminDashboardStats(int $months = 6, ?string $moduleId = null): array
     {
         $months = max(2, min($months, 12));
         $now = Carbon::now();
@@ -155,9 +148,10 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         $pendingSnapshots = array_fill_keys($keys, 0);
         $inProgressSnapshots = array_fill_keys($keys, 0);
 
-        $tasks = Task::query()
+        $tasks = $this->queryInModule($moduleId)
             ->select([
                 'id',
+                'module_id',
                 'status',
                 'created_at',
                 'started_at',
@@ -213,73 +207,36 @@ class EloquentTaskRepository implements TaskRepositoryInterface
             $inProgressSnapshots[$window['key']] = $inProgressCount;
         }
 
-        $currentWindow = $monthWindows[count($monthWindows) - 1];
-        $previousWindow = $monthWindows[count($monthWindows) - 2];
-
-        $currentPending = Task::query()
+        $currentPending = $this->queryInModule($moduleId)
             ->where('status', Task::STATUS_PENDING)
             ->count();
 
-        $currentInProgress = Task::query()
+        $currentInProgress = $this->queryInModule($moduleId)
             ->where('status', Task::STATUS_IN_PROGRESS)
             ->count();
 
+        $currentWindow = $monthWindows[count($monthWindows) - 1];
         $pendingSnapshots[$currentWindow['key']] = $currentPending;
         $inProgressSnapshots[$currentWindow['key']] = $currentInProgress;
 
         return [
-            'period_label' => "Last {$months} months",
-            'cards' => [
-                'new' => $this->makeAdminMetricCard(
-                    current: (int) $newCounts[$currentWindow['key']],
-                    previous: (int) $newCounts[$previousWindow['key']],
-                    contextLabel: 'this month',
-                    comparisonLabel: 'Prev Month'
-                ),
-                'completed' => $this->makeAdminMetricCard(
-                    current: (int) $completedCounts[$currentWindow['key']],
-                    previous: (int) $completedCounts[$previousWindow['key']],
-                    contextLabel: 'this month',
-                    comparisonLabel: 'Prev Month'
-                ),
-                'pending' => $this->makeAdminMetricCard(
-                    current: $currentPending,
-                    previous: (int) $pendingSnapshots[$previousWindow['key']],
-                    contextLabel: 'open right now',
-                    comparisonLabel: 'End of Last Month'
-                ),
-                'in_progress' => $this->makeAdminMetricCard(
-                    current: $currentInProgress,
-                    previous: (int) $inProgressSnapshots[$previousWindow['key']],
-                    contextLabel: 'open right now',
-                    comparisonLabel: 'End of Last Month'
-                ),
-            ],
-            'chart' => [
-                'categories' => array_column($monthWindows, 'label'),
-                'series' => [
-                    [
-                        'name' => 'New',
-                        'data' => array_values($newCounts),
-                    ],
-                    [
-                        'name' => 'Pending',
-                        'data' => array_values($pendingSnapshots),
-                    ],
-                    [
-                        'name' => 'Completed',
-                        'data' => array_values($completedCounts),
-                    ],
-                    [
-                        'name' => 'Inprogress',
-                        'data' => array_values($inProgressSnapshots),
-                    ],
-                ],
-            ],
+            'months' => $months,
+            'windows' => array_map(static function (array $window) {
+                return [
+                    'key' => (string) $window['key'],
+                    'label' => (string) $window['label'],
+                ];
+            }, $monthWindows),
+            'new_counts' => $newCounts,
+            'completed_counts' => $completedCounts,
+            'pending_snapshots' => $pendingSnapshots,
+            'in_progress_snapshots' => $inProgressSnapshots,
+            'current_pending' => $currentPending,
+            'current_in_progress' => $currentInProgress,
         ];
     }
 
-    private function buildDatatableQuery(array $filters): Builder
+    private function buildDatatableQuery(array $filters, ?string $moduleId = null): Builder
     {
         $actorUserId = (string) ($filters['actor_user_id'] ?? '');
         $actorRoles = (array) ($filters['actor_roles'] ?? []);
@@ -291,7 +248,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         $search = trim((string) ($filters['search'] ?? $filters['q'] ?? ''));
         $assignedTo = trim((string) ($filters['assigned_to'] ?? ''));
 
-        $query = Task::query()->with(['assignee.profile']);
+        $query = $this->queryInModule($moduleId)->with(['assignee.profile']);
 
         if ($archived === 'all') {
             $query->withTrashed();
@@ -300,18 +257,13 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         }
 
         if ($scope === 'all' && $canViewAll) {
-            // show all records
+            // show all current-module records
         } elseif ($scope === 'available') {
-            $query
-                ->whereNull('assigned_to_user_id')
-                ->whereIn('status', [Task::STATUS_PENDING, Task::STATUS_IN_PROGRESS])
-                ->where(function (Builder $qb) use ($actorRoles) {
-                    $qb->whereNull('data->eligible_roles');
-
-                    foreach ($actorRoles as $role) {
-                        $qb->orWhereJsonContains('data->eligible_roles', $role);
-                    }
-                });
+            $this->applyEligibleRoleScope(
+                $query->whereNull('assigned_to_user_id')
+                    ->whereIn('status', [Task::STATUS_PENDING, Task::STATUS_IN_PROGRESS]),
+                $actorRoles
+            );
         } else {
             $query->where('assigned_to_user_id', $actorUserId);
         }
@@ -325,14 +277,20 @@ class EloquentTaskRepository implements TaskRepositoryInterface
                 $qb->where('title', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
                     ->orWhereHas('assignee', function (Builder $uq) use ($search) {
-                        $uq->where('username', 'like', "%{$search}%");
+                        $uq->where('username', 'like', "%{$search}%")
+                            ->orWhereHas('profile', function (Builder $pq) use ($search) {
+                                $pq->where('full_name', 'like', "%{$search}%");
+                            });
                     });
             });
         }
 
         if ($assignedTo !== '') {
             $query->whereHas('assignee', function (Builder $uq) use ($assignedTo) {
-                $uq->where('username', 'like', "%{$assignedTo}%");
+                $uq->where('username', 'like', "%{$assignedTo}%")
+                    ->orWhereHas('profile', function (Builder $pq) use ($assignedTo) {
+                        $pq->where('full_name', 'like', "%{$assignedTo}%");
+                    });
             });
         }
 
@@ -377,45 +335,23 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         return $query->orderByDesc('created_at');
     }
 
-    private function mapDatatableRow(Task $task, array $filters): array
+    private function queryInModule(?string $moduleId = null): Builder
     {
-        $isArchived = $task->deleted_at !== null;
-        $actorRoles = (array) ($filters['actor_roles'] ?? []);
-        $canArchive = (bool) ($filters['can_archive'] ?? false);
-
-        $canClaim = ! $isArchived
-            && empty($task->assigned_to_user_id)
-            && in_array((string) $task->status, [Task::STATUS_PENDING, Task::STATUS_IN_PROGRESS], true)
-            && $this->isEligibleForRoles($task, $actorRoles);
-
-        return [
-            'id' => (string) $task->id,
-            'title' => (string) ($task->title ?? '-'),
-            'status' => (string) ($task->status ?? '-'),
-            'assigned_to_name' => (string) ($task->assigned_to_name ?? '-'),
-            'created_at' => $task->created_at?->toDateTimeString(),
-            'created_at_text' => $task->created_at?->format('M d, Y h:i A') ?? '-',
-            'is_archived' => $isArchived,
-            'show_url' => route('tasks.show', ['id' => (string) $task->id]),
-            'claim_url' => $canClaim ? route('tasks.claim', ['id' => (string) $task->id]) : null,
-            'archive_url' => ($canArchive && ! $isArchived)
-                ? route('tasks.destroy', ['id' => (string) $task->id])
-                : null,
-            'restore_url' => ($canArchive && $isArchived)
-                ? route('tasks.restore', ['id' => (string) $task->id])
-                : null,
-        ];
+        return Task::query()
+            ->when($moduleId, function (Builder $query, string $moduleId) {
+                $query->where('module_id', $moduleId);
+            });
     }
 
-    private function isEligibleForRoles(Task $task, array $roles): bool
+    private function applyEligibleRoleScope(Builder $query, array $roles): Builder
     {
-        $eligible = (array) data_get($task->data, 'eligible_roles', []);
+        return $query->where(function (Builder $qb) use ($roles) {
+            $qb->whereNull('data->eligible_roles');
 
-        if (count($eligible) === 0) {
-            return true;
-        }
-
-        return count(array_intersect($roles, $eligible)) > 0;
+            foreach ($roles as $role) {
+                $qb->orWhereJsonContains('data->eligible_roles', $role);
+            }
+        });
     }
 
     private function resolveStatusAtWindowEnd(Task $task, Carbon $windowEnd): ?string
@@ -462,30 +398,5 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         }
 
         return Task::STATUS_PENDING;
-    }
-
-    private function makeAdminMetricCard(
-        int $current,
-        int $previous,
-        string $contextLabel,
-        string $comparisonLabel
-    ): array {
-        $delta = $current - $previous;
-        $direction = $delta === 0
-            ? 'flat'
-            : ($delta > 0 ? 'up' : 'down');
-
-        $deltaPercent = $previous === 0
-            ? ($current === 0 ? 0.0 : 100.0)
-            : round((abs($delta) / $previous) * 100, 2);
-
-        return [
-            'value' => $current,
-            'comparison_value' => $previous,
-            'comparison_label' => $comparisonLabel,
-            'context_label' => $contextLabel,
-            'delta_percent' => $deltaPercent,
-            'direction' => $direction,
-        ];
     }
 }

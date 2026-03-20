@@ -7,6 +7,7 @@ use App\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Notifications\NotificationService;
+use App\Support\CurrentContext;
 use Illuminate\Support\Facades\Route;
 use Mockery;
 use Tests\TestCase;
@@ -34,6 +35,10 @@ class NotificationServiceTest extends TestCase
         $notifications = Mockery::mock(NotificationRepositoryInterface::class);
         $taskEvents = Mockery::mock(TaskEventRepositoryInterface::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
+        $context = Mockery::mock(CurrentContext::class);
+
+        $context->shouldReceive('moduleId')->andReturn('module-1');
+        $context->shouldReceive('defaultDepartmentId')->andReturn('department-1');
 
         $users->shouldReceive('getUserIdsByRoles')
             ->once()
@@ -53,6 +58,8 @@ class NotificationServiceTest extends TestCase
                     $this->assertSame('AIR submitted for review.', $row['message']);
                     $this->assertSame('air', $row['entity_type']);
                     $this->assertSame('air-1', $row['entity_id']);
+                    $this->assertSame('module-1', $row['module_id']);
+                    $this->assertSame('department-1', $row['department_id']);
 
                     $data = json_decode($row['data'], true, 512, JSON_THROW_ON_ERROR);
 
@@ -63,7 +70,7 @@ class NotificationServiceTest extends TestCase
                 return true;
             }));
 
-        $service = new NotificationService($notifications, $taskEvents, $users);
+        $service = new NotificationService($notifications, $taskEvents, $users, $context);
 
         $service->notifyUsersByRoles(
             roleNames: ['Administrator', 'Staff'],
@@ -85,6 +92,10 @@ class NotificationServiceTest extends TestCase
         $notifications = Mockery::mock(NotificationRepositoryInterface::class);
         $taskEvents = Mockery::mock(TaskEventRepositoryInterface::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
+        $context = Mockery::mock(CurrentContext::class);
+
+        $context->shouldReceive('moduleId')->andReturn('module-1');
+        $context->shouldReceive('defaultDepartmentId')->andReturn('department-1');
 
         $notifications->shouldReceive('create')
             ->once()
@@ -94,13 +105,15 @@ class NotificationServiceTest extends TestCase
                 $this->assertSame('task_assigned', $payload['type']);
                 $this->assertSame('tasks', $payload['entity_type']);
                 $this->assertSame('task-1', $payload['entity_id']);
+                $this->assertSame('module-1', $payload['module_id']);
+                $this->assertSame('department-1', $payload['department_id']);
                 $this->assertSame(route('tasks.show', 'task-1'), $payload['data']['url']);
 
                 return true;
             }))
             ->andReturnUsing(fn (array $payload) => new Notification($payload));
 
-        $service = new NotificationService($notifications, $taskEvents, $users);
+        $service = new NotificationService($notifications, $taskEvents, $users, $context);
 
         $notification = $service->notifyTaskAssigned(
             assigneeUserId: 'assignee-1',
@@ -118,10 +131,14 @@ class NotificationServiceTest extends TestCase
         $notifications = Mockery::mock(NotificationRepositoryInterface::class);
         $taskEvents = Mockery::mock(TaskEventRepositoryInterface::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
+        $context = Mockery::mock(CurrentContext::class);
+
+        $context->shouldReceive('moduleId')->andReturn('module-1');
+        $context->shouldReceive('defaultDepartmentId')->andReturn('department-1');
 
         $users->shouldReceive('getUserIdsByRoles')
             ->once()
-            ->with(['Administrator', 'Staff'])
+            ->with(['Administrator', 'admin', 'Staff'])
             ->andReturn(['actor-1', 'reviewer-2']);
 
         $notifications->shouldReceive('insertMany')
@@ -136,6 +153,8 @@ class NotificationServiceTest extends TestCase
                 $this->assertSame('Inspection Submitted', $row['title']);
                 $this->assertSame('inspections', $row['entity_type']);
                 $this->assertSame('inspection-1', $row['entity_id']);
+                $this->assertSame('module-1', $row['module_id']);
+                $this->assertSame('department-1', $row['department_id']);
 
                 $data = json_decode($row['data'], true, 512, JSON_THROW_ON_ERROR);
 
@@ -157,7 +176,7 @@ class NotificationServiceTest extends TestCase
             'url' => '/inspections/inspection-1',
         ];
 
-        $service = new NotificationService($notifications, $taskEvents, $users);
+        $service = new NotificationService($notifications, $taskEvents, $users, $context);
 
         $service->notifyInspectionSubmitted(
             inspection: $inspection,

@@ -20,11 +20,17 @@ use App\Builders\Contracts\User\UserDatatableRowBuilderInterface;
 use App\Builders\Contracts\User\UserTaskReassignOptionBuilderInterface;
 use App\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
 use App\Builders\Contracts\Access\RoleAuditDisplayBuilderInterface;
+use App\Builders\Contracts\Tasks\TaskAdminStatsBuilderInterface;
+use App\Builders\Contracts\Tasks\TaskDatatableRowBuilderInterface;
+use App\Builders\Contracts\Tasks\TaskReassignmentNoteBuilderInterface;
 use App\Builders\User\UserDatatableActionBuilder;
 use App\Builders\User\UserDatatableRowBuilder;
 use App\Builders\User\UserTaskReassignOptionBuilder;
 use App\Builders\Access\PermissionAuditDisplayBuilder;
 use App\Builders\Access\RoleAuditDisplayBuilder;
+use App\Builders\Tasks\TaskAdminStatsBuilder;
+use App\Builders\Tasks\TaskDatatableRowBuilder;
+use App\Builders\Tasks\TaskReassignmentNoteBuilder;
 
 /*
 |--------------------------------------------------------------------------
@@ -115,7 +121,7 @@ use App\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Repositories\Eloquent\EloquentNotificationRepository;
 
 // Services
-use App\Services\Contracts\Notifications\NotificationServiceInterface;
+use App\Services\Contracts\NotificationServiceInterface;
 use App\Services\Notifications\NotificationService;
 
 /*
@@ -131,9 +137,11 @@ use App\Repositories\Eloquent\EloquentTaskEventRepository;
 use App\Repositories\Eloquent\EloquentTaskRepository;
 
 // Services
-use App\Services\Contracts\Tasks\TaskServiceInterface;
-use App\Services\Contracts\Tasks\TaskShowActionProviderInterface;
-use App\Services\Contracts\Tasks\TaskTimelineServiceInterface;
+use App\Services\Contracts\TaskReadServiceInterface;
+use App\Services\Contracts\TaskServiceInterface;
+use App\Services\Contracts\TaskShowActionProviderInterface;
+use App\Services\Contracts\TaskTimelineServiceInterface;
+use App\Services\Tasks\TaskReadService;
 use App\Services\Tasks\TaskService;
 use App\Services\Tasks\TaskShowActionProvider;
 use App\Services\Tasks\TaskTimelineService;
@@ -237,6 +245,11 @@ class CoreServiceProvider extends ServiceProvider
             UserDatatableRowBuilderInterface::class => UserDatatableRowBuilder::class,
             UserDatatableActionBuilderInterface::class => UserDatatableActionBuilder::class,
             UserTaskReassignOptionBuilderInterface::class => UserTaskReassignOptionBuilder::class,
+
+            // Tasks
+            TaskDatatableRowBuilderInterface::class => TaskDatatableRowBuilder::class,
+            TaskAdminStatsBuilderInterface::class => TaskAdminStatsBuilder::class,
+            TaskReassignmentNoteBuilderInterface::class => TaskReassignmentNoteBuilder::class,
         ]);
     }
 
@@ -268,6 +281,7 @@ class CoreServiceProvider extends ServiceProvider
             NotificationServiceInterface::class => NotificationService::class,
 
             // Tasks
+            TaskReadServiceInterface::class => TaskReadService::class,
             TaskServiceInterface::class => TaskService::class,
             TaskTimelineServiceInterface::class => TaskTimelineService::class,
             TaskShowActionProviderInterface::class => TaskShowActionProvider::class,

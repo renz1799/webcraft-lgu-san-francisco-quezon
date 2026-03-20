@@ -24,7 +24,9 @@ interface NotificationServiceInterface
         string $actorUserId,
         string $taskId,
         string $taskTitle,
-        ?string $url = null
+        ?string $url = null,
+        ?string $moduleId = null,
+        ?string $departmentId = null
     ): Notification;
 
     public function notifyTaskParticipants(

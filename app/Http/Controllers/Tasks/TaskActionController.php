@@ -10,7 +10,7 @@ use App\Http\Requests\Tasks\ReassignTaskRequest;
 use App\Http\Requests\Tasks\RestoreTaskRequest;
 use App\Http\Requests\Tasks\StoreTaskRequest;
 use App\Models\Task;
-use App\Repositories\Contracts\TaskRepositoryInterface;
+use App\Services\Contracts\TaskReadServiceInterface;
 use App\Services\Contracts\TaskServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -20,10 +20,16 @@ class TaskActionController extends Controller
 {
     public function __construct(
         private readonly TaskServiceInterface $taskService,
-        private readonly TaskRepositoryInterface $tasks,
+        private readonly TaskReadServiceInterface $taskReadService,
     ) {
+        $this->middleware('role_or_permission:Administrator|admin')
+            ->only(['store']);
+
         $this->middleware('role_or_permission:Administrator|admin|Staff')
-            ->only(['store', 'changeStatus', 'comment', 'reassign', 'claim']);
+            ->only(['changeStatus', 'comment', 'claim']);
+
+        $this->middleware('role_or_permission:Administrator|admin|modify Reassign Tasks')
+            ->only(['reassign']);
     }
 
     public function store(StoreTaskRequest $request): JsonResponse
@@ -51,7 +57,7 @@ class TaskActionController extends Controller
 
     public function changeStatus(ChangeTaskStatusRequest $request, string $id): JsonResponse
     {
-        $task = $this->tasks->findOrFail($id);
+        $task = $this->taskReadService->findOrFail($id);
         $this->authorize('updateStatus', $task);
 
         $actorUserId = (string) $request->user()->id;
@@ -71,7 +77,7 @@ class TaskActionController extends Controller
 
     public function comment(AddTaskCommentRequest $request, string $id): JsonResponse
     {
-        $task = $this->tasks->findOrFail($id);
+        $task = $this->taskReadService->findOrFail($id);
         $this->authorize('comment', $task);
 
         $actorUserId = (string) $request->user()->id;
@@ -89,7 +95,7 @@ class TaskActionController extends Controller
 
     public function reassign(ReassignTaskRequest $request, string $id): JsonResponse
     {
-        $task = $this->tasks->findOrFail($id);
+        $task = $this->taskReadService->findOrFail($id);
         $this->authorize('reassign', $task);
 
         $actorUserId = (string) $request->user()->id;
@@ -109,7 +115,7 @@ class TaskActionController extends Controller
 
     public function claim(Request $request, string $id): JsonResponse|RedirectResponse
     {
-        $task = $this->tasks->findOrFail($id);
+        $task = $this->taskReadService->findOrFail($id);
         $this->authorize('claim', $task);
 
         $userId = (string) $request->user()->id;
@@ -136,7 +142,7 @@ class TaskActionController extends Controller
 
     public function destroy(DeleteTaskRequest $request, string $id): JsonResponse
     {
-        $task = $this->tasks->findOrFail($id);
+        $task = $this->taskReadService->findOrFail($id);
         $this->authorize('delete', $task);
 
         $this->taskService->archive((string) $request->user()->id, $id);
@@ -146,7 +152,7 @@ class TaskActionController extends Controller
 
     public function restore(RestoreTaskRequest $request, string $id): JsonResponse
     {
-        $task = $this->tasks->findOrFailWithTrashed($id);
+        $task = $this->taskReadService->findOrFailWithTrashed($id);
         $this->authorize('restore', $task);
 
         $ok = $this->taskService->restore((string) $request->user()->id, $id);
