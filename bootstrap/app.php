@@ -19,9 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class, 
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-            'check.admin.or.permission' => \App\Http\Middleware\CheckAdminOrPermission::class,
-            'role_or_permission' => \App\Http\Middleware\RoleOrPermissionMiddleware::class,
-            'password.changed' => \App\Http\Middleware\EnsurePasswordChanged::class,
+            'check.admin.or.permission' => \App\Core\Http\Middleware\CheckAdminOrPermission::class,
+            'role_or_permission' => \App\Core\Http\Middleware\RoleOrPermissionMiddleware::class,
+            'password.changed' => \App\Core\Http\Middleware\EnsurePasswordChanged::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

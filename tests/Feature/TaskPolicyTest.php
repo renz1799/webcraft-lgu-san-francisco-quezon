@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Task;
-use App\Models\User;
-use App\Policies\TaskPolicy;
-use App\Support\CurrentContext;
+use App\Modules\Tasks\Models\Task;
+use App\Core\Models\User;
+use App\Modules\Tasks\Policies\TaskPolicy;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;

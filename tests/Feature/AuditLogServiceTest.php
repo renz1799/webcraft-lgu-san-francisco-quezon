@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Builders\AuditLogs\AuditLogMetaBuilder;
-use App\Models\AuditLog;
-use App\Models\User;
-use App\Repositories\Contracts\AuditLogRepositoryInterface;
-use App\Services\AuditLogs\AuditLogService;
-use App\Support\AuditRequestContextResolver;
-use App\Support\CurrentContext;
+use App\Core\Builders\AuditLogs\AuditLogMetaBuilder;
+use App\Core\Models\AuditLog;
+use App\Core\Models\User;
+use App\Core\Repositories\Contracts\AuditLogRepositoryInterface;
+use App\Core\Services\AuditLogs\AuditLogService;
+use App\Core\Support\AuditRequestContextResolver;
+use App\Core\Support\CurrentContext;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Request as RequestFacade;
 use Mockery;

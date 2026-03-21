@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\Role;
-use App\Models\User;
-use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\Access\UserAccessService;
-use App\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
-use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
-use App\Support\CurrentContext;
+use App\Core\Models\Role;
+use App\Core\Models\User;
+use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Services\Access\UserAccessService;
+use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
+use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Support\CurrentContext;
 use Mockery;
 use ReflectionMethod;
 use Tests\TestCase;

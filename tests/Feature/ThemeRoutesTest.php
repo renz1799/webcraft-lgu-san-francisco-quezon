@@ -15,9 +15,9 @@ class ThemeRoutesTest extends TestCase
         $this->assertNotNull($colorsRoute);
 
         $this->assertSame(['POST'], $styleRoute->methods());
-        $this->assertSame('App\\Http\\Controllers\\Settings\\ThemeController@updateStyle', $styleRoute->getActionName());
+        $this->assertSame('App\\Core\\Http\\Controllers\\Settings\\ThemeController@updateStyle', $styleRoute->getActionName());
         $this->assertSame(['POST'], $colorsRoute->methods());
-        $this->assertSame('App\\Http\\Controllers\\Settings\\ThemeController@updateColors', $colorsRoute->getActionName());
+        $this->assertSame('App\\Core\\Http\\Controllers\\Settings\\ThemeController@updateColors', $colorsRoute->getActionName());
 
         $this->assertContains('auth', $styleRoute->gatherMiddleware());
         $this->assertContains('password.changed', $styleRoute->gatherMiddleware());

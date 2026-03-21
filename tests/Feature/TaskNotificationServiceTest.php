@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Builders\Tasks\TaskNotificationPayloadBuilder;
-use App\Models\Notification;
-use App\Models\Task;
-use App\Repositories\Contracts\TaskEventRepositoryInterface;
-use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\Contracts\Notifications\NotificationServiceInterface;
-use App\Services\Tasks\TaskNotificationService;
+use App\Modules\Tasks\Builders\TaskNotificationPayloadBuilder;
+use App\Core\Models\Notification;
+use App\Modules\Tasks\Models\Task;
+use App\Modules\Tasks\Repositories\Contracts\TaskEventRepositoryInterface;
+use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Services\Contracts\Notifications\NotificationServiceInterface;
+use App\Modules\Tasks\Services\TaskNotificationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
 use Mockery;

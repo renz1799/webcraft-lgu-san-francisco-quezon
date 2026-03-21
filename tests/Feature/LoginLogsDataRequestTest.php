@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Requests\Logs\LoginLogsDataRequest;
+use App\Core\Http\Requests\Logs\LoginLogsDataRequest;
 use Mockery;
 use Tests\TestCase;
 

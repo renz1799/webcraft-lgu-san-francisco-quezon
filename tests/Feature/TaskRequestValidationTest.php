@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Http\Requests\Tasks\ReassignTaskRequest;
-use App\Http\Requests\Tasks\StoreTaskRequest;
-use App\Http\Requests\Tasks\TaskTableDataRequest;
-use App\Models\User;
-use App\Support\CurrentContext;
+use App\Modules\Tasks\Http\Requests\ReassignTaskRequest;
+use App\Modules\Tasks\Http\Requests\StoreTaskRequest;
+use App\Modules\Tasks\Http\Requests\TaskTableDataRequest;
+use App\Core\Models\User;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;

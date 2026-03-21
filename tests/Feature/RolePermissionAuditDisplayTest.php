@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Builders\Access\PermissionAuditDisplayBuilder;
-use App\Builders\Access\RoleAuditDisplayBuilder;
+use App\Core\Builders\Access\PermissionAuditDisplayBuilder;
+use App\Core\Builders\Access\RoleAuditDisplayBuilder;
 use Mockery;
 use Tests\TestCase;
 

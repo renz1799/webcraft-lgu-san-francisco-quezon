@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Builders\AuditLogs\AuditLogMetaBuilder;
+use App\Core\Builders\AuditLogs\AuditLogMetaBuilder;
 use Tests\TestCase;
 
 class AuditLogMetaBuilderTest extends TestCase

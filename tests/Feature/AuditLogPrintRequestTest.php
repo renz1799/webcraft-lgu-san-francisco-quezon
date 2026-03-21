@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Http\Requests\AuditLogs\AuditLogPrintRequest;
-use App\Models\Role;
+use App\Core\Http\Requests\AuditLogs\AuditLogPrintRequest;
+use App\Core\Models\Role;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 

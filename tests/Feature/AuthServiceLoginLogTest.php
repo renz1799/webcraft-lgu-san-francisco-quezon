@@ -2,15 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Builders\Login\LoginAttemptLogBuilder;
-use App\Models\LoginDetail;
-use App\Models\User;
-use App\Repositories\Contracts\LoginDetailRepositoryInterface;
-use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\Auth\AuthService;
-use App\Services\Contracts\Access\ModuleAccessServiceInterface;
-use App\Services\Contracts\Geocoding\GeocodingServiceInterface;
-use App\Support\CurrentContext;
+use App\Core\Builders\Login\LoginAttemptLogBuilder;
+use App\Core\Models\LoginDetail;
+use App\Core\Models\User;
+use App\Core\Repositories\Contracts\LoginDetailRepositoryInterface;
+use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Services\Auth\AuthService;
+use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
+use App\Core\Services\Contracts\Geocoding\GeocodingServiceInterface;
+use App\Core\Support\CurrentContext;
 use Illuminate\Http\Request;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;

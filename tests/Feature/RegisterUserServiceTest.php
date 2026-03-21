@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Data\Auth\RegisterUserData;
-use App\Models\User;
-use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\Auth\RegisterUserService;
-use App\Services\Contracts\Access\ModuleAccessServiceInterface;
-use App\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
-use App\Support\CurrentContext;
+use App\Core\Data\Auth\RegisterUserData;
+use App\Core\Models\User;
+use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Services\Auth\RegisterUserService;
+use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
+use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
+use App\Core\Support\CurrentContext;
 use Mockery;
 use Tests\TestCase;
 

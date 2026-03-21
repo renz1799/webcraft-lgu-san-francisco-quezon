@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Builders\Auth\RegistrationRoleOptionsBuilder;
-use App\Models\Role;
-use App\Services\Auth\RegistrationOptionsService;
-use App\Support\CurrentContext;
+use App\Core\Builders\Auth\RegistrationRoleOptionsBuilder;
+use App\Core\Models\Role;
+use App\Core\Services\Auth\RegistrationOptionsService;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

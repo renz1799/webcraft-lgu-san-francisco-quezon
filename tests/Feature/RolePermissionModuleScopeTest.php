@@ -2,16 +2,16 @@
 
 namespace Tests\Feature;
 
-use App\Builders\Access\PermissionAuditDisplayBuilder;
-use App\Builders\Access\RoleAuditDisplayBuilder;
-use App\Models\Permission;
-use App\Models\Role;
-use App\Repositories\Contracts\PermissionRepositoryInterface;
-use App\Repositories\Contracts\RoleRepositoryInterface;
-use App\Services\Access\PermissionService;
-use App\Services\Access\RoleService;
-use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
-use App\Support\CurrentContext;
+use App\Core\Builders\Access\PermissionAuditDisplayBuilder;
+use App\Core\Builders\Access\RoleAuditDisplayBuilder;
+use App\Core\Models\Permission;
+use App\Core\Models\Role;
+use App\Core\Repositories\Contracts\PermissionRepositoryInterface;
+use App\Core\Repositories\Contracts\RoleRepositoryInterface;
+use App\Core\Services\Access\PermissionService;
+use App\Core\Services\Access\RoleService;
+use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Mockery;
 use Tests\TestCase;

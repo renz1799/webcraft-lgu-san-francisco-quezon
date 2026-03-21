@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Repositories\Contracts\LoginDetailRepositoryInterface;
-use App\Services\Access\LoginLogService;
-use App\Support\CurrentContext;
+use App\Core\Repositories\Contracts\LoginDetailRepositoryInterface;
+use App\Core\Services\Access\LoginLogService;
+use App\Core\Support\CurrentContext;
 use Mockery;
 use Tests\TestCase;
 
@@ -84,9 +84,9 @@ class LoginLogServiceModuleScopeTest extends TestCase
         $loginDetails = Mockery::mock(LoginDetailRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
 
-        $user = new \App\Models\User();
+        $user = new \App\Core\Models\User();
         $user->forceFill(['id' => 'user-1']);
-        $logs = collect([new \App\Models\LoginDetail(['id' => 'log-1'])]);
+        $logs = collect([new \App\Core\Models\LoginDetail(['id' => 'log-1'])]);
 
         $context->shouldReceive('moduleId')
             ->once()
@@ -107,7 +107,7 @@ class LoginLogServiceModuleScopeTest extends TestCase
         $loginDetails = Mockery::mock(LoginDetailRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
 
-        $user = new \App\Models\User();
+        $user = new \App\Core\Models\User();
         $user->forceFill(['id' => 'user-1']);
 
         $context->shouldReceive('moduleId')

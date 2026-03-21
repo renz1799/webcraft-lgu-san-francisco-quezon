@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Builders\Contracts\User\UserDatatableActionBuilderInterface;
-use App\Builders\Contracts\User\UserDatatableRowBuilderInterface;
-use App\Builders\User\UserDatatableRowBuilder;
-use App\Models\Role;
-use App\Models\User;
-use App\Repositories\Eloquent\EloquentUserRepository;
-use App\Support\CurrentContext;
+use App\Core\Builders\Contracts\User\UserDatatableActionBuilderInterface;
+use App\Core\Builders\Contracts\User\UserDatatableRowBuilderInterface;
+use App\Core\Builders\User\UserDatatableRowBuilder;
+use App\Core\Models\Role;
+use App\Core\Models\User;
+use App\Core\Repositories\Eloquent\EloquentUserRepository;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

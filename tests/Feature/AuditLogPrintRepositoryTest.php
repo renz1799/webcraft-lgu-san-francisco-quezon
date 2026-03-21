@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Builders\AuditLogs\AuditLogDatatableRowBuilder;
-use App\Models\Role;
-use App\Repositories\Eloquent\EloquentAuditLogRepository;
+use App\Core\Builders\AuditLogs\AuditLogDatatableRowBuilder;
+use App\Core\Models\Role;
+use App\Core\Repositories\Eloquent\EloquentAuditLogRepository;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -146,7 +146,7 @@ class AuditLogPrintRepositoryTest extends TestCase
                 'module_id' => '11111111-1111-1111-1111-111111111111',
                 'department_id' => null,
                 'actor_id' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-                'actor_type' => \App\Models\User::class,
+                'actor_type' => \App\Core\Models\User::class,
                 'subject_type' => Role::class,
                 'subject_id' => '33333333-3333-4333-8333-333333333333',
                 'action' => 'role.deleted',
@@ -166,7 +166,7 @@ class AuditLogPrintRepositoryTest extends TestCase
                 'module_id' => '22222222-2222-2222-2222-222222222222',
                 'department_id' => null,
                 'actor_id' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-                'actor_type' => \App\Models\User::class,
+                'actor_type' => \App\Core\Models\User::class,
                 'subject_type' => Role::class,
                 'subject_id' => '44444444-4444-4444-8444-444444444444',
                 'action' => 'role.updated',
@@ -186,8 +186,8 @@ class AuditLogPrintRepositoryTest extends TestCase
                 'module_id' => '11111111-1111-1111-1111-111111111111',
                 'department_id' => null,
                 'actor_id' => 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-                'actor_type' => \App\Models\User::class,
-                'subject_type' => \App\Models\User::class,
+                'actor_type' => \App\Core\Models\User::class,
+                'subject_type' => \App\Core\Models\User::class,
                 'subject_id' => 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
                 'action' => 'user.updated',
                 'message' => 'User updated.',

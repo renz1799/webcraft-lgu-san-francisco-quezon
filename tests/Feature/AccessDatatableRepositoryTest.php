@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Permission;
-use App\Models\Role;
-use App\Repositories\Eloquent\EloquentPermissionRepository;
-use App\Repositories\Eloquent\EloquentRoleRepository;
+use App\Core\Models\Permission;
+use App\Core\Models\Role;
+use App\Core\Repositories\Eloquent\EloquentPermissionRepository;
+use App\Core\Repositories\Eloquent\EloquentRoleRepository;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;

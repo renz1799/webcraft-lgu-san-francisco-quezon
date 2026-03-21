@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Http\Requests\AuditLogs\AuditLogPrintRequest;
-use App\Http\Requests\AuditLogs\RestoreSubjectRequest;
-use App\Support\CurrentContext;
+use App\Core\Http\Requests\AuditLogs\AuditLogPrintRequest;
+use App\Core\Http\Requests\AuditLogs\RestoreSubjectRequest;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Mockery;

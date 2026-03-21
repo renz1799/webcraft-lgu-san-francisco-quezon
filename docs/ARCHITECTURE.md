@@ -52,6 +52,97 @@ Detailed Core service boundaries are defined in:
 
 docs/CORE_SERVICE_RULES.md
 
+Detailed platform boundary rules between Core and Modules are defined in:
+
+docs/CORE_PLATFORM_RULES.md
+
+Concrete target placement and migration mapping are defined in:
+
+docs/CORE_MODULE_STRUCTURE_MAP.md
+
+---
+
+# Core vs Modules Boundary
+
+The system must be treated as a platform with applications running on top of it.
+
+Core is the platform foundation.
+
+Modules are business applications built on the platform.
+
+## Placement Rule
+
+If logic exists because the platform needs it regardless of business module:
+
+it belongs in Core.
+
+If logic exists because a specific module exists:
+
+it belongs in that module.
+
+Examples of Core concerns:
+
+audit logging
+notification transport
+authentication and access control
+CurrentContext
+print infrastructure
+storage integrations
+shared repositories
+shared builders and providers
+platform support services
+
+Examples of module concerns:
+
+business workflows
+domain services
+module specific builders
+module specific providers
+module repositories
+policies
+business rules
+domain terminology
+
+## Dependency Direction
+
+Dependencies must always flow:
+
+Modules -> Core
+
+Never:
+
+Core -> Modules
+
+Core must not contain:
+
+module workflows
+module wording
+module specific builders or providers
+module specific service branching
+
+## Ownership Rule
+
+Core owns platform capabilities.
+
+Modules own business behavior.
+
+Do not mix these responsibilities.
+
+## Structural Direction
+
+Target structure should follow this direction:
+
+```text
+app/
+  Core/
+  Modules/
+    Tasks/
+    DTS/
+    GSO/
+```
+
+Concern folders such as Services, Builders, Providers, Repositories, and Policies should live under the owning side of that boundary.
+
 ---
 
 # Platform Context Model
@@ -377,6 +468,20 @@ it belongs in Core.
 If logic is about platform context, access boundaries, shared identity, module resolution, department structure, or shared infrastructure:
 
 it belongs in Core.
+
+Ask two questions:
+
+Would this still exist if the module were removed?
+
+If yes:
+
+Core.
+
+Does this exist because this module exists?
+
+If yes:
+
+Module.
 
 ---
 

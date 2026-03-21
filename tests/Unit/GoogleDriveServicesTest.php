@@ -2,16 +2,16 @@
 
 namespace Tests\Unit;
 
-use App\Builders\GoogleDrive\GoogleDriveFileMetadataBuilder;
-use App\Builders\GoogleDrive\GoogleDriveFolderNameSanitizer;
-use App\Models\GoogleToken;
-use App\Repositories\Contracts\GoogleTokenRepositoryInterface;
-use App\Services\Contracts\GoogleDrive\GoogleDriveClientFactoryInterface;
-use App\Services\Contracts\GoogleDrive\GoogleDriveSettingsProviderInterface;
-use App\Services\GoogleDrive\GoogleDriveConnectionService;
-use App\Services\GoogleDrive\GoogleDriveFileService;
-use App\Services\GoogleDrive\GoogleDriveFolderService;
-use App\Support\CurrentContext;
+use App\Core\Builders\GoogleDrive\GoogleDriveFileMetadataBuilder;
+use App\Core\Builders\GoogleDrive\GoogleDriveFolderNameSanitizer;
+use App\Core\Models\GoogleToken;
+use App\Core\Repositories\Contracts\GoogleTokenRepositoryInterface;
+use App\Core\Services\Contracts\GoogleDrive\GoogleDriveClientFactoryInterface;
+use App\Core\Services\Contracts\GoogleDrive\GoogleDriveSettingsProviderInterface;
+use App\Core\Services\GoogleDrive\GoogleDriveConnectionService;
+use App\Core\Services\GoogleDrive\GoogleDriveFileService;
+use App\Core\Services\GoogleDrive\GoogleDriveFolderService;
+use App\Core\Support\CurrentContext;
 use Google\Client as GoogleClient;
 use Google\Service\Drive as GoogleDrive;
 use Illuminate\Http\UploadedFile;

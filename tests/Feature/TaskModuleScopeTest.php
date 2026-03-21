@@ -2,20 +2,20 @@
 
 namespace Tests\Feature;
 
-use App\Builders\Tasks\TaskAdminStatsBuilder;
-use App\Builders\Tasks\TaskDatatableRowBuilder;
-use App\Builders\Tasks\TaskReassignmentNoteBuilder;
-use App\Builders\User\UserTaskReassignOptionBuilder;
-use App\Models\Notification;
-use App\Models\Task;
-use App\Models\User;
-use App\Models\UserProfile;
-use App\Policies\TaskPolicy;
-use App\Services\Contracts\Tasks\TaskNotificationServiceInterface;
-use App\Services\Tasks\TaskReadService;
-use App\Services\Tasks\TaskService;
-use App\Services\Tasks\TaskShowActionProvider;
-use App\Support\CurrentContext;
+use App\Modules\Tasks\Builders\TaskAdminStatsBuilder;
+use App\Modules\Tasks\Builders\TaskDatatableRowBuilder;
+use App\Modules\Tasks\Builders\TaskReassignmentNoteBuilder;
+use App\Core\Builders\User\UserTaskReassignOptionBuilder;
+use App\Core\Models\Notification;
+use App\Modules\Tasks\Models\Task;
+use App\Core\Models\User;
+use App\Core\Models\UserProfile;
+use App\Modules\Tasks\Policies\TaskPolicy;
+use App\Modules\Tasks\Services\Contracts\TaskNotificationServiceInterface;
+use App\Modules\Tasks\Services\TaskReadService;
+use App\Modules\Tasks\Services\TaskService;
+use App\Modules\Tasks\Services\TaskShowActionProvider;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Collection;
@@ -71,9 +71,9 @@ class TaskModuleScopeTest extends TestCase
             ->andReturn(new Notification());
 
         $service = new TaskService(
-            app(\App\Repositories\Contracts\TaskRepositoryInterface::class),
-            app(\App\Repositories\Contracts\TaskEventRepositoryInterface::class),
-            app(\App\Repositories\Contracts\UserRepositoryInterface::class),
+            app(\App\Modules\Tasks\Repositories\Contracts\TaskRepositoryInterface::class),
+            app(\App\Modules\Tasks\Repositories\Contracts\TaskEventRepositoryInterface::class),
+            app(\App\Core\Repositories\Contracts\UserRepositoryInterface::class),
             $notifications,
             $context,
             new TaskReassignmentNoteBuilder(new UserTaskReassignOptionBuilder()),
@@ -131,9 +131,9 @@ class TaskModuleScopeTest extends TestCase
         app()->instance(CurrentContext::class, $context);
 
         $readService = new TaskReadService(
-            app(\App\Repositories\Contracts\TaskRepositoryInterface::class),
-            app(\App\Repositories\Contracts\TaskEventRepositoryInterface::class),
-            app(\App\Repositories\Contracts\UserRepositoryInterface::class),
+            app(\App\Modules\Tasks\Repositories\Contracts\TaskRepositoryInterface::class),
+            app(\App\Modules\Tasks\Repositories\Contracts\TaskEventRepositoryInterface::class),
+            app(\App\Core\Repositories\Contracts\UserRepositoryInterface::class),
             new TaskPolicy(),
             $context,
             new TaskDatatableRowBuilder(),

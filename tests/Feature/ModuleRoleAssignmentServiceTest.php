@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\Module;
-use App\Models\Permission;
-use App\Models\Role;
-use App\Models\User;
-use App\Models\UserModule;
-use App\Services\Access\RoleAssignments\ModuleRoleAssignmentService;
-use App\Support\CurrentContext;
+use App\Core\Models\Module;
+use App\Core\Models\Permission;
+use App\Core\Models\Role;
+use App\Core\Models\User;
+use App\Core\Models\UserModule;
+use App\Core\Services\Access\RoleAssignments\ModuleRoleAssignmentService;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

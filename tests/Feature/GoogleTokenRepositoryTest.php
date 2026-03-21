@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\GoogleToken;
-use App\Repositories\Eloquent\EloquentGoogleTokenRepository;
+use App\Core\Models\GoogleToken;
+use App\Core\Repositories\Eloquent\EloquentGoogleTokenRepository;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;

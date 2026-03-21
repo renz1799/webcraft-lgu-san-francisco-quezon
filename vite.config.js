@@ -19,21 +19,21 @@ export default defineConfig({
 
 
                 //
-                'resources/js/sweetalert.js',
-                'resources/js/permissions.js',
-                'resources/js/permissions-manage.js',
-                'resources/js/datatables.js',
-                'resources/js/logs.js',
-                'resources/js/roles-page.js',
-                'resources/js/theme-switcher.js',
-                'resources/js/force-password-change.js',
+                'resources/core/js/sweetalert.js',
+                'resources/core/js/permissions.js',
+                'resources/core/js/permissions-manage.js',
+                'resources/core/js/datatables.js',
+                'resources/core/js/logs.js',
+                'resources/core/js/roles-page.js',
+                'resources/core/js/theme-switcher.js',
+                'resources/core/js/force-password-change.js',
                  ...customViteInputs,
                  // Resources paths 
                 'resources/sass/app.scss', 
-                'resources/js/app.js',
-                'resources/js/logs-tabulator.js',
-                'resources/js/permissions-tabulator.js',
-                'resources/js/notifications/header.js',
+                'resources/core/js/app.js',
+                'resources/core/js/logs-tabulator.js',
+                'resources/core/js/permissions-tabulator.js',
+                'resources/core/js/notifications/header.js',
 
                 // Resources assets js file paths
                 'resources/assets/js/add-products.js',
@@ -236,4 +236,3 @@ export default defineConfig({
     },
 });
     
-

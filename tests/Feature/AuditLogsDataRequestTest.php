@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Requests\AuditLogs\AuditLogsDataRequest;
+use App\Core\Http\Requests\AuditLogs\AuditLogsDataRequest;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 

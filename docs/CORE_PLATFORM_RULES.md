@@ -7,6 +7,7 @@ This document defines how the Core System operates as a **multi‑module platfor
 ARCHITECTURE.md defines structure.
 CORE_SERVICE_RULES.md defines Core responsibilities.
 CORE_DESIGN_PRINCIPLES.md defines philosophy.
+CORE_MODULE_STRUCTURE_MAP.md defines the concrete target placement map.
 
 This document defines how Core behaves as a **platform kernel**.
 
@@ -53,6 +54,200 @@ UI behavior
 process logic
 
 Never reverse this relationship.
+
+---
+
+# Platform Boundary Rule (Core vs Modules)
+
+Core is the platform foundation.
+
+Modules are business applications running on the platform.
+
+This boundary must remain explicit in both code placement and dependency direction.
+
+## Core Definition
+
+Core contains platform capabilities that are reusable across multiple modules and are not owned by any single business feature.
+
+Core components must be:
+
+module agnostic
+scenario agnostic
+reusable across multiple modules
+independent of business workflows
+stable platform infrastructure
+
+Examples of Core concerns:
+
+audit logging
+notification transport
+authentication and access control
+CurrentContext
+print infrastructure
+storage integrations
+shared repositories
+shared builders and providers
+platform support services
+
+Simple test:
+
+If a module such as DTS, GSO, or Tasks is removed, would this still exist?
+
+If yes:
+
+it belongs in Core.
+
+## Module Definition
+
+Modules contain business applications built on top of Core.
+
+Modules may depend on Core.
+
+Core must never depend on Modules.
+
+Modules contain:
+
+business workflows
+domain services
+module specific builders
+module specific providers
+module repositories
+policies
+business rules
+domain terminology
+
+Examples:
+
+DTS
+GSO
+Tasks
+HR
+Procurement
+Inventory
+
+Simple test:
+
+Does this exist because this module exists?
+
+If yes:
+
+it belongs in the module.
+
+## Dependency Direction Rule
+
+Dependencies must always follow this direction:
+
+Modules -> Core
+
+Never:
+
+Core -> Modules
+
+Core must never reference:
+
+module services
+module workflows
+module builders
+module providers
+module terminology
+
+Core should also avoid direct dependency on module owned models unless access is abstracted through shared contracts or platform owned structures.
+
+Violating this rule breaks platform architecture.
+
+## Ownership Rule
+
+Ownership determines placement.
+
+Core owns platform capabilities.
+
+Modules own business logic.
+
+Never mix these responsibilities.
+
+## Folder Structure Standard
+
+Target platform structure should follow this direction:
+
+```text
+app/
+  Core/
+    Builders/
+    Services/
+    Providers/
+    Repositories/
+    Support/
+
+  Modules/
+    Tasks/
+      Builders/
+      Services/
+      Providers/
+      Repositories/
+      Policies/
+
+    DTS/
+      Builders/
+      Services/
+      Providers/
+
+    GSO/
+      Builders/
+      Services/
+```
+
+Core is platform.
+
+Modules are applications running on the platform.
+
+## Reusability Rule
+
+If code becomes reusable across modules, move it from Modules to Core.
+
+Example:
+
+TaskNotificationService -> Module concern
+NotificationService -> Core concern
+
+## Architecture Drift Warning Signs
+
+Architecture drift is happening if:
+
+Core references a module
+Core contains business workflow logic
+module logic appears in Core
+module wording appears in Core services
+Core services start knowing about DTS, GSO, Tasks, or other business modules
+
+If this happens:
+
+refactor immediately.
+
+## Platform Mental Model
+
+Core is the platform engine.
+
+Modules are applications running on the platform.
+
+Core must remain stable even if modules change.
+
+## Golden Rule
+
+When deciding placement always ask:
+
+Is this platform capability or business feature?
+
+Platform capability -> Core
+Business feature -> Module
+
+Short version:
+
+Core = platform infrastructure
+Modules = business features
+
+Modules may depend on Core.
+
+Core must never depend on Modules.
 
 ---
 

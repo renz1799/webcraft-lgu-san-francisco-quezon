@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Builders\AuditLogs\AuditLogPrintReportBuilder;
-use App\Models\AuditLog;
-use App\Models\Module;
-use App\Models\Role;
-use App\Models\User;
-use App\Models\UserProfile;
+use App\Core\Builders\AuditLogs\AuditLogPrintReportBuilder;
+use App\Core\Models\AuditLog;
+use App\Core\Models\Module;
+use App\Core\Models\Role;
+use App\Core\Models\User;
+use App\Core\Models\UserProfile;
 use Tests\TestCase;
 
 class AuditLogPrintReportBuilderTest extends TestCase

@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Builders\Contracts\AuditLogs\AuditLogPrintReportBuilderInterface;
-use App\Data\AuditLogs\AuditLogPrintData;
-use App\Repositories\Contracts\AuditLogRepositoryInterface;
-use App\Services\AuditLogs\AuditLogPrintService;
-use App\Services\Contracts\Infrastructure\PdfGeneratorInterface;
+use App\Core\Builders\Contracts\AuditLogs\AuditLogPrintReportBuilderInterface;
+use App\Core\Data\AuditLogs\AuditLogPrintData;
+use App\Core\Repositories\Contracts\AuditLogRepositoryInterface;
+use App\Core\Services\AuditLogs\AuditLogPrintService;
+use App\Core\Services\Contracts\Infrastructure\PdfGeneratorInterface;
 use Mockery;
 use Tests\TestCase;
 

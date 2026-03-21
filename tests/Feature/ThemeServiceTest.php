@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Module;
-use App\Repositories\Eloquent\EloquentThemePreferencesRepository;
-use App\Services\UI\ThemeService;
-use App\Support\CurrentContext;
+use App\Core\Models\Module;
+use App\Core\Repositories\Eloquent\EloquentThemePreferencesRepository;
+use App\Core\Services\UI\ThemeService;
+use App\Core\Support\CurrentContext;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;

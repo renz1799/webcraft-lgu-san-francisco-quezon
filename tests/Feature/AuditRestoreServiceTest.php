@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Services\AuditLogs\AuditRestoreService;
-use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Services\AuditLogs\AuditRestoreService;
+use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Mockery;

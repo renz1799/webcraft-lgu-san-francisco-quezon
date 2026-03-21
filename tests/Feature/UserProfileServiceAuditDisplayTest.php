@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Services\Access\UserProfileService;
-use App\Services\Contracts\Access\LoginLogServiceInterface;
-use App\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Models\User;
+use App\Core\Services\Access\UserProfileService;
+use App\Core\Services\Contracts\Access\LoginLogServiceInterface;
+use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use Mockery;
 use ReflectionMethod;
 use Tests\TestCase;

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Repositories\Eloquent\EloquentLoginDetailRepository;
+use App\Core\Repositories\Eloquent\EloquentLoginDetailRepository;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

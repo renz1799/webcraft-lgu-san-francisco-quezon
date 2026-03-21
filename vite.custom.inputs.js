@@ -1,3 +1,3 @@
 export const customViteInputs = [
-  'resources/js/custom-entry.js',
+  'resources/core/js/custom-entry.js',
 ];

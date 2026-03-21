@@ -1,21 +1,21 @@
 <?php
 
-use App\Http\Controllers\Access\PermissionController;
-use App\Http\Controllers\Access\RolesController;
-use App\Http\Controllers\Access\UserAccessController;
-use App\Http\Controllers\AuditLogs\AuditLogController;
-use App\Http\Controllers\AuditLogs\AuditLogPrintController;
-use App\Http\Controllers\AuditLogs\AuditRestoreController;
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Dashboard\DashboardsController;
-use App\Http\Controllers\GoogleDriveController;
-use App\Http\Controllers\Logs\LoginLogController;
-use App\Http\Controllers\Notifications\NotificationController;
-use App\Http\Controllers\Profile\UserProfileController;
-use App\Http\Controllers\Reports\PrintWorkspaceSampleController;
-use App\Http\Controllers\Settings\ThemeController;
-use App\Http\Controllers\Tasks\TaskActionController;
-use App\Http\Controllers\Tasks\TaskController;
+use App\Core\Http\Controllers\Access\PermissionController;
+use App\Core\Http\Controllers\Access\RolesController;
+use App\Core\Http\Controllers\Access\UserAccessController;
+use App\Core\Http\Controllers\AuditLogs\AuditLogController;
+use App\Core\Http\Controllers\AuditLogs\AuditLogPrintController;
+use App\Core\Http\Controllers\AuditLogs\AuditRestoreController;
+use App\Core\Http\Controllers\Auth\AuthController;
+use App\Core\Http\Controllers\Dashboard\DashboardsController;
+use App\Core\Http\Controllers\GoogleDriveController;
+use App\Core\Http\Controllers\Logs\LoginLogController;
+use App\Core\Http\Controllers\Notifications\NotificationController;
+use App\Core\Http\Controllers\Profile\UserProfileController;
+use App\Core\Http\Controllers\Reports\PrintWorkspaceSampleController;
+use App\Core\Http\Controllers\Settings\ThemeController;
+use App\Modules\Tasks\Http\Controllers\TaskActionController;
+use App\Modules\Tasks\Http\Controllers\TaskController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

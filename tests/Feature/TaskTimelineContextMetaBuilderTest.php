@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Builders\Tasks\TaskTimelineContextMetaBuilder;
-use App\Models\Task;
+use App\Modules\Tasks\Builders\TaskTimelineContextMetaBuilder;
+use App\Modules\Tasks\Models\Task;
 use Tests\TestCase;
 
 class TaskTimelineContextMetaBuilderTest extends TestCase

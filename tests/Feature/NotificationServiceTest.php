@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\Notification;
-use App\Repositories\Contracts\NotificationRepositoryInterface;
-use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\Notifications\NotificationService;
-use App\Support\CurrentContext;
+use App\Core\Models\Notification;
+use App\Core\Repositories\Contracts\NotificationRepositoryInterface;
+use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Services\Notifications\NotificationService;
+use App\Core\Support\CurrentContext;
 use Mockery;
 use Tests\TestCase;
 
