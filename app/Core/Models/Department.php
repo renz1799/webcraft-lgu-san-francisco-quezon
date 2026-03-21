@@ -2,9 +2,11 @@
 
 namespace App\Core\Models;
 
+use Database\Factories\DepartmentFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +28,11 @@ class Department extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    protected static function newFactory(): Factory
+    {
+        return DepartmentFactory::new();
+    }
 
     public function parentDepartment(): BelongsTo
     {

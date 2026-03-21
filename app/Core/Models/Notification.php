@@ -2,8 +2,10 @@
 
 namespace App\Core\Models;
 
+use Database\Factories\NotificationFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -29,6 +31,11 @@ class Notification extends Model
         'data' => 'array',
         'read_at' => 'datetime',
     ];
+
+    protected static function newFactory(): Factory
+    {
+        return NotificationFactory::new();
+    }
 
     public function module(): BelongsTo
     {

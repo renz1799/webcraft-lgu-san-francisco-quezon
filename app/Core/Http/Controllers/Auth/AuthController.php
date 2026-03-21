@@ -88,6 +88,6 @@ class AuthController extends Controller
     {
         $this->auth->logout();
 
-        return redirect('/login');
+        return redirect()->route('login');
     }
 }

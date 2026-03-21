@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Permission;
-use App\Support\CurrentContext;
+use App\Core\Models\Permission;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 

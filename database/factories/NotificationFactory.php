@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
-use App\Models\Department;
-use App\Models\Module;
-use App\Models\Notification;
-use App\Models\User;
+use App\Core\Models\Department;
+use App\Core\Models\Module;
+use App\Core\Models\Notification;
+use App\Core\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 

@@ -184,7 +184,7 @@
                     </form>
                 </li>
             @else
-                <li><a class="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0 !p-[0.65rem] !inline-flex" href="{{ url('login') }}">
+                <li><a class="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0 !p-[0.65rem] !inline-flex" href="{{ route('login') }}">
                         <i class="ti ti-login text-[1.125rem] me-2 opacity-[0.7]"></i>Log In
                     </a>
                 </li>
@@ -209,3 +209,4 @@
                     </div>
                 </nav>
             </header>
+

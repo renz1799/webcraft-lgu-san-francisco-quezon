@@ -2,9 +2,11 @@
 
 namespace App\Core\Models;
 
+use Database\Factories\ModuleFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Module extends Model
@@ -22,6 +24,11 @@ class Module extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    protected static function newFactory(): Factory
+    {
+        return ModuleFactory::new();
+    }
 
     public function userModules(): HasMany
     {

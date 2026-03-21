@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Notification;
-use App\Models\User;
-use App\Support\CurrentContext;
+use App\Core\Models\Notification;
+use App\Core\Models\User;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 

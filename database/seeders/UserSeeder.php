@@ -2,14 +2,15 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
-use App\Models\User;
-use App\Models\UserModule;
-use App\Models\UserProfile;
-use App\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
-use App\Support\CurrentContext;
+use App\Core\Models\Role;
+use App\Core\Models\User;
+use App\Core\Models\UserModule;
+use App\Core\Models\UserProfile;
+use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
@@ -53,17 +54,29 @@ class UserSeeder extends Seeder
                 ]
             );
 
-            $admin = User::factory()
-                ->admin()
-                ->create([
+            $admin = User::query()->updateOrCreate(
+                [
+                    'email' => 'admin@webcraft.ph',
+                ],
+                [
+                    'username' => 'admin',
+                    'password' => Hash::make('password'),
+                    'user_type' => 'Admin',
+                    'is_active' => true,
+                    'must_change_password' => false,
                     'primary_department_id' => $departmentId,
-                ]);
+                ]
+            );
 
-            UserProfile::factory()->create([
-                'user_id' => $admin->id,
-                'first_name' => 'System',
-                'last_name' => 'Administrator',
-            ]);
+            UserProfile::query()->updateOrCreate(
+                [
+                    'user_id' => $admin->id,
+                ],
+                [
+                    'first_name' => 'System',
+                    'last_name' => 'Administrator',
+                ]
+            );
 
             UserModule::updateOrCreate(
                 [
@@ -80,17 +93,30 @@ class UserSeeder extends Seeder
 
             $roleAssignments->assign($admin, $adminRole);
 
-            $staffUsers = User::factory()
-                ->count(5)
-                ->mustChangePassword()
-                ->create([
-                    'primary_department_id' => $departmentId,
-                ]);
+            for ($index = 1; $index <= 5; $index++) {
+                $staff = User::query()->updateOrCreate(
+                    [
+                        'email' => "staff{$index}@webcraft.ph",
+                    ],
+                    [
+                        'username' => "staff{$index}",
+                        'password' => Hash::make('password'),
+                        'user_type' => 'Viewer',
+                        'is_active' => true,
+                        'must_change_password' => true,
+                        'primary_department_id' => $departmentId,
+                    ]
+                );
 
-            foreach ($staffUsers as $staff) {
-                UserProfile::factory()->create([
-                    'user_id' => $staff->id,
-                ]);
+                UserProfile::query()->updateOrCreate(
+                    [
+                        'user_id' => $staff->id,
+                    ],
+                    [
+                        'first_name' => 'Sample',
+                        'last_name' => "Staff {$index}",
+                    ]
+                );
 
                 UserModule::updateOrCreate(
                     [

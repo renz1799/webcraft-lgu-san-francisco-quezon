@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\Notification;
-use App\Models\Task;
-use App\Models\TaskEvent;
-use App\Models\User;
-use App\Support\CurrentContext;
+use App\Core\Models\Notification;
+use App\Core\Models\User;
+use App\Core\Support\CurrentContext;
+use App\Modules\Tasks\Models\Task;
+use App\Modules\Tasks\Models\TaskEvent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 

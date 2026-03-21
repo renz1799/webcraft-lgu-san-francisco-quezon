@@ -3,7 +3,9 @@
 namespace App\Core\Models;
 
 use App\Models\Concerns\HasUuid;
+use Database\Factories\UserProfileFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 
 class UserProfile extends Model
@@ -25,6 +27,11 @@ class UserProfile extends Model
     {
         parent::boot();
         static::bootHasUuid();
+    }
+
+    protected static function newFactory(): Factory
+    {
+        return UserProfileFactory::new();
     }
 
     public function user()

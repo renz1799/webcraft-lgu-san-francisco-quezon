@@ -26,10 +26,13 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/', [DashboardsController::class, 'index']); // leave public (placeholder)
 
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])
+Route::get('/wc-login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('/wc-login', [AuthController::class, 'login'])
     ->middleware('throttle:login')
     ->name('login.attempt');
+Route::redirect('/login', '/wc-login', 301);
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:login');
 
 
 /*
@@ -249,6 +252,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->middleware('role_or_permission:Administrator|admin')
         ->name('theme.colors.update');
 });
+
 
 
 
