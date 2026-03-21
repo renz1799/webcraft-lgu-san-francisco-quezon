@@ -253,25 +253,26 @@ Core must never depend on Modules.
 
 # Platform Architecture Model
 
-The Core platform follows this structure:
+The platform follows this operating model:
 
-Single codebase
-Single database
-Multiple modules
-Multiple websites
-Shared platform services
+single codebase
+one deployment per LGU
+one database per LGU
+multiple modules inside that deployment
+shared Core platform services
 
 Conceptually:
 
 Platform Layer
-→ Core
+-> Core
 
 Application Layer
-→ DTS
-→ GSO
-→ Future modules
+-> DTS
+-> GSO
+-> Tasks
+-> future modules
 
-Core must remain stable while modules evolve.
+Core must remain stable while modules evolve inside each LGU deployment.
 
 ---
 
@@ -298,9 +299,11 @@ Isolation is mandatory.
 
 # Shared Database Rule
 
-Core uses a shared database.
+Each LGU deployment uses one database.
 
-Shared tables must be platform‑aware.
+Modules inside that LGU share the same LGU database.
+
+Shared tables must be platform-aware.
 
 Required patterns:
 
@@ -414,7 +417,8 @@ Module department must be resolved per module.
 Use this priority:
 
 explicit department assignment
-module-specific default mapping
+database-backed module default mapping
+configuration fallback mapping
 platform default department fallback
 
 This means:
@@ -600,24 +604,26 @@ Platform stability protects module stability.
 
 # Module Deployment Model
 
-Modules may run as:
+Modules should normally run inside the same LGU platform deployment.
 
-separate websites
-separate subdomains
-separate routes
+Recommended pattern:
+
+one LGU domain
+one login
+one database
+module route prefixes
 
 Examples:
 
-dts.lgu.local
-gso.lgu.local
+`https://lgu1.webcraft.ph/wc-login`
+`https://lgu1.webcraft.ph/modules`
+`https://lgu1.webcraft.ph/dts`
+`https://lgu1.webcraft.ph/gso`
+`https://lgu1.webcraft.ph/tasks`
 
-All using:
+Modules are enabled logically.
 
-same Core
-same DB
-same platform services
-
-This is the intended deployment model.
+They are not intended to be deployed as separate products per module.
 
 ---
 
@@ -689,6 +695,10 @@ One platform
 Many LGU systems
 Clean isolation
 Predictable growth
+
+Detailed LGU deployment doctrine is defined in:
+
+docs/LGU_PLATFORM_DOCTRINE.md
 
 ---
 

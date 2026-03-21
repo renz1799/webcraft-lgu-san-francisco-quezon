@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Module extends Model
@@ -18,6 +19,7 @@ class Module extends Model
         'name',
         'description',
         'url',
+        'default_department_id',
         'is_active',
     ];
 
@@ -33,6 +35,11 @@ class Module extends Model
     public function userModules(): HasMany
     {
         return $this->hasMany(UserModule::class, 'module_id', 'id');
+    }
+
+    public function defaultDepartment(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'default_department_id', 'id');
     }
 
     public function googleTokens(): HasMany

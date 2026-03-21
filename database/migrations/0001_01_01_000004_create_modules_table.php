@@ -15,12 +15,19 @@ return new class extends Migration
             $table->string('name');                 // Document Tracking System
             $table->text('description')->nullable();
             $table->string('url')->nullable();
+            $table->uuid('default_department_id')->nullable();
 
             $table->boolean('is_active')->default(true);
 
             $table->timestamps();
 
             $table->index('is_active');
+            $table->index('default_department_id');
+
+            $table->foreign('default_department_id')
+                ->references('id')
+                ->on('departments')
+                ->nullOnDelete();
         });
     }
 

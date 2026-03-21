@@ -60,6 +60,10 @@ Concrete target placement and migration mapping are defined in:
 
 docs/CORE_MODULE_STRUCTURE_MAP.md
 
+The LGU deployment and operating model is defined in:
+
+docs/LGU_PLATFORM_DOCTRINE.md
+
 ---
 
 # Core vs Modules Boundary
@@ -149,8 +153,9 @@ Concern folders such as Services, Builders, Providers, Repositories, and Policie
 
 The Core System is designed for:
 
-one shared database
-multiple module websites
+one database per LGU deployment
+one deployed platform per LGU
+multiple enabled modules inside that deployment
 multiple departments
 shared user identities
 module-specific access boundaries
@@ -388,7 +393,7 @@ user_modules
 google_tokens
 audit_logs
 notifications
-tasks
+tasks may be shared operational records, but Task business behavior belongs in Modules
 
 ---
 
@@ -580,7 +585,7 @@ A module website must verify both:
 valid shared user credentials
 active module access
 
-This prevents DTS users from automatically accessing GSO, and vice versa, while still using one shared database.
+This prevents DTS users from automatically accessing GSO, and vice versa, while still using the same LGU database.
 
 ---
 
@@ -605,6 +610,8 @@ current application identity
 default system-generated scope
 seeder defaults
 module-aware infrastructure operations
+
+Do not treat `CurrentContext` as the source of LGU tenancy. In the current platform model, the LGU is the deployment boundary and the runtime context is primarily module and department aware.
 
 Do not reinterpret `defaultDepartmentId()` as a universal module department.
 

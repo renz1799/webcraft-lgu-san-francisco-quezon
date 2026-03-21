@@ -11,9 +11,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Register the AdminRoleSeeder
-        $this->call(ModuleSeeder::class);
         $this->call(DepartmentSeeder::class);
+        $this->call(ModuleSeeder::class);
         $this->call(UserSeeder::class);
         $this->call(PermissionsSeeder::class);
         $this->call(TaskSeeder::class);

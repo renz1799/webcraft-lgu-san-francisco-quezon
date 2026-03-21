@@ -25,6 +25,7 @@ class ModuleDepartmentResolverTest extends TestCase
             $table->uuid('id')->primary();
             $table->string('code')->nullable();
             $table->string('name')->nullable();
+            $table->uuid('default_department_id')->nullable();
         });
 
         Schema::create('departments', function (Blueprint $table) {
@@ -35,9 +36,10 @@ class ModuleDepartmentResolverTest extends TestCase
         });
 
         DB::table('modules')->insert([
-            ['id' => 'module-core', 'code' => 'CORE', 'name' => 'Core'],
-            ['id' => 'module-dts', 'code' => 'DTS', 'name' => 'DTS'],
-            ['id' => 'module-gso', 'code' => 'GSO', 'name' => 'GSO'],
+            ['id' => 'module-core', 'code' => 'CORE', 'name' => 'Core', 'default_department_id' => null],
+            ['id' => 'module-dts', 'code' => 'DTS', 'name' => 'DTS', 'default_department_id' => null],
+            ['id' => 'module-gso', 'code' => 'GSO', 'name' => 'GSO', 'default_department_id' => null],
+            ['id' => 'module-procurement', 'code' => 'PROCUREMENT', 'name' => 'Procurement', 'default_department_id' => 'department-gso'],
         ]);
 
         DB::table('departments')->insert([
@@ -54,7 +56,24 @@ class ModuleDepartmentResolverTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_it_resolves_module_department_from_config_before_platform_default(): void
+    public function test_it_resolves_db_backed_module_department_before_config(): void
+    {
+        config()->set('modules.department_defaults', [
+            'PROCUREMENT' => ['code' => 'BAC'],
+        ]);
+
+        $context = Mockery::mock(CurrentContext::class);
+        $context->shouldReceive('module')->once()->andReturnNull();
+        $context->shouldReceive('defaultDepartmentId')->never();
+
+        $resolver = new ModuleDepartmentResolver($context);
+
+        $resolved = $resolver->resolveForModule('module-procurement');
+
+        $this->assertSame('department-gso', $resolved);
+    }
+
+    public function test_it_resolves_module_department_from_config_when_db_default_is_missing(): void
     {
         config()->set('modules.department_defaults', [
             'DTS' => ['code' => 'RECORDS'],

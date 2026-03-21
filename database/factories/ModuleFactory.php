@@ -16,6 +16,7 @@ class ModuleFactory extends Factory
             'name' => fake()->company() . ' Module',
             'description' => fake()->sentence(),
             'url' => fake()->url(),
+            'default_department_id' => null,
             'is_active' => true,
         ];
     }

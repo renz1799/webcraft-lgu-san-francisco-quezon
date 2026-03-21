@@ -25,6 +25,10 @@ class ModuleDepartmentResolver implements ModuleDepartmentResolverInterface
         $module = $this->resolveModule($moduleId);
 
         if ($module) {
+            if ($module->default_department_id !== null) {
+                return $module->default_department_id;
+            }
+
             $configuredDepartmentId = $this->resolveConfiguredDepartmentId($module->code);
 
             if ($configuredDepartmentId !== null) {

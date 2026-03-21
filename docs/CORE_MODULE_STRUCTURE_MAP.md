@@ -2,12 +2,12 @@
 
 ## Purpose
 
-This document defines the target structure for separating:
+This document defines the structure baseline for separating:
 
 Core platform code
 Module business code
 
-Use this document as the migration map when moving the current `app/` structure toward:
+Use this document as the placement map for the current codebase and as the migration guide for future modules:
 
 ```text
 app/
@@ -17,7 +17,9 @@ app/
 
 This is a placement and ownership guide.
 
-It is not a requirement to move everything in one refactor.
+Core and the Tasks module already follow this baseline.
+
+Future modules should mirror the same structure instead of reintroducing top-level drift.
 
 ---
 
@@ -519,12 +521,12 @@ Move by concern, not by file randomness.
 
 Recommended order:
 
-1 Core Support and Providers
-2 Core shared services
-3 Core repositories and models
-4 Core HTTP layer
-5 Tasks module concern
-6 Remaining modules after they are identified
+1 identify the module concern boundary
+2 move PHP code into `app/Modules/<Module>`
+3 move views and JS into `resources/modules/<module>`
+4 register a module service provider
+5 update routes and bindings
+6 add focused tests and docs
 
 Keep namespaces, contracts, and providers aligned during each move.
 

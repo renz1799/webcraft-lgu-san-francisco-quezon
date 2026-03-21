@@ -13,6 +13,7 @@ class CreateLoginDetailsTable extends Migration
 
             // Nullable so logs remain even if user is deleted/absent
             $table->uuid('user_id')->nullable();
+            $table->uuid('module_id')->nullable();
             $table->string('email')->nullable();          // capture attempted email (even if user_id is null)
             $table->boolean('success')->default(false);   // success or failure
             $table->string('reason', 32)->nullable();     // e.g. ok, unknown_email, invalid_password, inactive, guard_reject
@@ -32,8 +33,14 @@ class CreateLoginDetailsTable extends Migration
                 ->on('users')
                 ->nullOnDelete();
 
+            $table->foreign('module_id')
+                ->references('id')
+                ->on('modules')
+                ->nullOnDelete();
+
             // Indexes for performance & filtering
             $table->index('user_id');
+            $table->index('module_id');
             $table->index('email');
             $table->index('ip_address');
             $table->index('success');
