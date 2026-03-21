@@ -6,6 +6,8 @@ use App\Core\Builders\AuditLogs\AuditLogMetaBuilder;
 use App\Core\Models\AuditLog;
 use App\Core\Models\User;
 use App\Core\Repositories\Contracts\AuditLogRepositoryInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
+use App\Core\Services\Contracts\Access\UserModuleDepartmentResolverInterface;
 use App\Core\Services\AuditLogs\AuditLogService;
 use App\Core\Support\AuditRequestContextResolver;
 use App\Core\Support\CurrentContext;
@@ -27,6 +29,8 @@ class AuditLogServiceTest extends TestCase
     {
         $logs = Mockery::mock(AuditLogRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
+        $moduleDepartments = Mockery::mock(ModuleDepartmentResolverInterface::class);
+        $userModuleDepartments = Mockery::mock(UserModuleDepartmentResolverInterface::class);
 
         $actor = new User();
         $actor->forceFill(['id' => 'actor-1', 'username' => 'actor.user']);
@@ -46,7 +50,8 @@ class AuditLogServiceTest extends TestCase
         RequestFacade::swap($request);
 
         $context->shouldReceive('moduleId')->once()->andReturn('module-1');
-        $context->shouldReceive('defaultDepartmentId')->once()->andReturn('department-1');
+        $userModuleDepartments->shouldReceive('resolveForUser')->once()->with('actor-1', 'module-1')->andReturn('department-1');
+        $moduleDepartments->shouldReceive('resolveForModule')->never();
 
         $logs->shouldReceive('create')
             ->once()
@@ -83,6 +88,8 @@ class AuditLogServiceTest extends TestCase
         $service = new AuditLogService(
             $logs,
             $context,
+            $moduleDepartments,
+            $userModuleDepartments,
             new AuditLogMetaBuilder(),
             new AuditRequestContextResolver(),
         );
@@ -123,6 +130,8 @@ class AuditLogServiceTest extends TestCase
     {
         $logs = Mockery::mock(AuditLogRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
+        $moduleDepartments = Mockery::mock(ModuleDepartmentResolverInterface::class);
+        $userModuleDepartments = Mockery::mock(UserModuleDepartmentResolverInterface::class);
 
         $request = Mockery::mock(HttpRequest::class);
         $request->shouldReceive('setUserResolver')->andReturnSelf();
@@ -135,7 +144,8 @@ class AuditLogServiceTest extends TestCase
         RequestFacade::swap($request);
 
         $context->shouldReceive('moduleId')->once()->andReturn(null);
-        $context->shouldReceive('defaultDepartmentId')->once()->andReturn(null);
+        $userModuleDepartments->shouldReceive('resolveForUser')->once()->with(null, null)->andReturn(null);
+        $moduleDepartments->shouldReceive('resolveForModule')->once()->with(null)->andReturn(null);
 
         $logs->shouldReceive('create')
             ->once()
@@ -151,6 +161,8 @@ class AuditLogServiceTest extends TestCase
         $service = new AuditLogService(
             $logs,
             $context,
+            $moduleDepartments,
+            $userModuleDepartments,
             new AuditLogMetaBuilder(),
             new AuditRequestContextResolver(),
         );

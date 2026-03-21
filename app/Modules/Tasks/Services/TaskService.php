@@ -8,6 +8,7 @@ use App\Core\Models\User;
 use App\Modules\Tasks\Repositories\Contracts\TaskEventRepositoryInterface;
 use App\Modules\Tasks\Repositories\Contracts\TaskRepositoryInterface;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Modules\Tasks\Services\Contracts\TaskServiceInterface;
 use App\Modules\Tasks\Services\Contracts\TaskNotificationServiceInterface;
 use App\Core\Support\CurrentContext;
@@ -23,6 +24,7 @@ class TaskService implements TaskServiceInterface
         private readonly UserRepositoryInterface $users,
         private readonly TaskNotificationServiceInterface $taskNotifications,
         private readonly CurrentContext $context,
+        private readonly ModuleDepartmentResolverInterface $moduleDepartments,
         private readonly TaskReassignmentNoteBuilderInterface $taskReassignmentNoteBuilder,
     ) {}
 
@@ -47,7 +49,7 @@ class TaskService implements TaskServiceInterface
             $data
         ) {
             $moduleId = $this->requireModuleId();
-            $departmentId = $this->context->defaultDepartmentId();
+            $departmentId = $this->moduleDepartments->resolveForModule($moduleId);
             $assignee = $this->findActiveCurrentModuleUserOrFail($assigneeUserId);
 
             $task = $this->tasks->create([
@@ -109,9 +111,11 @@ class TaskService implements TaskServiceInterface
             $subjectId,
             $data
         ) {
+            $moduleId = $this->requireModuleId();
+
             $task = $this->tasks->create([
-                'module_id' => $this->requireModuleId(),
-                'department_id' => $this->context->defaultDepartmentId(),
+                'module_id' => $moduleId,
+                'department_id' => $this->moduleDepartments->resolveForModule($moduleId),
                 'title' => $title,
                 'description' => $description,
                 'type' => $type,

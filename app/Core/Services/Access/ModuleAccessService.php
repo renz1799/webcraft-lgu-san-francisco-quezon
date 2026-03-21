@@ -3,12 +3,16 @@
 namespace App\Core\Services\Access;
 
 use App\Core\Models\User;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
 use Illuminate\Support\Carbon;
-use App\Core\Support\CurrentContext;
 
 class ModuleAccessService implements ModuleAccessServiceInterface
 {
+    public function __construct(
+        private readonly ModuleDepartmentResolverInterface $moduleDepartments,
+    ) {}
+
     public function hasActiveModuleAccess(User $user, string $moduleId): bool
     {
         return $user->userModules()
@@ -17,16 +21,18 @@ class ModuleAccessService implements ModuleAccessServiceInterface
             ->exists();
     }
 
-public function grantActiveModuleAccess(User $user, string $moduleId, ?string $departmentId): void
-{
-    $user->userModules()->updateOrCreate(
-        ['module_id' => $moduleId],
-        [
-            'department_id' => $departmentId ?: null,
-            'is_active' => true,
-            'granted_at' => Carbon::now(),
-            'revoked_at' => null,
-        ]
-    );
-}
+    public function grantActiveModuleAccess(User $user, string $moduleId, ?string $departmentId): void
+    {
+        $resolvedDepartmentId = $departmentId ?: $this->moduleDepartments->resolveForModule($moduleId);
+
+        $user->userModules()->updateOrCreate(
+            ['module_id' => $moduleId],
+            [
+                'department_id' => $resolvedDepartmentId ?: null,
+                'is_active' => true,
+                'granted_at' => Carbon::now(),
+                'revoked_at' => null,
+            ]
+        );
+    }
 }

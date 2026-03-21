@@ -358,10 +358,10 @@ app/Core/Http/View/
 
 Current candidates:
 
-`app/Providers/AppServiceProvider.php`
-`app/Providers/AuthServiceProvider.php`
-`app/Providers/CoreServiceProvider.php`
-`app/Providers/ViewServiceProvider.php`
+`app/Core/Providers/AppServiceProvider.php`
+`app/Core/Providers/AuthServiceProvider.php`
+`app/Core/Providers/CoreServiceProvider.php`
+`app/Core/Providers/ViewServiceProvider.php`
 `app/Http/Middleware/RoleOrPermissionMiddleware.php`
 `app/Http/Middleware/EnsurePasswordChanged.php`
 `app/Http/Middleware/CheckAdminOrPermission.php`

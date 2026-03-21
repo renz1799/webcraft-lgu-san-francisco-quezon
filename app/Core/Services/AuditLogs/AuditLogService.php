@@ -5,6 +5,8 @@ namespace App\Core\Services\AuditLogs;
 use App\Core\Builders\Contracts\AuditLogs\AuditLogMetaBuilderInterface;
 use App\Core\Models\AuditLog;
 use App\Core\Repositories\Contracts\AuditLogRepositoryInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
+use App\Core\Services\Contracts\Access\UserModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use App\Core\Support\AuditRequestContextResolver;
 use App\Core\Support\CurrentContext;
@@ -16,6 +18,8 @@ class AuditLogService implements AuditLogServiceInterface
     public function __construct(
         private readonly AuditLogRepositoryInterface $logs,
         private readonly CurrentContext $context,
+        private readonly ModuleDepartmentResolverInterface $moduleDepartments,
+        private readonly UserModuleDepartmentResolverInterface $userModuleDepartments,
         private readonly AuditLogMetaBuilderInterface $metaBuilder,
         private readonly AuditRequestContextResolver $requestContextResolver,
     ) {}
@@ -31,10 +35,13 @@ class AuditLogService implements AuditLogServiceInterface
     ): AuditLog {
         $meta = $this->metaBuilder->build($meta, $display);
         $requestContext = $this->requestContextResolver->resolve();
+        $moduleId = $this->context->moduleId();
+        $departmentId = $this->userModuleDepartments->resolveForUser($requestContext['actor_id'], $moduleId)
+            ?: $this->moduleDepartments->resolveForModule($moduleId);
 
         return $this->logs->create([
-            'module_id'      => $this->context->moduleId(),
-            'department_id'  => $this->context->defaultDepartmentId(),
+            'module_id'      => $moduleId,
+            'department_id'  => $departmentId,
             'actor_id'       => $requestContext['actor_id'],
             'actor_type'     => $requestContext['actor_type'],
             'subject_type'   => $subject ? get_class($subject) : null,

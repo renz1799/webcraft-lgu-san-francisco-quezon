@@ -6,6 +6,7 @@ use App\Core\Data\Auth\RegisterUserData;
 use App\Core\Models\User;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
 use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
 use App\Core\Services\Contracts\Auth\RegisterUserServiceInterface;
 use App\Core\Support\CurrentContext;
@@ -18,6 +19,7 @@ class RegisterUserService implements RegisterUserServiceInterface
     public function __construct(
         private readonly UserRepositoryInterface $users,
         private readonly ModuleAccessServiceInterface $moduleAccess,
+        private readonly ModuleDepartmentResolverInterface $moduleDepartments,
         private readonly ModuleRoleAssignmentServiceInterface $roleAssignments,
         private readonly CurrentContext $currentContext,
 ) {}
@@ -34,10 +36,11 @@ class RegisterUserService implements RegisterUserServiceInterface
 
         return DB::transaction(function () use ($data) {
             $moduleId = $this->requireModuleId();
-            $departmentId = $this->currentContext->defaultDepartmentId();
+            $baseDepartmentId = $this->currentContext->defaultDepartmentId();
+            $moduleDepartmentId = $this->moduleDepartments->resolveForModule($moduleId);
 
             $user = $this->users->create([
-                'primary_department_id' => $departmentId,
+                'primary_department_id' => $baseDepartmentId,
                 'username' => $data->username,
                 'email' => $data->email,
                 'password' => Hash::make($data->password),
@@ -45,7 +48,7 @@ class RegisterUserService implements RegisterUserServiceInterface
                 'must_change_password' => true,
             ]);
 
-            $this->moduleAccess->grantActiveModuleAccess($user, $moduleId, $departmentId);
+            $this->moduleAccess->grantActiveModuleAccess($user, $moduleId, $moduleDepartmentId);
             $this->roleAssignments->assign($user, $data->role);
 
             return $user;

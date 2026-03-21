@@ -6,6 +6,7 @@ use App\Core\Builders\GoogleDrive\GoogleDriveFileMetadataBuilder;
 use App\Core\Builders\GoogleDrive\GoogleDriveFolderNameSanitizer;
 use App\Core\Models\GoogleToken;
 use App\Core\Repositories\Contracts\GoogleTokenRepositoryInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveClientFactoryInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveSettingsProviderInterface;
 use App\Core\Services\GoogleDrive\GoogleDriveConnectionService;
@@ -33,10 +34,11 @@ class GoogleDriveServicesTest extends TestCase
         $tokens = Mockery::mock(GoogleTokenRepositoryInterface::class);
         $clientFactory = Mockery::mock(GoogleDriveClientFactoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
+        $moduleDepartments = Mockery::mock(ModuleDepartmentResolverInterface::class);
         $client = Mockery::mock(GoogleClient::class);
 
         $context->shouldReceive('moduleId')->once()->andReturn('module-1');
-        $context->shouldReceive('defaultDepartmentId')->once()->andReturn('department-1');
+        $moduleDepartments->shouldReceive('resolveForModule')->once()->with('module-1')->andReturn('department-1');
 
         $clientFactory->shouldReceive('makeClient')
             ->once()
@@ -72,7 +74,7 @@ class GoogleDriveServicesTest extends TestCase
                 })
             );
 
-        $service = new GoogleDriveConnectionService($tokens, $clientFactory, $context);
+        $service = new GoogleDriveConnectionService($tokens, $clientFactory, $context, $moduleDepartments);
 
         $service->handleCallback('oauth-code', 'user-1');
     }

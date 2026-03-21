@@ -401,6 +401,33 @@ resolvable through context
 
 Do not hardcode departments.
 
+Platform default department is fallback only.
+
+It represents platform ownership or base system context.
+
+It must not be treated as the authoritative department for every module workflow or module access grant.
+
+## Module Department Assignment Rule
+
+Module department must be resolved per module.
+
+Use this priority:
+
+explicit department assignment
+module-specific default mapping
+platform default department fallback
+
+This means:
+
+`users.primary_department_id` = base or home department
+`user_modules.department_id` = actual department context for that module access
+
+`user_modules.department_id` is authoritative for module access scope.
+
+Registration must not blindly copy platform default department into module access.
+
+It should resolve the department for the current module first, then fall back only if no module-specific value exists.
+
 ---
 
 # Module Independence Rule

@@ -95,16 +95,20 @@ use App\Core\Repositories\Eloquent\EloquentRoleRepository;
 // Services
 use App\Core\Services\Contracts\Access\LoginLogServiceInterface;
 use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\Access\PermissionServiceInterface;
 use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
 use App\Core\Services\Contracts\Access\RoleServiceInterface;
+use App\Core\Services\Contracts\Access\UserModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\Access\UserAccessServiceInterface;
 use App\Core\Services\Contracts\Access\UserProfileServiceInterface;
 use App\Core\Services\Access\LoginLogService;
 use App\Core\Services\Access\ModuleAccessService;
+use App\Core\Services\Access\ModuleDepartmentResolver;
 use App\Core\Services\Access\PermissionService;
 use App\Core\Services\Access\RoleAssignments\ModuleRoleAssignmentService;
 use App\Core\Services\Access\RoleService;
+use App\Core\Services\Access\UserModuleDepartmentResolver;
 use App\Core\Services\Access\UserAccessService;
 use App\Core\Services\Access\UserProfileService;
 
@@ -252,6 +256,8 @@ class CoreServiceProvider extends ServiceProvider
             LoginLogServiceInterface::class => LoginLogService::class,
             UserProfileServiceInterface::class => UserProfileService::class,
             ModuleAccessServiceInterface::class => ModuleAccessService::class,
+            ModuleDepartmentResolverInterface::class => ModuleDepartmentResolver::class,
+            UserModuleDepartmentResolverInterface::class => UserModuleDepartmentResolver::class,
             ModuleRoleAssignmentServiceInterface::class => ModuleRoleAssignmentService::class,
 
             // Notifications

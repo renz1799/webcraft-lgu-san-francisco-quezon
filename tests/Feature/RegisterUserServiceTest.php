@@ -7,6 +7,7 @@ use App\Core\Models\User;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
 use App\Core\Services\Auth\RegisterUserService;
 use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
 use App\Core\Support\CurrentContext;
 use Mockery;
@@ -25,6 +26,7 @@ class RegisterUserServiceTest extends TestCase
     {
         $users = Mockery::mock(UserRepositoryInterface::class);
         $moduleAccess = Mockery::mock(ModuleAccessServiceInterface::class);
+        $moduleDepartments = Mockery::mock(ModuleDepartmentResolverInterface::class);
         $roleAssignments = Mockery::mock(ModuleRoleAssignmentServiceInterface::class);
         $context = Mockery::mock(CurrentContext::class);
 
@@ -40,7 +42,12 @@ class RegisterUserServiceTest extends TestCase
 
         $context->shouldReceive('defaultDepartmentId')
             ->once()
-            ->andReturn('department-1');
+            ->andReturn('department-base');
+
+        $moduleDepartments->shouldReceive('resolveForModule')
+            ->once()
+            ->with('module-1')
+            ->andReturn('department-module');
 
         $createdUser = new User([
             'id' => 'user-1',
@@ -54,7 +61,7 @@ class RegisterUserServiceTest extends TestCase
             ->once()
             ->ordered()
             ->with(Mockery::on(function (array $payload): bool {
-                return $payload['primary_department_id'] === 'department-1'
+                return $payload['primary_department_id'] === 'department-base'
                     && $payload['username'] === 'new.user'
                     && $payload['email'] === 'new.user@example.com'
                     && $payload['is_active'] === true
@@ -67,14 +74,14 @@ class RegisterUserServiceTest extends TestCase
         $moduleAccess->shouldReceive('grantActiveModuleAccess')
             ->once()
             ->ordered()
-            ->with($createdUser, 'module-1', 'department-1');
+            ->with($createdUser, 'module-1', 'department-module');
 
         $roleAssignments->shouldReceive('assign')
             ->once()
             ->ordered()
             ->with($createdUser, 'Staff');
 
-        $service = new RegisterUserService($users, $moduleAccess, $roleAssignments, $context);
+        $service = new RegisterUserService($users, $moduleAccess, $moduleDepartments, $roleAssignments, $context);
 
         $user = $service->register(
             $actor,

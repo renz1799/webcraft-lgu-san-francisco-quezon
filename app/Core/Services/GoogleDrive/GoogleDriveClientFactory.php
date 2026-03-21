@@ -3,6 +3,7 @@
 namespace App\Core\Services\GoogleDrive;
 
 use App\Core\Repositories\Contracts\GoogleTokenRepositoryInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveClientFactoryInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveSettingsProviderInterface;
 use App\Core\Support\CurrentContext;
@@ -16,6 +17,7 @@ class GoogleDriveClientFactory implements GoogleDriveClientFactoryInterface
         private readonly GoogleTokenRepositoryInterface $tokens,
         private readonly GoogleDriveSettingsProviderInterface $settings,
         private readonly CurrentContext $context,
+        private readonly ModuleDepartmentResolverInterface $moduleDepartments,
     ) {}
 
     public function makeClient(): GoogleClient
@@ -64,7 +66,7 @@ class GoogleDriveClientFactory implements GoogleDriveClientFactoryInterface
     private function requireScope(): array
     {
         $moduleId = trim((string) ($this->context->moduleId() ?? ''));
-        $departmentId = trim((string) ($this->context->defaultDepartmentId() ?? ''));
+        $departmentId = trim((string) ($this->moduleDepartments->resolveForModule($moduleId) ?? ''));
 
         if ($moduleId === '' || $departmentId === '') {
             throw new \RuntimeException('Google Drive context is not available.');

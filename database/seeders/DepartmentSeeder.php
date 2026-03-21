@@ -80,6 +80,16 @@ class DepartmentSeeder extends Seeder
                 'code' => 'MSWD',
                 'name' => 'Social Welfare and Development Office',
             ],
+            [
+                'id' => '20000000-0000-0000-0000-000000000013',
+                'code' => 'RECORDS',
+                'name' => 'Records Management Office',
+            ],
+            [
+                'id' => '20000000-0000-0000-0000-000000000014',
+                'code' => 'BAC',
+                'name' => 'Bids and Awards Committee',
+            ],
         ];
 
         foreach ($departments as $department) {

@@ -191,6 +191,14 @@ Which application instance is currently running?
 
 It does not replace relational identity inside transactional records.
 
+Important distinction:
+
+platform default department is not the same thing as module department assignment.
+
+`CurrentContext::defaultDepartmentId()` should represent the platform fallback or base department context.
+
+Module-specific department assignment should be resolved separately when writing records such as `user_modules.department_id`.
+
 ## Relational Identity
 
 Relational identity is stored in database records.
@@ -598,6 +606,10 @@ default system-generated scope
 seeder defaults
 module-aware infrastructure operations
 
+Do not reinterpret `defaultDepartmentId()` as a universal module department.
+
+If a workflow needs the department for a specific module assignment, use a dedicated resolver for module department mapping and keep `defaultDepartmentId()` as platform fallback.
+
 Do not repeat ad hoc lookups such as:
 
 Module::find(config('module.id'))
@@ -758,11 +770,11 @@ roles/permissions decide what user can do inside module
 
 Most application bindings are centralized in:
 
-app/Providers/CoreServiceProvider.php
+app/Core/Providers/CoreServiceProvider.php
 
 Platform-wide shared container services such as `CurrentContext` may be registered in:
 
-app/Providers/AppServiceProvider.php
+app/Core/Providers/AppServiceProvider.php
 
 Use interface-based injection for:
 

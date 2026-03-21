@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Core\Models\Notification;
 use App\Core\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Notifications\NotificationService;
 use App\Core\Support\CurrentContext;
 use Mockery;
@@ -24,9 +25,10 @@ class NotificationServiceTest extends TestCase
         $notifications = Mockery::mock(NotificationRepositoryInterface::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
+        $moduleDepartments = Mockery::mock(ModuleDepartmentResolverInterface::class);
 
         $context->shouldReceive('moduleId')->andReturn('module-1');
-        $context->shouldReceive('defaultDepartmentId')->andReturn('department-1');
+        $moduleDepartments->shouldReceive('resolveForModule')->once()->with('module-1')->andReturn('department-1');
 
         $users->shouldReceive('getUserIdsByRoles')
             ->once()
@@ -58,7 +60,7 @@ class NotificationServiceTest extends TestCase
                 return true;
             }));
 
-        $service = new NotificationService($notifications, $users, $context);
+        $service = new NotificationService($notifications, $users, $context, $moduleDepartments);
 
         $service->notifyUsersByRoles(
             roleNames: ['Administrator', 'Staff'],
@@ -80,9 +82,10 @@ class NotificationServiceTest extends TestCase
         $notifications = Mockery::mock(NotificationRepositoryInterface::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
+        $moduleDepartments = Mockery::mock(ModuleDepartmentResolverInterface::class);
 
         $context->shouldReceive('moduleId')->andReturn('module-1');
-        $context->shouldReceive('defaultDepartmentId')->andReturn('department-1');
+        $moduleDepartments->shouldReceive('resolveForModule')->once()->with('module-1')->andReturn('department-1');
 
         $notifications->shouldReceive('create')
             ->once()
@@ -100,7 +103,7 @@ class NotificationServiceTest extends TestCase
             }))
             ->andReturnUsing(fn (array $payload) => new Notification($payload));
 
-        $service = new NotificationService($notifications, $users, $context);
+        $service = new NotificationService($notifications, $users, $context, $moduleDepartments);
 
         $notification = $service->notifyUser(
             notifiableUserId: 'recipient-1',
@@ -125,9 +128,10 @@ class NotificationServiceTest extends TestCase
         $notifications = Mockery::mock(NotificationRepositoryInterface::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
+        $moduleDepartments = Mockery::mock(ModuleDepartmentResolverInterface::class);
 
         $context->shouldReceive('moduleId')->andReturn('module-1');
-        $context->shouldReceive('defaultDepartmentId')->andReturn('department-1');
+        $moduleDepartments->shouldReceive('resolveForModule')->once()->with('module-1')->andReturn('department-1');
 
         $notifications->shouldReceive('insertMany')
             ->once()
@@ -138,7 +142,7 @@ class NotificationServiceTest extends TestCase
                 return true;
             }));
 
-        $service = new NotificationService($notifications, $users, $context);
+        $service = new NotificationService($notifications, $users, $context, $moduleDepartments);
 
         $service->notifyUsers(
             recipientUserIds: ['reviewer-2', '', 'reviewer-2', 'reviewer-3', null],

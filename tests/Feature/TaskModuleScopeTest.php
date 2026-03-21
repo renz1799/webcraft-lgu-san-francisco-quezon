@@ -10,6 +10,7 @@ use App\Core\Models\Notification;
 use App\Modules\Tasks\Models\Task;
 use App\Core\Models\User;
 use App\Core\Models\UserProfile;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Modules\Tasks\Policies\TaskPolicy;
 use App\Modules\Tasks\Services\Contracts\TaskNotificationServiceInterface;
 use App\Modules\Tasks\Services\TaskReadService;
@@ -48,7 +49,8 @@ class TaskModuleScopeTest extends TestCase
 
         $context = Mockery::mock(CurrentContext::class);
         $context->shouldReceive('moduleId')->andReturn('module-1');
-        $context->shouldReceive('defaultDepartmentId')->andReturn('department-1');
+        $moduleDepartments = Mockery::mock(ModuleDepartmentResolverInterface::class);
+        $moduleDepartments->shouldReceive('resolveForModule')->once()->with('module-1')->andReturn('department-1');
         app()->instance(CurrentContext::class, $context);
 
         $notifications = Mockery::mock(TaskNotificationServiceInterface::class);
@@ -76,6 +78,7 @@ class TaskModuleScopeTest extends TestCase
             app(\App\Core\Repositories\Contracts\UserRepositoryInterface::class),
             $notifications,
             $context,
+            $moduleDepartments,
             new TaskReassignmentNoteBuilder(new UserTaskReassignOptionBuilder()),
         );
 
@@ -127,7 +130,6 @@ class TaskModuleScopeTest extends TestCase
 
         $context = Mockery::mock(CurrentContext::class);
         $context->shouldReceive('moduleId')->andReturn('module-1');
-        $context->shouldReceive('defaultDepartmentId')->andReturn('department-1');
         app()->instance(CurrentContext::class, $context);
 
         $readService = new TaskReadService(

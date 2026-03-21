@@ -3,6 +3,7 @@
 namespace App\Core\Services\GoogleDrive;
 
 use App\Core\Repositories\Contracts\GoogleTokenRepositoryInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveClientFactoryInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveConnectionServiceInterface;
 use App\Core\Support\CurrentContext;
@@ -14,6 +15,7 @@ class GoogleDriveConnectionService implements GoogleDriveConnectionServiceInterf
         private readonly GoogleTokenRepositoryInterface $tokens,
         private readonly GoogleDriveClientFactoryInterface $clientFactory,
         private readonly CurrentContext $context,
+        private readonly ModuleDepartmentResolverInterface $moduleDepartments,
     ) {}
 
     public function isConnected(): bool
@@ -74,7 +76,7 @@ class GoogleDriveConnectionService implements GoogleDriveConnectionServiceInterf
     private function scope(bool $require = true): array
     {
         $moduleId = trim((string) ($this->context->moduleId() ?? ''));
-        $departmentId = trim((string) ($this->context->defaultDepartmentId() ?? ''));
+        $departmentId = trim((string) ($this->moduleDepartments->resolveForModule($moduleId) ?? ''));
 
         if (! $require) {
             return [

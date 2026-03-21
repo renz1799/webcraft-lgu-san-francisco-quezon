@@ -5,6 +5,7 @@ namespace App\Core\Services\Notifications;
 use App\Core\Models\Notification;
 use App\Core\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\Notifications\NotificationServiceInterface;
 use App\Core\Support\CurrentContext;
 use Carbon\Carbon;
@@ -15,6 +16,7 @@ class NotificationService implements NotificationServiceInterface
         private readonly NotificationRepositoryInterface $notifications,
         private readonly UserRepositoryInterface $users,
         private readonly CurrentContext $context,
+        private readonly ModuleDepartmentResolverInterface $moduleDepartments,
     ) {}
 
     public function notifyUser(
@@ -29,9 +31,13 @@ class NotificationService implements NotificationServiceInterface
         ?string $moduleId = null,
         ?string $departmentId = null
     ): Notification {
+        $resolvedModuleId = $moduleId ?: $this->context->moduleId();
+        $resolvedDepartmentId = $departmentId
+            ?: $this->moduleDepartments->resolveForModule($resolvedModuleId);
+
         return $this->notifications->create([
-            'module_id' => $moduleId ?: $this->context->moduleId(),
-            'department_id' => $departmentId ?: $this->context->defaultDepartmentId(),
+            'module_id' => $resolvedModuleId,
+            'department_id' => $resolvedDepartmentId,
             'notifiable_user_id' => $notifiableUserId,
             'actor_user_id' => $actorUserId,
             'type' => $type,
@@ -59,6 +65,10 @@ class NotificationService implements NotificationServiceInterface
             array_map(static fn ($userId) => trim((string) $userId), $recipientUserIds)
         )));
 
+        $resolvedModuleId = $moduleId ?: $this->context->moduleId();
+        $resolvedDepartmentId = $departmentId
+            ?: $this->moduleDepartments->resolveForModule($resolvedModuleId);
+
         $this->fanOutBulk(
             recipientUserIds: $recipients,
             actorUserId: $actorUserId,
@@ -68,8 +78,8 @@ class NotificationService implements NotificationServiceInterface
             entityType: $entityType,
             entityId: $entityId,
             data: $data,
-            moduleId: $moduleId ?: $this->context->moduleId(),
-            departmentId: $departmentId ?: $this->context->defaultDepartmentId(),
+            moduleId: $resolvedModuleId,
+            departmentId: $resolvedDepartmentId,
         );
     }
 
@@ -108,7 +118,6 @@ class NotificationService implements NotificationServiceInterface
             entityId: $entityId,
             data: $data,
             moduleId: $this->context->moduleId(),
-            departmentId: $this->context->defaultDepartmentId(),
         );
     }
 
