@@ -1,4 +1,5 @@
 @php
+    $adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class);
     $selectedPaper = $filters['paper_profile'] ?? config('print.modules.audit_logs.default_paper', 'a4-portrait');
 
     $allowedPapers = config('print.modules.audit_logs.allowed_papers', []);
@@ -41,7 +42,7 @@
             </p>
         </div>
 
-        <form method="GET" action="{{ route('audit-logs.print.index') }}" class="core-print-sidebar__form">
+        <form method="GET" action="{{ $adminRoutes->route('audit-logs.print.index') }}" class="core-print-sidebar__form">
             <div class="core-print-sidebar__section">
                 <div class="core-print-sidebar__section-title">Filters</div>
 
@@ -69,14 +70,25 @@
 
                 <div class="core-print-sidebar__field">
                     <label for="module" class="form-label">Module</label>
-                    <input
-                        type="text"
-                        name="module"
-                        id="module"
-                        value="{{ $filters['module'] ?? '' }}"
-                        class="form-control"
-                        placeholder="Code or name"
-                    >
+                    @if ($adminRoutes->isModuleScoped())
+                        <input
+                            type="text"
+                            name="module"
+                            id="module"
+                            value="{{ strtoupper((string) $adminRoutes->scopedModuleCode()) }}"
+                            class="form-control"
+                            readonly
+                        >
+                    @else
+                        <input
+                            type="text"
+                            name="module"
+                            id="module"
+                            value="{{ $filters['module'] ?? '' }}"
+                            class="form-control"
+                            placeholder="Code or name"
+                        >
+                    @endif
                 </div>
 
                 <div class="core-print-sidebar__field">
@@ -155,7 +167,7 @@
                     </button>
 
                     <a
-                        href="{{ route('audit-logs.print.pdf', $pdfParams) }}"
+                        href="{{ $adminRoutes->route('audit-logs.print.pdf', $pdfParams) }}"
                         class="ti-btn btn-wave ti-btn-outline-primary label-ti-btn w-full text-center"
                     >
                         <i class="ri-file-pdf-line label-ti-btn-icon me-2"></i>
@@ -163,7 +175,7 @@
                     </a>
 
                     <a
-                        href="{{ route('audit-logs.print.index') }}"
+                        href="{{ $adminRoutes->route('audit-logs.print.index') }}"
                         class="core-print-sidebar__reset"
                     >
                         Reset Filters

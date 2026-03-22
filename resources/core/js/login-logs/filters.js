@@ -26,6 +26,7 @@
     const moreClose = document.getElementById("login-more-close");
 
     const status = document.getElementById("login-status");
+    const module = document.getElementById("login-module");
     const user = document.getElementById("login-user");
     const email = document.getElementById("login-email");
     const ipAddress = document.getElementById("login-ip");
@@ -42,6 +43,7 @@
     const filters = {
       search: "",
       status: "",
+      module: "",
       user: "",
       email: "",
       ip_address: "",
@@ -55,6 +57,7 @@
     function syncFromUI() {
       filters.search = (search?.value || "").trim();
       filters.status = (status?.value || "").trim();
+      filters.module = (module?.value || "").trim();
       filters.user = (user?.value || "").trim();
       filters.email = (email?.value || "").trim();
       filters.ip_address = (ipAddress?.value || "").trim();
@@ -66,6 +69,7 @@
     function countAdvanced() {
       let n = 0;
       if ((status?.value || "").trim() !== "") n++;
+      if ((module?.value || "").trim() !== "") n++;
       if ((user?.value || "").trim() !== "") n++;
       if ((email?.value || "").trim() !== "") n++;
       if ((ipAddress?.value || "").trim() !== "") n++;
@@ -273,6 +277,7 @@
       e.preventDefault();
 
       if (status) status.value = "";
+      if (module) module.value = "";
       if (user) user.value = "";
       if (email) email.value = "";
       if (ipAddress) ipAddress.value = "";
@@ -292,6 +297,7 @@
 
       if (search) search.value = "";
       if (status) status.value = "";
+      if (module) module.value = "";
       if (user) user.value = "";
       if (email) email.value = "";
       if (ipAddress) ipAddress.value = "";

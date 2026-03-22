@@ -2,12 +2,17 @@
 
 namespace App\Core\Http\Middleware;
 
+use App\Core\Support\AdminContextAuthorizer;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Exceptions\UnauthorizedException;
 
 class RoleOrPermissionMiddleware
 {
+    public function __construct(
+        private readonly AdminContextAuthorizer $authorizer,
+    ) {}
+
     public function handle($request, Closure $next, $rolesOrPermissions)
     {
         $user = Auth::user();
@@ -16,17 +21,12 @@ class RoleOrPermissionMiddleware
             throw UnauthorizedException::notLoggedIn();
         }
 
-        $rolesAndPermissions = explode('|', $rolesOrPermissions);
+        $rolesAndPermissions = array_values(array_filter(array_map(
+            static fn (string $token): string => trim($token),
+            explode('|', (string) $rolesOrPermissions)
+        )));
 
-        $hasAccess = collect($rolesAndPermissions)->some(function ($roleOrPermission) use ($user) {
-            if ($user->hasRole($roleOrPermission)) {
-                return true;
-            }
-            if ($user->can($roleOrPermission)) {
-                return true;
-            }
-            return false;
-        });
+        $hasAccess = $this->authorizer->allowsAny($user, $rolesAndPermissions);
 
         if (!$hasAccess) {
             throw UnauthorizedException::forRolesOrPermissions($rolesAndPermissions);

@@ -3,9 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Spatie\Permission\Middlewares\RoleMiddleware;
-
-
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -17,11 +14,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'check.permission' => \App\Http\Middleware\CheckPermission::class,
             'auth.sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class, 
-            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'role' => \App\Core\Http\Middleware\ContextRoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'check.admin.or.permission' => \App\Core\Http\Middleware\CheckAdminOrPermission::class,
             'role_or_permission' => \App\Core\Http\Middleware\RoleOrPermissionMiddleware::class,
             'password.changed' => \App\Core\Http\Middleware\EnsurePasswordChanged::class,
+            'active_module' => \App\Core\Http\Middleware\EnsureActiveModuleContext::class,
+            'module' => \App\Core\Http\Middleware\SetCurrentModule::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

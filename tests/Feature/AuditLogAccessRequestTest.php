@@ -4,6 +4,9 @@ namespace Tests\Feature;
 
 use App\Core\Http\Requests\AuditLogs\AuditLogPrintRequest;
 use App\Core\Http\Requests\AuditLogs\RestoreSubjectRequest;
+use App\Core\Models\User;
+use App\Core\Support\AdminContextAuthorizer;
+use App\Core\Support\AdminRouteResolver;
 use App\Core\Support\CurrentContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,15 +24,14 @@ class AuditLogAccessRequestTest extends TestCase
 
     public function test_print_request_authorize_allows_view_audit_logs_permission(): void
     {
-        $user = Mockery::mock();
-        $user->shouldReceive('hasAnyRole')
+        $user = new User();
+        $user->forceFill(['id' => 'actor-print-1']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canViewCurrentContextAuditLogs')
             ->once()
-            ->with(['Administrator', 'admin'])
-            ->andReturn(false);
-        $user->shouldReceive('can')
-            ->once()
-            ->with('view Audit Logs')
+            ->with($user)
             ->andReturn(true);
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $request = AuditLogPrintRequest::create('/audit-logs/print', 'GET');
         $request->setUserResolver(fn () => $user);
@@ -39,15 +41,14 @@ class AuditLogAccessRequestTest extends TestCase
 
     public function test_print_request_authorize_denies_user_without_view_access(): void
     {
-        $user = Mockery::mock();
-        $user->shouldReceive('hasAnyRole')
+        $user = new User();
+        $user->forceFill(['id' => 'actor-print-2']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canViewCurrentContextAuditLogs')
             ->once()
-            ->with(['Administrator', 'admin'])
+            ->with($user)
             ->andReturn(false);
-        $user->shouldReceive('can')
-            ->once()
-            ->with('view Audit Logs')
-            ->andReturn(false);
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $request = AuditLogPrintRequest::create('/audit-logs/print', 'GET');
         $request->setUserResolver(fn () => $user);
@@ -57,13 +58,14 @@ class AuditLogAccessRequestTest extends TestCase
 
     public function test_restore_request_authorize_allows_admin_alias_role(): void
     {
-        $user = Mockery::mock();
-        $user->id = 'actor-1';
-        $user->shouldReceive('hasAnyRole')
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->forceFill(['id' => 'actor-1']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canRestoreCurrentContextAuditData')
             ->once()
-            ->with(['Administrator', 'admin'])
+            ->with($user)
             ->andReturn(true);
-        $user->shouldReceive('can')->never();
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $request = TestableRestoreSubjectRequest::create('/audit/restore', 'POST', [
             'type' => 'user',
@@ -76,16 +78,14 @@ class AuditLogAccessRequestTest extends TestCase
 
     public function test_restore_request_authorize_allows_restore_permission(): void
     {
-        $user = Mockery::mock();
-        $user->id = 'actor-2';
-        $user->shouldReceive('hasAnyRole')
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->forceFill(['id' => 'actor-2']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canRestoreCurrentContextAuditData')
             ->once()
-            ->with(['Administrator', 'admin'])
-            ->andReturn(false);
-        $user->shouldReceive('can')
-            ->once()
-            ->with('modify Allow Data Restoration')
+            ->with($user)
             ->andReturn(true);
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $request = TestableRestoreSubjectRequest::create('/audit/restore', 'POST', [
             'type' => 'user',
@@ -98,15 +98,12 @@ class AuditLogAccessRequestTest extends TestCase
 
     public function test_restore_request_authorize_denies_user_without_restore_access(): void
     {
-        $user = Mockery::mock();
-        $user->id = 'actor-3';
-        $user->shouldReceive('hasAnyRole')
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->forceFill(['id' => 'actor-3']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canRestoreCurrentContextAuditData')
             ->once()
-            ->with(['Administrator', 'admin'])
-            ->andReturn(false);
-        $user->shouldReceive('can')
-            ->once()
-            ->with('modify Allow Data Restoration')
+            ->with($user)
             ->andReturn(false);
         $user->shouldReceive('getRoleNames')
             ->once()
@@ -114,6 +111,7 @@ class AuditLogAccessRequestTest extends TestCase
         $user->shouldReceive('getAllPermissions')
             ->once()
             ->andReturn(collect([(object) ['name' => 'view Audit Logs']]));
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $request = TestableRestoreSubjectRequest::create('/audit/restore', 'POST', [
             'type' => 'user',
@@ -126,13 +124,14 @@ class AuditLogAccessRequestTest extends TestCase
 
     public function test_restore_request_authorize_denies_cross_module_role_subject(): void
     {
-        $user = Mockery::mock();
-        $user->id = 'actor-4';
-        $user->shouldReceive('hasAnyRole')
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->forceFill(['id' => 'actor-4']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canRestoreCurrentContextAuditData')
             ->once()
-            ->with(['Administrator', 'admin'])
+            ->with($user)
             ->andReturn(true);
-        $user->shouldReceive('can')->never();
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $context = Mockery::mock(CurrentContext::class);
         $context->shouldReceive('moduleId')
@@ -151,13 +150,14 @@ class AuditLogAccessRequestTest extends TestCase
 
     public function test_restore_request_model_returns_current_module_permission_subject(): void
     {
-        $user = Mockery::mock();
-        $user->id = 'actor-5';
-        $user->shouldReceive('hasAnyRole')
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->forceFill(['id' => 'actor-5']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canRestoreCurrentContextAuditData')
             ->once()
-            ->with(['Administrator', 'admin'])
+            ->with($user)
             ->andReturn(true);
-        $user->shouldReceive('can')->never();
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $context = Mockery::mock(CurrentContext::class);
         $context->shouldReceive('moduleId')
@@ -181,13 +181,14 @@ class AuditLogAccessRequestTest extends TestCase
 
     public function test_restore_request_authorize_denies_module_scoped_subject_without_current_module(): void
     {
-        $user = Mockery::mock();
-        $user->id = 'actor-6';
-        $user->shouldReceive('hasAnyRole')
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->forceFill(['id' => 'actor-6']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canRestoreCurrentContextAuditData')
             ->once()
-            ->with(['Administrator', 'admin'])
+            ->with($user)
             ->andReturn(true);
-        $user->shouldReceive('can')->never();
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $context = Mockery::mock(CurrentContext::class);
         $context->shouldReceive('moduleId')
@@ -198,6 +199,32 @@ class AuditLogAccessRequestTest extends TestCase
         $request = TestableRestoreSubjectRequest::create('/audit/restore', 'POST', [
             'type' => 'permission',
             'id' => 'permission-1',
+        ]);
+        $request->setUserResolver(fn () => $user);
+
+        $this->assertFalse($request->authorize());
+    }
+
+    public function test_restore_request_authorize_denies_user_restore_on_module_scoped_route(): void
+    {
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->forceFill(['id' => 'actor-7']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canRestoreCurrentContextAuditData')
+            ->once()
+            ->with($user)
+            ->andReturn(true);
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
+
+        $resolver = Mockery::mock(AdminRouteResolver::class);
+        $resolver->shouldReceive('isModuleScoped')
+            ->once()
+            ->andReturn(true);
+        $this->app->instance(AdminRouteResolver::class, $resolver);
+
+        $request = ModuleScopedUserRestoreSubjectRequest::create('/gso/audit/restore', 'POST', [
+            'type' => 'user',
+            'id' => '11111111-1111-1111-1111-111111111111',
         ]);
         $request->setUserResolver(fn () => $user);
 
@@ -222,6 +249,16 @@ class TestableRestoreSubjectRequest extends RestoreSubjectRequest
             TestModuleScopedPermissionAuditSubject::class,
             TestModuleScopedRoleAuditSubject::class,
         ], true);
+    }
+}
+
+class ModuleScopedUserRestoreSubjectRequest extends RestoreSubjectRequest
+{
+    protected function typeMap(): array
+    {
+        return [
+            'user' => User::class,
+        ];
     }
 }
 

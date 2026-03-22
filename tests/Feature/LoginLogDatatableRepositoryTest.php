@@ -25,6 +25,23 @@ class LoginLogDatatableRepositoryTest extends TestCase
 
     public function test_datatable_returns_only_current_module_rows(): void
     {
+        DB::table('modules')->insert([
+            [
+                'id' => 'module-1',
+                'code' => 'GSO',
+                'name' => 'General Services Office',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 'module-2',
+                'code' => 'TASKS',
+                'name' => 'Tasks',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
         DB::table('users')->insert([
             [
                 'id' => 'user-1',
@@ -83,6 +100,78 @@ class LoginLogDatatableRepositoryTest extends TestCase
         $this->assertSame('alpha.staff', $result['data'][0]['user']);
         $this->assertSame('invalid_password', $result['data'][0]['reason']);
         $this->assertSame('https://www.google.com/maps?q=14.59950000,120.98420000', $result['data'][0]['location_url']);
+        $this->assertSame('GSO - General Services Office', $result['data'][0]['module']);
+    }
+
+    public function test_datatable_returns_platform_wide_rows_when_module_scope_is_null(): void
+    {
+        DB::table('modules')->insert([
+            [
+                'id' => 'module-core',
+                'code' => 'CORE',
+                'name' => 'Core Platform',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 'module-gso',
+                'code' => 'GSO',
+                'name' => 'General Services Office',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        DB::table('users')->insert([
+            [
+                'id' => 'user-1',
+                'username' => 'alpha.staff',
+                'email' => 'alpha.staff@example.com',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        DB::table('login_details')->insert([
+            [
+                'id' => 'log-core',
+                'module_id' => 'module-core',
+                'user_id' => 'user-1',
+                'email' => 'alpha.staff@example.com',
+                'success' => true,
+                'reason' => 'ok',
+                'ip_address' => '127.0.0.1',
+                'device' => 'PHPUnit',
+                'location' => null,
+                'address' => 'Core City',
+                'latitude' => null,
+                'longitude' => null,
+                'created_at' => now()->subMinute(),
+                'updated_at' => now()->subMinute(),
+            ],
+            [
+                'id' => 'log-gso',
+                'module_id' => 'module-gso',
+                'user_id' => 'user-1',
+                'email' => 'alpha.staff@example.com',
+                'success' => false,
+                'reason' => 'invalid_password',
+                'ip_address' => '127.0.0.2',
+                'device' => 'Browser',
+                'location' => null,
+                'address' => 'GSO City',
+                'latitude' => null,
+                'longitude' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $result = (new EloquentLoginDetailRepository())->datatable(null, ['module' => 'GSO'], 1, 15);
+
+        $this->assertSame(1, $result['total']);
+        $this->assertSame('log-gso', $result['data'][0]['id']);
+        $this->assertSame('GSO', $result['data'][0]['module_code']);
     }
 
     public function test_recent_for_user_returns_only_current_module_rows(): void
@@ -131,6 +220,13 @@ class LoginLogDatatableRepositoryTest extends TestCase
 
     private function createSchema(): void
     {
+        Schema::create('modules', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('code')->nullable();
+            $table->string('name')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('users', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('username')->nullable();

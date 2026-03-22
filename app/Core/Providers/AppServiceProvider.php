@@ -3,15 +3,19 @@
 namespace App\Core\Providers;
 
 use App\Core\Repositories\Contracts\ThemePreferencesRepositoryInterface;
+use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
 use App\Core\Services\UI\ThemeService;
+use App\Core\Support\AdminRouteResolver;
 use App\Core\Support\CurrentContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +32,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(CurrentContext::class, function () {
             return new CurrentContext();
         });
+
+        $this->app->singleton(AdminRouteResolver::class, function ($app) {
+            return new AdminRouteResolver(
+                $app->make(CurrentContext::class),
+            );
+        });
     }
 
     public function boot(ThemeService $theme): void
@@ -41,6 +51,13 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer(['layouts.master', 'layouts.custom-master'], function ($view) use ($theme) {
             $user = Auth::user();
+            $currentModule = app(CurrentContext::class)->module();
+            $accessibleModules = collect();
+
+            if ($user && $this->platformModuleTablesAvailable()) {
+                $accessibleModules = app(ModuleAccessServiceInterface::class)
+                    ->accessibleModulesForUser($user);
+            }
 
             $themeStyle = $user
                 ? $theme->getUserStyle((string) $user->id)
@@ -49,7 +66,20 @@ class AppServiceProvider extends ServiceProvider
             $themeColors = $theme->getModuleColors();
 
             $view->with('themeStyle', $themeStyle)
-                ->with('themeColors', $themeColors);
+                ->with('themeColors', $themeColors)
+                ->with('currentModule', $currentModule)
+                ->with('accessibleModules', $accessibleModules);
         });
+
+        View::share('adminRoutes', $this->app->make(AdminRouteResolver::class));
+    }
+
+    private function platformModuleTablesAvailable(): bool
+    {
+        try {
+            return Schema::hasTable('modules') && Schema::hasTable('user_modules');
+        } catch (Throwable) {
+            return false;
+        }
     }
 }

@@ -5,6 +5,8 @@ namespace App\Core\Http\Requests\AuditLogs;
 use App\Core\Models\Permission;
 use App\Core\Models\Role;
 use App\Core\Models\User;
+use App\Core\Support\AdminRouteResolver;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,7 +31,7 @@ class RestoreSubjectRequest extends FormRequest
             return false;
         }
 
-        if (! ($actor->hasAnyRole(['Administrator', 'admin']) || $actor->can('modify Allow Data Restoration'))) {
+        if (! app(AdminContextAuthorizer::class)->canRestoreCurrentContextAuditData($actor)) {
             Log::warning('audit.restore: actor not allowed', [
                 'actor_id' => $actor->id,
                 'roles' => $actor->getRoleNames()->all(),
@@ -46,6 +48,14 @@ class RestoreSubjectRequest extends FormRequest
 
         if (! in_array(SoftDeletes::class, class_uses_recursive($class), true)) {
             Log::warning('audit.restore: class not soft-deletable', ['class' => $class]);
+            return false;
+        }
+
+        if ($class === User::class && app(AdminRouteResolver::class)->isModuleScoped()) {
+            Log::warning('audit.restore: user restore is core-only in module context', [
+                'id' => $this->input('id'),
+            ]);
+
             return false;
         }
 
@@ -119,7 +129,11 @@ class RestoreSubjectRequest extends FormRequest
 
     protected function requiresModuleScope(string $class): bool
     {
-        return in_array($class, [Permission::class, Role::class], true);
+        if (in_array($class, [Permission::class, Role::class], true)) {
+            return true;
+        }
+
+        return false;
     }
 
     protected function currentContext(): CurrentContext

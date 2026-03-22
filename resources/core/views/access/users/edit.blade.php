@@ -93,33 +93,10 @@
 
 @section('content')
 @php
-  $roleDefaults = $roles->mapWithKeys(function ($role) {
-      $nested = [];
-
-      foreach ($role->permissions as $permission) {
-          $page = $permission->page ?: 'Others';
-          $words = explode(' ', $permission->name, 2);
-          $action = strtolower($words[0] ?? '');
-          $resource = $words[1] ?? '';
-
-          if ($resource === '') {
-              continue;
-          }
-
-          $action = $action === 'edit' ? 'modify' : $action;
-
-          if (! isset($nested[$page][$resource])) {
-              $nested[$page][$resource] = [];
-          }
-
-          if (! in_array($action, $nested[$page][$resource], true)) {
-              $nested[$page][$resource][] = $action;
-          }
-      }
-
-      return [$role->name => $nested];
-  });
-
+  $adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class);
+  $moduleScopedAccess = $moduleScopedAccess ?? $adminRoutes->isModuleScoped();
+  $moduleContextName = $moduleContextName
+      ?? (trim((string) ($currentModule->name ?? $adminRoutes->scopedModuleCode() ?? 'Module')) ?: 'Module');
   $displayName = trim((string) ($user->profile?->full_name ?? '')) ?: $user->username;
   $nameParts = preg_split('/\s+/', trim($displayName)) ?: [];
   $initials = collect($nameParts)
@@ -144,32 +121,34 @@
 @endphp
 
 <div id="access-user-edit-page" class="container user-access-shell">
-  <script type="application/json" id="roleDefaultsJson">@json($roleDefaults)</script>
+  <script type="application/json" id="roleDefaultsJson">@json($roleDefaults ?? [])</script>
 
   <div class="block justify-between page-header md:flex">
     <div>
       <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white dark:hover:text-white text-[1.125rem] font-semibold">
-        Edit User Access
+        {{ $moduleScopedAccess ? 'Manage Module Access' : 'Edit User Access' }}
       </h3>
       <p class="text-textmuted dark:text-textmuted/80 mb-0">
-        Review the user profile, assign a baseline role, and fine-tune direct permissions from one workspace.
+        {{ $moduleScopedAccess
+            ? 'Adjust role assignment and direct permissions for ' . $moduleContextName . ' without changing the user\'s platform identity.'
+            : 'Review the user profile, assign a baseline role, and fine-tune direct permissions from one workspace.' }}
       </p>
     </div>
     <ol class="flex items-center whitespace-nowrap min-w-0">
       <li class="text-[0.813rem] ps-[0.5rem]">
-        <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('access.users.index') }}">
+        <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ $adminRoutes->route('access.users.index') }}">
           Access
           <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
         </a>
       </li>
       <li class="text-[0.813rem] ps-[0.5rem]">
-        <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('access.users.index') }}">
-          Users
+        <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ $adminRoutes->route('access.users.index') }}">
+          {{ $moduleScopedAccess ? 'Assigned Users' : 'Users' }}
           <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
         </a>
       </li>
       <li class="text-[0.813rem] text-defaulttextcolor font-semibold hover:text-primary dark:text-[#8c9097] dark:text-white/50" aria-current="page">
-        Edit Access
+        {{ $moduleScopedAccess ? 'Manage Access' : 'Edit Access' }}
       </li>
     </ol>
   </div>
@@ -257,7 +236,11 @@
               <ul class="list-disc ps-5 text-[0.8125rem] text-textmuted dark:text-textmuted/80 space-y-1 mb-0">
                 <li>Changing the role resets this user's direct permissions to that role's defaults.</li>
                 <li>Use <span class="font-semibold">Restore Defaults</span> to preview the role baseline before saving.</li>
-                <li>Temporary password generation is available under <span class="font-semibold">Account Settings</span>.</li>
+                @if ($moduleScopedAccess)
+                  <li>Platform identity, account status, and password recovery remain in Core Platform.</li>
+                @else
+                  <li>Temporary password generation is available under <span class="font-semibold">Account Settings</span>.</li>
+                @endif
               </ul>
             </div>
           </div>
@@ -269,9 +252,11 @@
       <div class="box overflow-hidden">
         <div class="box-header sm:flex block !justify-between !items-center gap-4">
           <div>
-            <div class="box-title">User Access Workspace</div>
+            <div class="box-title">{{ $moduleScopedAccess ? 'Module Access Workspace' : 'User Access Workspace' }}</div>
             <p class="text-[0.75rem] text-textmuted dark:text-textmuted/80 mb-0">
-              Switch between permission management and account recovery tools without leaving the page.
+              {{ $moduleScopedAccess
+                  ? 'Manage this user\'s role assignment and direct permissions inside ' . $moduleContextName . '.'
+                  : 'Switch between permission management and account recovery tools without leaving the page.' }}
             </p>
           </div>
 
@@ -280,10 +265,12 @@
                id="Roles-permission" data-hs-tab="#roles-permission" aria-controls="roles-permission">
               Roles and Permissions
             </a>
-            <a class="m-1 block w-full hs-tab-active:bg-primary/10 hs-tab-active:text-primary cursor-pointer text-defaulttextcolor dark:text-defaulttextcolor/70 py-2 px-3 text-[0.75rem] flex-grow font-medium rounded-md hover:text-primary"
-               id="account-item" data-hs-tab="#account-settings" aria-controls="account-settings">
-              Account Settings
-            </a>
+            @unless($moduleScopedAccess)
+              <a class="m-1 block w-full hs-tab-active:bg-primary/10 hs-tab-active:text-primary cursor-pointer text-defaulttextcolor dark:text-defaulttextcolor/70 py-2 px-3 text-[0.75rem] flex-grow font-medium rounded-md hover:text-primary"
+                 id="account-item" data-hs-tab="#account-settings" aria-controls="account-settings">
+                Account Settings
+              </a>
+            @endunless
           </nav>
         </div>
 
@@ -296,7 +283,9 @@
                     <div>
                       <h6 class="font-semibold mb-1 text-[1rem]">Role Assignment</h6>
                       <p class="text-[0.8125rem] text-textmuted dark:text-textmuted/80 mb-0">
-                        Select the user's baseline role first, then use the grid below to add or remove direct permissions.
+                        {{ $moduleScopedAccess
+                            ? 'Assign the baseline role for ' . $moduleContextName . ', then use the grid below to add or remove direct permissions for this module only.'
+                            : 'Select the user\'s baseline role first, then use the grid below to add or remove direct permissions.' }}
                       </p>
                     </div>
 
@@ -324,7 +313,7 @@
                       name="role"
                       id="role"
                       class="form-control"
-                      data-endpoint="{{ route('access.users.update', $user) }}"
+                      data-endpoint="{{ $adminRoutes->route('access.users.update', $user) }}"
                     >
                       @foreach ($roles as $role)
                         <option value="{{ $role->name }}" {{ $userRole && $userRole->name == $role->name ? 'selected' : '' }}>
@@ -422,7 +411,8 @@
               </div>
             </div>
 
-            <div class="tab-pane hidden dark:border-defaultborder/10" id="account-settings" aria-labelledby="account-item">
+            @unless($moduleScopedAccess)
+              <div class="tab-pane hidden dark:border-defaultborder/10" id="account-settings" aria-labelledby="account-item">
               <div class="sm:p-2 p-0">
                 <div class="grid grid-cols-12 gap-6">
                   <div class="xl:col-span-7 col-span-12">
@@ -440,7 +430,7 @@
                           type="button"
                           class="ti-btn btn-wave bg-danger text-white"
                           id="resetPasswordButton"
-                          data-endpoint="{{ route('access.users.password.reset', $user) }}"
+                          data-endpoint="{{ $adminRoutes->route('access.users.password.reset', $user) }}"
                         >
                           Generate Temporary Password
                         </button>
@@ -491,14 +481,17 @@
                   </div>
                 </div>
               </div>
-            </div>
+              </div>
+            @endunless
           </div>
         </div>
 
         <div class="box-footer">
           <div class="sm:flex items-center justify-between gap-3">
             <p class="text-[0.75rem] text-textmuted dark:text-textmuted/80 mb-3 sm:mb-0">
-              Restore Defaults previews the selected role baseline before you save direct permission changes.
+              {{ $moduleScopedAccess
+                  ? 'Restore Defaults previews the selected role baseline for ' . $moduleContextName . ' before you save direct permission changes.'
+                  : 'Restore Defaults previews the selected role baseline before you save direct permission changes.' }}
             </p>
 
             <div class="flex flex-wrap justify-end gap-2">
@@ -510,7 +503,7 @@
                 type="button"
                 class="ti-btn btn-wave bg-primary text-white"
                 id="savePermissionsButton"
-                data-endpoint="{{ route('access.users.update', $user) }}"
+                data-endpoint="{{ $adminRoutes->route('access.users.update', $user) }}"
               >
                 Save Changes
               </button>
@@ -522,4 +515,3 @@
   </div>
 </div>
 @endsection
-

@@ -58,6 +58,7 @@
       return {
         search: "",
         status: "",
+        module: "",
         user: "",
         email: "",
         ip_address: "",
@@ -119,6 +120,12 @@
 
             return `<span class="badge bg-danger/15 text-danger">Failed</span>${reason}`;
           },
+        },
+        {
+          title: "Module",
+          field: "module",
+          minWidth: 220,
+          formatter: (cell) => esc(cell.getValue() || "Unassigned"),
         },
         {
           title: "User",
@@ -241,4 +248,3 @@
     setInfoText("Loading...");
   });
 })();
-

@@ -3,6 +3,7 @@
 namespace App\Core\Http\Requests\Users;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
@@ -22,8 +23,7 @@ class UpdateUserModulePermissionsRequest extends BaseFormRequest
 
     public function authorize(): bool
     {
-        $u = $this->user();
-        return (bool) $this->user()?->hasRole('Administrator');
+        return app(AdminContextAuthorizer::class)->canManageCurrentContextAccess($this->user());
     }
 
     protected function prepareForValidation(): void

@@ -7,6 +7,7 @@ use App\Core\Models\AuditLog;
 use App\Core\Models\Permission;
 use App\Core\Models\Role;
 use App\Core\Models\User;
+use App\Core\Support\AdminRouteResolver;
 
 class AuditLogDatatableRowBuilder implements AuditLogDatatableRowBuilderInterface
 {
@@ -20,6 +21,10 @@ class AuditLogDatatableRowBuilder implements AuditLogDatatableRowBuilderInterfac
         $subjectTypeShort = $this->subjectTypeShort($log->subject_type);
         $isTrashed = $subject && method_exists($subject, 'trashed') && $subject->trashed();
         $maybeDeletedAction = str_ends_with((string) $log->action, '.deleted');
+        $moduleScoped = app()->bound(AdminRouteResolver::class)
+            ? app(AdminRouteResolver::class)->isModuleScoped()
+            : false;
+        $allowRestore = ! ($moduleScoped && $subjectTypeShort === 'user');
 
         return [
             'id' => (string) $log->id,
@@ -37,7 +42,8 @@ class AuditLogDatatableRowBuilder implements AuditLogDatatableRowBuilderInterfac
             'subject_show_restore' => (bool) (
                 ($log->subject_type && $log->subject_id) &&
                 ($isTrashed || $maybeDeletedAction) &&
-                $subjectTypeShort
+                $subjectTypeShort &&
+                $allowRestore
             ),
             'request' => trim((string) ($log->request_method ?? '') . ' ' . (string) ($log->request_url ?? '')),
             'ip' => (string) ($log->ip ?? ''),
@@ -125,4 +131,3 @@ class AuditLogDatatableRowBuilder implements AuditLogDatatableRowBuilderInterfac
         };
     }
 }
-

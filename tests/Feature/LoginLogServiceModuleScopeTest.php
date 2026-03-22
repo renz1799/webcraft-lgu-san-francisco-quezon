@@ -21,10 +21,12 @@ class LoginLogServiceModuleScopeTest extends TestCase
     {
         $loginDetails = Mockery::mock(LoginDetailRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
+        $module = new \App\Core\Models\Module();
+        $module->forceFill(['id' => 'module-1', 'code' => 'GSO', 'type' => 'business']);
 
-        $context->shouldReceive('moduleId')
+        $context->shouldReceive('module')
             ->once()
-            ->andReturn('module-1');
+            ->andReturn($module);
 
         $loginDetails->shouldReceive('datatable')
             ->once()
@@ -58,7 +60,7 @@ class LoginLogServiceModuleScopeTest extends TestCase
         $loginDetails = Mockery::mock(LoginDetailRepositoryInterface::class);
         $context = Mockery::mock(CurrentContext::class);
 
-        $context->shouldReceive('moduleId')
+        $context->shouldReceive('module')
             ->once()
             ->andReturn(null);
 
@@ -79,6 +81,42 @@ class LoginLogServiceModuleScopeTest extends TestCase
         $this->assertSame(1, $result['last_page']);
     }
 
+    public function test_datatable_uses_platform_wide_scope_for_core_context(): void
+    {
+        $loginDetails = Mockery::mock(LoginDetailRepositoryInterface::class);
+        $context = Mockery::mock(CurrentContext::class);
+        $module = new \App\Core\Models\Module();
+        $module->forceFill(['id' => 'module-core', 'code' => 'CORE', 'type' => 'platform']);
+
+        $context->shouldReceive('module')
+            ->once()
+            ->andReturn($module);
+
+        $loginDetails->shouldReceive('datatable')
+            ->once()
+            ->with(null, [
+                'module' => 'GSO',
+                'status' => 'success',
+            ], 1, 15)
+            ->andReturn([
+                'data' => [['id' => 'log-2']],
+                'last_page' => 1,
+                'total' => 1,
+                'recordsTotal' => 2,
+                'recordsFiltered' => 1,
+            ]);
+
+        $service = new LoginLogService($loginDetails, $context);
+
+        $result = $service->datatable([
+            'module' => 'GSO',
+            'status' => 'success',
+        ]);
+
+        $this->assertSame('log-2', $result['data'][0]['id']);
+        $this->assertSame(1, $result['recordsFiltered']);
+    }
+
     public function test_recent_for_user_uses_current_module_context(): void
     {
         $loginDetails = Mockery::mock(LoginDetailRepositoryInterface::class);
@@ -87,10 +125,12 @@ class LoginLogServiceModuleScopeTest extends TestCase
         $user = new \App\Core\Models\User();
         $user->forceFill(['id' => 'user-1']);
         $logs = collect([new \App\Core\Models\LoginDetail(['id' => 'log-1'])]);
+        $module = new \App\Core\Models\Module();
+        $module->forceFill(['id' => 'module-1', 'code' => 'GSO', 'type' => 'business']);
 
-        $context->shouldReceive('moduleId')
+        $context->shouldReceive('module')
             ->once()
-            ->andReturn('module-1');
+            ->andReturn($module);
 
         $loginDetails->shouldReceive('recentForUser')
             ->once()
@@ -110,7 +150,7 @@ class LoginLogServiceModuleScopeTest extends TestCase
         $user = new \App\Core\Models\User();
         $user->forceFill(['id' => 'user-1']);
 
-        $context->shouldReceive('moduleId')
+        $context->shouldReceive('module')
             ->once()
             ->andReturn(null);
 

@@ -2,14 +2,14 @@
 
 namespace App\Core\Http\Requests\Roles;
 
+use App\Core\Support\AdminContextAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DeleteRoleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-        return $user && ($user->hasRole('Administrator'));
+        return app(AdminContextAuthorizer::class)->canManageCurrentContextAccess($this->user());
     }
 
     public function rules(): array

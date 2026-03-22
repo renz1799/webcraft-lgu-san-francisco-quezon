@@ -2,6 +2,7 @@
 
 namespace App\Core\Http\Requests\Roles;
 
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -10,9 +11,7 @@ class UpdateRoleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-        return $user
-            && $user->hasRole('Administrator')
+        return app(AdminContextAuthorizer::class)->canManageCurrentContextAccess($this->user())
             && $this->currentModuleId() !== null;
     }
 

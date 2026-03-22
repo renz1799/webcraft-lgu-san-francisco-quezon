@@ -8,6 +8,7 @@ use App\Core\Builders\User\UserDatatableRowBuilder;
 use App\Core\Models\Role;
 use App\Core\Models\User;
 use App\Core\Repositories\Eloquent\EloquentUserRepository;
+use App\Core\Support\AdminRouteResolver;
 use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -124,7 +125,35 @@ class UserRepositoryTest extends TestCase
         $this->assertSame('Staff', $result['data'][0]['role']);
     }
 
-    private function makeRepository(string $moduleId, bool $useRealRowBuilder = false): EloquentUserRepository
+    public function test_datatable_limits_users_to_active_module_members_when_scope_is_module_specific(): void
+    {
+        $repository = $this->makeRepository('module-1', useRealRowBuilder: true, moduleScoped: true);
+
+        $includedUser = $this->createUser('module-user', 'module@example.com');
+        $excludedUser = $this->createUser('other-user', 'other@example.com');
+
+        DB::table('user_modules')->insert([
+            [
+                'id' => 'user-module-1',
+                'user_id' => (string) $includedUser->id,
+                'module_id' => 'module-1',
+                'is_active' => true,
+            ],
+            [
+                'id' => 'user-module-2',
+                'user_id' => (string) $excludedUser->id,
+                'module_id' => 'module-2',
+                'is_active' => true,
+            ],
+        ]);
+
+        $result = $repository->datatable([], 1, 15);
+
+        $this->assertSame(1, $result['total']);
+        $this->assertSame('module-user', $result['data'][0]['username']);
+    }
+
+    private function makeRepository(string $moduleId, bool $useRealRowBuilder = false, bool $moduleScoped = false): EloquentUserRepository
     {
         $rowBuilder = $useRealRowBuilder
             ? new UserDatatableRowBuilder()
@@ -140,7 +169,10 @@ class UserRepositoryTest extends TestCase
         $context = Mockery::mock(CurrentContext::class);
         $context->shouldReceive('moduleId')->andReturn($moduleId);
 
-        return new EloquentUserRepository($rowBuilder, $actionBuilder, $context);
+        $adminRoutes = Mockery::mock(AdminRouteResolver::class);
+        $adminRoutes->shouldReceive('isModuleScoped')->andReturn($moduleScoped);
+
+        return new EloquentUserRepository($rowBuilder, $actionBuilder, $context, $adminRoutes);
     }
 
     private function createSchema(): void
@@ -175,6 +207,13 @@ class UserRepositoryTest extends TestCase
             $table->uuid('model_id');
             $table->index(['model_id', 'model_type', 'module_id'], 'model_has_roles_model_id_type_module_index');
             $table->primary(['module_id', 'role_id', 'model_id', 'model_type'], 'model_has_roles_module_role_model_type_primary');
+        });
+
+        Schema::create('user_modules', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('user_id');
+            $table->uuid('module_id');
+            $table->boolean('is_active')->default(true);
         });
     }
 

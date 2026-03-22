@@ -2,15 +2,14 @@
 
 namespace App\Core\Http\Requests\Permissions;
 
+use App\Core\Support\AdminContextAuthorizer;
 use App\Http\Requests\BaseFormRequest;
 
 class DestroyPermissionRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {
-        $u = $this->user();
-
-        return $u && $u->hasAnyRole(['Administrator', 'admin']);
+        return app(AdminContextAuthorizer::class)->canManageCurrentContextAccess($this->user());
     }
 
     public function rules(): array

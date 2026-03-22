@@ -9,16 +9,19 @@ use App\Core\Models\Permission;
 use App\Core\Models\Role;
 use App\Core\Models\User;
 use App\Core\Repositories\Contracts\AuditLogRepositoryInterface;
+use App\Core\Support\AdminRouteResolver;
+use App\Core\Support\CurrentContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 class EloquentAuditLogRepository implements AuditLogRepositoryInterface
 {
     public function __construct(
         private readonly AuditLogDatatableRowBuilderInterface $auditLogDatatableRowBuilder,
+        private readonly ?CurrentContext $context = null,
+        private readonly ?AdminRouteResolver $adminRoutes = null,
     ) {}
 
     public function create(array $data): AuditLog
@@ -103,8 +106,12 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
 
     private function applyFilters(Builder $q, array $filters): Builder
     {
+        $forcedModuleId = $this->forcedModuleId();
         $module = trim((string) ($filters['module'] ?? $filters['module_name'] ?? ''));
-        if ($module !== '') {
+
+        if ($forcedModuleId !== null) {
+            $q->where('module_id', $forcedModuleId);
+        } elseif ($module !== '') {
             $this->applyModuleFilter($q, $module);
         }
 
@@ -173,17 +180,10 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
 
     private function applyModuleFilter(Builder $q, string $module): void
     {
-        if (Str::isUuid($module)) {
-            $q->where('module_id', $module);
-
-            return;
-        }
-
-        $term = '%' . $module . '%';
-
-        $q->whereHas('module', function (Builder $moduleQuery) use ($term) {
-            $moduleQuery->where('name', 'like', $term)
-                ->orWhere('code', 'like', $term);
+        $q->whereHas('module', function (Builder $moduleQuery) use ($module) {
+            $moduleQuery->whereKey($module)
+                ->orWhere('name', 'like', '%' . $module . '%')
+                ->orWhere('code', 'like', '%' . $module . '%');
         });
     }
 
@@ -203,5 +203,16 @@ class EloquentAuditLogRepository implements AuditLogRepositoryInterface
                 ? $subjectType
                 : null,
         };
+    }
+
+    private function forcedModuleId(): ?string
+    {
+        $adminRoutes = $this->adminRoutes ?? app(AdminRouteResolver::class);
+
+        if (! $adminRoutes->isModuleScoped()) {
+            return null;
+        }
+
+        return ($this->context ?? app(CurrentContext::class))->moduleId();
     }
 }

@@ -10,7 +10,10 @@ use App\Core\Repositories\Contracts\UserRepositoryInterface;
 use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
 use App\Core\Services\Contracts\Access\UserAccessServiceInterface;
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Support\AdminContextAuthorizer;
+use App\Core\Support\AdminRouteResolver;
 use App\Core\Support\CurrentContext;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -42,6 +45,7 @@ class UserAccessService implements UserAccessServiceInterface
     public function getUserPermissions(User $user): array
     {
         $moduleId = $this->requireModuleId();
+        $this->ensureUserBelongsToCurrentScope($user);
         $this->ensureDefaultRole($user);
 
         $permissions = Permission::query()
@@ -77,6 +81,7 @@ class UserAccessService implements UserAccessServiceInterface
     public function updateUserRoleAndPermissions(User $user, ?string $roleName, array $permissionNames): void
     {
         $moduleId = $this->requireModuleId();
+        $this->ensureUserBelongsToCurrentScope($user);
 
         DB::transaction(function () use ($user, $roleName, $permissionNames, $moduleId) {
             $beforeRole = $this->currentRoleName($user);
@@ -130,6 +135,7 @@ class UserAccessService implements UserAccessServiceInterface
     public function ensureDefaultRole(User $user, string $defaultRole = 'User'): void
     {
         $moduleId = $this->requireModuleId();
+        $this->ensureUserBelongsToCurrentScope($user);
 
         if ($this->currentRoleName($user) !== null) {
             return;
@@ -159,6 +165,7 @@ class UserAccessService implements UserAccessServiceInterface
     /** Soft delete the user (via repository). */
     public function deleteUser(User $user): void
     {
+        $this->ensureUserBelongsToCurrentScope($user);
         $snapshot = $user->only(['id', 'username', 'email', 'user_type', 'is_active']);
 
         $this->users->delete($user);
@@ -187,6 +194,8 @@ class UserAccessService implements UserAccessServiceInterface
             return false;
         }
 
+        $this->ensureUserBelongsToCurrentScope($model);
+
         $ok = $this->users->restore($model);
 
         if ($ok) {
@@ -206,6 +215,7 @@ class UserAccessService implements UserAccessServiceInterface
 
     public function updateStatus(User $user, bool $isActive): void
     {
+        $this->ensureUserBelongsToCurrentScope($user);
         $before = (bool) $user->is_active;
         $user->is_active = $isActive;
         $user->save();
@@ -229,6 +239,7 @@ class UserAccessService implements UserAccessServiceInterface
     public function getEditData(User $user): array
     {
         $moduleId = $this->requireModuleId();
+        $this->ensureUserBelongsToCurrentScope($user);
 
         $roles = Role::query()
             ->where('module_id', $moduleId)
@@ -264,7 +275,9 @@ class UserAccessService implements UserAccessServiceInterface
                 })->map(fn ($actions) => $actions->flatten()->unique()->values()->all());
             });
 
-        return compact('user', 'roles', 'permissions', 'userPermissions', 'userRole');
+        $roleDefaults = $this->buildRoleDefaults($roles);
+
+        return compact('user', 'roles', 'permissions', 'userPermissions', 'userRole', 'roleDefaults');
     }
 
     /**
@@ -276,9 +289,11 @@ class UserAccessService implements UserAccessServiceInterface
         $moduleId = $this->requireModuleId();
         $actor = auth()->user();
 
-        if (! $actor || ! $actor->hasRole('Administrator')) {
+        if (! app(AdminContextAuthorizer::class)->canManageCurrentContextAccess($actor)) {
             abort(403, 'Only administrators may manage user roles and permissions.');
         }
+
+        $this->ensureUserBelongsToCurrentScope($user);
 
         return DB::transaction(function () use ($user, $nested, $roleName, $moduleId) {
             $beforeRole = $this->currentRoleName($user);
@@ -407,6 +422,7 @@ class UserAccessService implements UserAccessServiceInterface
     /** Generate a cryptographically secure alphanumeric string (8 chars). */
     public function resetPasswordToTemporary(User $user): string
     {
+        $this->ensureUserBelongsToCurrentScope($user);
         $temp = $this->generateAlphaNum(8);
 
         $user->forceFill([
@@ -697,6 +713,41 @@ class UserAccessService implements UserAccessServiceInterface
             ->implode(' / ');
     }
 
+    private function buildRoleDefaults($roles): array
+    {
+        return $roles->mapWithKeys(function (Role $role): array {
+            $nested = [];
+
+            foreach ($role->permissions as $permission) {
+                $page = $permission->page ?: 'Others';
+                $words = explode(' ', $permission->name, 2);
+                $action = $this->normalizeRoleDefaultAction($words[0] ?? '');
+                $resource = trim((string) ($words[1] ?? ''));
+
+                if ($resource === '') {
+                    continue;
+                }
+
+                $nested[$page] ??= [];
+                $nested[$page][$resource] ??= [];
+
+                if (! in_array($action, $nested[$page][$resource], true)) {
+                    $nested[$page][$resource][] = $action;
+                }
+            }
+
+            return [$role->name => $nested];
+        })->all();
+    }
+
+    private function normalizeRoleDefaultAction(string $action): string
+    {
+        return match (strtolower(trim($action))) {
+            'edit', 'modify' => 'modify',
+            default => strtolower(trim($action)),
+        };
+    }
+
     /**
      * Generate secure, unambiguous alphanumeric string.
      * Ensures at least one uppercase, one lowercase, and one digit.
@@ -885,5 +936,26 @@ class UserAccessService implements UserAccessServiceInterface
             ->pluck('permissions.name')
             ->values()
             ->all();
+    }
+
+    private function ensureUserBelongsToCurrentScope(User $user): void
+    {
+        $adminRoutes = app(AdminRouteResolver::class);
+
+        if (! $adminRoutes->isModuleScoped()) {
+            return;
+        }
+
+        $moduleId = $this->requireModuleId();
+        $belongsToModule = $user->userModules()
+            ->where('module_id', $moduleId)
+            ->where('is_active', true)
+            ->exists();
+
+        if ($belongsToModule) {
+            return;
+        }
+
+        throw (new ModelNotFoundException())->setModel(User::class, [$user->getKey()]);
     }
 }

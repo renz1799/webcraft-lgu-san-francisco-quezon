@@ -25,7 +25,7 @@ class EloquentLoginDetailRepository implements LoginDetailRepositoryInterface
             ->get();
     }
 
-    public function datatable(string $moduleId, array $filters, int $page = 1, int $size = 15): array
+    public function datatable(?string $moduleId, array $filters, int $page = 1, int $size = 15): array
     {
         $page = max(1, (int) $page);
         $size = max(1, min((int) $size, 100));
@@ -57,16 +57,24 @@ class EloquentLoginDetailRepository implements LoginDetailRepositoryInterface
         ];
     }
 
-    private function buildBaseDatatableQuery(string $moduleId): Builder
+    private function buildBaseDatatableQuery(?string $moduleId): Builder
     {
-        return LoginDetail::query()
-            ->where('login_details.module_id', $moduleId)
+        $query = LoginDetail::query()
             ->leftJoin('users', 'users.id', '=', 'login_details.user_id')
+            ->leftJoin('modules', 'modules.id', '=', 'login_details.module_id')
             ->select('login_details.*')
-            ->addSelect('users.username');
+            ->addSelect('users.username')
+            ->addSelect('modules.code as module_code')
+            ->addSelect('modules.name as module_name');
+
+        if ($moduleId) {
+            $query->where('login_details.module_id', $moduleId);
+        }
+
+        return $query;
     }
 
-    private function buildFilteredDatatableQuery(string $moduleId, array $filters): Builder
+    private function buildFilteredDatatableQuery(?string $moduleId, array $filters): Builder
     {
         $query = $this->buildBaseDatatableQuery($moduleId);
 
@@ -97,6 +105,14 @@ class EloquentLoginDetailRepository implements LoginDetailRepositoryInterface
         $email = trim((string) ($filters['email'] ?? ''));
         if ($email !== '') {
             $query->where('login_details.email', 'like', "%{$email}%");
+        }
+
+        $module = trim((string) ($filters['module'] ?? ''));
+        if ($module !== '') {
+            $query->where(function (Builder $sub) use ($module) {
+                $sub->where('modules.code', 'like', "%{$module}%")
+                    ->orWhere('modules.name', 'like', "%{$module}%");
+            });
         }
 
         $ipAddress = trim((string) ($filters['ip_address'] ?? ''));
@@ -145,6 +161,7 @@ class EloquentLoginDetailRepository implements LoginDetailRepositoryInterface
             'device' => 'login_details.device',
             'address' => 'login_details.address',
             'location' => 'login_details.location',
+            'module' => 'modules.code',
             'user' => 'users.username',
         ];
 
@@ -168,6 +185,9 @@ class EloquentLoginDetailRepository implements LoginDetailRepositoryInterface
 
         return [
             'id' => (string) ($log->id ?? ''),
+            'module' => $this->moduleLabel($log),
+            'module_code' => $log->module_code ?? null,
+            'module_name' => $log->module_name ?? null,
             'success' => (bool) ($log->success ?? false),
             'reason' => $log->reason ?? null,
             'user' => $log->username ?? '-',
@@ -180,5 +200,25 @@ class EloquentLoginDetailRepository implements LoginDetailRepositoryInterface
             'created_at' => $createdAt,
             'created_at_text' => $createdAt ? Carbon::parse($createdAt)->format('M d, Y h:i A') : '-',
         ];
+    }
+
+    private function moduleLabel(LoginDetail $log): string
+    {
+        $code = trim((string) ($log->module_code ?? ''));
+        $name = trim((string) ($log->module_name ?? ''));
+
+        if ($code !== '' && $name !== '') {
+            return "{$code} - {$name}";
+        }
+
+        if ($code !== '') {
+            return $code;
+        }
+
+        if ($name !== '') {
+            return $name;
+        }
+
+        return 'Unassigned';
     }
 }

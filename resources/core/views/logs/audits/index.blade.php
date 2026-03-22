@@ -1,5 +1,10 @@
 @extends('layouts.master')
 
+@php($adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class))
+@php($moduleScopedAccess = $adminRoutes->isModuleScoped())
+@php($moduleContextName = trim((string) ($currentModule->name ?? $adminRoutes->scopedModuleCode() ?? 'Module')) ?: 'Module')
+@php($auditAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class))
+
 @section('styles')
   <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
   <style>
@@ -15,15 +20,20 @@
 <div class="block justify-between page-header md:flex">
   <div>
     <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
-      Audit Logs
+      {{ $moduleScopedAccess ? $moduleContextName . ' Audit Logs' : 'Audit Logs' }}
     </h3>
+    <p class="text-textmuted dark:text-textmuted/80 mb-0">
+      {{ $moduleScopedAccess
+          ? 'Showing activity recorded inside ' . $moduleContextName . ' only.'
+          : 'Review platform-wide audit activity and restoration events.' }}
+    </p>
   </div>
 </div>
 
 <div class="box">
   <div class="box-header">
     <div class="items-header">
-      <h5 class="box-title">System Activity</h5>
+      <h5 class="box-title">{{ $moduleScopedAccess ? 'Module Activity' : 'System Activity' }}</h5>
 
       <div class="items-actions">
         <input
@@ -56,8 +66,19 @@
             <div class="p-3 space-y-3">
               <div>
                 <label class="ti-form-label">Module</label>
-                <input id="audit-module" type="text" class="ti-form-input w-full" placeholder="Code or name" />
-                <div class="text-xs text-[#8c9097] mt-1">Matches module code or module name.</div>
+                @if ($adminRoutes->isModuleScoped())
+                  <input
+                    id="audit-module"
+                    type="text"
+                    class="ti-form-input w-full"
+                    value="{{ strtoupper((string) $adminRoutes->scopedModuleCode()) }}"
+                    readonly
+                  />
+                  <div class="text-xs text-[#8c9097] mt-1">Locked to the active module context.</div>
+                @else
+                  <input id="audit-module" type="text" class="ti-form-input w-full" placeholder="Code or name" />
+                  <div class="text-xs text-[#8c9097] mt-1">Matches module code or module name.</div>
+                @endif
               </div>
 
               <div>
@@ -122,10 +143,11 @@
 
   <script>
     window.__audit = {
-      ajaxUrl: @json(route('audit-logs.data')),
-      restoreEndpoint: @json(route('audit.restore')),
+      ajaxUrl: @json($adminRoutes->route('audit-logs.data')),
+      restoreEndpoint: @json($adminRoutes->route('audit.restore')),
       csrf: @json(csrf_token()),
-      canRestore: @json(auth()->user()?->hasAnyRole(['Administrator', 'admin']) || auth()->user()?->can('modify Allow Data Restoration')),
+      moduleLocked: @json($adminRoutes->isModuleScoped()),
+      canRestore: @json($auditAuthorizer->canRestoreCurrentContextAuditData(auth()->user())),
     };
   </script>
 @endpush

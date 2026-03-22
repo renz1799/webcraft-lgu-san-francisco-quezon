@@ -86,24 +86,22 @@ class AuthService implements AuthServiceInterface
             return false;
         }
 
-        if (! $user->hasAnyRole(['Administrator', 'Department Head'])) {
-            if (! $this->moduleAccess->hasActiveModuleAccess($user, $moduleId)) {
-                $this->recordLoginAttempt(
-                    moduleId: $moduleId,
-                    userId: (string) $user->id,
-                    email: $email,
-                    ip: $ip,
-                    userAgent: $ua,
-                    locationUrl: $locationUrl,
-                    address: $address,
-                    latitude: $lat,
-                    longitude: $lng,
-                    success: false,
-                    reason: 'module_access_denied',
-                );
+        if (! $this->moduleAccess->hasAnyActiveModuleAccess($user)) {
+            $this->recordLoginAttempt(
+                moduleId: $moduleId,
+                userId: (string) $user->id,
+                email: $email,
+                ip: $ip,
+                userAgent: $ua,
+                locationUrl: $locationUrl,
+                address: $address,
+                latitude: $lat,
+                longitude: $lng,
+                success: false,
+                reason: 'module_access_denied',
+            );
 
-                return false;
-            }
+            return false;
         }
 
         if (! Auth::attempt(['email' => $email, 'password' => $password], $remember)) {

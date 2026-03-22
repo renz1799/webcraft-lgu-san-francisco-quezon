@@ -5,9 +5,12 @@ namespace Tests\Feature;
 use App\Core\Builders\AuditLogs\AuditLogDatatableRowBuilder;
 use App\Core\Models\Role;
 use App\Core\Repositories\Eloquent\EloquentAuditLogRepository;
+use App\Core\Support\AdminRouteResolver;
+use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Mockery;
 use Tests\TestCase;
 
 class AuditLogPrintRepositoryTest extends TestCase
@@ -23,6 +26,13 @@ class AuditLogPrintRepositoryTest extends TestCase
         DB::reconnect('sqlite');
 
         $this->createSchema();
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+
+        parent::tearDown();
     }
 
     public function test_find_for_print_filters_by_module_actor_and_subject_type_using_real_fields(): void
@@ -61,6 +71,39 @@ class AuditLogPrintRepositoryTest extends TestCase
         $this->assertTrue($result['data'][0]['subject_show_restore']);
         $this->assertSame('role', $result['data'][0]['subject_type_short']);
         $this->assertNotEmpty($result['data'][0]['created_at_text']);
+    }
+
+    public function test_datatable_forces_current_module_when_scope_is_module_specific(): void
+    {
+        $this->seedAuditData();
+
+        $context = Mockery::mock(CurrentContext::class);
+        $context->shouldReceive('moduleId')->andReturn('11111111-1111-1111-1111-111111111111');
+
+        $adminRoutes = Mockery::mock(AdminRouteResolver::class);
+        $adminRoutes->shouldReceive('isModuleScoped')->andReturn(true);
+
+        $result = new EloquentAuditLogRepository(
+            new AuditLogDatatableRowBuilder(),
+            $context,
+            $adminRoutes,
+        );
+
+        $payload = $result->datatable([], 1, 15);
+
+        $this->assertSame(2, $payload['total']);
+        $this->assertContains(
+            '55555555-5555-4555-8555-555555555555',
+            array_column($payload['data'], 'id'),
+        );
+        $this->assertContains(
+            '77777777-7777-4777-8777-777777777777',
+            array_column($payload['data'], 'id'),
+        );
+        $this->assertNotContains(
+            '66666666-6666-4666-8666-666666666666',
+            array_column($payload['data'], 'id'),
+        );
     }
 
     private function makeRepository(): EloquentAuditLogRepository

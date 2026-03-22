@@ -2,39 +2,67 @@
 
 namespace Database\Seeders;
 
+use App\Core\Models\Module;
 use App\Core\Models\Permission;
-use App\Core\Support\CurrentContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class PermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        $context = app(CurrentContext::class);
-        $moduleId = $context->moduleId();
-
-        if (! $moduleId) {
-            throw new \RuntimeException('PermissionsSeeder: current module not found. Run ModuleSeeder first.');
-        }
-
-        $permissions = [
-            ['name' => 'view Tasks', 'page' => 'Manage Tasks'],
-            ['name' => 'modify Reassign Tasks', 'page' => 'Manage Tasks'],
+        $permissionsByModule = [
+            'TASKS' => [
+                ['name' => 'view Tasks', 'page' => 'Manage Tasks'],
+                ['name' => 'modify Reassign Tasks', 'page' => 'Manage Tasks'],
+            ],
+            'GSO' => [
+                ['name' => 'view Asset Types', 'page' => 'GSO Reference Data'],
+                ['name' => 'modify Asset Types', 'page' => 'GSO Reference Data'],
+                ['name' => 'view Asset Categories', 'page' => 'GSO Reference Data'],
+                ['name' => 'modify Asset Categories', 'page' => 'GSO Reference Data'],
+                ['name' => 'view Departments', 'page' => 'GSO Reference Data'],
+                ['name' => 'modify Departments', 'page' => 'GSO Reference Data'],
+                ['name' => 'view Fund Clusters', 'page' => 'GSO Reference Data'],
+                ['name' => 'modify Fund Clusters', 'page' => 'GSO Reference Data'],
+                ['name' => 'view Fund Sources', 'page' => 'GSO Reference Data'],
+                ['name' => 'modify Fund Sources', 'page' => 'GSO Reference Data'],
+                ['name' => 'view Accountable Officers', 'page' => 'GSO Reference Data'],
+                ['name' => 'modify Accountable Officers', 'page' => 'GSO Reference Data'],
+                ['name' => 'view AIR', 'page' => 'GSO Workflow Foundation'],
+                ['name' => 'modify AIR', 'page' => 'GSO Workflow Foundation'],
+                ['name' => 'view Items', 'page' => 'GSO Inventory Foundation'],
+                ['name' => 'modify Items', 'page' => 'GSO Inventory Foundation'],
+                ['name' => 'view Inventory Items', 'page' => 'GSO Inventory Foundation'],
+                ['name' => 'modify Inventory Items', 'page' => 'GSO Inventory Foundation'],
+                ['name' => 'view Inspections', 'page' => 'GSO Workflow Foundation'],
+                ['name' => 'modify Inspections', 'page' => 'GSO Workflow Foundation'],
+            ],
         ];
 
-        foreach ($permissions as $permission) {
-            Permission::query()->updateOrCreate(
-                [
-                    'module_id' => $moduleId,
-                    'name' => $permission['name'],
-                    'guard_name' => 'web',
-                ],
-                [
-                    'id' => (string) Str::uuid(),
-                    'page' => $permission['page'],
-                ]
-            );
+        foreach ($permissionsByModule as $moduleCode => $permissions) {
+            $moduleId = Module::query()
+                ->where('code', $moduleCode)
+                ->value('id');
+
+            if (! $moduleId) {
+                throw new RuntimeException("PermissionsSeeder: {$moduleCode} module not found. Run ModuleSeeder first.");
+            }
+
+            foreach ($permissions as $permission) {
+                Permission::query()->updateOrCreate(
+                    [
+                        'module_id' => $moduleId,
+                        'name' => $permission['name'],
+                        'guard_name' => 'web',
+                    ],
+                    [
+                        'id' => (string) Str::uuid(),
+                        'page' => $permission['page'],
+                    ]
+                );
+            }
         }
 
         $this->command?->info('Permissions seeded successfully.');

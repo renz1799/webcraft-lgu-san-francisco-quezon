@@ -2,18 +2,14 @@
 
 namespace App\Core\Http\Requests\Logs;
 
+use App\Core\Support\AdminContextAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LoginLogsDataRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user && (
-            $user->hasAnyRole(['Administrator', 'admin']) ||
-            $user->can('view Login Logs')
-        );
+        return app(AdminContextAuthorizer::class)->canViewPlatformLoginLogs($this->user());
     }
 
     public function rules(): array
@@ -27,6 +23,7 @@ class LoginLogsDataRequest extends FormRequest
             'status' => ['nullable', 'in:success,failed'],
             'user' => ['nullable', 'string', 'max:150'],
             'email' => ['nullable', 'string', 'max:200'],
+            'module' => ['nullable', 'string', 'max:150'],
             'ip_address' => ['nullable', 'string', 'max:45'],
             'device' => ['nullable', 'string', 'max:255'],
             'date_from' => ['nullable', 'date_format:Y-m-d'],

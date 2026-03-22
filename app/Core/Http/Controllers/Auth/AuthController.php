@@ -6,6 +6,7 @@ use App\Core\Data\Auth\RegisterUserData;
 use App\Http\Controllers\Controller;
 use App\Core\Http\Requests\Auth\LoginRequest;
 use App\Core\Http\Requests\Auth\RegisterRequest;
+use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
 use App\Core\Services\Contracts\Auth\AuthServiceInterface;
 use App\Core\Services\Contracts\Auth\RegisterUserServiceInterface;
 use App\Core\Services\Contracts\Auth\RegistrationOptionsServiceInterface;
@@ -18,6 +19,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly AuthServiceInterface $auth,
+        private readonly ModuleAccessServiceInterface $moduleAccess,
         private readonly RegisterUserServiceInterface $registerUser,
         private readonly RegistrationOptionsServiceInterface $registrationOptions,
     ) {}
@@ -81,7 +83,9 @@ class AuthController extends Controller
                 ->with('force_password_change', true);
         }
 
-        return redirect()->intended('/');
+        return redirect()->intended(
+            $this->moduleAccess->postLoginRedirectPathForUser($user)
+        );
     }
 
     public function logout()

@@ -19,9 +19,12 @@ class LoginLogService implements LoginLogServiceInterface
     {
         $page = max(1, (int) ($params['page'] ?? 1));
         $size = max(1, min((int) ($params['size'] ?? 15), 100));
-        $moduleId = $this->context->moduleId();
+        $currentModule = $this->context->module();
+        $moduleId = $currentModule?->isPlatformContext()
+            ? null
+            : ($currentModule?->id ? (string) $currentModule->id : null);
 
-        if (! $moduleId) {
+        if (! $currentModule) {
             return [
                 'data' => [],
                 'last_page' => 1,
@@ -39,7 +42,8 @@ class LoginLogService implements LoginLogServiceInterface
 
     public function recentForUser(User $user, int $limit = 4): Collection
     {
-        $moduleId = $this->context->moduleId();
+        $currentModule = $this->context->module();
+        $moduleId = $currentModule?->id ? (string) $currentModule->id : null;
 
         if (! $moduleId) {
             return collect();

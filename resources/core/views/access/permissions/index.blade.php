@@ -1,5 +1,9 @@
 @extends('layouts.master')
 
+@php($adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class))
+@php($moduleScopedAccess = $adminRoutes->isModuleScoped())
+@php($moduleContextName = trim((string) ($currentModule->name ?? $adminRoutes->scopedModuleCode() ?? 'Module')) ?: 'Module')
+
 @section('styles')
   <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
   <style>
@@ -14,8 +18,13 @@
 <div class="block justify-between page-header md:flex">
   <div>
     <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
-      Manage Permissions
+      {{ $moduleScopedAccess ? $moduleContextName . ' Permission Matrix' : 'Manage Permissions' }}
     </h3>
+    <p class="text-textmuted dark:text-textmuted/80 mb-0">
+      {{ $moduleScopedAccess
+          ? 'Review and maintain the permission set used inside ' . $moduleContextName . '. Core remains the source of platform-wide governance.'
+          : 'Manage shared permissions available to the platform administration workspace.' }}
+    </p>
   </div>
 </div>
 
@@ -143,7 +152,7 @@
       </div>
 
       <div class="ti-modal-body px-4">
-        <form id="addPermissionForm" method="POST" action="{{ route('access.permissions.store') }}" class="space-y-4">
+        <form id="addPermissionForm" method="POST" action="{{ $adminRoutes->route('access.permissions.store') }}" class="space-y-4">
           @csrf
 
           <div>
@@ -247,7 +256,7 @@
 
   <script>
     window.__accessPermissions = {
-      ajaxUrl: @json(route('access.permissions.data')),
+      ajaxUrl: @json($adminRoutes->route('access.permissions.data')),
     };
   </script>
 @endpush

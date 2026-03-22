@@ -1,5 +1,9 @@
 @extends('layouts.master')
 
+@php($adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class))
+@php($moduleScopedAccess = $adminRoutes->isModuleScoped())
+@php($moduleContextName = trim((string) ($currentModule->name ?? $adminRoutes->scopedModuleCode() ?? 'Module')) ?: 'Module')
+
 @section('styles')
   <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
   <style>
@@ -14,15 +18,20 @@
 <div class="block justify-between page-header md:flex">
   <div>
     <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
-      User Access
+      {{ $moduleScopedAccess ? 'Assigned Users' : 'User Access' }}
     </h3>
+    <p class="text-textmuted dark:text-textmuted/80 mb-0">
+      {{ $moduleScopedAccess
+          ? $moduleContextName . ' only. Global identities and account lifecycle stay in Core Platform.'
+          : 'Review platform users and manage access from the shared administration workspace.' }}
+    </p>
   </div>
 </div>
 
 <div class="box">
   <div class="box-header">
     <div class="items-header">
-      <h5 class="box-title">Users</h5>
+      <h5 class="box-title">{{ $moduleScopedAccess ? 'Assigned Users' : 'Users' }}</h5>
 
       <div class="items-actions">
         <input
@@ -127,7 +136,7 @@
 
   <script>
     window.__accessUsers = {
-      ajaxUrl: @json(route('access.users.data')),
+      ajaxUrl: @json($adminRoutes->route('access.users.data')),
     };
   </script>
 @endpush

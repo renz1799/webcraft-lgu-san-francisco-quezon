@@ -10,6 +10,7 @@ use App\Core\Http\Requests\Permissions\StorePermissionRequest;
 use App\Core\Http\Requests\Permissions\UpdatePermissionRequest;
 use App\Core\Models\Permission;
 use App\Core\Services\Contracts\Access\PermissionServiceInterface;
+use App\Core\Support\AdminRouteResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -19,7 +20,7 @@ class PermissionController extends Controller
     public function __construct(
         private readonly PermissionServiceInterface $permissions
     ) {
-        $this->middleware(['auth', 'role_or_permission:Administrator'])
+        $this->middleware(['auth', 'role_or_permission:Administrator|admin'])
             ->only(['index', 'data', 'store', 'update', 'destroy', 'restore']);
     }
 
@@ -56,7 +57,7 @@ class PermissionController extends Controller
         }
 
         return redirect()
-            ->route('access.permissions.index')
+            ->to(app(AdminRouteResolver::class)->route('access.permissions.index'))
             ->with('success', "Permission \"{$permission->name}\" created.");
     }
 
@@ -77,7 +78,7 @@ class PermissionController extends Controller
         }
 
         return redirect()
-            ->route('access.permissions.index')
+            ->to(app(AdminRouteResolver::class)->route('access.permissions.index'))
             ->with('success', 'Permission updated successfully.');
     }
 

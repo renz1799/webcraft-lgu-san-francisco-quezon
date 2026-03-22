@@ -1,5 +1,14 @@
 @extends('layouts.master')
 
+@php
+  $adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class);
+  $moduleScopedAccess = $adminRoutes->isModuleScoped();
+  $moduleContextName = trim((string) ($currentModule->name ?? $adminRoutes->scopedModuleCode() ?? 'Module')) ?: 'Module';
+  $permissionsByPage = $permissionsByPage ?? $permissions->groupBy(
+      fn ($permission) => $permission->page ?: 'Uncategorized'
+  )->sortKeys();
+@endphp
+
 @section('styles')
   <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
   <style>
@@ -15,8 +24,13 @@
 <div class="block justify-between page-header md:flex">
   <div>
     <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
-      Roles Management
+      {{ $moduleScopedAccess ? $moduleContextName . ' Roles' : 'Roles Management' }}
     </h3>
+    <p class="text-textmuted dark:text-textmuted/80 mb-0">
+      {{ $moduleScopedAccess
+          ? 'These roles apply only within ' . $moduleContextName . '. Platform-wide role governance stays in Core Platform.'
+          : 'Create and maintain shared access roles from the platform administration workspace.' }}
+    </p>
   </div>
 </div>
 
@@ -117,10 +131,6 @@
   </div>
 </div>
 
-@php
-  $permByPage = $permissions->groupBy(fn($p) => $p->page ?: 'Uncategorized')->sortKeys();
-@endphp
-
 <div id="addRoleModal" class="hs-overlay hidden ti-modal [--overlay-backdrop:static]">
   <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out">
     <div class="ti-modal-content">
@@ -131,7 +141,7 @@
       </div>
 
       <div class="ti-modal-body px-4">
-        <form id="addRoleForm" method="POST" action="{{ route('access.roles.store') }}">
+        <form id="addRoleForm" method="POST" action="{{ $adminRoutes->route('access.roles.store') }}">
           @csrf
 
           <div class="mb-4">
@@ -148,14 +158,13 @@
           </div>
 
           <div class="space-y-3 max-h-[460px] overflow-auto pr-1">
-            @foreach ($permByPage as $pageName => $items)
-              @php $groupKey = Str::slug($pageName); @endphp
+            @foreach ($permissionsByPage as $pageName => $items)
               <div class="border rounded-lg p-3">
                 <div class="font-medium">
                   {{ $pageName }} <span class="text-xs text-muted">({{ $items->count() }})</span>
                 </div>
 
-                <div id="add-group-{{ $groupKey }}" class="grid md:grid-cols-2 gap-x-6 gap-y-2 mt-3">
+                <div id="add-group-{{ Str::slug($pageName) }}" class="grid md:grid-cols-2 gap-x-6 gap-y-2 mt-3">
                   @foreach ($items->sortBy('name') as $p)
                     <label class="permission-chip" data-label="{{ strtolower($p->name . ' ' . ($p->page ?: '')) }}">
                       <input type="checkbox" class="form-check-input" name="permissions[]" value="{{ $p->id }}">
@@ -205,14 +214,13 @@
           </div>
 
           <div class="space-y-3 max-h-[460px] overflow-auto pr-1">
-            @foreach ($permByPage as $pageName => $items)
-              @php $groupKey = Str::slug($pageName); @endphp
+            @foreach ($permissionsByPage as $pageName => $items)
               <div class="border rounded-lg p-3">
                 <div class="font-medium">
                   {{ $pageName }} <span class="text-xs text-muted">({{ $items->count() }})</span>
                 </div>
 
-                <div id="edit-group-{{ $groupKey }}" class="grid md:grid-cols-2 gap-x-6 gap-y-2 mt-3">
+                <div id="edit-group-{{ Str::slug($pageName) }}" class="grid md:grid-cols-2 gap-x-6 gap-y-2 mt-3">
                   @foreach ($items->sortBy('name') as $p)
                     <label class="permission-chip" data-label="{{ strtolower($p->name . ' ' . ($p->page ?: '')) }}">
                       <input type="checkbox" class="form-check-input" name="permissions[]" value="{{ $p->id }}">
@@ -239,7 +247,7 @@
 
   <script>
     window.__accessRoles = {
-      ajaxUrl: @json(route('access.roles.data')),
+      ajaxUrl: @json($adminRoutes->route('access.roles.data')),
     };
   </script>
 @endpush

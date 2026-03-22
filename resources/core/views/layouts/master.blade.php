@@ -60,7 +60,7 @@
 
             <!-- SIDEBAR -->
 
-            @include('layouts.components.sidebar')
+            @include('layouts.components.sidebar.sidebar')
 
             <!-- END SIDEBAR -->
 
@@ -121,5 +121,4 @@
 
 	</body>
 </html>
-
 

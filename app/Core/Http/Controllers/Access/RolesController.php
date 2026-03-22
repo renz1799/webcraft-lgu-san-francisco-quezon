@@ -10,6 +10,7 @@ use App\Core\Http\Requests\Roles\StoreRoleRequest;
 use App\Core\Http\Requests\Roles\UpdateRoleRequest;
 use App\Core\Models\Role;
 use App\Core\Services\Contracts\Access\RoleServiceInterface;
+use App\Core\Support\AdminRouteResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -18,7 +19,7 @@ class RolesController extends Controller
 {
     public function __construct(private readonly RoleServiceInterface $roles)
     {
-        $this->middleware(['auth', 'role_or_permission:Administrator']);
+        $this->middleware(['auth', 'role_or_permission:Administrator|admin']);
     }
 
     public function index(): View
@@ -57,7 +58,9 @@ class RolesController extends Controller
     {
         $this->roles->create($request->validated());
 
-        return redirect()->route('access.roles.index')->with('success', 'Role created successfully.');
+        return redirect()
+            ->to(app(AdminRouteResolver::class)->route('access.roles.index'))
+            ->with('success', 'Role created successfully.');
     }
 
     public function edit(Role $role): View
@@ -73,7 +76,9 @@ class RolesController extends Controller
             return response()->json(['message' => 'Role updated successfully.'], 200);
         }
 
-        return redirect()->route('access.roles.index')->with('success', 'Role updated successfully.');
+        return redirect()
+            ->to(app(AdminRouteResolver::class)->route('access.roles.index'))
+            ->with('success', 'Role updated successfully.');
     }
 
     public function destroy(DeleteRoleRequest $request, Role $role): RedirectResponse|JsonResponse
@@ -84,9 +89,9 @@ class RolesController extends Controller
             return response()->json(['message' => 'Role deleted successfully.'], 200);
         }
 
-        return redirect()->route('access.roles.index')->with('success', 'Role deleted successfully.');
+        return redirect()
+            ->to(app(AdminRouteResolver::class)->route('access.roles.index'))
+            ->with('success', 'Role deleted successfully.');
     }
 }
-
-
 

@@ -3,6 +3,7 @@
 namespace App\Core\Http\Requests\Permissions;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 use Illuminate\Validation\Rule;
 
@@ -10,10 +11,7 @@ class StorePermissionRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {
-        $u = $this->user();
-
-        return $u
-            && $u->hasAnyRole(['Administrator', 'admin'])
+        return app(AdminContextAuthorizer::class)->canManageCurrentContextAccess($this->user())
             && $this->currentModuleId() !== null;
     }
 

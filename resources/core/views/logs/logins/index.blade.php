@@ -16,6 +16,9 @@
     <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
       Login Logs
     </h3>
+    <p class="text-textmuted dark:text-textmuted/80 mb-0">
+      Review platform-wide authentication activity across Core and active modules.
+    </p>
   </div>
 </div>
 
@@ -61,6 +64,12 @@
                   <option value="failed">Failed</option>
                 </select>
                 <div class="text-xs text-[#8c9097] mt-1">Filter successful or failed attempts.</div>
+              </div>
+
+              <div>
+                <label class="ti-form-label">Module</label>
+                <input id="login-module" type="text" class="ti-form-input w-full" placeholder="Code or name" />
+                <div class="text-xs text-[#8c9097] mt-1">Matches module code or module name.</div>
               </div>
 
               <div>

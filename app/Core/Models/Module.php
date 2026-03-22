@@ -14,9 +14,14 @@ class Module extends Model
 {
     use HasFactory, HasUuids;
 
+    public const TYPE_PLATFORM = 'platform';
+    public const TYPE_BUSINESS = 'business';
+    public const TYPE_SUPPORT = 'support';
+
     protected $fillable = [
         'code',
         'name',
+        'type',
         'description',
         'url',
         'default_department_id',
@@ -26,6 +31,43 @@ class Module extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function resolvedType(): string
+    {
+        $type = trim((string) ($this->type ?? ''));
+
+        if ($type !== '') {
+            return $type;
+        }
+
+        return strtoupper((string) $this->code) === 'CORE'
+            ? self::TYPE_PLATFORM
+            : self::TYPE_BUSINESS;
+    }
+
+    public function isPlatformContext(): bool
+    {
+        return $this->resolvedType() === self::TYPE_PLATFORM;
+    }
+
+    public function isSupportContext(): bool
+    {
+        return $this->resolvedType() === self::TYPE_SUPPORT;
+    }
+
+    public function isBusinessContext(): bool
+    {
+        return $this->resolvedType() === self::TYPE_BUSINESS;
+    }
+
+    public function typeLabel(): string
+    {
+        return match ($this->resolvedType()) {
+            self::TYPE_PLATFORM => 'Platform',
+            self::TYPE_SUPPORT => 'Support',
+            default => 'Business',
+        };
+    }
 
     protected static function newFactory(): Factory
     {

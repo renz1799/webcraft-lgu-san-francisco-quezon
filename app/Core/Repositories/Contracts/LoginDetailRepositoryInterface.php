@@ -21,7 +21,7 @@ interface LoginDetailRepositoryInterface
      *   'recordsFiltered' => int,
      * ]
      */
-    public function datatable(string $moduleId, array $filters, int $page = 1, int $size = 15): array;
+    public function datatable(?string $moduleId, array $filters, int $page = 1, int $size = 15): array;
 
     /**
      * @return Collection<int, LoginDetail>

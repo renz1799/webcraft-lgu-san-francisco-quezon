@@ -7,6 +7,7 @@ use App\Core\Models\User;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
 use App\Core\Builders\Contracts\User\UserDatatableRowBuilderInterface;
 use App\Core\Builders\Contracts\User\UserDatatableActionBuilderInterface;
+use App\Core\Support\AdminRouteResolver;
 use Carbon\Carbon;
 use App\Core\Support\CurrentContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -16,11 +17,11 @@ use Illuminate\Support\Facades\Log;
 
 class EloquentUserRepository implements UserRepositoryInterface
 {
-
     public function __construct(
         private readonly UserDatatableRowBuilderInterface $userDatatableRowBuilder,
         private readonly UserDatatableActionBuilderInterface $userDatatableActionBuilder,
         private readonly CurrentContext $context,
+        private readonly ?AdminRouteResolver $adminRoutes = null,
     ) {}
 
     /** Create a user */
@@ -214,6 +215,13 @@ class EloquentUserRepository implements UserRepositoryInterface
             ->select(['id', 'username', 'email', 'is_active', 'created_at', 'deleted_at', 'user_type'])
             ->where('user_type', '!=', 'Administrator');
 
+        if (($this->adminRoutes ?? app(AdminRouteResolver::class))->isModuleScoped()) {
+            $q->whereHas('userModules', function (Builder $query) use ($moduleId) {
+                $query->where('module_id', $moduleId)
+                    ->where('is_active', true);
+            });
+        }
+
         if ($archivedMode === 'all') {
             $q->withTrashed();
         } elseif ($archivedMode === 'archived') {
@@ -341,4 +349,3 @@ class EloquentUserRepository implements UserRepositoryInterface
     }
 
 }
-

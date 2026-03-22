@@ -1,4 +1,6 @@
-@if(auth()->check() && auth()->user()->hasRole('Administrator'))
+@php($registerUserAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class))
+
+@if($registerUserAuthorizer->canRegisterUsers(auth()->user()))
   <div id="registerUserModal" class="hs-overlay hidden ti-modal [--overlay-backdrop:static]">
     <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out">
       <div class="ti-modal-content">

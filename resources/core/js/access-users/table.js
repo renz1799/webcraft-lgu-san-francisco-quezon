@@ -137,6 +137,12 @@
             const checked = row.is_active ? "checked" : "";
             const endpoint = esc(row.status_url || "");
 
+            if (!endpoint) {
+              return row.is_active
+                ? '<span class="badge bg-success/10 text-success">Active</span>'
+                : '<span class="badge bg-danger/10 text-danger">Inactive</span>';
+            }
+
             return `
               <input
                 type="checkbox"
@@ -182,13 +188,18 @@
 
             const editUrl = esc(row.edit_url || "");
             const deleteUrl = esc(row.delete_url || "");
+            const buttons = [];
 
-            return `
-              <div class="hstack flex gap-3 text-[.9375rem] justify-center w-full">
+            if (editUrl) {
+              buttons.push(`
                 <a href="${editUrl}" class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full" title="Edit">
                   <i class="ri-edit-line"></i>
                 </a>
+              `);
+            }
 
+            if (deleteUrl) {
+              buttons.push(`
                 <button
                   type="button"
                   class="ti-btn btn-wave ti-btn-sm ti-btn-danger !rounded-full"
@@ -199,6 +210,16 @@
                 >
                   <i class="ri-delete-bin-line"></i>
                 </button>
+              `);
+            }
+
+            if (!buttons.length) {
+              return '<span class="text-xs text-[#8c9097]">View only</span>';
+            }
+
+            return `
+              <div class="hstack flex gap-3 text-[.9375rem] justify-center w-full">
+                ${buttons.join("")}
               </div>
             `;
           },

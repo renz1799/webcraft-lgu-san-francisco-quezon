@@ -24,15 +24,19 @@ class RoleService implements RoleServiceInterface
     public function indexData(): array
     {
         $moduleId = $this->requireModuleId();
+        $permissions = Permission::query()
+            ->where('module_id', $moduleId)
+            ->where('guard_name', 'web')
+            ->whereNull('deleted_at')
+            ->orderBy('page')
+            ->orderBy('name')
+            ->get();
 
         return [
-            'permissions' => Permission::query()
-                ->where('module_id', $moduleId)
-                ->where('guard_name', 'web')
-                ->whereNull('deleted_at')
-                ->orderBy('page')
-                ->orderBy('name')
-                ->get(),
+            'permissions' => $permissions,
+            'permissionsByPage' => $permissions
+                ->groupBy(fn (Permission $permission) => $permission->page ?: 'Uncategorized')
+                ->sortKeys(),
         ];
     }
 

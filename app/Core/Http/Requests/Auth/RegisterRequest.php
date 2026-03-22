@@ -2,6 +2,7 @@
 
 namespace App\Core\Http\Requests\Auth;
 
+use App\Core\Support\AdminContextAuthorizer;
 use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,8 +14,7 @@ class RegisterRequest extends BaseFormRequest
 
     public function authorize(): bool
     {
-        $u = $this->user();
-        return $u && $u->hasRole('Administrator');
+        return app(AdminContextAuthorizer::class)->canRegisterUsers($this->user());
     }
 
 

@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Core\Http\Requests\Logs\LoginLogsDataRequest;
+use App\Core\Support\AdminContextAuthorizer;
+use App\Core\Models\User;
 use Mockery;
 use Tests\TestCase;
 
@@ -17,15 +19,14 @@ class LoginLogsDataRequestTest extends TestCase
 
     public function test_authorize_allows_view_login_logs_permission(): void
     {
-        $user = Mockery::mock();
-        $user->shouldReceive('hasAnyRole')
+        $user = new User();
+        $user->forceFill(['id' => 'user-1']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canViewPlatformLoginLogs')
             ->once()
-            ->with(['Administrator', 'admin'])
-            ->andReturn(false);
-        $user->shouldReceive('can')
-            ->once()
-            ->with('view Login Logs')
+            ->with($user)
             ->andReturn(true);
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $request = LoginLogsDataRequest::create('/login-logs/data', 'GET');
         $request->setUserResolver(fn () => $user);
@@ -35,15 +36,14 @@ class LoginLogsDataRequestTest extends TestCase
 
     public function test_authorize_denies_user_without_role_or_permission(): void
     {
-        $user = Mockery::mock();
-        $user->shouldReceive('hasAnyRole')
+        $user = new User();
+        $user->forceFill(['id' => 'user-2']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('canViewPlatformLoginLogs')
             ->once()
-            ->with(['Administrator', 'admin'])
+            ->with($user)
             ->andReturn(false);
-        $user->shouldReceive('can')
-            ->once()
-            ->with('view Login Logs')
-            ->andReturn(false);
+        $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $request = LoginLogsDataRequest::create('/login-logs/data', 'GET');
         $request->setUserResolver(fn () => $user);
@@ -72,6 +72,7 @@ class LoginLogsDataRequestTest extends TestCase
         $this->assertSame('alpha', $validated['search']);
         $this->assertNull($validated['user']);
         $this->assertSame('2026-03-20', $validated['date_from']);
+        $this->assertNull($validated['module'] ?? null);
         $this->assertSame(1, $validated['page']);
         $this->assertSame(15, $validated['size']);
     }

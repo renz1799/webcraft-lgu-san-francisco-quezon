@@ -5,18 +5,14 @@ namespace App\Core\Http\Requests\AuditLogs;
 use App\Core\Models\Permission;
 use App\Core\Models\Role;
 use App\Core\Models\User;
+use App\Core\Support\AdminContextAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AuditLogPrintRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user && (
-            $user->hasAnyRole(['Administrator', 'admin']) ||
-            $user->can('view Audit Logs')
-        );
+        return app(AdminContextAuthorizer::class)->canViewCurrentContextAuditLogs($this->user());
     }
 
     public function rules(): array

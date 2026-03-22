@@ -74,6 +74,92 @@
     return import("../../modules/tasks/js/show.js");
   }
 
+  function loadGsoAssetTypesIndex() {
+    return Promise.all([
+      import("../../modules/gso/js/asset-types/index.js"),
+      import("../../modules/gso/js/asset-types/modal.js"),
+    ]);
+  }
+
+  function loadGsoAssetCategoriesIndex() {
+    return Promise.all([
+      import("../../modules/gso/js/asset-categories/index.js"),
+      import("../../modules/gso/js/asset-categories/modal.js"),
+    ]);
+  }
+
+  function loadGsoDepartmentsIndex() {
+    return Promise.all([
+      import("../../modules/gso/js/departments/index.js"),
+      import("../../modules/gso/js/departments/modal.js"),
+    ]);
+  }
+
+  function loadGsoFundClustersIndex() {
+    return Promise.all([
+      import("../../modules/gso/js/fund-clusters/index.js"),
+      import("../../modules/gso/js/fund-clusters/modal.js"),
+    ]);
+  }
+
+  function loadGsoFundSourcesIndex() {
+    return Promise.all([
+      import("../../modules/gso/js/fund-sources/index.js"),
+      import("../../modules/gso/js/fund-sources/modal.js"),
+    ]);
+  }
+
+  function loadGsoAccountableOfficersIndex() {
+    return Promise.all([
+      import("../../modules/gso/js/accountable-officers/index.js"),
+      import("../../modules/gso/js/accountable-officers/modal.js"),
+    ]);
+  }
+
+  function loadGsoItemsIndex() {
+    return Promise.all([
+      import("../../modules/gso/js/items/index.js"),
+      import("../../modules/gso/js/items/modal.js"),
+    ]);
+  }
+
+  function loadGsoAirIndex() {
+    return import("../../modules/gso/js/air/index.js");
+  }
+
+  function loadGsoAirEdit() {
+    return Promise.all([
+      import("../../modules/gso/js/air/edit.js"),
+      import("../../modules/gso/js/air/edit-files.js"),
+      import("../../modules/gso/js/air/edit-items.js"),
+    ]);
+  }
+
+  function loadGsoAirInspect() {
+    return import("../../modules/gso/js/air/inspect.js");
+  }
+
+  function loadGsoInventoryItemsIndex() {
+    return Promise.all([
+      import("../../modules/gso/js/inventory-items/index.js"),
+      import("../../modules/gso/js/inventory-items/modal.js"),
+      import("../../modules/gso/js/inventory-items/files.js"),
+      import("../../modules/gso/js/inventory-items/events.js"),
+    ]);
+  }
+
+  function loadGsoInspectionsIndex() {
+    return Promise.all([
+      import("../../modules/gso/js/inspections/index.js"),
+      import("../../modules/gso/js/inspections/modal.js"),
+      import("../../modules/gso/js/inspections/photos.js"),
+    ]);
+  }
+
+  function loadGsoStocksIndex() {
+    return import("../../modules/gso/js/stocks/index.js");
+  }
+
   onReady(function () {
     if (document.getElementById("login-table")) {
       loadLoginLogs().catch((err) => {
@@ -132,6 +218,84 @@
     if (document.getElementById("task-show-page")) {
       loadTaskShow().catch((err) => {
         console.error("Failed to load task show module", err);
+      });
+    }
+
+    if (document.getElementById("asset-types-table")) {
+      loadGsoAssetTypesIndex().catch((err) => {
+        console.error("Failed to load GSO asset types modules", err);
+      });
+    }
+
+    if (document.getElementById("asset-categories-table")) {
+      loadGsoAssetCategoriesIndex().catch((err) => {
+        console.error("Failed to load GSO asset categories modules", err);
+      });
+    }
+
+    if (document.getElementById("departments-table")) {
+      loadGsoDepartmentsIndex().catch((err) => {
+        console.error("Failed to load GSO departments modules", err);
+      });
+    }
+
+    if (document.getElementById("fund-clusters-table")) {
+      loadGsoFundClustersIndex().catch((err) => {
+        console.error("Failed to load GSO fund clusters modules", err);
+      });
+    }
+
+    if (document.getElementById("fund-sources-table")) {
+      loadGsoFundSourcesIndex().catch((err) => {
+        console.error("Failed to load GSO fund sources modules", err);
+      });
+    }
+
+    if (document.getElementById("accountable-officers-table")) {
+      loadGsoAccountableOfficersIndex().catch((err) => {
+        console.error("Failed to load GSO accountable officers modules", err);
+      });
+    }
+
+    if (document.getElementById("gso-items-table")) {
+      loadGsoItemsIndex().catch((err) => {
+        console.error("Failed to load GSO items modules", err);
+      });
+    }
+
+    if (document.getElementById("gso-air-table")) {
+      loadGsoAirIndex().catch((err) => {
+        console.error("Failed to load GSO AIR index module", err);
+      });
+    }
+
+    if (document.getElementById("gso-air-edit-page")) {
+      loadGsoAirEdit().catch((err) => {
+        console.error("Failed to load GSO AIR edit module", err);
+      });
+    }
+
+    if (document.getElementById("gso-air-inspect-page")) {
+      loadGsoAirInspect().catch((err) => {
+        console.error("Failed to load GSO AIR inspect module", err);
+      });
+    }
+
+    if (document.getElementById("gso-inventory-items-table")) {
+      loadGsoInventoryItemsIndex().catch((err) => {
+        console.error("Failed to load GSO inventory items modules", err);
+      });
+    }
+
+    if (document.getElementById("gso-inspections-table")) {
+      loadGsoInspectionsIndex().catch((err) => {
+        console.error("Failed to load GSO inspections modules", err);
+      });
+    }
+
+    if (document.getElementById("gso-stocks-table")) {
+      loadGsoStocksIndex().catch((err) => {
+        console.error("Failed to load GSO stocks module", err);
       });
     }
   });

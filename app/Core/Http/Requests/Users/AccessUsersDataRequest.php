@@ -2,15 +2,14 @@
 
 namespace App\Core\Http\Requests\Users;
 
+use App\Core\Support\AdminContextAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AccessUsersDataRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $u = $this->user();
-
-        return $u && $u->hasAnyRole(['Administrator', 'admin']);
+        return app(AdminContextAuthorizer::class)->canManageCurrentContextAccess($this->user());
     }
 
     public function rules(): array

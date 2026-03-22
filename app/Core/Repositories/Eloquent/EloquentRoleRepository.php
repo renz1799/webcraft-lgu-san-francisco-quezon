@@ -5,12 +5,17 @@ namespace App\Core\Repositories\Eloquent;
 use App\Core\Models\Permission;
 use App\Core\Models\Role;
 use App\Core\Repositories\Contracts\RoleRepositoryInterface;
+use App\Core\Support\AdminRouteResolver;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\PermissionRegistrar;
 
 class EloquentRoleRepository implements RoleRepositoryInterface
 {
+    public function __construct(
+        private readonly ?AdminRouteResolver $adminRoutes = null,
+    ) {}
+
     public function datatable(string $moduleId, array $filters, int $page = 1, int $size = 15): array
     {
         $page = max(1, (int) $page);
@@ -230,6 +235,7 @@ class EloquentRoleRepository implements RoleRepositoryInterface
 
     private function mapDatatableRow(Role $role): array
     {
+        $adminRoutes = $this->adminRoutes ?? app(AdminRouteResolver::class);
         $permissions = $role->permissions
             ->map(function (Permission $perm) {
                 return [
@@ -265,9 +271,9 @@ class EloquentRoleRepository implements RoleRepositoryInterface
             'permissions_more_count' => max(0, $byPage->count() - 2),
             'permission_ids' => $permissions->pluck('id')->values()->all(),
             'permissions' => $permissions->all(),
-            'update_url' => $isArchived ? null : route('access.roles.update', $role),
-            'delete_url' => $isArchived ? null : route('access.roles.destroy', $role),
-            'restore_url' => $isArchived ? route('access.roles.restore', $role->id) : null,
+            'update_url' => $isArchived ? null : $adminRoutes->route('access.roles.update', $role),
+            'delete_url' => $isArchived ? null : $adminRoutes->route('access.roles.destroy', $role),
+            'restore_url' => $isArchived ? $adminRoutes->route('access.roles.restore', $role->id) : null,
         ];
     }
 }

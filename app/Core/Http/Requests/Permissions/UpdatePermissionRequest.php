@@ -4,6 +4,7 @@ namespace App\Core\Http\Requests\Permissions;
 
 use App\Http\Requests\BaseFormRequest;
 use App\Core\Models\Permission;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 use Illuminate\Validation\Rule;
 
@@ -11,10 +12,7 @@ class UpdatePermissionRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {
-        $u = $this->user();
-
-        return $u
-            && $u->hasAnyRole(['Administrator', 'admin'])
+        return app(AdminContextAuthorizer::class)->canManageCurrentContextAccess($this->user())
             && $this->currentModuleId() !== null;
     }
 

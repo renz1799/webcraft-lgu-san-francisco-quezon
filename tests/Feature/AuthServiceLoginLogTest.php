@@ -47,14 +47,9 @@ class AuthServiceLoginLogTest extends TestCase
             ->with('staff@example.com')
             ->andReturn($user);
 
-        $user->shouldReceive('hasAnyRole')
+        $moduleAccess->shouldReceive('hasAnyActiveModuleAccess')
             ->once()
-            ->with(['Administrator', 'Department Head'])
-            ->andReturn(false);
-
-        $moduleAccess->shouldReceive('hasActiveModuleAccess')
-            ->once()
-            ->with($user, 'module-1')
+            ->with($user)
             ->andReturn(true);
 
         Auth::shouldReceive('attempt')
@@ -116,14 +111,9 @@ class AuthServiceLoginLogTest extends TestCase
             ->with('staff@example.com')
             ->andReturn($user);
 
-        $user->shouldReceive('hasAnyRole')
+        $moduleAccess->shouldReceive('hasAnyActiveModuleAccess')
             ->once()
-            ->with(['Administrator', 'Department Head'])
-            ->andReturn(false);
-
-        $moduleAccess->shouldReceive('hasActiveModuleAccess')
-            ->once()
-            ->with($user, 'module-1')
+            ->with($user)
             ->andReturn(true);
 
         Auth::shouldReceive('attempt')
@@ -296,14 +286,9 @@ class AuthServiceLoginLogTest extends TestCase
             ->with('staff@example.com')
             ->andReturn($user);
 
-        $user->shouldReceive('hasAnyRole')
+        $moduleAccess->shouldReceive('hasAnyActiveModuleAccess')
             ->once()
-            ->with(['Administrator', 'Department Head'])
-            ->andReturn(false);
-
-        $moduleAccess->shouldReceive('hasActiveModuleAccess')
-            ->once()
-            ->with($user, 'module-1')
+            ->with($user)
             ->andReturn(false);
 
         Auth::shouldReceive('attempt')->never();
