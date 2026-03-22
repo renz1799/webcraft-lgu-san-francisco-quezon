@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Core\Notifications\Auth\CorePasswordResetNotification;
 use App\Core\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +30,8 @@ class PasswordResetFlowTest extends TestCase
         $this->createSchema();
         $this->seedCoreContext();
 
+        Config::set('app.name', 'Webcraft LGU Platform');
+        Config::set('mail.from.name', 'Webcraft LGU Platform');
         Config::set('auth.providers.users.model', User::class);
     }
 
@@ -69,7 +71,23 @@ class PasswordResetFlowTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('status', 'If an account with that email exists, a password reset link has been sent.');
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        Notification::assertSentTo($user, CorePasswordResetNotification::class, function (CorePasswordResetNotification $notification) use ($user) {
+            $mail = $notification->toMail($user);
+
+            $this->assertSame('Webcraft LGU Platform Password Reset Request', $mail->subject);
+            $this->assertSame('Reset Platform Password', $mail->actionText);
+            $this->assertSame('Webcraft LGU Platform', $mail->salutation);
+            $this->assertStringContainsString('LGU Management System platform account', implode(' ', $mail->introLines));
+            $this->assertStringContainsString('30 minutes', implode(' ', array_merge($mail->introLines, $mail->outroLines)));
+            $this->assertStringContainsString('Do not reply to this email.', implode(' ', $mail->outroLines));
+
+            return true;
+        });
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'auth.password_reset.link_requested',
+            'subject_id' => $user->id,
+        ]);
     }
 
     public function test_password_can_be_reset_from_core_route(): void
@@ -96,6 +114,15 @@ class PasswordResetFlowTest extends TestCase
         $this->assertNotNull($fresh);
         $this->assertTrue(Hash::check('new-secure-password', $fresh->password));
         $this->assertFalse((bool) $fresh->must_change_password);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'auth.password_reset.completed',
+            'subject_id' => $user->id,
+        ]);
+    }
+
+    public function test_password_reset_expiry_defaults_to_thirty_minutes(): void
+    {
+        $this->assertSame(30, config('auth.passwords.users.expire'));
     }
 
     private function createSchema(): void

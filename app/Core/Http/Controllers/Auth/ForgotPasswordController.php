@@ -32,6 +32,8 @@ class ForgotPasswordController extends Controller
         ]);
 
         if ($status === Password::RESET_LINK_SENT && $user) {
+            $expiryMinutes = (int) config('auth.passwords.' . config('auth.defaults.passwords') . '.expire', 30);
+
             $this->audit->record(
                 'auth.password_reset.link_requested',
                 $user,
@@ -40,6 +42,7 @@ class ForgotPasswordController extends Controller
                 [
                     'channel' => 'email',
                     'broker' => config('auth.defaults.passwords'),
+                    'expires_in_minutes' => $expiryMinutes,
                 ],
                 'Password reset link requested via self-service form.',
                 [
@@ -52,6 +55,10 @@ class ForgotPasswordController extends Controller
                                 [
                                     'label' => 'Delivery',
                                     'value' => 'Password reset link sent by email.',
+                                ],
+                                [
+                                    'label' => 'Expires In',
+                                    'value' => $expiryMinutes . ' minutes',
                                 ],
                             ],
                         ],

@@ -2,6 +2,7 @@
 
 namespace App\Core\Models;
 
+use App\Core\Notifications\Auth\CorePasswordResetNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -83,5 +84,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(ModelHasRole::class, 'model_id', 'id')
             ->where('model_type', self::class);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new CorePasswordResetNotification($token));
     }
 }

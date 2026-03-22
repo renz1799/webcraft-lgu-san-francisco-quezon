@@ -2,6 +2,7 @@
 
 $mailEncryption = env('MAIL_ENCRYPTION', 'tls');
 $mailScheme = env('MAIL_SCHEME');
+$mailFromName = trim((string) env('MAIL_FROM_NAME', env('APP_NAME', 'Webcraft LGU Platform')));
 
 if (($mailScheme === null || $mailScheme === '') && $mailEncryption === 'ssl') {
     $mailScheme = 'smtps';
@@ -122,7 +123,7 @@ return [
 
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'name' => $mailFromName !== '' ? $mailFromName : 'Webcraft LGU Platform',
     ],
 
 ];

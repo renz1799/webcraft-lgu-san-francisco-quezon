@@ -65,6 +65,7 @@ class ResetPasswordController extends Controller
                 [
                     'channel' => 'email',
                     'broker' => config('auth.defaults.passwords'),
+                    'reset_flow' => 'self_service_email_link',
                 ],
                 'Password reset completed via emailed reset link.',
                 [
@@ -77,6 +78,10 @@ class ResetPasswordController extends Controller
                                 [
                                     'label' => 'Status',
                                     'value' => 'Password updated successfully via email reset link.',
+                                ],
+                                [
+                                    'label' => 'Reset Flow',
+                                    'value' => 'Self-service email reset',
                                 ],
                             ],
                         ],
