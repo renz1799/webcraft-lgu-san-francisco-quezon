@@ -37,7 +37,7 @@ class UserDatatableActionBuilderTest extends TestCase
         $this->assertNull($result['restore_url']);
     }
 
-    public function test_build_hides_global_lifecycle_actions_for_module_scoped_users(): void
+    public function test_build_keeps_module_status_toggle_but_hides_global_lifecycle_actions_for_module_scoped_users(): void
     {
         $user = new User();
         $user->id = 'user-1';
@@ -46,11 +46,12 @@ class UserDatatableActionBuilderTest extends TestCase
         $adminRoutes = Mockery::mock(AdminRouteResolver::class);
         $adminRoutes->shouldReceive('isModuleScoped')->once()->andReturn(true);
         $adminRoutes->shouldReceive('route')->once()->with('access.users.edit', $user)->andReturn('/gso/users/user-1/permissions/edit');
+        $adminRoutes->shouldReceive('route')->once()->with('access.users.status.update', $user)->andReturn('/gso/users/user-1/toggle-status');
 
         $result = (new UserDatatableActionBuilder($adminRoutes))->build($user);
 
         $this->assertSame('/gso/users/user-1/permissions/edit', $result['edit_url']);
-        $this->assertNull($result['status_url']);
+        $this->assertSame('/gso/users/user-1/toggle-status', $result['status_url']);
         $this->assertNull($result['delete_url']);
         $this->assertNull($result['restore_url']);
     }

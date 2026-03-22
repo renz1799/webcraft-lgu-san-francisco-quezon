@@ -32,6 +32,7 @@ return [
         'logs.*',
         'audit.restore',
         'drive.*',
+        'password.*',
         'sign-up',
         'register.*',
     ],

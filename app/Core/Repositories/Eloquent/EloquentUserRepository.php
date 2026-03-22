@@ -129,18 +129,18 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     public function findActiveInModule(string $id, string $moduleId): ?User
     {
-        return $this->buildModuleUserQuery($moduleId)
+        return $this->buildModuleUserQuery($moduleId, activeOnly: true)
             ->whereKey($id)
-            ->where('is_active', true)
+            ->where('users.is_active', true)
             ->first();
     }
 
     public function getActiveUsersForModule(string $moduleId): Collection
     {
-        return $this->buildModuleUserQuery($moduleId)
-            ->where('is_active', true)
-            ->orderBy('username')
-            ->get(['id', 'username']);
+        return $this->buildModuleUserQuery($moduleId, activeOnly: true)
+            ->where('users.is_active', true)
+            ->orderBy('users.username')
+            ->get(['users.id', 'users.username']);
     }
 
     public function getUserIdsByRoles(array $roleNames): array
@@ -206,19 +206,36 @@ class EloquentUserRepository implements UserRepositoryInterface
     private function buildBaseDatatableQuery(string $archivedMode = 'active'): Builder
     {
         $moduleId = $this->requireModuleId();
+        $moduleScoped = $this->isModuleScoped();
 
         $q = User::query()
             ->with(['moduleRoleAssignments' => function ($query) use ($moduleId) {
                 $query->where('module_id', $moduleId)
                     ->with(['role:id,name,module_id']);
             }])
-            ->select(['id', 'username', 'email', 'is_active', 'created_at', 'deleted_at', 'user_type'])
-            ->where('user_type', '!=', 'Administrator');
+            ->select([
+                'users.id',
+                'users.username',
+                'users.email',
+                'users.is_active',
+                'users.created_at',
+                'users.deleted_at',
+                'users.user_type',
+            ])
+            ->where('users.user_type', '!=', 'Administrator');
 
-        if (($this->adminRoutes ?? app(AdminRouteResolver::class))->isModuleScoped()) {
+        if ($moduleScoped) {
+            $q->selectSub(function ($query) use ($moduleId) {
+                $query->from('user_modules')
+                    ->selectRaw('CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END')
+                    ->whereColumn('user_modules.user_id', 'users.id')
+                    ->where('user_modules.module_id', $moduleId)
+                    ->where('user_modules.is_active', true);
+            }, 'current_module_membership_is_active');
+
             $q->whereHas('userModules', function (Builder $query) use ($moduleId) {
                 $query->where('module_id', $moduleId)
-                    ->where('is_active', true);
+                    ->whereNotNull('user_modules.id');
             });
         }
 
@@ -234,6 +251,7 @@ class EloquentUserRepository implements UserRepositoryInterface
     private function buildFilteredDatatableQuery(array $filters): Builder
     {
         $moduleId = $this->requireModuleId();
+        $moduleScoped = $this->isModuleScoped();
         $q = $this->buildBaseDatatableQuery($this->resolveArchivedMode($filters));
 
         $search = trim((string) ($filters['search'] ?? $filters['q'] ?? ''));
@@ -268,9 +286,25 @@ class EloquentUserRepository implements UserRepositoryInterface
 
         $status = trim((string) ($filters['status'] ?? ''));
         if ($status === 'active') {
-            $q->where('is_active', true);
+            if ($moduleScoped) {
+                $q->whereHas('userModules', function (Builder $query) use ($moduleId) {
+                    $query->where('module_id', $moduleId)
+                        ->where('is_active', true);
+                });
+            } else {
+                $q->where('users.is_active', true);
+            }
         } elseif ($status === 'inactive') {
-            $q->where('is_active', false);
+            if ($moduleScoped) {
+                $q->whereHas('userModules', function (Builder $query) use ($moduleId) {
+                    $query->where('module_id', $moduleId);
+                })->whereDoesntHave('userModules', function (Builder $query) use ($moduleId) {
+                    $query->where('module_id', $moduleId)
+                        ->where('is_active', true);
+                });
+            } else {
+                $q->where('users.is_active', false);
+            }
         }
 
         $dateFrom = trim((string) ($filters['date_from'] ?? ''));
@@ -311,19 +345,20 @@ class EloquentUserRepository implements UserRepositoryInterface
     {
         $sortField = $filters['sorters'][0]['field'] ?? null;
         $sortDir = (($filters['sorters'][0]['dir'] ?? 'desc') === 'asc') ? 'asc' : 'desc';
+        $moduleScoped = $this->isModuleScoped();
 
         $map = [
-            'username' => 'username',
-            'email' => 'email',
-            'is_active' => 'is_active',
-            'created_at' => 'created_at',
+            'username' => 'users.username',
+            'email' => 'users.email',
+            'is_active' => $moduleScoped ? 'current_module_membership_is_active' : 'users.is_active',
+            'created_at' => 'users.created_at',
         ];
 
         if ($sortField && isset($map[$sortField])) {
             return $q->orderBy($map[$sortField], $sortDir);
         }
 
-        return $q->orderByDesc('created_at');
+        return $q->orderByDesc('users.created_at');
     }
 
     private function requireModuleId(): string
@@ -337,15 +372,25 @@ class EloquentUserRepository implements UserRepositoryInterface
         return $moduleId;
     }
 
-    private function buildModuleUserQuery(string $moduleId): Builder
+    private function buildModuleUserQuery(string $moduleId, bool $activeOnly = false): Builder
     {
         return User::query()
             ->with(['profile:id,user_id,first_name,middle_name,last_name,name_extension'])
             ->whereNull('deleted_at')
             ->whereHas('userModules', function (Builder $query) use ($moduleId) {
-                $query->where('module_id', $moduleId)
-                    ->where('is_active', true);
+                $query->where('module_id', $moduleId);
+            })
+            ->when($activeOnly, function (Builder $builder) use ($moduleId) {
+                $builder->whereHas('userModules', function (Builder $query) use ($moduleId) {
+                    $query->where('module_id', $moduleId)
+                        ->where('is_active', true);
+                });
             });
+    }
+
+    private function isModuleScoped(): bool
+    {
+        return ($this->adminRoutes ?? app(AdminRouteResolver::class))->isModuleScoped();
     }
 
 }

@@ -20,7 +20,7 @@ class UserDatatableActionBuilder implements UserDatatableActionBuilderInterface
 
         return [
             'edit_url' => $isArchived ? null : $adminRoutes->route('access.users.edit', $user),
-            'status_url' => ($isArchived || $moduleScoped) ? null : $adminRoutes->route('access.users.status.update', $user),
+            'status_url' => $isArchived ? null : $adminRoutes->route('access.users.status.update', $user),
             'delete_url' => ($isArchived || $moduleScoped) ? null : $adminRoutes->route('access.users.destroy', $user),
             'restore_url' => ($isArchived && ! $moduleScoped) ? $adminRoutes->route('access.users.restore', $user) : null,
         ];

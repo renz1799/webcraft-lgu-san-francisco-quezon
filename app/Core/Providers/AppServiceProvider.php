@@ -49,6 +49,24 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($key);
         });
 
+        RateLimiter::for('password-reset-link', function (Request $request) {
+            $email = mb_strtolower(trim((string) $request->input('email', '')));
+            $key = $email !== ''
+                ? ('password-reset-link|' . $email . '|' . $request->ip())
+                : ('password-reset-link|' . $request->ip());
+
+            return Limit::perMinute(3)->by($key);
+        });
+
+        RateLimiter::for('password-reset', function (Request $request) {
+            $email = mb_strtolower(trim((string) $request->input('email', '')));
+            $key = $email !== ''
+                ? ('password-reset|' . $email . '|' . $request->ip())
+                : ('password-reset|' . $request->ip());
+
+            return Limit::perMinute(5)->by($key);
+        });
+
         View::composer(['layouts.master', 'layouts.custom-master'], function ($view) use ($theme) {
             $user = Auth::user();
             $currentModule = app(CurrentContext::class)->module();

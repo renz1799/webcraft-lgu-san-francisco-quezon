@@ -11,6 +11,7 @@ use App\Core\Http\Requests\Users\UpdateUserStatusRequest;
 use App\Core\Http\Requests\Users\ViewUserPermissionsRequest;
 use App\Core\Models\User;
 use App\Core\Services\Contracts\Access\UserAccessServiceInterface;
+use App\Core\Support\AdminRouteResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 
@@ -43,7 +44,16 @@ class UserAccessController extends Controller
     /** JSON: toggle active status */
     public function updateStatus(UpdateUserStatusRequest $request, User $user): JsonResponse
     {
-        $this->svc->updateStatus($user, (bool) $request->validated()['is_active']);
+        $isActive = (bool) $request->validated()['is_active'];
+        $adminRoutes = app(AdminRouteResolver::class);
+
+        if ($adminRoutes->isModuleScoped()) {
+            $this->svc->updateModuleStatus($user, $isActive);
+
+            return response()->json(['message' => 'Module access updated successfully.'], 200);
+        }
+
+        $this->svc->updateStatus($user, $isActive);
 
         return response()->json(['message' => 'User status updated successfully.'], 200);
     }
@@ -99,5 +109,4 @@ class UserAccessController extends Controller
             ->header('Pragma', 'no-cache');
     }
 }
-
 

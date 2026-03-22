@@ -79,7 +79,9 @@
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
-                <div class="text-xs text-[#8c9097] mt-1">Filter active or inactive users.</div>
+                <div class="text-xs text-[#8c9097] mt-1">
+                  {{ $moduleScopedAccess ? 'Filter by module access status.' : 'Filter active or inactive users.' }}
+                </div>
               </div>
 
               <div>
@@ -137,6 +139,8 @@
   <script>
     window.__accessUsers = {
       ajaxUrl: @json($adminRoutes->route('access.users.data')),
+      moduleScoped: @json($moduleScopedAccess),
+      moduleContextName: @json($moduleContextName),
     };
   </script>
 @endpush

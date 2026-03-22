@@ -79,6 +79,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                         Route::get('{user}/permissions', [UserAccessController::class, 'show'])->name('access.users.show');
                         Route::get('{user}/permissions/edit', [UserAccessController::class, 'edit'])->name('access.users.edit');
                         Route::patch('{user}/permissions', [UserAccessController::class, 'updateModulePermissions'])->name('access.users.update');
+                        Route::patch('{user}/toggle-status', [UserAccessController::class, 'updateStatus'])->name('access.users.status.update');
                     });
 
                 Route::get('/roles/data', [RolesController::class, 'data'])->name('access.roles.data');

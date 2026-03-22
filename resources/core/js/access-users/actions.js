@@ -86,6 +86,10 @@ import "sweetalert2/dist/sweetalert2.min.css";
     const el = document.getElementById("users-table");
     if (!el) return;
 
+    const cfg = window.__accessUsers || {};
+    const moduleScoped = !!cfg.moduleScoped;
+    const moduleContextName = String(cfg.moduleContextName || "Module");
+
     el.addEventListener("change", async function (e) {
       const input = e.target.closest(".users-toggle-status");
       if (!input) return;
@@ -107,7 +111,14 @@ import "sweetalert2/dist/sweetalert2.min.css";
           body: { is_active: isActive },
         });
 
-        await showToast("success", `User ${isActive ? "activated" : "deactivated"}`);
+        reloadUsersTable();
+
+        await showToast(
+          "success",
+          moduleScoped
+            ? `${moduleContextName} access ${isActive ? "enabled" : "disabled"}`
+            : `User ${isActive ? "activated" : "deactivated"}`
+        );
       } catch (err) {
         input.checked = !isActive;
         await showToast("error", "Update failed", err?.message || "Please try again.");

@@ -125,11 +125,12 @@ class UserRepositoryTest extends TestCase
         $this->assertSame('Staff', $result['data'][0]['role']);
     }
 
-    public function test_datatable_limits_users_to_active_module_members_when_scope_is_module_specific(): void
+    public function test_datatable_in_module_scope_includes_inactive_assignments_and_uses_membership_status(): void
     {
         $repository = $this->makeRepository('module-1', useRealRowBuilder: true, moduleScoped: true);
 
         $includedUser = $this->createUser('module-user', 'module@example.com');
+        $inactiveModuleUser = $this->createUser('inactive-module-user', 'inactive-module@example.com');
         $excludedUser = $this->createUser('other-user', 'other@example.com');
 
         DB::table('user_modules')->insert([
@@ -141,6 +142,12 @@ class UserRepositoryTest extends TestCase
             ],
             [
                 'id' => 'user-module-2',
+                'user_id' => (string) $inactiveModuleUser->id,
+                'module_id' => 'module-1',
+                'is_active' => false,
+            ],
+            [
+                'id' => 'user-module-3',
                 'user_id' => (string) $excludedUser->id,
                 'module_id' => 'module-2',
                 'is_active' => true,
@@ -149,8 +156,13 @@ class UserRepositoryTest extends TestCase
 
         $result = $repository->datatable([], 1, 15);
 
-        $this->assertSame(1, $result['total']);
-        $this->assertSame('module-user', $result['data'][0]['username']);
+        $rows = collect($result['data'])->keyBy('username');
+
+        $this->assertSame(2, $result['total']);
+        $this->assertTrue($rows->has('module-user'));
+        $this->assertTrue($rows->has('inactive-module-user'));
+        $this->assertTrue($rows->get('module-user')['is_active']);
+        $this->assertFalse($rows->get('inactive-module-user')['is_active']);
     }
 
     private function makeRepository(string $moduleId, bool $useRealRowBuilder = false, bool $moduleScoped = false): EloquentUserRepository
@@ -214,6 +226,8 @@ class UserRepositoryTest extends TestCase
             $table->uuid('user_id');
             $table->uuid('module_id');
             $table->boolean('is_active')->default(true);
+            $table->timestamp('granted_at')->nullable();
+            $table->timestamp('revoked_at')->nullable();
         });
     }
 

@@ -40,6 +40,11 @@
                                 {{ session('success') }}
                             </div>
                         @endif
+                        @if (session('status'))
+                            <div class="alert alert-success">
+                                {{ session('status') }}
+                            </div>
+                        @endif
 
                         {{-- Start of login form --}}
                         <form method="POST" action="{{ route('login') }}" onsubmit="return captureLocation(event);">
@@ -62,13 +67,22 @@
             @error('password')
                 <span class="text-red-500 text-sm">{{ $message }}</span>
             @enderror
-            <div class="mt-2">
+            <div class="mt-2 flex items-center justify-between gap-3">
                 <div class="form-check !ps-0">
                     <input class="form-check-input" type="checkbox" name="remember" id="defaultCheck1">
                     <label class="form-check-label text-[#8c9097] dark:text-white/50 font-normal" for="defaultCheck1">
                         Remember Me
                     </label>
                 </div>
+
+                <a href="{{ route('password.request') }}" class="text-primary text-sm font-medium">
+                    Forgot Password?
+                </a>
+            </div>
+            <div class="mt-2">
+                <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mb-0">
+                    Password recovery is managed by Core Platform for all LGU accounts.
+                </p>
             </div>
         </div>
         <!-- Hidden Fields for Latitude and Longitude -->

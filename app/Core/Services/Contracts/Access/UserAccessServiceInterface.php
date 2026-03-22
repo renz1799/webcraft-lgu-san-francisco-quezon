@@ -15,5 +15,6 @@ interface UserAccessServiceInterface
     public function deleteUser(User $user): void;
     public function restoreUser(string|User $user): bool;
     public function updateStatus(User $user, bool $isActive): void;
+    public function updateModuleStatus(User $user, bool $isActive): void;
     public function resetPasswordToTemporary(User $user): string;
 }

@@ -236,6 +236,55 @@ class UserAccessService implements UserAccessServiceInterface
         ]);
     }
 
+    public function updateModuleStatus(User $user, bool $isActive): void
+    {
+        $moduleId = $this->requireModuleId();
+        $this->ensureUserBelongsToCurrentScope($user);
+
+        $memberships = DB::table('user_modules')
+            ->where('user_id', (string) $user->getKey())
+            ->where('module_id', $moduleId);
+
+        $before = (clone $memberships)
+            ->where('is_active', true)
+            ->exists();
+
+        $updates = [
+            'is_active' => $isActive,
+        ];
+
+        if ($isActive) {
+            $updates['granted_at'] = now();
+            $updates['revoked_at'] = null;
+        } else {
+            $updates['revoked_at'] = now();
+        }
+
+        $memberships->update($updates);
+
+        $this->audit->record(
+            'user.module_access.status.updated',
+            $user,
+            [
+                'module_id' => $moduleId,
+                'is_active' => $before,
+            ],
+            [
+                'module_id' => $moduleId,
+                'is_active' => $isActive,
+            ],
+            $this->meta(),
+            null,
+            $this->buildModuleStatusUpdatedDisplay($user, $before, $isActive)
+        );
+
+        Log::info('Module user access status updated', [
+            'user_id' => $user->id,
+            'module_id' => $moduleId,
+            'is_active' => $isActive,
+        ]);
+    }
+
     public function getEditData(User $user): array
     {
         $moduleId = $this->requireModuleId();
@@ -655,6 +704,32 @@ class UserAccessService implements UserAccessServiceInterface
         ];
     }
 
+    private function buildModuleStatusUpdatedDisplay(User $user, bool $before, bool $after): array
+    {
+        $moduleName = trim((string) ($this->context->module()?->name ?? $this->context->moduleCode() ?? 'Module'));
+
+        return [
+            'summary' => 'Module access updated for ' . $this->userDisplayName($user),
+            'subject_label' => $this->userDisplayName($user),
+            'sections' => [
+                [
+                    'title' => 'Module Membership',
+                    'items' => [
+                        [
+                            'label' => 'Access Status',
+                            'before' => $before ? 'Active' : 'Inactive',
+                            'after' => $after ? 'Active' : 'Inactive',
+                        ],
+                    ],
+                ],
+            ],
+            'request_details' => [
+                'Context' => $moduleName !== '' ? $moduleName : 'Module',
+                'Current Role' => $this->currentRoleName($user) ?: 'No Role Assigned',
+            ],
+        ];
+    }
+
     private function buildPasswordResetDisplay(User $user): array
     {
         return [
@@ -949,7 +1024,6 @@ class UserAccessService implements UserAccessServiceInterface
         $moduleId = $this->requireModuleId();
         $belongsToModule = $user->userModules()
             ->where('module_id', $moduleId)
-            ->where('is_active', true)
             ->exists();
 
         if ($belongsToModule) {
