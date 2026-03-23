@@ -8,6 +8,30 @@ use Illuminate\Contracts\View\View;
 class GsoWorkspaceController extends Controller
 {
     private const PAGES = [
+        'ris' => [
+            'title' => 'RIS',
+            'description' => 'Requisition and Issue Slip workflows are reserved in the platform and will be migrated into the GSO documents area next.',
+        ],
+        'pars' => [
+            'title' => 'PAR',
+            'description' => 'Property Acknowledgment Receipt workflows will be migrated here on the next document wave.',
+        ],
+        'ics' => [
+            'title' => 'ICS',
+            'description' => 'Inventory Custodian Slip document workflows are queued for the next GSO document migration slice.',
+        ],
+        'ptrs' => [
+            'title' => 'PTR',
+            'description' => 'Property Transfer Report workflows will move here once the AIR and downstream inventory layers are complete.',
+        ],
+        'itrs' => [
+            'title' => 'ITR',
+            'description' => 'Inventory Transfer Report workflows are reserved here for the next GSO document migration wave.',
+        ],
+        'wmrs' => [
+            'title' => 'WMR',
+            'description' => 'Waste Materials Report workflows will be hosted in this documents area after the current reference-data and AIR migration passes.',
+        ],
         'items' => [
             'title' => 'Items',
             'description' => 'Legacy item master-data and catalog management are being migrated into the platform module.',

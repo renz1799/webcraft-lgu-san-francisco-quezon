@@ -375,6 +375,21 @@ import "sweetalert2/dist/sweetalert2.min.css";
     const page = qs("gso-air-edit-page");
     if (!page) return;
 
+    const hasFileWorkspace = Boolean(
+      qs("gsoAirFileGrid") ||
+        qs("gsoAirFileEmpty") ||
+        qs("gsoAirFileUploadPanel") ||
+        qs("gsoAirFileError")
+    );
+
+    if (!hasFileWorkspace) {
+      window.__gsoAirFiles = {
+        async reload() {},
+      };
+
+      return;
+    }
+
     const config = window.__gsoAirEdit || {};
     if (!config.filesIndexUrl) return;
 

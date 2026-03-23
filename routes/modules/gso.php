@@ -22,6 +22,7 @@ use App\Modules\GSO\Http\Controllers\FundClusters\FundClusterController;
 use App\Modules\GSO\Http\Controllers\FundSources\FundSourceActionController;
 use App\Modules\GSO\Http\Controllers\FundSources\FundSourceController;
 use App\Modules\GSO\Http\Controllers\GsoDashboardController;
+use App\Modules\GSO\Http\Controllers\GsoWorkspaceController;
 use App\Modules\GSO\Http\Controllers\Inspections\InspectionActionController;
 use App\Modules\GSO\Http\Controllers\Inspections\InspectionController;
 use App\Modules\GSO\Http\Controllers\Inspections\InspectionPhotoController;
@@ -118,6 +119,25 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::middleware('role_or_permission:Administrator|admin|modify Allow Data Restoration')->group(function () {
                 Route::post('/audit/restore', [AuditRestoreController::class, 'restore'])->name('audit.restore');
             });
+
+            Route::get('/ris', [GsoWorkspaceController::class, 'show'])
+                ->defaults('page', 'ris')
+                ->name('ris.index');
+            Route::get('/pars', [GsoWorkspaceController::class, 'show'])
+                ->defaults('page', 'pars')
+                ->name('pars.index');
+            Route::get('/ics', [GsoWorkspaceController::class, 'show'])
+                ->defaults('page', 'ics')
+                ->name('ics.index');
+            Route::get('/ptrs', [GsoWorkspaceController::class, 'show'])
+                ->defaults('page', 'ptrs')
+                ->name('ptrs.index');
+            Route::get('/itrs', [GsoWorkspaceController::class, 'show'])
+                ->defaults('page', 'itrs')
+                ->name('itrs.index');
+            Route::get('/wmrs', [GsoWorkspaceController::class, 'show'])
+                ->defaults('page', 'wmrs')
+                ->name('wmrs.index');
 
             Route::get('/air', [AirController::class, 'index'])->name('air.index');
             Route::get('/air/data', [AirController::class, 'data'])->name('air.data');

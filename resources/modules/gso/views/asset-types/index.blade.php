@@ -8,7 +8,7 @@
 @section('styles')
     <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
     <style>
-        .gso-reference-toolbar {
+        .asset-types-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -16,7 +16,7 @@
             width: 100%;
         }
 
-        .gso-reference-actions {
+        .asset-types-actions {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -42,14 +42,11 @@
         <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
             Asset Types
         </h3>
-        <p class="text-[#8c9097] dark:text-white/50 text-[0.813rem] mb-0">
-            Reference data for classifying GSO inventory and property records.
-        </p>
     </div>
     <ol class="flex items-center whitespace-nowrap min-w-0">
         <li class="text-[0.813rem] ps-[0.5rem]">
             <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('gso.dashboard') }}">
-                GSO
+                Dashboard
                 <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
             </a>
         </li>
@@ -61,10 +58,10 @@
 
 <div class="box">
     <div class="box-header">
-        <div class="gso-reference-toolbar">
+        <div class="asset-types-header">
             <h5 class="box-title">Asset Types</h5>
 
-            <div class="gso-reference-actions">
+            <div class="asset-types-actions">
                 <input
                     id="asset-types-search"
                     type="text"
@@ -75,7 +72,6 @@
                 <select id="asset-types-status" class="form-control w-[180px] !rounded-md">
                     <option value="active">Active</option>
                     <option value="archived">Archived</option>
-                    <option value="all">All</option>
                 </select>
 
                 <button id="asset-types-clear" type="button" class="ti-btn ti-btn-light">
