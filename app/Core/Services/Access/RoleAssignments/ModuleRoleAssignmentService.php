@@ -24,7 +24,12 @@ class ModuleRoleAssignmentService implements ModuleRoleAssignmentServiceInterfac
     {
         $moduleId = $this->requireModuleId();
 
-        $this->ensureUserHasModuleAccess($user, $moduleId);
+        $this->assignInModule($user, $role, $moduleId);
+    }
+
+    public function assignInModule(User $user, string|Role $role, string $moduleId): void
+    {
+        $this->ensureUserHasModuleMembership($user, $moduleId);
 
         $roleModel = $this->resolveRole($role, $moduleId);
 
@@ -47,7 +52,12 @@ class ModuleRoleAssignmentService implements ModuleRoleAssignmentServiceInterfac
     {
         $moduleId = $this->requireModuleId();
 
-        $this->ensureUserHasModuleAccess($user, $moduleId);
+        $this->syncInModule($user, $roles, $moduleId);
+    }
+
+    public function syncInModule(User $user, array $roles, string $moduleId): void
+    {
+        $this->ensureUserHasModuleMembership($user, $moduleId);
 
         $roleIds = collect($roles)
             ->map(fn ($role) => $this->resolveRole($role, $moduleId)->id)
@@ -114,6 +124,11 @@ class ModuleRoleAssignmentService implements ModuleRoleAssignmentServiceInterfac
     {
         $moduleId = $this->requireModuleId();
 
+        return $this->rolesInModule($user, $moduleId);
+    }
+
+    public function rolesInModule(User $user, string $moduleId): Collection
+    {
         return Role::query()
             ->select('roles.*')
             ->join('model_has_roles', 'model_has_roles.role_id', '=', 'roles.id')
@@ -128,6 +143,11 @@ class ModuleRoleAssignmentService implements ModuleRoleAssignmentServiceInterfac
     {
         $moduleId = $this->requireModuleId();
 
+        return $this->hasRoleInModule($user, $roleName, $moduleId);
+    }
+
+    public function hasRoleInModule(User $user, string $roleName, string $moduleId): bool
+    {
         return Role::query()
             ->join('model_has_roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->where('model_has_roles.module_id', $moduleId)
@@ -160,16 +180,15 @@ class ModuleRoleAssignmentService implements ModuleRoleAssignmentServiceInterfac
         return $roleModel;
     }
 
-    private function ensureUserHasModuleAccess(User $user, string $moduleId): void
+    private function ensureUserHasModuleMembership(User $user, string $moduleId): void
     {
         $hasAccess = UserModule::query()
             ->where('user_id', $user->id)
             ->where('module_id', $moduleId)
-            ->where('is_active', true)
             ->exists();
 
         if (! $hasAccess) {
-            throw new RuntimeException('User does not have active access to the current module.');
+            throw new RuntimeException('User does not belong to the current module.');
         }
     }
 

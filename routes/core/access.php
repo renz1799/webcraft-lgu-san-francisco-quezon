@@ -2,6 +2,7 @@
 
 use App\Core\Http\Controllers\Access\PermissionController;
 use App\Core\Http\Controllers\Access\RolesController;
+use App\Core\Http\Controllers\Access\CoreUserOnboardingController;
 use App\Core\Http\Controllers\Access\UserAccessController;
 use App\Core\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,8 @@ Route::middleware(['auth', 'password.changed', 'active_module'])->group(function
     Route::middleware('role:Administrator|admin')->group(function () {
         Route::get('/users/data', [UserAccessController::class, 'data'])->name('access.users.data');
         Route::get('/users', [UserAccessController::class, 'index'])->name('access.users.index');
+        Route::get('/users/create', [CoreUserOnboardingController::class, 'create'])->name('access.users.create');
+        Route::post('/users', [CoreUserOnboardingController::class, 'store'])->name('access.users.store');
 
         // Backward-compatible aliases while callers migrate off the legacy URI.
         Route::get('/users/permissions/data', [UserAccessController::class, 'data'])->name('legacy.access.users.data');

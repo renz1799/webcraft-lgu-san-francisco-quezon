@@ -36,6 +36,7 @@ use App\Modules\GSO\Http\Controllers\InventoryItems\PublicInventoryAssetControll
 use App\Modules\GSO\Http\Controllers\Items\ItemActionController;
 use App\Modules\GSO\Http\Controllers\Items\ItemController;
 use App\Modules\GSO\Http\Controllers\Stocks\StockController;
+use App\Core\Http\Controllers\Access\ModuleUserOnboardingController;
 use App\Core\Http\Controllers\Access\PermissionController;
 use App\Core\Http\Controllers\Access\RolesController;
 use App\Core\Http\Controllers\Access\UserAccessController;
@@ -69,6 +70,8 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::middleware('role:Administrator|admin')->group(function () {
                 Route::get('/users/data', [UserAccessController::class, 'data'])->name('access.users.data');
                 Route::get('/users', [UserAccessController::class, 'index'])->name('access.users.index');
+                Route::get('/users/create', [ModuleUserOnboardingController::class, 'create'])->name('access.users.create');
+                Route::post('/users', [ModuleUserOnboardingController::class, 'store'])->name('access.users.store');
 
                 Route::get('/users/permissions/data', [UserAccessController::class, 'data'])->name('legacy.access.users.data');
                 Route::get('/users/permissions', [UserAccessController::class, 'index'])->name('legacy.access.users.index');

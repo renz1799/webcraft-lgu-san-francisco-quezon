@@ -73,6 +73,7 @@ class PasswordResetFlowTest extends TestCase
 
         Notification::assertSentTo($user, CorePasswordResetNotification::class, function (CorePasswordResetNotification $notification) use ($user) {
             $mail = $notification->toMail($user);
+            $html = (string) $mail->render();
 
             $this->assertSame('Webcraft LGU Platform Password Reset Request', $mail->subject);
             $this->assertSame('Reset Platform Password', $mail->actionText);
@@ -80,6 +81,8 @@ class PasswordResetFlowTest extends TestCase
             $this->assertStringContainsString('LGU Management System platform account', implode(' ', $mail->introLines));
             $this->assertStringContainsString('30 minutes', implode(' ', array_merge($mail->introLines, $mail->outroLines)));
             $this->assertStringContainsString('Do not reply to this email.', implode(' ', $mail->outroLines));
+            $this->assertStringContainsString('Webcraft Web Development Services. All rights reserved.', $html);
+            $this->assertStringContainsString('Webcraft LGU Platform', $html);
 
             return true;
         });
@@ -116,6 +119,37 @@ class PasswordResetFlowTest extends TestCase
         $this->assertFalse((bool) $fresh->must_change_password);
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'auth.password_reset.completed',
+            'subject_id' => $user->id,
+        ]);
+    }
+
+    public function test_invited_user_can_set_password_from_invitation_flow(): void
+    {
+        $user = $this->createUser([
+            'email' => 'invited@example.com',
+            'must_change_password' => true,
+        ]);
+
+        $token = Password::broker()->createToken($user);
+
+        $response = $this->post(route('password.update'), [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'invitation-password',
+            'password_confirmation' => 'invitation-password',
+            'flow' => 'invitation',
+        ]);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('success', 'Your password has been set. You can sign in now.');
+
+        $fresh = $user->fresh();
+
+        $this->assertNotNull($fresh);
+        $this->assertTrue(Hash::check('invitation-password', $fresh->password));
+        $this->assertFalse((bool) $fresh->must_change_password);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'auth.invitation.completed',
             'subject_id' => $user->id,
         ]);
     }

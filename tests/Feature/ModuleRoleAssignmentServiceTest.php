@@ -105,6 +105,60 @@ class ModuleRoleAssignmentServiceTest extends TestCase
         ]);
     }
 
+    public function test_sync_in_module_assigns_roles_without_switching_current_context(): void
+    {
+        $currentModule = Module::query()->create([
+            'id' => 'module-core',
+            'code' => 'CORE',
+            'name' => 'Core Platform',
+            'is_active' => true,
+        ]);
+
+        $targetModule = Module::query()->create([
+            'id' => 'module-gso',
+            'code' => 'GSO',
+            'name' => 'General Services Office',
+            'is_active' => true,
+        ]);
+
+        config()->set('module.id', $currentModule->id);
+
+        $user = User::query()->create([
+            'id' => 'user-2',
+            'username' => 'module.user',
+            'email' => 'module.user@example.com',
+            'password' => 'secret',
+            'user_type' => 'Viewer',
+            'is_active' => true,
+        ]);
+
+        UserModule::query()->create([
+            'id' => 'user-module-2',
+            'user_id' => $user->id,
+            'module_id' => $targetModule->id,
+            'department_id' => null,
+            'is_active' => true,
+        ]);
+
+        $role = Role::query()->create([
+            'id' => 'role-2',
+            'module_id' => $targetModule->id,
+            'name' => 'Staff',
+            'guard_name' => 'web',
+        ]);
+
+        $service = new ModuleRoleAssignmentService(new CurrentContext());
+
+        $service->syncInModule($user, [$role], $targetModule->id);
+
+        $this->assertDatabaseHas('model_has_roles', [
+            'module_id' => $targetModule->id,
+            'role_id' => $role->id,
+            'model_type' => User::class,
+            'model_id' => $user->id,
+        ]);
+    }
+
     private function createSchema(): void
     {
         Schema::create('modules', function (Blueprint $table) {

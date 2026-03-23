@@ -54,4 +54,32 @@ return [
             'code' => env('APP_MODULE_DEFAULT_DEPARTMENT_CODE_PROCUREMENT', 'BAC'),
         ],
     ],
+
+    'department_scopes' => [
+        'CORE' => [
+            'codes' => [
+                env('APP_MODULE_DEFAULT_DEPARTMENT_CODE_CORE', env('APP_DEFAULT_DEPARTMENT_CODE', 'ITO')),
+            ],
+        ],
+        'TASKS' => [
+            'codes' => [
+                env('APP_MODULE_DEFAULT_DEPARTMENT_CODE_TASKS', env('APP_DEFAULT_DEPARTMENT_CODE', 'ITO')),
+            ],
+        ],
+        'DTS' => [
+            'codes' => [
+                env('APP_MODULE_DEFAULT_DEPARTMENT_CODE_DTS', 'RECORDS'),
+            ],
+        ],
+        'GSO' => [
+            'codes' => [
+                env('APP_MODULE_DEFAULT_DEPARTMENT_CODE_GSO', 'GSO'),
+            ],
+        ],
+        'PROCUREMENT' => [
+            'codes' => [
+                env('APP_MODULE_DEFAULT_DEPARTMENT_CODE_PROCUREMENT', 'BAC'),
+            ],
+        ],
+    ],
 ];

@@ -97,7 +97,9 @@
                         {{-- End of login form --}}
 
                         <div class="text-center">
-                            <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mt-4">Don't have an account? <a href="{{ route('sign-up') }}" class="text-primary">Sign Up</a></p>
+                            <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mt-4">
+                                Need an account? Contact your module administrator or Core Platform to be onboarded.
+                            </p>
                         </div>
                         <div class="text-center my-4 authentication-barrier">
                             <span>OR</span>

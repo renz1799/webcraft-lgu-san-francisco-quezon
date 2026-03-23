@@ -9,6 +9,11 @@
 <body>
 @endsection
 
+@php
+    $flow = ($flow ?? 'reset') === 'invitation' ? 'invitation' : 'reset';
+    $isInvitationFlow = $flow === 'invitation';
+@endphp
+
 <div class="container">
     <div class="flex justify-center authentication authentication-basic items-center h-full text-defaultsize text-defaulttextcolor">
         <div class="grid grid-cols-12">
@@ -22,9 +27,11 @@
                 </div>
                 <div class="box">
                     <div class="box-body !p-[3rem]">
-                        <p class="h5 font-semibold mb-2 text-center">Reset Password</p>
+                        <p class="h5 font-semibold mb-2 text-center">{{ $isInvitationFlow ? 'Set Your Password' : 'Reset Password' }}</p>
                         <p class="mb-4 text-[#8c9097] dark:text-white/50 opacity-[0.7] font-normal text-center">
-                            Set a new password for your Core Platform account.
+                            {{ $isInvitationFlow
+                                ? 'Create a password to activate your Core Platform account and complete your invitation.'
+                                : 'Set a new password for your Core Platform account.' }}
                         </p>
 
                         @if ($errors->any())
@@ -40,6 +47,7 @@
                         <form method="POST" action="{{ route('password.update') }}">
                             @csrf
                             <input type="hidden" name="token" value="{{ $token }}">
+                            <input type="hidden" name="flow" value="{{ $flow }}">
 
                             <div class="grid grid-cols-12 gap-y-4">
                                 <div class="xl:col-span-12 col-span-12">
@@ -98,7 +106,7 @@
 
                                 <div class="xl:col-span-12 col-span-12 grid mt-2">
                                     <button type="submit" class="ti-btn ti-btn-primary !bg-primary btn-wave !text-white !font-medium">
-                                        Reset Password
+                                        {{ $isInvitationFlow ? 'Set Your Password' : 'Reset Password' }}
                                     </button>
                                 </div>
                             </div>

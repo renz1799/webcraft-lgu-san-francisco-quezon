@@ -37,6 +37,10 @@
     return import("./permissions.js");
   }
 
+  function loadAccessUsersOnboarding() {
+    return import("./access-users/onboarding.js");
+  }
+
   function loadAccessRoles() {
     return Promise.all([
       import("./access-roles/table.js"),
@@ -55,10 +59,6 @@
 
   function loadNotificationsIndex() {
     return import("./notifications/index.js");
-  }
-
-  function loadRegisterUserModal() {
-    return import("./auth/register-modal.js");
   }
 
   function loadTasksIndex() {
@@ -185,6 +185,12 @@
       });
     }
 
+    if (document.getElementById("user-onboarding-page")) {
+      loadAccessUsersOnboarding().catch((err) => {
+        console.error("Failed to load access user onboarding module", err);
+      });
+    }
+
     if (document.getElementById("roles-table")) {
       loadAccessRoles().catch((err) => {
         console.error("Failed to load access roles modules", err);
@@ -200,12 +206,6 @@
     if (document.getElementById("notifications-index-page")) {
       loadNotificationsIndex().catch((err) => {
         console.error("Failed to load notifications index module", err);
-      });
-    }
-
-    if (document.getElementById("registerUserModal")) {
-      loadRegisterUserModal().catch((err) => {
-        console.error("Failed to load register user modal module", err);
       });
     }
 

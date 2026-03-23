@@ -3,6 +3,8 @@
 namespace App\Core\Models;
 
 use App\Core\Notifications\Auth\CorePasswordResetNotification;
+use App\Core\Notifications\Auth\ModuleAccessGrantedNotification;
+use App\Core\Notifications\Auth\UserInvitationNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -89,5 +91,28 @@ class User extends Authenticatable
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new CorePasswordResetNotification($token));
+    }
+
+    public function sendUserInvitationNotification(
+        string $token,
+        string $moduleName,
+        ?string $departmentName = null,
+        ?string $roleName = null,
+    ): void {
+        $this->notify(new UserInvitationNotification($token, $moduleName, $departmentName, $roleName));
+    }
+
+    public function sendModuleAccessGrantedNotification(
+        string $moduleName,
+        ?string $departmentName = null,
+        ?string $roleName = null,
+        bool $isActive = true,
+    ): void {
+        $this->notify(new ModuleAccessGrantedNotification($moduleName, $departmentName, $roleName, $isActive));
+    }
+
+    public function shouldReceiveOnboardingInvitation(): bool
+    {
+        return (bool) $this->must_change_password;
     }
 }

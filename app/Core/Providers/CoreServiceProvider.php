@@ -94,8 +94,11 @@ use App\Core\Repositories\Eloquent\EloquentRoleRepository;
 
 // Services
 use App\Core\Services\Contracts\Access\LoginLogServiceInterface;
+use App\Core\Services\Contracts\Access\CoreUserOnboardingServiceInterface;
 use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
 use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
+use App\Core\Services\Contracts\Access\ModuleUserOnboardingServiceInterface;
+use App\Core\Services\Contracts\Access\OnboardingCredentialNotificationServiceInterface;
 use App\Core\Services\Contracts\Access\PermissionServiceInterface;
 use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
 use App\Core\Services\Contracts\Access\RoleServiceInterface;
@@ -103,8 +106,11 @@ use App\Core\Services\Contracts\Access\UserModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\Access\UserAccessServiceInterface;
 use App\Core\Services\Contracts\Access\UserProfileServiceInterface;
 use App\Core\Services\Access\LoginLogService;
+use App\Core\Services\Access\CoreUserOnboardingService;
 use App\Core\Services\Access\ModuleAccessService;
 use App\Core\Services\Access\ModuleDepartmentResolver;
+use App\Core\Services\Access\ModuleUserOnboardingService;
+use App\Core\Services\Access\OnboardingCredentialNotificationService;
 use App\Core\Services\Access\PermissionService;
 use App\Core\Services\Access\RoleAssignments\ModuleRoleAssignmentService;
 use App\Core\Services\Access\RoleService;
@@ -254,6 +260,9 @@ class CoreServiceProvider extends ServiceProvider
             PermissionServiceInterface::class => PermissionService::class,
             RoleServiceInterface::class => RoleService::class,
             LoginLogServiceInterface::class => LoginLogService::class,
+            CoreUserOnboardingServiceInterface::class => CoreUserOnboardingService::class,
+            ModuleUserOnboardingServiceInterface::class => ModuleUserOnboardingService::class,
+            OnboardingCredentialNotificationServiceInterface::class => OnboardingCredentialNotificationService::class,
             UserProfileServiceInterface::class => UserProfileService::class,
             ModuleAccessServiceInterface::class => ModuleAccessService::class,
             ModuleDepartmentResolverInterface::class => ModuleDepartmentResolver::class,

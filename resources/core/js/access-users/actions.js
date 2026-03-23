@@ -82,7 +82,34 @@ import "sweetalert2/dist/sweetalert2.min.css";
     }
   }
 
+  function showFlashFeedback() {
+    const flash = document.getElementById("users-flash-state");
+    if (!flash || flash.dataset.handled === "1") {
+      return;
+    }
+
+    const kind = String(flash.dataset.kind || "").trim();
+    const message = String(flash.dataset.message || "").trim();
+
+    if (!kind || !message) {
+      return;
+    }
+
+    flash.dataset.handled = "1";
+
+    if (kind === "success") {
+      showToast("success", "User successfully onboarded", message);
+      return;
+    }
+
+    if (kind === "info") {
+      showToast("info", "No changes needed", message);
+    }
+  }
+
   onReady(function () {
+    showFlashFeedback();
+
     const el = document.getElementById("users-table");
     if (!el) return;
 

@@ -35,8 +35,8 @@
 
       @if($canRegisterUser)
         <li class="slide">
-          <a href="javascript:void(0);" class="side-menu__item hs-dropdown-toggle" data-hs-overlay="#registerUserModal">
-            User Registration
+          <a href="{{ route('access.users.create') }}" class="side-menu__item">
+            Onboard User
           </a>
         </li>
       @endif

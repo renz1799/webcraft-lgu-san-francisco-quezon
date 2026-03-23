@@ -3,6 +3,8 @@
 @php($adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class))
 @php($moduleScopedAccess = $adminRoutes->isModuleScoped())
 @php($moduleContextName = trim((string) ($currentModule->name ?? $adminRoutes->scopedModuleCode() ?? 'Module')) ?: 'Module')
+@php($canCreateUser = \Illuminate\Support\Facades\Route::has($adminRoutes->routeName('access.users.create')))
+@php($onboardingCta = $moduleScopedAccess ? 'Add Staff' : 'Onboard User')
 
 @section('styles')
   <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
@@ -28,12 +30,25 @@
   </div>
 </div>
 
+<div
+  id="users-flash-state"
+  class="hidden"
+  data-kind="{{ session('success') ? 'success' : (session('info') ? 'info' : '') }}"
+  data-message="{{ session('success') ?: session('info') ?: '' }}"
+></div>
+
 <div class="box">
   <div class="box-header">
     <div class="items-header">
       <h5 class="box-title">{{ $moduleScopedAccess ? 'Assigned Users' : 'Users' }}</h5>
 
       <div class="items-actions">
+        @if ($canCreateUser)
+          <a href="{{ $adminRoutes->route('access.users.create') }}" class="ti-btn ti-btn-primary">
+            {{ $onboardingCta }}
+          </a>
+        @endif
+
         <input
           id="users-search"
           type="text"

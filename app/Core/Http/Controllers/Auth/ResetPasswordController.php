@@ -22,9 +22,12 @@ class ResetPasswordController extends Controller
 
     public function create(Request $request, string $token): View
     {
+        $flow = $request->query('flow') === 'invitation' ? 'invitation' : 'reset';
+
         return view('auth.reset-password', [
             'token' => $token,
             'email' => (string) $request->query('email', ''),
+            'flow' => $flow,
         ]);
     }
 
@@ -32,6 +35,8 @@ class ResetPasswordController extends Controller
     {
         $payload = $request->validated();
         $resetUser = null;
+        $flow = $request->input('flow') === 'invitation' ? 'invitation' : 'reset';
+        $isInvitationFlow = $flow === 'invitation';
 
         $status = Password::broker()->reset(
             $payload,
@@ -58,30 +63,34 @@ class ResetPasswordController extends Controller
 
         if ($resetUser instanceof User) {
             $this->audit->record(
-                'auth.password_reset.completed',
+                $isInvitationFlow ? 'auth.invitation.completed' : 'auth.password_reset.completed',
                 $resetUser,
                 ['must_change_password' => true],
                 ['must_change_password' => false, 'password_changed' => true],
                 [
                     'channel' => 'email',
                     'broker' => config('auth.defaults.passwords'),
-                    'reset_flow' => 'self_service_email_link',
+                    'reset_flow' => $isInvitationFlow ? 'invitation_password_setup' : 'self_service_email_link',
                 ],
-                'Password reset completed via emailed reset link.',
+                $isInvitationFlow
+                    ? 'Account invitation completed by setting a password from the emailed invitation.'
+                    : 'Password reset completed via emailed reset link.',
                 [
-                    'summary' => 'Password reset completed for ' . ($resetUser->email ?: 'user'),
+                    'summary' => ($isInvitationFlow ? 'Invitation completed for ' : 'Password reset completed for ') . ($resetUser->email ?: 'user'),
                     'subject_label' => $resetUser->email ?: 'User',
                     'sections' => [
                         [
-                            'title' => 'Password Reset',
+                            'title' => $isInvitationFlow ? 'Account Setup' : 'Password Reset',
                             'items' => [
                                 [
                                     'label' => 'Status',
-                                    'value' => 'Password updated successfully via email reset link.',
+                                    'value' => $isInvitationFlow
+                                        ? 'Password created successfully from the invitation email.'
+                                        : 'Password updated successfully via email reset link.',
                                 ],
                                 [
-                                    'label' => 'Reset Flow',
-                                    'value' => 'Self-service email reset',
+                                    'label' => 'Flow',
+                                    'value' => $isInvitationFlow ? 'Invitation password setup' : 'Self-service email reset',
                                 ],
                             ],
                         ],
@@ -94,6 +103,11 @@ class ResetPasswordController extends Controller
             );
         }
 
-        return redirect()->route('login')->with('success', 'Your password has been reset. You can sign in now.');
+        return redirect()->route('login')->with(
+            'success',
+            $isInvitationFlow
+                ? 'Your password has been set. You can sign in now.'
+                : 'Your password has been reset. You can sign in now.'
+        );
     }
 }
