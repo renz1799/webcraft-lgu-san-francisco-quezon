@@ -7,7 +7,31 @@
     $status = (string) ($air['status'] ?? '');
     $isArchived = (bool) ($air['is_archived'] ?? false);
     $isLocked = ! $canManageAir || $isArchived || $status !== 'draft';
-    $defaultFundId = (string) ($air['fund_source_id'] ?? ($fundSources->first()?->id ?? ''));
+    $selectedFundId = trim((string) old('fund_source_id', (string) ($air['fund_source_id'] ?? '')));
+    if ($selectedFundId === '') {
+        $legacyFundValue = trim((string) ($air['fund'] ?? ''));
+        $matchedLegacyFund = $legacyFundValue !== ''
+            ? $fundSources->first(function ($fund) use ($legacyFundValue) {
+                return strcasecmp(trim((string) ($fund->name ?? '')), $legacyFundValue) === 0
+                    || strcasecmp(trim((string) ($fund->code ?? '')), $legacyFundValue) === 0;
+            })
+            : null;
+        $selectedFundId = (string) (($matchedLegacyFund?->id) ?? ($fundSources->first()?->id ?? ''));
+    }
+    $persistedValues = [
+        'po_number' => (string) ($air['po_number'] ?? ''),
+        'po_date' => (string) ($air['po_date'] ?? ''),
+        'air_number' => (string) ($air['air_number'] ?? ''),
+        'air_date' => (string) ($air['air_date'] ?? ''),
+        'invoice_number' => (string) ($air['invoice_number'] ?? ''),
+        'invoice_date' => (string) ($air['invoice_date'] ?? ''),
+        'supplier_name' => (string) ($air['supplier_name'] ?? ''),
+        'requesting_department_id' => (string) ($air['requesting_department_id'] ?? ''),
+        'fund_source_id' => (string) ($air['fund_source_id'] ?? ''),
+        'inspected_by_name' => (string) ($air['inspected_by_name'] ?? ''),
+        'accepted_by_name' => (string) ($air['accepted_by_name'] ?? ''),
+        'remarks' => (string) ($air['remarks'] ?? ''),
+    ];
 @endphp
 
 @section('styles')
@@ -180,7 +204,7 @@
                     @foreach($fundSources as $fund)
                       <option
                         value="{{ $fund->id }}"
-                        @selected((string) old('fund_source_id', $defaultFundId) === (string) $fund->id)
+                        @selected($selectedFundId === (string) $fund->id)
                       >
                         {{ $fund->name }}
                         @if($fund->code)
@@ -396,6 +420,7 @@
             itemUpdateUrlTemplate: @json(route('gso.air.items.update', ['air' => $air['id'] ?? '', 'airItem' => '__ID__'])),
             itemDeleteUrlTemplate: @json(route('gso.air.items.destroy', ['air' => $air['id'] ?? '', 'airItem' => '__ID__'])),
             accountableOfficerSuggestUrl: @json(route('gso.accountable-officers.suggest')),
+            accountableOfficerResolveUrl: @json(route('gso.accountable-officers.resolve')),
             filesIndexUrl: @json(route('gso.air.files.index', ['air' => $air['id'] ?? ''])),
             filesStoreUrl: @json(route('gso.air.files.store', ['air' => $air['id'] ?? ''])),
             fileDestroyUrlTemplate: @json(route('gso.air.files.destroy', ['air' => $air['id'] ?? '', 'file' => '__FILE__'])),
@@ -407,6 +432,7 @@
             canEditDraft: @json(! $isLocked),
             isArchived: @json($isArchived),
             canForceDelete: @json($canForceDeleteAir),
+            persistedValues: @json($persistedValues),
         };
     </script>
 @endpush

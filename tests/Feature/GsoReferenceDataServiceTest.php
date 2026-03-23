@@ -493,7 +493,7 @@ class GsoReferenceDataServiceTest extends TestCase
         ]);
 
         $audit = Mockery::mock(AuditLogServiceInterface::class);
-        $audit->shouldReceive('record')->times(4);
+        $audit->shouldReceive('record')->times(6);
 
         $service = new AccountableOfficerService(
             new EloquentAccountableOfficerRepository(),
@@ -581,6 +581,19 @@ class GsoReferenceDataServiceTest extends TestCase
 
         $this->assertSame(1, $restoredPayload['total']);
         $this->assertFalse($restoredPayload['data'][0]['is_archived']);
+
+        $service->delete('actor-1', (string) $created->id);
+
+        $resolved = $service->createOrResolve('actor-1', [
+            'full_name' => ' Juan   Dela Cruz ',
+            'department_id' => 'dept-1',
+        ]);
+
+        $this->assertFalse($resolved['created']);
+        $this->assertTrue($resolved['restored']);
+        $this->assertTrue($resolved['reused']);
+        $this->assertSame('Juan Dela Cruz', $resolved['officer']['full_name']);
+        $this->assertSame('dept-2', $resolved['officer']['department_id']);
     }
 
     private function createSchema(): void

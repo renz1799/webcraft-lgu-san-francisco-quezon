@@ -42,7 +42,7 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_it_uploads_previews_marks_primary_and_deletes_air_unit_files(): void
+    public function test_it_uploads_previews_marks_primary_and_deletes_air_unit_images(): void
     {
         $this->seedBaseAirData('air-1', 'air-item-1', 'unit-1', 'PO-500');
 
@@ -73,7 +73,7 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
                 ],
                 [
                     'drive_file_id' => 'drive-file-2',
-                    'mime_type' => 'application/pdf',
+                    'mime_type' => 'image/png',
                     'size' => 32000,
                     'folder_id' => 'drive-folder-500',
                 ],
@@ -102,8 +102,8 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
 
         $uploaded = $service->upload('actor-1', 'air-1', 'air-item-1', 'unit-1', [
             UploadedFile::fake()->image('unit-photo.jpg'),
-            UploadedFile::fake()->create('inspection-report.pdf', 64, 'application/pdf'),
-        ]);
+            UploadedFile::fake()->image('serial-closeup.png'),
+        ], 'serial_photo', 'Serial close-up');
 
         $this->assertSame(2, $uploaded['unit']['file_count']);
         $this->assertSame('drive-folder-500', $uploaded['unit']['drive_folder_id']);
@@ -122,9 +122,11 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
             'air_item_unit_id' => 'unit-1',
             'path' => 'drive-file-1',
             'driver' => 'google',
-            'type' => 'photo',
+            'type' => 'serial_photo',
             'is_primary' => 1,
+            'caption' => 'Serial close-up',
         ]);
+        $this->assertSame('Serial close-up', $uploaded['files'][0]['caption']);
 
         $preview = $service->preview(
             'air-1',
@@ -147,7 +149,7 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
 
         $this->assertSame((string) $uploaded['files'][1]['id'], $primaryPayload['files'][0]['id']);
         $this->assertTrue($primaryPayload['files'][0]['is_primary']);
-        $this->assertSame('PDF', $primaryPayload['files'][0]['type_text']);
+        $this->assertSame('Serial Photo', $primaryPayload['files'][0]['type_text']);
 
         $deletedPayload = $service->delete(
             'actor-1',
@@ -166,7 +168,7 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
         ]);
     }
 
-    public function test_it_requires_po_number_before_uploading_air_unit_files(): void
+    public function test_it_requires_po_number_before_uploading_air_unit_images(): void
     {
         $this->seedBaseAirData('air-2', 'air-item-2', 'unit-2', null);
 
@@ -190,10 +192,49 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
         );
 
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('PO number is required before uploading AIR unit files.');
+        $this->expectExceptionMessage('PO number is required before uploading AIR unit images.');
 
         $service->upload('actor-1', 'air-2', 'air-item-2', 'unit-2', [
             UploadedFile::fake()->image('unit-photo.jpg'),
+        ]);
+    }
+
+    public function test_it_rejects_non_image_air_unit_uploads(): void
+    {
+        $this->seedBaseAirData('air-3', 'air-item-3', 'unit-3', 'PO-900');
+
+        $audit = Mockery::mock(AuditLogServiceInterface::class);
+        $audit->shouldNotReceive('record');
+
+        $driveFolders = Mockery::mock(GoogleDriveFolderServiceInterface::class);
+        $driveFolders->shouldReceive('ensureFolder')
+            ->once()
+            ->with('PO-900 - Laptop Computer (ITM-500) - SN-500-A', 'gso-air-unit-root')
+            ->andReturn([
+                'drive_folder_id' => 'drive-folder-900',
+                'name' => 'PO-900 - Laptop Computer (ITM-500) - SN-500-A',
+                'created' => true,
+                'parent_id' => 'gso-air-unit-root',
+            ]);
+
+        $driveFiles = Mockery::mock(GoogleDriveFileServiceInterface::class);
+        $driveFiles->shouldNotReceive('upload');
+
+        $service = new AirInspectionUnitFileService(
+            new EloquentAirRepository(),
+            new EloquentAirItemRepository(),
+            new EloquentAirItemUnitRepository(),
+            new EloquentAirItemUnitFileRepository(),
+            $audit,
+            $driveFolders,
+            $driveFiles,
+        );
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Only image uploads are supported for AIR inspection units.');
+
+        $service->upload('actor-1', 'air-3', 'air-item-3', 'unit-3', [
+            UploadedFile::fake()->create('inspection-report.pdf', 64, 'application/pdf'),
         ]);
     }
 

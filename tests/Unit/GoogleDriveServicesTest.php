@@ -79,6 +79,74 @@ class GoogleDriveServicesTest extends TestCase
         $service->handleCallback('oauth-code', 'user-1');
     }
 
+    public function test_connection_service_supports_explicit_scopes_without_current_context(): void
+    {
+        $tokens = Mockery::mock(GoogleTokenRepositoryInterface::class);
+        $clientFactory = Mockery::mock(GoogleDriveClientFactoryInterface::class);
+        $context = Mockery::mock(CurrentContext::class);
+        $moduleDepartments = Mockery::mock(ModuleDepartmentResolverInterface::class);
+        $client = Mockery::mock(GoogleClient::class);
+
+        $tokens->shouldReceive('findForContext')
+            ->twice()
+            ->with('module-2', 'department-2')
+            ->andReturn(new GoogleToken([
+                'refresh_token' => Crypt::encryptString('existing-refresh-token'),
+            ]));
+
+        $clientFactory->shouldReceive('makeClient')
+            ->twice()
+            ->andReturn($client);
+
+        $client->shouldReceive('setAccessType')
+            ->once()
+            ->with('offline');
+        $client->shouldReceive('setPrompt')
+            ->once()
+            ->with('consent');
+        $client->shouldReceive('createAuthUrl')
+            ->once()
+            ->andReturn('https://accounts.google.com/o/oauth2/auth');
+        $client->shouldReceive('fetchAccessTokenWithAuthCode')
+            ->once()
+            ->with('oauth-code')
+            ->andReturn([
+                'access_token' => 'scoped-access-token',
+                'refresh_token' => 'new-refresh-token',
+                'expires_in' => 3600,
+            ]);
+
+        $tokens->shouldReceive('upsertForContext')
+            ->once()
+            ->with(
+                'module-2',
+                'department-2',
+                Mockery::on(function (array $payload): bool {
+                    $this->assertSame('user-2', $payload['connected_by_user_id']);
+                    $this->assertSame('scoped-access-token', $payload['access_token']);
+                    $this->assertSame('new-refresh-token', $payload['refresh_token']);
+                    $this->assertNotNull($payload['expires_at']);
+
+                    return true;
+                })
+            );
+
+        $tokens->shouldReceive('deleteForContext')
+            ->once()
+            ->with('module-2', 'department-2');
+
+        $service = new GoogleDriveConnectionService($tokens, $clientFactory, $context, $moduleDepartments);
+
+        $this->assertTrue($service->isConnectedFor('module-2', 'department-2'));
+        $this->assertSame(
+            'https://accounts.google.com/o/oauth2/auth',
+            $service->getAuthUrlFor('module-2', 'department-2')
+        );
+
+        $service->handleCallbackFor('module-2', 'department-2', 'oauth-code', 'user-2');
+        $service->disconnectFor('module-2', 'department-2');
+    }
+
     public function test_folder_service_sanitizes_names_and_reuses_existing_child_folder(): void
     {
         $drive = new FakeDriveService();

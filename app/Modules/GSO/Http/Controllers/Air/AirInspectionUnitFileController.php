@@ -31,16 +31,22 @@ class AirInspectionUnitFileController extends Controller
 
     public function store(StoreAirInspectionUnitFileRequest $request, string $air, string $airItem, string $unit): JsonResponse
     {
+        $uploads = array_merge(
+            $request->file('photos', []),
+            $request->file('files', []),
+        );
+
         return response()->json([
             'data' => $this->files->upload(
                 (string) $request->user()?->id,
                 $air,
                 $airItem,
                 $unit,
-                $request->file('files', []),
+                $uploads,
                 $request->validated('type'),
+                $request->validated('caption'),
             ),
-            'message' => 'Unit files uploaded.',
+            'message' => 'Unit images uploaded.',
         ]);
     }
 
@@ -59,7 +65,7 @@ class AirInspectionUnitFileController extends Controller
     {
         return response()->json([
             'data' => $this->files->delete((string) $request->user()?->id, $air, $airItem, $unit, $file),
-            'message' => 'Unit file deleted.',
+            'message' => 'Unit image deleted.',
         ]);
     }
 
@@ -67,7 +73,7 @@ class AirInspectionUnitFileController extends Controller
     {
         return response()->json([
             'data' => $this->files->setPrimary((string) $request->user()?->id, $air, $airItem, $unit, $file),
-            'message' => 'Primary unit file updated.',
+            'message' => 'Primary unit image updated.',
         ]);
     }
 }

@@ -13,7 +13,15 @@ interface AirInspectionUnitFileServiceInterface
      * @param  array<int, mixed>  $files
      * @return array{air: array<string, mixed>, air_item: array<string, mixed>, unit: array<string, mixed>, files: array<int, array<string, mixed>>}
      */
-    public function upload(string $actorUserId, string $airId, string $airItemId, string $unitId, array $files, ?string $type = null): array;
+    public function upload(
+        string $actorUserId,
+        string $airId,
+        string $airItemId,
+        string $unitId,
+        array $files,
+        ?string $type = null,
+        ?string $caption = null,
+    ): array;
 
     /**
      * @return array{name: string, mime: string, bytes: string}

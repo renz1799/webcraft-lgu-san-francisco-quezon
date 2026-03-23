@@ -283,6 +283,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::get('/accountable-officers', [AccountableOfficerController::class, 'index'])->name('accountable-officers.index');
             Route::get('/accountable-officers/data', [AccountableOfficerController::class, 'data'])->name('accountable-officers.data');
             Route::get('/accountable-officers/suggest', [AccountableOfficerController::class, 'suggest'])->name('accountable-officers.suggest');
+            Route::post('/accountable-officers/resolve', [AccountableOfficerActionController::class, 'resolve'])->name('accountable-officers.resolve');
             Route::post('/accountable-officers', [AccountableOfficerActionController::class, 'store'])->name('accountable-officers.store');
             Route::put('/accountable-officers/{accountableOfficer}', [AccountableOfficerActionController::class, 'update'])->whereUuid('accountableOfficer')->name('accountable-officers.update');
             Route::delete('/accountable-officers/{accountableOfficer}', [AccountableOfficerActionController::class, 'destroy'])->whereUuid('accountableOfficer')->name('accountable-officers.destroy');

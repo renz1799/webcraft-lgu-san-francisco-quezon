@@ -38,18 +38,106 @@ class AccountableOfficerService implements AccountableOfficerServiceInterface
     public function suggest(string $query): array
     {
         return $this->accountableOfficers->suggest($query)
-            ->map(fn (AccountableOfficer $accountableOfficer) => [
-                'id' => (string) $accountableOfficer->id,
-                'full_name' => (string) $accountableOfficer->full_name,
-                'designation' => (string) ($accountableOfficer->designation ?? ''),
-                'office' => (string) ($accountableOfficer->office ?? ''),
-                'department_id' => $accountableOfficer->department_id ? (string) $accountableOfficer->department_id : null,
-                'department_label' => $accountableOfficer->department
-                    ? $this->resolveDepartmentLabel((string) $accountableOfficer->department->id)
-                    : 'None',
-            ])
+            ->map(fn (AccountableOfficer $accountableOfficer) => $this->mapOfficer($accountableOfficer))
             ->values()
             ->all();
+    }
+
+    public function createOrResolve(string $actorUserId, array $data): array
+    {
+        return DB::transaction(function () use ($actorUserId, $data): array {
+            $fullName = $this->cleanValue((string) ($data['full_name'] ?? ''));
+            $normalizedName = $this->normalizeName($fullName);
+            $designation = $this->nullableString($data['designation'] ?? null);
+            $office = $this->nullableString($data['office'] ?? null);
+            $departmentId = $this->nullableString($data['department_id'] ?? null);
+
+            $existing = $this->accountableOfficers->findByNormalizedName($normalizedName, withTrashed: true);
+
+            if (! $existing) {
+                $created = $this->accountableOfficers->create([
+                    'full_name' => $fullName,
+                    'normalized_name' => $normalizedName,
+                    'designation' => $designation,
+                    'office' => $office,
+                    'department_id' => $departmentId,
+                    'is_active' => true,
+                ]);
+
+                $this->auditLogs->record(
+                    action: 'gso.accountable_officer.created',
+                    subject: $created,
+                    changesOld: [],
+                    changesNew: $created->only(['full_name', 'designation', 'office', 'department_id', 'is_active']),
+                    meta: ['actor_user_id' => $actorUserId],
+                    message: 'GSO accountable officer created: ' . $this->label($created),
+                    display: $this->buildCreatedDisplay($created),
+                );
+
+                return [
+                    'officer' => $this->mapOfficer($created),
+                    'created' => true,
+                    'restored' => false,
+                    'reused' => false,
+                ];
+            }
+
+            $before = $existing->only(['full_name', 'designation', 'office', 'department_id', 'is_active']);
+            $restored = false;
+            $changed = false;
+
+            if ($existing->trashed()) {
+                $this->accountableOfficers->restore($existing);
+                $restored = true;
+                $changed = true;
+            }
+
+            if ($this->nullableString($existing->designation) === null && $designation !== null) {
+                $existing->designation = $designation;
+                $changed = true;
+            }
+
+            if ($this->nullableString($existing->office) === null && $office !== null) {
+                $existing->office = $office;
+                $changed = true;
+            }
+
+            if ($this->nullableString($existing->department_id) === null && $departmentId !== null) {
+                $existing->department_id = $departmentId;
+                $changed = true;
+            }
+
+            if (! $existing->is_active) {
+                $existing->is_active = true;
+                $changed = true;
+            }
+
+            if ($changed) {
+                $existing = $this->accountableOfficers->save($existing);
+                $after = $existing->only(['full_name', 'designation', 'office', 'department_id', 'is_active']);
+
+                $this->auditLogs->record(
+                    action: $restored ? 'gso.accountable_officer.restored' : 'gso.accountable_officer.reused',
+                    subject: $existing,
+                    changesOld: $before,
+                    changesNew: $after,
+                    meta: ['actor_user_id' => $actorUserId],
+                    message: $restored
+                        ? 'GSO accountable officer restored and reused: ' . $this->label($existing)
+                        : 'GSO accountable officer reused: ' . $this->label($existing),
+                    display: $this->buildUpdatedDisplay($before, $after),
+                );
+            } else {
+                $existing = $existing->fresh(['department']) ?? $existing->load('department');
+            }
+
+            return [
+                'officer' => $this->mapOfficer($existing),
+                'created' => false,
+                'restored' => $restored,
+                'reused' => true,
+            ];
+        });
     }
 
     public function create(string $actorUserId, array $data): AccountableOfficer
@@ -243,6 +331,25 @@ class AccountableOfficerService implements AccountableOfficerServiceInterface
     private function label(AccountableOfficer $accountableOfficer): string
     {
         return $this->labelFromValues((string) $accountableOfficer->full_name, (string) ($accountableOfficer->designation ?? ''));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapOfficer(AccountableOfficer $accountableOfficer): array
+    {
+        return [
+            'id' => (string) $accountableOfficer->id,
+            'full_name' => (string) $accountableOfficer->full_name,
+            'designation' => (string) ($accountableOfficer->designation ?? ''),
+            'office' => (string) ($accountableOfficer->office ?? ''),
+            'department_id' => $accountableOfficer->department_id ? (string) $accountableOfficer->department_id : null,
+            'department_name' => (string) ($accountableOfficer->department?->name ?? ''),
+            'department_label' => $accountableOfficer->department
+                ? $this->resolveDepartmentLabel((string) $accountableOfficer->department->id)
+                : 'None',
+            'is_active' => (bool) $accountableOfficer->is_active,
+        ];
     }
 
     private function labelFromValues(string $fullName, string $designation): string

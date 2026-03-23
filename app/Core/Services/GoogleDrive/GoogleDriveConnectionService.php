@@ -26,14 +26,29 @@ class GoogleDriveConnectionService implements GoogleDriveConnectionServiceInterf
             return false;
         }
 
-        $stored = $this->tokens->findForContext($moduleId, $departmentId);
+        return $this->isConnectedFor($moduleId, $departmentId);
+    }
+
+    public function isConnectedFor(string $moduleId, string $departmentId): bool
+    {
+        $stored = $this->tokens->findForContext(
+            $this->requireScopedValue($moduleId, 'module'),
+            $this->requireScopedValue($departmentId, 'department'),
+        );
 
         return (bool) ($stored && $stored->refresh_token);
     }
 
     public function getAuthUrl(): string
     {
-        $this->scope();
+        [$moduleId, $departmentId] = $this->scope();
+
+        return $this->getAuthUrlFor($moduleId, $departmentId);
+    }
+
+    public function getAuthUrlFor(string $moduleId, string $departmentId): string
+    {
+        $this->requireScopeValues($moduleId, $departmentId);
 
         $client = $this->clientFactory->makeClient();
         $client->setAccessType('offline');
@@ -44,14 +59,21 @@ class GoogleDriveConnectionService implements GoogleDriveConnectionServiceInterf
 
     public function handleCallback(string $code, ?string $connectedByUserId = null): void
     {
+        [$moduleId, $departmentId] = $this->scope();
+
+        $this->handleCallbackFor($moduleId, $departmentId, $code, $connectedByUserId);
+    }
+
+    public function handleCallbackFor(string $moduleId, string $departmentId, string $code, ?string $connectedByUserId = null): void
+    {
+        [$moduleId, $departmentId] = $this->requireScopeValues($moduleId, $departmentId);
+
         $client = $this->clientFactory->makeClient();
         $token = $client->fetchAccessTokenWithAuthCode($code);
 
         if (! empty($token['error'])) {
             throw new \RuntimeException('Google OAuth error: ' . ($token['error_description'] ?? $token['error']));
         }
-
-        [$moduleId, $departmentId] = $this->scope();
 
         $stored = $this->tokens->findForContext($moduleId, $departmentId);
         $existingRefreshToken = ($stored && $stored->refresh_token)
@@ -69,6 +91,13 @@ class GoogleDriveConnectionService implements GoogleDriveConnectionServiceInterf
     public function disconnect(): void
     {
         [$moduleId, $departmentId] = $this->scope();
+
+        $this->disconnectFor($moduleId, $departmentId);
+    }
+
+    public function disconnectFor(string $moduleId, string $departmentId): void
+    {
+        [$moduleId, $departmentId] = $this->requireScopeValues($moduleId, $departmentId);
 
         $this->tokens->deleteForContext($moduleId, $departmentId);
     }
@@ -90,5 +119,24 @@ class GoogleDriveConnectionService implements GoogleDriveConnectionServiceInterf
         }
 
         return [$moduleId, $departmentId];
+    }
+
+    private function requireScopeValues(string $moduleId, string $departmentId): array
+    {
+        return [
+            $this->requireScopedValue($moduleId, 'module'),
+            $this->requireScopedValue($departmentId, 'department'),
+        ];
+    }
+
+    private function requireScopedValue(string $value, string $label): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            throw new \RuntimeException("Google Drive {$label} context is not available.");
+        }
+
+        return $value;
     }
 }

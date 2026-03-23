@@ -52,6 +52,12 @@
           Audit Logs
         </a>
       </li>
+
+      <li class="slide">
+        <a href="{{ route('drive.index') }}" class="side-menu__item">
+          Google Drive
+        </a>
+      </li>
     </ul>
   </li>
 @endif

@@ -10,6 +10,16 @@ interface AccountableOfficerServiceInterface
 
     public function suggest(string $query): array;
 
+    /**
+     * @return array{
+     *     officer: array<string, mixed>,
+     *     created: bool,
+     *     restored: bool,
+     *     reused: bool
+     * }
+     */
+    public function createOrResolve(string $actorUserId, array $data): array;
+
     public function create(string $actorUserId, array $data): AccountableOfficer;
 
     public function update(string $actorUserId, string $accountableOfficerId, array $data): AccountableOfficer;

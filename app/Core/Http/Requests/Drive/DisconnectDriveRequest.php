@@ -2,7 +2,9 @@
 
 namespace App\Core\Http\Requests\Drive;
 
+use App\Core\Models\Module;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class DisconnectDriveRequest extends FormRequest
 {
@@ -18,6 +20,12 @@ class DisconnectDriveRequest extends FormRequest
 
     public function rules(): array
     {
-        return [];
+        return [
+            'module_id' => [
+                'required',
+                'uuid',
+                Rule::exists(Module::class, 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
+        ];
     }
 }

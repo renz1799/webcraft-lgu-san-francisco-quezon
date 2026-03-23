@@ -16,10 +16,16 @@
 
 @section('styles')
     <style>
+        #gso-air-inspect-page {
+            --gso-air-inspection-sticky-top: 0.75rem;
+            --gso-air-inspection-toolbar-height: 0px;
+            --gso-air-inspection-tabs-height: 0px;
+        }
+
         .gso-air-inspection-shell {
             width: 100%;
             max-width: 84rem;
-            margin: 0 auto;
+            margin: 1rem auto 0;
         }
 
         .gso-air-inspection-grid {
@@ -35,24 +41,100 @@
             gap: 1rem;
         }
 
-        .gso-air-inspection-modal {
-            position: fixed;
-            inset: 0;
-            z-index: 60;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            background: rgba(15, 23, 42, 0.58);
-            backdrop-filter: blur(4px);
+        .gso-air-inspection-toolbar-shell {
+            position: sticky;
+            top: var(--gso-air-inspection-sticky-top);
+            z-index: 40;
+            padding: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
         }
 
-        .gso-air-inspection-modal.is-open {
+        .dark .gso-air-inspection-toolbar-shell {
+            background: rgba(15, 23, 42, 0.92);
+            border-color: rgba(148, 163, 184, 0.14);
+        }
+
+        .gso-air-inspection-toolbar-actions {
             display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .gso-air-inspection-tabs {
+            display: none;
+        }
+
+        .gso-air-inspection-tab-button {
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 999px;
+            padding: 0.65rem 0.9rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1.1;
+            color: #475569;
+            background: rgba(248, 250, 252, 0.95);
+            transition: all 0.18s ease;
+        }
+
+        .gso-air-inspection-tab-button.is-active {
+            color: #fff;
+            border-color: rgba(59, 130, 246, 0.88);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
+        }
+
+        .dark .gso-air-inspection-tab-button {
+            color: #cbd5e1;
+            background: rgba(15, 23, 42, 0.92);
+            border-color: rgba(148, 163, 184, 0.16);
+        }
+
+        .dark .gso-air-inspection-tab-button.is-active {
+            color: #fff;
+        }
+
+        .gso-air-inspection-section {
+            min-width: 0;
+        }
+
+        .gso-air-inspection-section-header {
+            transition: background 0.18s ease;
+        }
+
+        .gso-air-inspection-item-card,
+        .gso-air-inspection-unit-card {
+            position: relative;
+        }
+
+        .gso-air-inspection-row-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2rem;
+            height: 2rem;
+            border-radius: 999px;
+            padding: 0 0.625rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #1d4ed8;
+            background: rgba(37, 99, 235, 0.12);
+            border: 1px solid rgba(37, 99, 235, 0.16);
+        }
+
+        .dark .gso-air-inspection-row-chip {
+            color: #bfdbfe;
+            background: rgba(37, 99, 235, 0.18);
+            border-color: rgba(96, 165, 250, 0.18);
         }
 
         .gso-air-inspection-modal-panel {
-            width: min(1120px, 100%);
+            width: 100%;
             max-height: calc(100vh - 48px);
             overflow: auto;
             border-radius: 24px;
@@ -64,12 +146,88 @@
             background: #0f172a;
         }
 
+        .gso-air-inspection-modal-panel .ti-modal-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: inherit;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        }
+
+        .dark .gso-air-inspection-modal-panel .ti-modal-header {
+            border-bottom-color: rgba(148, 163, 184, 0.12);
+        }
+
+        .gso-air-inspection-modal-panel--units {
+            width: min(980px, 100%);
+        }
+
         .gso-air-inspection-unit-grid,
         .gso-air-inspection-file-grid,
         .gso-air-inspection-component-grid {
             display: grid;
             grid-template-columns: repeat(1, minmax(0, 1fr));
             gap: 16px;
+        }
+
+        .gso-air-inspection-unit-grid--single {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .gso-air-inspection-unit-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .gso-air-inspection-unit-summary-card {
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 16px;
+            background: rgba(248, 250, 252, 0.88);
+            padding: 12px 14px;
+        }
+
+        .dark .gso-air-inspection-unit-summary-card {
+            background: rgba(15, 23, 42, 0.72);
+            border-color: rgba(148, 163, 184, 0.14);
+        }
+
+        .gso-air-inspection-unit-summary-label {
+            display: block;
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .gso-air-inspection-unit-summary-value {
+            display: block;
+            margin-top: 6px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .dark .gso-air-inspection-unit-summary-value {
+            color: #f8fafc;
+        }
+
+        .gso-air-inspection-unit-workspace-note {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .gso-air-inspection-empty-state {
+            border: 1px dashed rgba(148, 163, 184, 0.45);
+            border-radius: 18px;
+            padding: 24px;
+            text-align: center;
+            background: rgba(248, 250, 252, 0.72);
+        }
+
+        .dark .gso-air-inspection-empty-state {
+            background: rgba(15, 23, 42, 0.5);
         }
 
         .gso-air-inspection-file-preview {
@@ -92,13 +250,79 @@
             background: linear-gradient(135deg, rgba(148, 163, 184, 0.08), rgba(148, 163, 184, 0.18));
         }
 
+        @media (max-width: 1023.98px) {
+            .gso-air-inspection-tabs {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                position: sticky;
+                top: calc(
+                    var(--gso-air-inspection-sticky-top) +
+                    var(--gso-air-inspection-toolbar-height) +
+                    0.5rem
+                );
+                z-index: 35;
+                margin-bottom: 1rem;
+                padding: 0.85rem;
+                border: 1px solid rgba(148, 163, 184, 0.16);
+                border-radius: 1rem;
+                background: rgba(255, 255, 255, 0.94);
+                backdrop-filter: blur(18px);
+                box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+            }
+
+            .dark .gso-air-inspection-tabs {
+                background: rgba(15, 23, 42, 0.94);
+                border-color: rgba(148, 163, 184, 0.14);
+            }
+
+            .gso-air-inspection-section.is-tablet-hidden {
+                display: none;
+            }
+
+            .gso-air-inspection-section-header {
+                position: sticky;
+                top: calc(
+                    var(--gso-air-inspection-sticky-top) +
+                    var(--gso-air-inspection-toolbar-height) +
+                    var(--gso-air-inspection-tabs-height) +
+                    0.75rem
+                );
+                z-index: 20;
+                background: #fff;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+            }
+
+            .dark .gso-air-inspection-section-header {
+                background: #0f172a;
+                border-bottom-color: rgba(148, 163, 184, 0.12);
+            }
+        }
+
         @media (min-width: 1024px) {
             .gso-air-inspection-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
+            .gso-air-inspection-section--receiving {
+                grid-column: 1;
+            }
+
+            .gso-air-inspection-section--summary {
+                grid-column: 1;
+            }
+
+            .gso-air-inspection-section--items {
+                grid-column: 2;
+                grid-row: 1 / span 2;
+            }
+
             .gso-air-inspection-unit-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .gso-air-inspection-unit-grid--single {
+                grid-template-columns: minmax(0, 1fr);
             }
 
             .gso-air-inspection-file-grid {
@@ -110,7 +334,7 @@
 
 @section('content')
     <div id="gso-air-inspect-page">
-        <div class="page-header md:flex items-start justify-between gap-4">
+        <div id="gsoAirInspectionToolbar" class="page-header md:flex items-start justify-between gap-4 gso-air-inspection-toolbar-shell">
             <div>
                 <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
                     AIR Inspection
@@ -134,7 +358,7 @@
                 @endif
             </div>
 
-            <div class="mt-3 md:mt-0 flex flex-wrap items-center gap-2">
+            <div class="mt-3 md:mt-0 gso-air-inspection-toolbar-actions">
                 @if($canEditInspection && in_array($status, ['submitted', 'in_progress'], true))
                     <button type="button" id="gsoAirInspectionSaveBtn" class="ti-btn ti-btn-primary">
                         Save Inspection
@@ -187,10 +411,37 @@
         @endif
 
         <div class="gso-air-inspection-shell">
+            <div id="gsoAirInspectionTabs" class="gso-air-inspection-tabs" role="tablist" aria-label="Inspection sections">
+                <button
+                    type="button"
+                    class="gso-air-inspection-tab-button"
+                    data-air-inspection-tab="receiving"
+                    aria-pressed="true"
+                >
+                    Receiving / Invoice Details
+                </button>
+                <button
+                    type="button"
+                    class="gso-air-inspection-tab-button"
+                    data-air-inspection-tab="summary"
+                    aria-pressed="false"
+                >
+                    Inspection Summary
+                </button>
+                <button
+                    type="button"
+                    class="gso-air-inspection-tab-button"
+                    data-air-inspection-tab="items"
+                    aria-pressed="false"
+                >
+                    Items Delivered
+                </button>
+            </div>
+
             <div class="gso-air-inspection-grid">
-                <div class="space-y-4">
+                <div class="gso-air-inspection-section gso-air-inspection-section--receiving" data-air-inspection-panel="receiving">
                     <div class="box">
-                        <div class="box-header">
+                        <div class="box-header gso-air-inspection-section-header">
                             <h5 class="box-title">Receiving / Invoice Details</h5>
                         </div>
 
@@ -235,9 +486,11 @@
                             </div>
                         </div>
                     </div>
+                </div>
 
+                <div class="gso-air-inspection-section gso-air-inspection-section--summary" data-air-inspection-panel="summary">
                     <div class="box">
-                        <div class="box-header flex items-start justify-between gap-3">
+                        <div class="box-header gso-air-inspection-section-header flex items-start justify-between gap-3">
                             <div>
                                 <h5 class="box-title">Inspection Summary</h5>
                                 <div class="text-xs text-[#8c9097] mt-1">
@@ -270,9 +523,9 @@
                     </div>
                 </div>
 
-                <div>
+                <div class="gso-air-inspection-section gso-air-inspection-section--items" data-air-inspection-panel="items">
                     <div class="box">
-                        <div class="box-header">
+                        <div class="box-header gso-air-inspection-section-header">
                             <h5 class="box-title">Items Delivered</h5>
                         </div>
 
@@ -287,111 +540,192 @@
                 </div>
             </div>
 
-            <div id="gsoAirUnitModal" class="gso-air-inspection-modal">
-                <div class="gso-air-inspection-modal-panel">
-                    <div class="ti-modal-header">
-                        <div>
-                            <h6 id="gsoAirUnitModalTitle" class="modal-title text-[1rem] font-semibold">Inspection Units</h6>
-                            <p id="gsoAirUnitModalSubtitle" class="text-sm text-[#8c9097] mt-1 mb-0">
-                                Manage encoded unit rows for the selected AIR item.
-                            </p>
+            <div id="gsoAirUnitModal" class="hs-overlay hidden ti-modal z-[70] pointer-events-none">
+                <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out !max-w-5xl">
+                    <div class="ti-modal-content pointer-events-auto gso-air-inspection-modal-panel gso-air-inspection-modal-panel--units">
+                        <div class="ti-modal-header">
+                            <div>
+                                <h6 id="gsoAirUnitModalTitle" class="ti-modal-title text-[1rem] font-semibold">Inspection Units</h6>
+                                <p id="gsoAirUnitModalSubtitle" class="text-sm text-[#8c9097] mt-1 mb-0">
+                                    Manage encoded unit rows for the selected AIR item.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                id="gsoAirUnitModalClose"
+                                class="ti-modal-close-btn"
+                                data-hs-overlay="#gsoAirUnitModal"
+                            >
+                                <span class="sr-only">Close</span>
+                                <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
                         </div>
-                        <button type="button" id="gsoAirUnitModalClose" class="!text-[1rem] !font-semibold !text-defaulttextcolor">
-                            <span class="sr-only">Close</span>
-                            <i class="ri-close-line"></i>
-                        </button>
+                        <div class="ti-modal-body px-4">
+                            <div id="gsoAirUnitError" class="hidden mb-3 rounded bg-danger/10 p-3 text-sm text-danger"></div>
+                            <div id="gsoAirUnitNotice" class="mb-3 rounded bg-light p-3 text-sm text-[#8c9097] dark:bg-black/20 dark:text-white/50"></div>
+                            <div id="gsoAirUnitRows" class="gso-air-inspection-unit-grid"></div>
+                        </div>
+                        <div class="ti-modal-footer !justify-end">
+                            <div class="flex flex-wrap gap-2 justify-end">
+                                <button
+                                    type="button"
+                                    id="gsoAirUnitCloseBtn"
+                                    class="ti-btn ti-btn-light"
+                                    data-hs-overlay="#gsoAirUnitModal"
+                                >
+                                    Close
+                                </button>
+                                <button type="button" id="gsoAirUnitSaveBtn" class="ti-btn ti-btn-primary">Save Unit Rows</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="ti-modal-body px-4">
-                        <div id="gsoAirUnitError" class="hidden mb-3 rounded bg-danger/10 p-3 text-sm text-danger"></div>
-                        <div id="gsoAirUnitNotice" class="mb-3 rounded bg-light p-3 text-sm text-[#8c9097] dark:bg-black/20 dark:text-white/50"></div>
-                        <div id="gsoAirUnitRows" class="gso-air-inspection-unit-grid"></div>
-                    </div>
-                    <div class="ti-modal-footer !justify-between">
-                        <button type="button" id="gsoAirUnitAddRowBtn" class="ti-btn ti-btn-light">Add Unit Row</button>
-                        <div class="flex flex-wrap gap-2 justify-end">
-                            <button type="button" id="gsoAirUnitCloseBtn" class="ti-btn ti-btn-light">Close</button>
-                            <button type="button" id="gsoAirUnitSaveBtn" class="ti-btn ti-btn-primary">Save Unit Rows</button>
+                </div>
+            </div>
+
+            <div
+                id="gsoAirUnitComponentModal"
+                class="hs-overlay hidden ti-modal z-[80] pointer-events-none"
+                data-hs-overlay-options='{"isClosePrev": false}'
+            >
+                <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out !max-w-6xl">
+                    <div class="ti-modal-content pointer-events-auto gso-air-inspection-modal-panel">
+                        <div class="ti-modal-header">
+                            <div>
+                                <h6 id="gsoAirUnitComponentModalTitle" class="ti-modal-title text-[1rem] font-semibold">Unit Components</h6>
+                                <p id="gsoAirUnitComponentModalSubtitle" class="text-sm text-[#8c9097] mt-1 mb-0">
+                                    Record the component schedule for the selected inspection unit.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                id="gsoAirUnitComponentModalClose"
+                                class="ti-modal-close-btn"
+                                data-hs-overlay="#gsoAirUnitComponentModal"
+                                data-hs-overlay-options='{"isClosePrev": false}'
+                            >
+                                <span class="sr-only">Close</span>
+                                <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="ti-modal-body px-4">
+                            <div id="gsoAirUnitComponentError" class="hidden mb-3 rounded bg-danger/10 p-3 text-sm text-danger"></div>
+                            <div class="mb-3 rounded bg-light p-3 text-sm text-[#8c9097] dark:bg-black/20 dark:text-white/50">
+                                Changes here stay staged with the unit row. Use <strong>Save Unit Rows</strong> in the inspection units modal to persist them.
+                            </div>
+                            <div id="gsoAirUnitComponentTemplateNote" class="hidden mb-3 rounded bg-primary/10 p-3 text-sm text-primary"></div>
+                            <div id="gsoAirUnitComponentEmpty" class="hidden rounded-lg border border-dashed border-defaultborder p-6 text-center text-sm text-[#8c9097]">
+                                No component rows recorded yet for this inspection unit.
+                            </div>
+                            <div id="gsoAirUnitComponentRows" class="gso-air-inspection-component-grid"></div>
+                        </div>
+                        <div class="ti-modal-footer !justify-between">
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" id="gsoAirUnitComponentUseDefaultsBtn" class="ti-btn ti-btn-light hidden">Use Item Template</button>
+                                <button type="button" id="gsoAirUnitComponentAddRowBtn" class="ti-btn ti-btn-light">Add Component Row</button>
+                            </div>
+                            <button
+                                type="button"
+                                id="gsoAirUnitComponentCloseBtn"
+                                class="ti-btn ti-btn-light"
+                                data-hs-overlay="#gsoAirUnitComponentModal"
+                                data-hs-overlay-options='{"isClosePrev": false}'
+                            >
+                                Done
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="gsoAirUnitComponentModal" class="gso-air-inspection-modal">
-                <div class="gso-air-inspection-modal-panel">
-                    <div class="ti-modal-header">
-                        <div>
-                            <h6 id="gsoAirUnitComponentModalTitle" class="modal-title text-[1rem] font-semibold">Unit Components</h6>
-                            <p id="gsoAirUnitComponentModalSubtitle" class="text-sm text-[#8c9097] mt-1 mb-0">
-                                Record the component schedule for the selected inspection unit.
-                            </p>
+            <div
+                id="gsoAirUnitFileModal"
+                class="hs-overlay hidden ti-modal z-[90] pointer-events-none"
+                data-hs-overlay-options='{"isClosePrev": false}'
+            >
+                <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out !max-w-6xl">
+                    <div class="ti-modal-content pointer-events-auto gso-air-inspection-modal-panel">
+                        <div class="ti-modal-header">
+                            <div>
+                                <h6 id="gsoAirUnitFileModalTitle" class="ti-modal-title text-[1rem] font-semibold">Unit Images</h6>
+                                <p id="gsoAirUnitFileModalSubtitle" class="text-sm text-[#8c9097] mt-1 mb-0">
+                                    Review and upload image evidence for the selected inspection unit.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                id="gsoAirUnitFileModalClose"
+                                class="ti-modal-close-btn"
+                                data-hs-overlay="#gsoAirUnitFileModal"
+                                data-hs-overlay-options='{"isClosePrev": false}'
+                            >
+                                <span class="sr-only">Close</span>
+                                <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
                         </div>
-                        <button type="button" id="gsoAirUnitComponentModalClose" class="!text-[1rem] !font-semibold !text-defaulttextcolor">
-                            <span class="sr-only">Close</span>
-                            <i class="ri-close-line"></i>
-                        </button>
-                    </div>
-                    <div class="ti-modal-body px-4">
-                        <div id="gsoAirUnitComponentError" class="hidden mb-3 rounded bg-danger/10 p-3 text-sm text-danger"></div>
-                        <div class="mb-3 rounded bg-light p-3 text-sm text-[#8c9097] dark:bg-black/20 dark:text-white/50">
-                            Changes here stay staged with the unit row. Use <strong>Save Unit Rows</strong> in the inspection units modal to persist them.
-                        </div>
-                        <div id="gsoAirUnitComponentTemplateNote" class="hidden mb-3 rounded bg-primary/10 p-3 text-sm text-primary"></div>
-                        <div id="gsoAirUnitComponentEmpty" class="hidden rounded-lg border border-dashed border-defaultborder p-6 text-center text-sm text-[#8c9097]">
-                            No component rows recorded yet for this inspection unit.
-                        </div>
-                        <div id="gsoAirUnitComponentRows" class="gso-air-inspection-component-grid"></div>
-                    </div>
-                    <div class="ti-modal-footer !justify-between">
-                        <div class="flex flex-wrap gap-2">
-                            <button type="button" id="gsoAirUnitComponentUseDefaultsBtn" class="ti-btn ti-btn-light hidden">Use Item Template</button>
-                            <button type="button" id="gsoAirUnitComponentAddRowBtn" class="ti-btn ti-btn-light">Add Component Row</button>
-                        </div>
-                        <button type="button" id="gsoAirUnitComponentCloseBtn" class="ti-btn ti-btn-light">Done</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="gsoAirUnitFileModal" class="gso-air-inspection-modal">
-                <div class="gso-air-inspection-modal-panel">
-                    <div class="ti-modal-header">
-                        <div>
-                            <h6 id="gsoAirUnitFileModalTitle" class="modal-title text-[1rem] font-semibold">Unit Files</h6>
-                            <p id="gsoAirUnitFileModalSubtitle" class="text-sm text-[#8c9097] mt-1 mb-0">
-                                Review and upload evidence for the selected inspection unit.
-                            </p>
-                        </div>
-                        <button type="button" id="gsoAirUnitFileModalClose" class="!text-[1rem] !font-semibold !text-defaulttextcolor">
-                            <span class="sr-only">Close</span>
-                            <i class="ri-close-line"></i>
-                        </button>
-                    </div>
-                    <div class="ti-modal-body px-4">
-                        <div id="gsoAirUnitFileError" class="hidden mb-3 rounded bg-danger/10 p-3 text-sm text-danger"></div>
-                        @if($canEditInspection)
-                            <div class="mb-4 rounded-lg border border-defaultborder p-3">
-                                <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                    <div>
-                                        <div class="font-medium text-defaulttextcolor dark:text-white">Upload Unit Evidence</div>
-                                        <div class="text-xs text-[#8c9097] mt-1">
-                                            Images and PDFs are stored in the configured AIR unit files Google Drive folder.
+                        <div class="ti-modal-body px-4">
+                            <div id="gsoAirUnitFileError" class="hidden mb-3 rounded bg-danger/10 p-3 text-sm text-danger"></div>
+                            @if($canEditInspection)
+                                <div class="mb-4 rounded-lg border border-defaultborder p-3">
+                                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                        <div>
+                                            <div class="font-medium text-defaulttextcolor dark:text-white">Upload Unit Images</div>
+                                            <div class="text-xs text-[#8c9097] mt-1">
+                                                Upload inspection images such as unit photos, serial close-ups, and box images with optional captions.
+                                            </div>
+                                        </div>
+                                        <div class="grid w-full gap-2 md:grid-cols-[minmax(0,1fr)_180px] xl:grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)_auto] xl:items-end">
+                                            <div>
+                                                <label class="ti-form-label !mb-1 text-xs">Images</label>
+                                                <input id="gsoAirUnitFileInput" type="file" accept="image/*" multiple class="form-control w-full">
+                                            </div>
+                                            <div>
+                                                <label class="ti-form-label !mb-1 text-xs">Type</label>
+                                                <select id="gsoAirUnitFileType" class="ti-form-select w-full">
+                                                    <option value="photo">Photo</option>
+                                                    <option value="serial_photo">Serial Photo</option>
+                                                    <option value="box_photo">Box Photo</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="ti-form-label !mb-1 text-xs">Caption</label>
+                                                <input
+                                                    id="gsoAirUnitFileCaption"
+                                                    type="text"
+                                                    class="ti-form-input w-full"
+                                                    maxlength="255"
+                                                    placeholder="Optional details for this image"
+                                                >
+                                            </div>
+                                            <button type="button" id="gsoAirUnitFileUploadBtn" class="ti-btn ti-btn-primary xl:self-end">
+                                                Upload Images
+                                            </button>
                                         </div>
                                     </div>
-                                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                        <input id="gsoAirUnitFileInput" type="file" accept="image/*,.pdf" multiple class="form-control w-full sm:w-[320px]">
-                                        <button type="button" id="gsoAirUnitFileUploadBtn" class="ti-btn ti-btn-primary">
-                                            Upload Files
-                                        </button>
-                                    </div>
                                 </div>
+                            @endif
+                            <div id="gsoAirUnitFileEmpty" class="hidden rounded-lg border border-dashed border-defaultborder p-6 text-center text-sm text-[#8c9097]">
+                                No unit images uploaded yet.
                             </div>
-                        @endif
-                        <div id="gsoAirUnitFileEmpty" class="hidden rounded-lg border border-dashed border-defaultborder p-6 text-center text-sm text-[#8c9097]">
-                            No unit files uploaded yet.
+                            <div id="gsoAirUnitFileGrid" class="gso-air-inspection-file-grid"></div>
                         </div>
-                        <div id="gsoAirUnitFileGrid" class="gso-air-inspection-file-grid"></div>
-                    </div>
-                    <div class="ti-modal-footer">
-                        <button type="button" id="gsoAirUnitFileCloseBtn" class="ti-btn ti-btn-light">Close</button>
+                        <div class="ti-modal-footer">
+                            <button
+                                type="button"
+                                id="gsoAirUnitFileCloseBtn"
+                                class="ti-btn ti-btn-light"
+                                data-hs-overlay="#gsoAirUnitFileModal"
+                                data-hs-overlay-options='{"isClosePrev": false}'
+                            >
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

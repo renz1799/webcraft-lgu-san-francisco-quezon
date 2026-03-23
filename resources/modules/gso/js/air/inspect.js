@@ -40,13 +40,55 @@ import "sweetalert2/dist/sweetalert2.min.css";
     return url;
   }
 
-  function setModalOpen(element, open) {
-    if (!element) return;
-    element.classList.toggle("is-open", open);
+  function isModalOpen(element) {
+    if (!element) return false;
+
+    return (
+      element.classList.contains("open") ||
+      element.classList.contains("opened") ||
+      element.classList.contains("is-open")
+    );
+  }
+
+  function syncModalBodyState() {
     document.body.classList.toggle(
       "overflow-hidden",
-      document.querySelector(".gso-air-inspection-modal.is-open") !== null,
+      document.querySelector(".hs-overlay.open, .hs-overlay.opened, .gso-air-inspection-modal.is-open") !== null,
     );
+  }
+
+  function setModalOpen(element, open) {
+    if (!element) return;
+
+    if (
+      window.HSOverlay &&
+      typeof window.HSOverlay.open === "function" &&
+      typeof window.HSOverlay.close === "function" &&
+      element.classList.contains("hs-overlay")
+    ) {
+      if (open) {
+        window.HSOverlay.open(element);
+      } else {
+        window.HSOverlay.close(element);
+      }
+
+      return;
+    }
+
+    element.classList.toggle("hidden", !open);
+    element.classList.toggle("is-open", open);
+    element.classList.toggle("open", open);
+    element.classList.toggle("opened", open);
+
+    if (open) {
+      element.setAttribute("aria-overlay", "true");
+      element.setAttribute("tabindex", "-1");
+    } else {
+      element.removeAttribute("aria-overlay");
+      element.removeAttribute("tabindex");
+    }
+
+    syncModalBodyState();
   }
 
   function validationHtml(errors) {
@@ -62,6 +104,29 @@ import "sweetalert2/dist/sweetalert2.min.css";
     });
 
     return rows.length > 0 ? `<ul class="pl-4 text-left">${rows.join("")}</ul>` : "";
+  }
+
+  function showLoadingAlert(title, text = "") {
+    Swal.fire({
+      title,
+      text,
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading(),
+    });
+  }
+
+  function showToast(icon, title) {
+    return Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon,
+      title,
+      showConfirmButton: false,
+      timer: 1500,
+      timerProgressBar: true,
+    });
   }
 
   async function parseResponse(response) {
@@ -104,7 +169,19 @@ import "sweetalert2/dist/sweetalert2.min.css";
     let activeComponentUnitKey = null;
     let fileState = null;
     let activeUnitId = null;
+    let inspectionBaseline = null;
+    let unitRowsBaseline = [];
+    let activeTabletTab = "receiving";
 
+    const toolbar = qs("gsoAirInspectionToolbar");
+    const inspectionTabs = qs("gsoAirInspectionTabs");
+    const tabletTabButtons = Array.from(
+      page.querySelectorAll("[data-air-inspection-tab]"),
+    );
+    const tabletPanels = Array.from(
+      page.querySelectorAll("[data-air-inspection-panel]"),
+    );
+    const tabletViewport = window.matchMedia("(max-width: 1023.98px)");
     const formError = qs("gsoAirInspectionFormError");
     const itemsContainer = qs("gsoAirInspectionItems");
     const statusText = qs("gsoAirInspectionStatusText");
@@ -127,7 +204,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
     const unitRowsContainer = qs("gsoAirUnitRows");
     const unitNotice = qs("gsoAirUnitNotice");
     const unitError = qs("gsoAirUnitError");
-    const unitAddRowButton = qs("gsoAirUnitAddRowBtn");
     const unitSaveButton = qs("gsoAirUnitSaveBtn");
 
     const componentModal = qs("gsoAirUnitComponentModal");
@@ -147,7 +223,25 @@ import "sweetalert2/dist/sweetalert2.min.css";
     const fileEmpty = qs("gsoAirUnitFileEmpty");
     const fileError = qs("gsoAirUnitFileError");
     const fileInput = qs("gsoAirUnitFileInput");
+    const fileTypeInput = qs("gsoAirUnitFileType");
+    const fileCaptionInput = qs("gsoAirUnitFileCaption");
     const fileUploadButton = qs("gsoAirUnitFileUploadBtn");
+    const inspectionToolbarState = {
+      dirtyCount: 0,
+      isSaving: false,
+      isFinalizing: false,
+      defaultSaveLabel: saveButton?.textContent?.trim() || "Save Inspection",
+      defaultFinalizeLabel: finalizeButton?.textContent?.trim() || "Finalize",
+    };
+    const unitToolbarState = {
+      dirtyCount: 0,
+      isSaving: false,
+      defaultSaveLabel: unitSaveButton?.textContent?.trim() || "Save Unit Rows",
+    };
+    const fileUploadState = {
+      isUploading: false,
+      defaultLabel: fileUploadButton?.textContent?.trim() || "Upload Images",
+    };
 
     function canEdit() {
       return !!config.canEditInspection && !!state.air?.can_edit_inspection;
@@ -220,6 +314,95 @@ import "sweetalert2/dist/sweetalert2.min.css";
       if (receivedNotesInput) receivedNotesInput.value = state.air?.received_notes || "";
     }
 
+    function updateInspectionToolbar() {
+      const dirtyCount = Math.max(0, Number(inspectionToolbarState.dirtyCount || 0));
+
+      if (saveButton) {
+        saveButton.textContent =
+          dirtyCount > 0
+            ? `${inspectionToolbarState.defaultSaveLabel} (${dirtyCount})`
+            : inspectionToolbarState.defaultSaveLabel;
+        saveButton.disabled =
+          !canEdit() ||
+          dirtyCount === 0 ||
+          inspectionToolbarState.isSaving ||
+          inspectionToolbarState.isFinalizing;
+      }
+
+      if (finalizeButton) {
+        finalizeButton.textContent =
+          dirtyCount > 0
+            ? "Save and Finalize"
+            : inspectionToolbarState.defaultFinalizeLabel;
+        finalizeButton.disabled =
+          !canEdit() ||
+          inspectionToolbarState.isSaving ||
+          inspectionToolbarState.isFinalizing;
+      }
+
+      syncStickyOffsets();
+    }
+
+    function updateFileUploadButton() {
+      if (!fileUploadButton) return;
+
+      fileUploadButton.textContent = fileUploadState.isUploading
+        ? "Uploading..."
+        : fileUploadState.defaultLabel;
+      fileUploadButton.disabled = fileUploadState.isUploading || !canEdit();
+    }
+
+    function syncStickyOffsets() {
+      if (!page) return;
+
+      const toolbarHeight = toolbar
+        ? Math.ceil(toolbar.getBoundingClientRect().height)
+        : 0;
+      const tabsVisible =
+        inspectionTabs &&
+        window.getComputedStyle(inspectionTabs).display !== "none";
+      const tabsHeight =
+        tabsVisible && inspectionTabs
+          ? Math.ceil(inspectionTabs.getBoundingClientRect().height)
+          : 0;
+
+      page.style.setProperty(
+        "--gso-air-inspection-toolbar-height",
+        `${toolbarHeight}px`,
+      );
+      page.style.setProperty(
+        "--gso-air-inspection-tabs-height",
+        `${tabsHeight}px`,
+      );
+    }
+
+    function applyTabletLayout() {
+      const isTablet = tabletViewport.matches;
+
+      tabletPanels.forEach((panel) => {
+        const panelKey = panel.dataset.airInspectionPanel || "";
+        panel.classList.toggle(
+          "is-tablet-hidden",
+          isTablet && panelKey !== activeTabletTab,
+        );
+      });
+
+      tabletTabButtons.forEach((button) => {
+        const active = (button.dataset.airInspectionTab || "") === activeTabletTab;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+
+      syncStickyOffsets();
+    }
+
+    function setActiveTabletTab(tabKey) {
+      if (!tabKey) return;
+
+      activeTabletTab = tabKey;
+      applyTabletLayout();
+    }
+
     function renderSummary() {
       if (statusText) statusText.textContent = state.air?.status_text || "Unknown";
       if (dateInspectedText) {
@@ -238,9 +421,9 @@ import "sweetalert2/dist/sweetalert2.min.css";
         );
         unitCountText.textContent = String(totalUnits);
       }
-      if (saveButton) saveButton.disabled = !canEdit();
-      if (finalizeButton) finalizeButton.disabled = !canEdit();
       if (promoteButton) promoteButton.disabled = !canPromote();
+      updateInspectionToolbar();
+      syncStickyOffsets();
     }
 
     function renderItems() {
@@ -256,13 +439,14 @@ import "sweetalert2/dist/sweetalert2.min.css";
       }
 
       itemsContainer.innerHTML = state.items
-        .map((item) => {
+        .map((item, index) => {
           const needsUnits = !!item?.needs_units;
           const trackingType = normalizeText(item?.tracking_type_snapshot || "property");
           const orderedQty = Math.max(0, Number(item?.qty_ordered || 0));
           const deliveredQty = Math.max(0, Number(item?.qty_delivered || 0));
           const acceptedQty = Math.max(0, Number(item?.qty_accepted || 0));
           const unitsCount = Math.max(0, Number(item?.units_count || 0));
+          const rowNumber = index + 1;
           const isIncompleteDelivery = orderedQty > 0 && deliveredQty < orderedQty;
           const disabled = canEdit() ? "" : "disabled";
           const acceptedDisabled = canEdit() && isIncompleteDelivery ? "disabled" : disabled;
@@ -273,21 +457,24 @@ import "sweetalert2/dist/sweetalert2.min.css";
             : "Consumable or non-unit-tracked line.";
 
           return `
-            <div class="rounded-xl border border-defaultborder p-4 shadow-sm" data-air-item-id="${escapeHtml(item?.id || "")}">
+            <div class="gso-air-inspection-item-card rounded-xl border border-defaultborder p-4 shadow-sm" data-air-item-id="${escapeHtml(item?.id || "")}">
               <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <p class="mb-1 text-sm font-semibold">${escapeHtml(item?.item_label || "AIR Item")}</p>
-                  <p class="mb-0 text-xs text-[#8c9097] dark:text-white/50">
-                    ${escapeHtml(trackingType || "property")}
-                    ${item?.stock_no_snapshot ? ` | ${escapeHtml(item.stock_no_snapshot)}` : ""}
-                    ${item?.unit_snapshot ? ` | Unit: ${escapeHtml(item.unit_snapshot)}` : ""}
-                  </p>
-                  <p class="mt-1 mb-0 text-xs text-[#8c9097] dark:text-white/50">
-                    Ordered <b>${escapeHtml(orderedQty)}</b>
-                    ${item?.unit_snapshot ? `(${escapeHtml(item.unit_snapshot)})` : ""}
-                    &middot; Delivered <b>${escapeHtml(deliveredQty)}</b>
-                    &middot; Accepted <b>${escapeHtml(acceptedQty)}</b>
-                  </p>
+                <div class="flex items-start gap-3 min-w-0">
+                  <span class="gso-air-inspection-row-chip" title="Item ${escapeHtml(rowNumber)}">${escapeHtml(rowNumber)}</span>
+                  <div class="min-w-0">
+                    <p class="mb-1 text-sm font-semibold">${escapeHtml(item?.item_label || `AIR Item ${rowNumber}`)}</p>
+                    <p class="mb-0 text-xs text-[#8c9097] dark:text-white/50">
+                      ${escapeHtml(trackingType || "property")}
+                      ${item?.stock_no_snapshot ? ` | ${escapeHtml(item.stock_no_snapshot)}` : ""}
+                      ${item?.unit_snapshot ? ` | Unit: ${escapeHtml(item.unit_snapshot)}` : ""}
+                    </p>
+                    <p class="mt-1 mb-0 text-xs text-[#8c9097] dark:text-white/50">
+                      Ordered <b>${escapeHtml(orderedQty)}</b>
+                      ${item?.unit_snapshot ? `(${escapeHtml(item.unit_snapshot)})` : ""}
+                      &middot; Delivered <b>${escapeHtml(deliveredQty)}</b>
+                      &middot; Accepted <b>${escapeHtml(acceptedQty)}</b>
+                    </p>
+                  </div>
                 </div>
                 ${
                   needsUnits
@@ -347,7 +534,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
                 <span>${escapeHtml(itemNote)}</span>
                 <span>${
                   needsUnits
-                    ? "Use Units to manage unit rows, components, and evidence files."
+                    ? "Use Units to manage unit rows, components, and inspection images."
                     : "No encoded unit rows are required for this line."
                 }</span>
               </div>
@@ -396,6 +583,85 @@ import "sweetalert2/dist/sweetalert2.min.css";
       };
     }
 
+    function getInspectionSnapshot() {
+      const payload = buildInspectionPayload();
+
+      return {
+        header: {
+          invoice_number: payload.invoice_number,
+          invoice_date: payload.invoice_date,
+          date_received: payload.date_received,
+          received_completeness: payload.received_completeness,
+          received_notes: payload.received_notes,
+        },
+        items: (payload.items || [])
+          .map((item) => ({
+            id: String(item?.id || ""),
+            description_snapshot: String(item?.description_snapshot || "").trim(),
+            qty_delivered: Math.max(0, Number(item?.qty_delivered || 0)),
+            qty_accepted: Math.max(0, Number(item?.qty_accepted || 0)),
+            remarks: String(item?.remarks || "").trim(),
+          }))
+          .sort((left, right) => left.id.localeCompare(right.id)),
+      };
+    }
+
+    function countInspectionDirtyFields(current, baseline) {
+      if (!baseline) {
+        return 0;
+      }
+
+      let count = 0;
+      const headerKeys = [
+        "invoice_number",
+        "invoice_date",
+        "date_received",
+        "received_completeness",
+        "received_notes",
+      ];
+
+      headerKeys.forEach((key) => {
+        if ((current.header?.[key] || "") !== (baseline.header?.[key] || "")) {
+          count += 1;
+        }
+      });
+
+      const currentItems = new Map((current.items || []).map((item) => [item.id, item]));
+      const baselineItems = new Map((baseline.items || []).map((item) => [item.id, item]));
+      const itemIds = new Set([...currentItems.keys(), ...baselineItems.keys()]);
+
+      itemIds.forEach((itemId) => {
+        const currentItem = currentItems.get(itemId) || {};
+        const baselineItem = baselineItems.get(itemId) || {};
+
+        [
+          "description_snapshot",
+          "qty_delivered",
+          "qty_accepted",
+          "remarks",
+        ].forEach((key) => {
+          if ((currentItem[key] ?? "") !== (baselineItem[key] ?? "")) {
+            count += 1;
+          }
+        });
+      });
+
+      return count;
+    }
+
+    function refreshInspectionDirtyCount() {
+      inspectionToolbarState.dirtyCount = countInspectionDirtyFields(
+        getInspectionSnapshot(),
+        inspectionBaseline,
+      );
+      updateInspectionToolbar();
+    }
+
+    function resetInspectionBaseline() {
+      inspectionBaseline = getInspectionSnapshot();
+      refreshInspectionDirtyCount();
+    }
+
     async function requestJson(url, options = {}) {
       const response = await fetch(url, {
         headers: {
@@ -423,70 +689,145 @@ import "sweetalert2/dist/sweetalert2.min.css";
       return parseResponse(response);
     }
 
-    async function saveInspection() {
-      showFormError("");
+    async function saveInspection(options = {}) {
+      const {
+        showSuccess = true,
+        showLoading = true,
+        loadingTitle = "Saving inspection...",
+      } = options;
 
-      const parsed = await requestJson(config.saveUrl, {
-        method: "PUT",
-        body: JSON.stringify(buildInspectionPayload()),
-      });
-
-      if (!parsed.ok) {
-        showFormError(parsed.message);
-
-        await Swal.fire({
-          icon: parsed.status === 422 ? "warning" : "error",
-          title: parsed.status === 422 ? "Validation failed" : "Save failed",
-          html: validationHtml(parsed.data?.errors || {}) || escapeHtml(parsed.message),
-        });
-
+      if (!canEdit()) {
         return false;
       }
 
-      applyInspectionState(parsed.data?.data || {});
+      if (inspectionToolbarState.dirtyCount === 0) {
+        updateInspectionToolbar();
+        return true;
+      }
+
       showFormError("");
 
-      await Swal.fire({
-        icon: "success",
-        title: "Inspection saved",
-        timer: 900,
-        showConfirmButton: false,
-      });
+      inspectionToolbarState.isSaving = true;
+      updateInspectionToolbar();
 
-      return true;
+      if (showLoading) {
+        Swal.fire({
+          title: loadingTitle,
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+      }
+
+      try {
+        const parsed = await requestJson(config.saveUrl, {
+          method: "PUT",
+          body: JSON.stringify(buildInspectionPayload()),
+        });
+
+        if (!parsed.ok) {
+          showFormError(parsed.message);
+
+          await Swal.fire({
+            icon: parsed.status === 422 ? "warning" : "error",
+            title: parsed.status === 422 ? "Validation failed" : "Save failed",
+            html: validationHtml(parsed.data?.errors || {}) || escapeHtml(parsed.message),
+          });
+
+          return false;
+        }
+
+        applyInspectionState(parsed.data?.data || {});
+        showFormError("");
+        resetInspectionBaseline();
+
+        if (showSuccess) {
+          await Swal.fire({
+            icon: "success",
+            title: "Inspection saved",
+            timer: 900,
+            showConfirmButton: false,
+          });
+        } else if (showLoading) {
+          Swal.close();
+        }
+
+        return true;
+      } finally {
+        inspectionToolbarState.isSaving = false;
+        updateInspectionToolbar();
+      }
     }
 
     async function finalizeInspection() {
-      const saved = await saveInspection();
-      if (!saved) {
+      const hasChanges = inspectionToolbarState.dirtyCount > 0;
+
+      const confirmation = await Swal.fire({
+        icon: "question",
+        title: hasChanges ? "Save and finalize inspection?" : "Finalize inspection?",
+        text: hasChanges
+          ? "Unsaved inspection changes will be saved first, then the AIR will be marked as inspected."
+          : "This moves the AIR into inspected status and locks further editing in this workspace.",
+        showCancelButton: true,
+        confirmButtonText: hasChanges ? "Save and Finalize" : "Finalize",
+        cancelButtonText: "Cancel",
+      });
+
+      if (!confirmation.isConfirmed) {
         return;
       }
 
-      const parsed = await requestJson(config.finalizeUrl, { method: "PUT" });
+      inspectionToolbarState.isFinalizing = true;
+      updateInspectionToolbar();
 
-      if (!parsed.ok) {
-        showFormError(parsed.message);
+      try {
+        if (hasChanges) {
+          const saved = await saveInspection({
+            showSuccess: false,
+            showLoading: true,
+            loadingTitle: "Saving changes...",
+          });
 
-        await Swal.fire({
-          icon: parsed.status === 422 ? "warning" : "error",
-          title: parsed.status === 422 ? "Finalize blocked" : "Finalize failed",
-          html: validationHtml(parsed.data?.errors || {}) || escapeHtml(parsed.message),
+          if (!saved) {
+            return;
+          }
+        }
+
+        Swal.fire({
+          title: "Finalizing inspection...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
         });
 
-        return;
+        const parsed = await requestJson(config.finalizeUrl, { method: "PUT" });
+
+        if (!parsed.ok) {
+          showFormError(parsed.message);
+
+          await Swal.fire({
+            icon: parsed.status === 422 ? "warning" : "error",
+            title: parsed.status === 422 ? "Finalize blocked" : "Finalize failed",
+            html: validationHtml(parsed.data?.errors || {}) || escapeHtml(parsed.message),
+          });
+
+          return;
+        }
+
+        applyInspectionState(parsed.data?.data || {});
+        resetInspectionBaseline();
+        setModalOpen(unitModal, false);
+        setModalOpen(componentModal, false);
+        setModalOpen(fileModal, false);
+
+        await Swal.fire({
+          icon: "success",
+          title: "Inspection finalized",
+          timer: 1200,
+          showConfirmButton: false,
+        });
+      } finally {
+        inspectionToolbarState.isFinalizing = false;
+        updateInspectionToolbar();
       }
-
-      applyInspectionState(parsed.data?.data || {});
-      setModalOpen(unitModal, false);
-      setModalOpen(componentModal, false);
-      setModalOpen(fileModal, false);
-
-      await Swal.fire({
-        icon: "success",
-        title: "Inspection finalized",
-        timer: 1200,
-        showConfirmButton: false,
-      });
     }
 
     async function loadPromotionEligibility() {
@@ -766,6 +1107,167 @@ import "sweetalert2/dist/sweetalert2.min.css";
       return Array.isArray(rows) ? rows.map((row) => createUnitRow(row)) : [];
     }
 
+    function normalizeUnitRowsToAcceptedQty(
+      rows = [],
+      acceptedQty = 0,
+      defaultComponents = [],
+    ) {
+      const normalized = Array.isArray(rows)
+        ? rows.map((row) => createUnitRow(row))
+        : [];
+      const targetCount = Math.max(0, Number(acceptedQty || 0));
+
+      while (normalized.length < targetCount) {
+        normalized.push(
+          createUnitRow({
+            default_components: defaultComponents,
+          }),
+        );
+      }
+
+      return normalized.slice(0, targetCount);
+    }
+
+    function unitRowHasMeaningfulContent(row = {}) {
+      return (
+        normalizeText(row.id || "") !== "" ||
+        [
+          row.brand,
+          row.model,
+          row.serial_number,
+          row.property_number,
+          row.condition_status,
+          row.condition_notes,
+        ].some((value) => normalizeText(value || "") !== "")
+      );
+    }
+
+    function serializeComponentRow(row = {}) {
+      return JSON.stringify({
+        id: String(row.id || ""),
+        name: normalizeText(row.name || ""),
+        quantity: Math.max(1, Number(row.quantity || 1)),
+        unit: normalizeText(row.unit || ""),
+        component_cost: normalizeText(row.component_cost ?? ""),
+        serial_number: normalizeText(row.serial_number || ""),
+        condition: normalizeText(row.condition || ""),
+        is_present: row.is_present !== false,
+        remarks: String(row.remarks || "").trim(),
+      });
+    }
+
+    function serializeUnitRow(row = {}) {
+      return JSON.stringify({
+        id: String(row.id || ""),
+        brand: normalizeText(row.brand || ""),
+        model: normalizeText(row.model || ""),
+        serial_number: normalizeText(row.serial_number || ""),
+        property_number: normalizeText(row.property_number || ""),
+        condition_status: normalizeText(row.condition_status || ""),
+        condition_notes: String(row.condition_notes || "").trim(),
+        components: (row.components || []).map((component) => serializeComponentRow(component)),
+      });
+    }
+
+    function unitRowIdentity(row, index) {
+      return String(row?.id || row?.__key || `unit-${index}`);
+    }
+
+    function countDirtyUnitRows(currentRows = unitRows, baselineRows = unitRowsBaseline) {
+      const currentMap = new Map(
+        (currentRows || []).map((row, index) => [unitRowIdentity(row, index), serializeUnitRow(row)]),
+      );
+      const baselineMap = new Map(
+        (baselineRows || []).map((row, index) => [unitRowIdentity(row, index), serializeUnitRow(row)]),
+      );
+      const keys = new Set([...currentMap.keys(), ...baselineMap.keys()]);
+      let count = 0;
+
+      keys.forEach((key) => {
+        if ((currentMap.get(key) || "") !== (baselineMap.get(key) || "")) {
+          count += 1;
+        }
+      });
+
+      return count;
+    }
+
+    function renderUnitWorkspaceChrome() {
+      if (!unitState) {
+        return;
+      }
+
+      const acceptedQty = Math.max(0, Number(unitState.air_item?.qty_accepted || 0));
+      const savedRows = Math.max(0, Number(unitState.air_item?.units_count || 0));
+      const stagedRows = unitRows.filter((row) => unitRowHasMeaningfulContent(row)).length;
+      const remainingSlots = Math.max(0, acceptedQty - stagedRows);
+      const templateCount = Array.isArray(unitState.air_item?.default_components)
+        ? unitState.air_item.default_components.length
+        : 0;
+
+      unitToolbarState.dirtyCount = countDirtyUnitRows();
+
+      if (unitRowsContainer) {
+        unitRowsContainer.classList.toggle(
+          "gso-air-inspection-unit-grid--single",
+          unitRows.length <= 1,
+        );
+      }
+
+      if (unitNotice) {
+        unitNotice.innerHTML = unitState.air_item?.needs_units
+          ? `
+              <div class="gso-air-inspection-unit-summary">
+                <div class="gso-air-inspection-unit-summary-card">
+                  <span class="gso-air-inspection-unit-summary-label">Accepted Qty</span>
+                  <span class="gso-air-inspection-unit-summary-value">${escapeHtml(acceptedQty)}</span>
+                </div>
+                <div class="gso-air-inspection-unit-summary-card">
+                  <span class="gso-air-inspection-unit-summary-label">Saved Rows</span>
+                  <span class="gso-air-inspection-unit-summary-value">${escapeHtml(savedRows)}</span>
+                </div>
+                <div class="gso-air-inspection-unit-summary-card">
+                  <span class="gso-air-inspection-unit-summary-label">Rows With Data</span>
+                  <span class="gso-air-inspection-unit-summary-value">${escapeHtml(stagedRows)}</span>
+                </div>
+                <div class="gso-air-inspection-unit-summary-card">
+                  <span class="gso-air-inspection-unit-summary-label">Slots Remaining</span>
+                  <span class="gso-air-inspection-unit-summary-value">${escapeHtml(remainingSlots)}</span>
+                </div>
+              </div>
+              <div class="gso-air-inspection-unit-workspace-note">
+                ${
+                  unitToolbarState.dirtyCount > 0
+                    ? `${escapeHtml(unitToolbarState.dirtyCount)} unit row${unitToolbarState.dirtyCount === 1 ? "" : "s"} still have unsaved changes.`
+                    : "Blank unit slots are opened automatically based on the saved accepted quantity."
+                }
+                ${
+                  templateCount > 0
+                    ? ` New rows preload ${escapeHtml(templateCount)} component template${templateCount === 1 ? "" : "s"}.`
+                    : ""
+                }
+              </div>
+            `
+          : "This AIR item does not require inspection unit rows.";
+      }
+
+      if (unitSaveButton) {
+        unitSaveButton.textContent =
+          unitToolbarState.dirtyCount > 0
+            ? `${unitToolbarState.defaultSaveLabel} (${unitToolbarState.dirtyCount})`
+            : unitToolbarState.defaultSaveLabel;
+        unitSaveButton.disabled =
+          !canEdit() ||
+          unitToolbarState.isSaving ||
+          unitToolbarState.dirtyCount === 0;
+      }
+    }
+
+    function resetUnitRowsBaseline(rows = unitRows) {
+      unitRowsBaseline = Array.isArray(rows) ? rows.map((row) => createUnitRow(row)) : [];
+      renderUnitWorkspaceChrome();
+    }
+
     function buildUnitComponentSummary(row) {
       const components = Array.isArray(row?.components) ? row.components : [];
 
@@ -801,10 +1303,14 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
       if (unitRows.length === 0) {
         unitRowsContainer.innerHTML = `
-          <div class="rounded border border-dashed border-defaultborder p-5 text-sm text-[#8c9097] dark:text-white/50">
-            No unit rows saved yet for this AIR item.
+          <div class="gso-air-inspection-empty-state text-sm text-[#8c9097] dark:text-white/50">
+            <div class="font-medium text-defaulttextcolor dark:text-white">No unit rows required yet</div>
+            <div class="mt-2">
+              Save an accepted quantity on the main inspection page first to open unit slots here.
+            </div>
           </div>
         `;
+        renderUnitWorkspaceChrome();
         return;
       }
 
@@ -816,27 +1322,31 @@ import "sweetalert2/dist/sweetalert2.min.css";
         .join("");
 
       unitRowsContainer.innerHTML = unitRows
-        .map((row) => {
+        .map((row, index) => {
           const fileButton =
             row.id && row.id !== ""
               ? `<button type="button" class="ti-btn ti-btn-light" data-action="open-unit-files" data-key="${escapeHtml(
                   row.__key,
-                )}">Files (${escapeHtml(row.file_count)})</button>`
-              : `<span class="rounded-full bg-light px-3 py-1 text-xs text-[#8c9097] dark:bg-black/20 dark:text-white/50">Save row first to manage files</span>`;
+                )}">Images (${escapeHtml(row.file_count)})</button>`
+              : `<span class="rounded-full bg-light px-3 py-1 text-xs text-[#8c9097] dark:bg-black/20 dark:text-white/50">Save row first to manage images</span>`;
           const componentSummary = buildUnitComponentSummary(row);
+          const unitNumber = index + 1;
 
           return `
-            <div class="rounded-xl border border-defaultborder p-4 shadow-sm" data-unit-key="${escapeHtml(
+            <div class="gso-air-inspection-unit-card rounded-xl border border-defaultborder p-4 shadow-sm" data-unit-key="${escapeHtml(
               row.__key,
             )}">
               <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p class="mb-1 text-sm font-semibold">${escapeHtml(
-                    row.serial_number || row.property_number || "Inspection Unit",
-                  )}</p>
-                  <p class="mb-0 text-xs text-[#8c9097] dark:text-white/50">
-                    ${row.id ? "Saved row" : "Unsaved row"}
-                  </p>
+                <div class="flex items-start gap-3">
+                  <span class="gso-air-inspection-row-chip" title="Unit ${escapeHtml(unitNumber)}">${escapeHtml(unitNumber)}</span>
+                  <div>
+                    <p class="mb-1 text-sm font-semibold">${escapeHtml(
+                      row.serial_number || row.property_number || `Inspection Unit ${unitNumber}`,
+                    )}</p>
+                    <p class="mb-0 text-xs text-[#8c9097] dark:text-white/50">
+                      ${row.id ? "Saved row" : "Unsaved row"}
+                    </p>
+                  </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                   <button type="button" class="ti-btn ti-btn-light" data-action="open-unit-components" data-key="${escapeHtml(
@@ -847,7 +1357,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
                     canEdit()
                       ? `<button type="button" class="ti-btn ti-btn-danger" data-action="delete-unit-row" data-key="${escapeHtml(
                           row.__key,
-                        )}">Delete</button>`
+                        )}">${row.id ? "Delete" : "Clear"}</button>`
                       : ""
                   }
                 </div>
@@ -921,6 +1431,8 @@ import "sweetalert2/dist/sweetalert2.min.css";
           select.value = row.condition_status || "";
         }
       });
+
+      renderUnitWorkspaceChrome();
     }
 
     function updateItemUnitCount(airItemId, count) {
@@ -949,29 +1461,18 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
       activeAirItemId = airItemId;
       unitState = parsed.data?.data || {};
-      unitRows = cloneServerUnitRows(unitState.units || []);
+      unitRows = normalizeUnitRowsToAcceptedQty(
+        unitState.units || [],
+        unitState.air_item?.qty_accepted || 0,
+        getDefaultComponentRows(),
+      );
+      resetUnitRowsBaseline(unitRows);
       showUnitError("");
       if (unitModalTitle) unitModalTitle.textContent = unitState.air_item?.label || "Inspection Units";
       if (unitModalSubtitle) {
         unitModalSubtitle.textContent = `Accepted quantity: ${
           unitState.air_item?.qty_accepted || 0
         }. Save inspection first after changing quantities on the main page.`;
-      }
-      if (unitNotice) {
-        const templateCount = Array.isArray(unitState.air_item?.default_components)
-          ? unitState.air_item.default_components.length
-          : 0;
-        unitNotice.textContent = unitState.air_item?.needs_units
-          ? `Saved rows: ${unitState.air_item?.units_count || 0}. Remaining available slots: ${
-              unitState.air_item?.remaining_unit_slots || 0
-            }.${
-              templateCount > 0
-                ? ` New unit rows will preload ${templateCount} component template${
-                    templateCount === 1 ? "" : "s"
-                  }.`
-                : ""
-            }`
-          : "This AIR item does not require inspection unit rows.";
       }
       renderUnitRows();
       setModalOpen(unitModal, true);
@@ -980,75 +1481,82 @@ import "sweetalert2/dist/sweetalert2.min.css";
     async function saveUnitRows() {
       if (!unitState || !activeAirItemId) return;
 
-      const url = buildUrl(config.unitsSaveUrlTemplate, {
-        "__AIR_ITEM__": activeAirItemId,
-      });
-      const parsed = await requestJson(url, {
-        method: "PUT",
-        body: JSON.stringify({
-          units: unitRows.map((row) => ({
-            id: row.id || null,
-            brand: normalizeText(row.brand || ""),
-            model: normalizeText(row.model || ""),
-            serial_number: normalizeText(row.serial_number || ""),
-            property_number: normalizeText(row.property_number || ""),
-            condition_status: normalizeText(row.condition_status || ""),
-            condition_notes: String(row.condition_notes || "").trim(),
-            components: (row.components || []).map((component) => ({
-              id: component.id || null,
-              name: normalizeText(component.name || ""),
-              quantity: Math.max(1, Number(component.quantity || 1)),
-              unit: normalizeText(component.unit || ""),
-              component_cost: normalizeText(component.component_cost ?? ""),
-              serial_number: normalizeText(component.serial_number || ""),
-              condition: normalizeText(component.condition || ""),
-              is_present: component.is_present !== false,
-              remarks: String(component.remarks || "").trim(),
-            })),
-          })),
-        }),
-      });
-
-      if (!parsed.ok) {
-        showUnitError(parsed.message);
-        await Swal.fire({
-          icon: parsed.status === 422 ? "warning" : "error",
-          title: parsed.status === 422 ? "Validation failed" : "Save failed",
-          html: validationHtml(parsed.data?.errors || {}) || escapeHtml(parsed.message),
-        });
+      if (unitToolbarState.dirtyCount === 0) {
+        renderUnitWorkspaceChrome();
         return;
       }
 
-      unitState = parsed.data?.data || unitState;
-      unitRows = cloneServerUnitRows(unitState.units || []);
-      updateItemUnitCount(activeAirItemId, unitRows.length);
-      if (unitNotice) {
-        const templateCount = Array.isArray(unitState.air_item?.default_components)
-          ? unitState.air_item.default_components.length
-          : 0;
-        unitNotice.textContent = `Saved rows: ${unitState.air_item?.units_count || 0}. Remaining available slots: ${
-          unitState.air_item?.remaining_unit_slots || 0
-        }.${
-          templateCount > 0
-            ? ` New unit rows will preload ${templateCount} component template${
-                templateCount === 1 ? "" : "s"
-              }.`
-            : ""
-        }`;
-      }
-      renderUnitRows();
-      if (componentModal?.classList.contains("is-open")) {
-        activeComponentUnitKey = null;
-        setModalOpen(componentModal, false);
-      }
-      showUnitError("");
+      unitToolbarState.isSaving = true;
+      renderUnitWorkspaceChrome();
 
-      await Swal.fire({
-        icon: "success",
-        title: "Unit rows saved",
-        timer: 900,
-        showConfirmButton: false,
-      });
+      try {
+        const url = buildUrl(config.unitsSaveUrlTemplate, {
+          "__AIR_ITEM__": activeAirItemId,
+        });
+        const parsed = await requestJson(url, {
+          method: "PUT",
+          body: JSON.stringify({
+            units: unitRows.map((row) => ({
+              id: row.id || null,
+              brand: normalizeText(row.brand || ""),
+              model: normalizeText(row.model || ""),
+              serial_number: normalizeText(row.serial_number || ""),
+              property_number: normalizeText(row.property_number || ""),
+              condition_status: normalizeText(row.condition_status || ""),
+              condition_notes: String(row.condition_notes || "").trim(),
+              components: (row.components || []).map((component) => ({
+                id: component.id || null,
+                name: normalizeText(component.name || ""),
+                quantity: Math.max(1, Number(component.quantity || 1)),
+                unit: normalizeText(component.unit || ""),
+                component_cost: normalizeText(component.component_cost ?? ""),
+                serial_number: normalizeText(component.serial_number || ""),
+                condition: normalizeText(component.condition || ""),
+                is_present: component.is_present !== false,
+                remarks: String(component.remarks || "").trim(),
+              })),
+            })),
+          }),
+        });
+
+        if (!parsed.ok) {
+          showUnitError(parsed.message);
+          await Swal.fire({
+            icon: parsed.status === 422 ? "warning" : "error",
+            title: parsed.status === 422 ? "Validation failed" : "Save failed",
+            html: validationHtml(parsed.data?.errors || {}) || escapeHtml(parsed.message),
+          });
+          return;
+        }
+
+        unitState = parsed.data?.data || unitState;
+        unitRows = normalizeUnitRowsToAcceptedQty(
+          unitState.units || [],
+          unitState.air_item?.qty_accepted || 0,
+          getDefaultComponentRows(),
+        );
+        resetUnitRowsBaseline(unitRows);
+        updateItemUnitCount(
+          activeAirItemId,
+          Number(unitState.air_item?.units_count || 0),
+        );
+        renderUnitRows();
+        if (isModalOpen(componentModal)) {
+          activeComponentUnitKey = null;
+          setModalOpen(componentModal, false);
+        }
+        showUnitError("");
+
+        await Swal.fire({
+          icon: "success",
+          title: "Unit rows saved",
+          timer: 900,
+          showConfirmButton: false,
+        });
+      } finally {
+        unitToolbarState.isSaving = false;
+        renderUnitWorkspaceChrome();
+      }
     }
 
     function findUnitRow(key) {
@@ -1255,7 +1763,11 @@ import "sweetalert2/dist/sweetalert2.min.css";
       if (!row) return;
 
       if (!row.id) {
-        unitRows = unitRows.filter((unit) => String(unit.__key) !== String(key));
+        unitRows = unitRows.map((unit) =>
+          String(unit.__key) === String(key)
+            ? createUnitRow({ default_components: getDefaultComponentRows() })
+            : unit,
+        );
         renderUnitRows();
         return;
       }
@@ -1263,7 +1775,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
       const confirmation = await Swal.fire({
         icon: "warning",
         title: "Delete unit row?",
-        text: "Any remaining unit files must already be removed before deleting this row.",
+        text: "Any remaining unit images must already be removed before deleting this row.",
         showCancelButton: true,
         confirmButtonText: "Delete",
         cancelButtonText: "Cancel",
@@ -1288,8 +1800,16 @@ import "sweetalert2/dist/sweetalert2.min.css";
       }
 
       unitState = parsed.data?.data || unitState;
-      unitRows = cloneServerUnitRows(unitState.units || []);
-      updateItemUnitCount(activeAirItemId, unitRows.length);
+      unitRows = normalizeUnitRowsToAcceptedQty(
+        unitState.units || [],
+        unitState.air_item?.qty_accepted || 0,
+        getDefaultComponentRows(),
+      );
+      resetUnitRowsBaseline(unitRows);
+      updateItemUnitCount(
+        activeAirItemId,
+        Number(unitState.air_item?.units_count || 0),
+      );
       renderUnitRows();
       showUnitError("");
     }
@@ -1308,7 +1828,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
       if (!parsed.ok) {
         await Swal.fire({
           icon: "error",
-          title: "Could not open unit files",
+          title: "Could not open unit images",
           text: parsed.message,
         });
         return;
@@ -1316,15 +1836,16 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
       fileState = parsed.data?.data || {};
       if (fileModalTitle) {
-        fileModalTitle.textContent = fileState.unit?.label || "Unit Files";
+        fileModalTitle.textContent = fileState.unit?.label || "Unit Images";
       }
       if (fileModalSubtitle) {
         fileModalSubtitle.textContent = `Condition: ${
           fileState.unit?.condition_status_text || "Unknown"
-        }. Files uploaded here stay attached to this saved inspection unit row.`;
+        }. Images uploaded here stay attached to this saved inspection unit row.`;
       }
       renderFiles();
       showFileError("");
+      updateFileUploadButton();
       setModalOpen(fileModal, true);
     }
 
@@ -1332,9 +1853,80 @@ import "sweetalert2/dist/sweetalert2.min.css";
       unitRows = unitRows.map((row) =>
         String(row.id) === String(unitId) ? { ...row, file_count: count } : row,
       );
-      if (unitRowsContainer && unitModal?.classList.contains("is-open")) {
+      if (unitRowsContainer && isModalOpen(unitModal)) {
         renderUnitRows();
       }
+    }
+
+    function resetUnitWorkspace() {
+      activeAirItemId = null;
+      unitState = null;
+      unitRows = [];
+      unitRowsBaseline = [];
+      unitToolbarState.dirtyCount = 0;
+      unitToolbarState.isSaving = false;
+      showUnitError("");
+
+      if (unitRowsContainer) {
+        unitRowsContainer.innerHTML = "";
+        unitRowsContainer.classList.remove("gso-air-inspection-unit-grid--single");
+      }
+
+      if (unitNotice) {
+        unitNotice.innerHTML = "";
+      }
+    }
+
+    function resetComponentWorkspace() {
+      activeComponentUnitKey = null;
+      showComponentError("");
+
+      if (componentRowsContainer) {
+        componentRowsContainer.innerHTML = "";
+      }
+
+      if (componentEmpty) {
+        componentEmpty.classList.add("hidden");
+      }
+
+      if (componentTemplateNote) {
+        componentTemplateNote.classList.add("hidden");
+        componentTemplateNote.textContent = "";
+      }
+    }
+
+    function resetFileWorkspace() {
+      activeUnitId = null;
+      fileState = null;
+      showFileError("");
+
+      if (fileGrid) {
+        fileGrid.innerHTML = "";
+      }
+
+      if (fileEmpty) {
+        fileEmpty.classList.add("hidden");
+      }
+
+      if (fileInput) {
+        fileInput.value = "";
+      }
+
+      if (fileTypeInput) {
+        fileTypeInput.value = "photo";
+      }
+
+      if (fileCaptionInput) {
+        fileCaptionInput.value = "";
+      }
+
+      updateFileUploadButton();
+    }
+
+    function bindOverlayCloseReset(element, handler) {
+      ["close.hs.overlay", "hidden.hs.overlay"].forEach((eventName) => {
+        element?.addEventListener(eventName, handler);
+      });
     }
 
     function renderFiles() {
@@ -1353,7 +1945,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
         .map((file) => {
           const preview = file.is_image
             ? `<img src="${escapeHtml(file.preview_url || "")}" alt="${escapeHtml(
-                file.original_name || "Unit file",
+                file.original_name || "Unit image",
               )}" class="gso-air-inspection-file-preview">`
             : `<div class="gso-air-inspection-file-fallback">${escapeHtml(
                 file.type_text || "File",
@@ -1373,6 +1965,13 @@ import "sweetalert2/dist/sweetalert2.min.css";
                       ${file.size_text ? ` | ${escapeHtml(file.size_text)}` : ""}
                       ${file.is_primary ? " | Primary" : ""}
                     </p>
+                    ${
+                      file.caption
+                        ? `<p class="mt-2 mb-0 text-xs text-[#8c9097] dark:text-white/50">${escapeHtml(
+                            file.caption,
+                          )}</p>`
+                        : ""
+                    }
                   </div>
                   <a class="ti-btn ti-btn-light" href="${escapeHtml(
                     file.preview_url || "#",
@@ -1410,35 +2009,72 @@ import "sweetalert2/dist/sweetalert2.min.css";
       if (files.length === 0) {
         await Swal.fire({
           icon: "warning",
-          title: "No files selected",
-          text: "Choose at least one image or PDF to upload.",
+          title: "No images selected",
+          text: "Choose at least one image to upload.",
         });
         return;
       }
 
       const formData = new FormData();
-      files.forEach((file) => formData.append("files[]", file));
+      files.forEach((file) => formData.append("photos[]", file));
+      formData.append("type", fileTypeInput?.value || "photo");
+      formData.append("caption", String(fileCaptionInput?.value || "").trim());
 
       const url = buildUrl(config.unitFilesStoreUrlTemplate, {
         "__AIR_ITEM__": activeAirItemId,
         "__UNIT__": activeUnitId,
       });
-      const parsed = await requestForm(url, formData);
+      fileUploadState.isUploading = true;
+      updateFileUploadButton();
+      showLoadingAlert(
+        "Uploading images...",
+        `${files.length} image${files.length === 1 ? "" : "s"} ${files.length === 1 ? "is" : "are"} being attached to this inspection unit.`,
+      );
 
-      if (!parsed.ok) {
-        showFileError(parsed.message);
+      try {
+        const parsed = await requestForm(url, formData);
+        Swal.close();
+
+        if (!parsed.ok) {
+          showFileError(parsed.message);
+          await Swal.fire({
+            icon: parsed.status === 422 ? "warning" : "error",
+            title: parsed.status === 422 ? "Upload blocked" : "Upload failed",
+            html: validationHtml(parsed.data?.errors || {}) || escapeHtml(parsed.message),
+          });
+          return;
+        }
+
+        fileState = parsed.data?.data || fileState;
+        renderFiles();
+        fileInput.value = "";
+        if (fileTypeInput) {
+          fileTypeInput.value = "photo";
+        }
+        if (fileCaptionInput) {
+          fileCaptionInput.value = "";
+        }
+        showFileError("");
+        showToast(
+          "success",
+          files.length === 1 ? "Image uploaded" : `${files.length} images uploaded`,
+        );
+      } catch (error) {
+        Swal.close();
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : "The images could not be uploaded right now.";
+        showFileError(message);
         await Swal.fire({
-          icon: parsed.status === 422 ? "warning" : "error",
-          title: parsed.status === 422 ? "Upload blocked" : "Upload failed",
-          html: validationHtml(parsed.data?.errors || {}) || escapeHtml(parsed.message),
+          icon: "error",
+          title: "Upload failed",
+          text: message,
         });
-        return;
+      } finally {
+        fileUploadState.isUploading = false;
+        updateFileUploadButton();
       }
-
-      fileState = parsed.data?.data || fileState;
-      renderFiles();
-      fileInput.value = "";
-      showFileError("");
     }
 
     async function deleteFile(fileId) {
@@ -1502,16 +2138,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
     });
 
     finalizeButton?.addEventListener("click", async () => {
-      const confirmation = await Swal.fire({
-        icon: "question",
-        title: "Finalize inspection?",
-        text: "This moves the AIR into inspected status and locks further editing in this workspace.",
-        showCancelButton: true,
-        confirmButtonText: "Finalize",
-        cancelButtonText: "Cancel",
-      });
-
-      if (!confirmation.isConfirmed) return;
       await finalizeInspection();
     });
 
@@ -1519,11 +2145,23 @@ import "sweetalert2/dist/sweetalert2.min.css";
       await promoteInventory();
     });
 
+    [
+      invoiceNumberInput,
+      invoiceDateInput,
+      dateReceivedInput,
+      completenessSelect,
+      receivedNotesInput,
+    ].forEach((input) => {
+      input?.addEventListener("input", refreshInspectionDirtyCount);
+      input?.addEventListener("change", refreshInspectionDirtyCount);
+    });
+
     page.addEventListener("input", (event) => {
       const field = event.target?.dataset?.field;
       const airItemId = event.target?.dataset?.airItemId;
       if (!field || !airItemId) return;
       updateItemField(airItemId, field, event.target.value);
+      refreshInspectionDirtyCount();
     });
 
     page.addEventListener("change", (event) => {
@@ -1531,6 +2169,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
       const airItemId = event.target?.dataset?.airItemId;
       if (!field || !airItemId) return;
       updateItemField(airItemId, field, event.target.value);
+      refreshInspectionDirtyCount();
     });
 
     page.addEventListener("click", async (event) => {
@@ -1546,6 +2185,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
       const row = findUnitRow(key);
       if (!row || !field) return;
       row[field] = event.target.value;
+      renderUnitWorkspaceChrome();
     });
 
     unitRowsContainer?.addEventListener("change", (event) => {
@@ -1554,6 +2194,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
       const row = findUnitRow(key);
       if (!row || !field) return;
       row[field] = event.target.value;
+      renderUnitWorkspaceChrome();
     });
 
     unitRowsContainer?.addEventListener("click", async (event) => {
@@ -1575,26 +2216,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
       if (filesButton) {
         await openFileModal(filesButton.dataset.key || "");
       }
-    });
-
-    unitAddRowButton?.addEventListener("click", async () => {
-      if (!unitState?.air_item || !canEdit()) return;
-
-      if (unitRows.length >= Number(unitState.air_item?.qty_accepted || 0)) {
-        await Swal.fire({
-          icon: "warning",
-          title: "No more unit slots",
-          text: "The number of unit rows cannot exceed the saved accepted quantity for this AIR item.",
-        });
-        return;
-      }
-
-      unitRows = [...unitRows, createUnitRow()];
-      const latest = unitRows[unitRows.length - 1];
-      if (latest && (!latest.components || latest.components.length === 0)) {
-        latest.components = getDefaultComponentRows();
-      }
-      renderUnitRows();
     });
 
     unitSaveButton?.addEventListener("click", async () => {
@@ -1624,25 +2245,12 @@ import "sweetalert2/dist/sweetalert2.min.css";
       });
     });
 
-    unitModal?.addEventListener("click", (event) => {
-      if (event.target === unitModal) {
-        activeComponentUnitKey = null;
-        setModalOpen(componentModal, false);
-        setModalOpen(unitModal, false);
-      }
-    });
-
-    componentModal?.addEventListener("click", (event) => {
-      if (event.target === componentModal) {
-        activeComponentUnitKey = null;
-        setModalOpen(componentModal, false);
-      }
-    });
-
-    fileModal?.addEventListener("click", (event) => {
-      if (event.target === fileModal) {
-        setModalOpen(fileModal, false);
-      }
+    bindOverlayCloseReset(componentModal, resetComponentWorkspace);
+    bindOverlayCloseReset(fileModal, resetFileWorkspace);
+    bindOverlayCloseReset(unitModal, () => {
+      resetFileWorkspace();
+      resetComponentWorkspace();
+      resetUnitWorkspace();
     });
 
     componentRowsContainer?.addEventListener("input", (event) => {
@@ -1657,6 +2265,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
       row[field] = event.target.value;
       renderUnitRows();
+      renderUnitWorkspaceChrome();
     });
 
     componentRowsContainer?.addEventListener("change", (event) => {
@@ -1675,6 +2284,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
       renderComponentRows();
       renderUnitRows();
+      renderUnitWorkspaceChrome();
     });
 
     componentRowsContainer?.addEventListener("click", (event) => {
@@ -1696,11 +2306,28 @@ import "sweetalert2/dist/sweetalert2.min.css";
       unitRow.components = [...unitRow.components, createComponentRow()];
       renderComponentRows();
       renderUnitRows();
+      renderUnitWorkspaceChrome();
     });
 
     fileUploadButton?.addEventListener("click", async () => {
       await uploadFiles();
     });
+
+    fileInput?.addEventListener("change", updateFileUploadButton);
+
+    tabletTabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setActiveTabletTab(button.dataset.airInspectionTab || "receiving");
+      });
+    });
+
+    const syncInspectionLayout = () => applyTabletLayout();
+    if (typeof tabletViewport.addEventListener === "function") {
+      tabletViewport.addEventListener("change", syncInspectionLayout);
+    } else if (typeof tabletViewport.addListener === "function") {
+      tabletViewport.addListener(syncInspectionLayout);
+    }
+    window.addEventListener("resize", syncInspectionLayout);
 
     fileGrid?.addEventListener("click", async (event) => {
       const deleteButton = event.target.closest('[data-action="delete-file"]');
@@ -1718,5 +2345,8 @@ import "sweetalert2/dist/sweetalert2.min.css";
     syncHeaderInputs();
     renderSummary();
     renderItems();
+    resetInspectionBaseline();
+    updateFileUploadButton();
+    applyTabletLayout();
   });
 })();

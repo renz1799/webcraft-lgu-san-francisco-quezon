@@ -232,6 +232,27 @@ import { attachAccountableOfficerAutocomplete } from "../accountable-officers/au
   const toolbarState = ensureToolbarState();
   let headerBaseline = {};
 
+  function normalizeSnapshot(snapshot = {}) {
+    return {
+      po_number: String(snapshot.po_number || "").trim(),
+      po_date: String(snapshot.po_date || "").trim(),
+      air_number: String(snapshot.air_number || "").trim(),
+      air_date: String(snapshot.air_date || "").trim(),
+      invoice_number: String(snapshot.invoice_number || "").trim(),
+      invoice_date: String(snapshot.invoice_date || "").trim(),
+      supplier_name: String(snapshot.supplier_name || "").trim(),
+      requesting_department_id: String(snapshot.requesting_department_id || "").trim(),
+      fund_source_id: String(snapshot.fund_source_id || "").trim(),
+      inspected_by_name: String(snapshot.inspected_by_name || "").trim(),
+      accepted_by_name: String(snapshot.accepted_by_name || "").trim(),
+      remarks: String(snapshot.remarks || "").trim(),
+    };
+  }
+
+  function getPersistedHeaderSnapshot() {
+    return normalizeSnapshot(window.__gsoAirEdit?.persistedValues || {});
+  }
+
   function updateToolbarButtons() {
     const config = window.__gsoAirEdit || {};
     const saveButton = qs("gsoAirSaveBtn");
@@ -261,7 +282,7 @@ import { attachAccountableOfficerAutocomplete } from "../accountable-officers/au
   function readFormSnapshot() {
     const form = getForm();
     if (!form) return {};
-    return formPayload(form);
+    return normalizeSnapshot(formPayload(form));
   }
 
   function getChangedHeaderFields(current, baseline) {
@@ -285,8 +306,8 @@ import { attachAccountableOfficerAutocomplete } from "../accountable-officers/au
     toolbarState.setHeaderCount(changed.length);
   }
 
-  function resetHeaderBaseline() {
-    headerBaseline = readFormSnapshot();
+  function resetHeaderBaseline(snapshot = null) {
+    headerBaseline = snapshot ? normalizeSnapshot(snapshot) : readFormSnapshot();
     refreshHeaderDirtyCount();
   }
 
@@ -356,7 +377,7 @@ import { attachAccountableOfficerAutocomplete } from "../accountable-officers/au
       return false;
     }
 
-    resetHeaderBaseline();
+    resetHeaderBaseline(getPersistedHeaderSnapshot());
     await reloadAirFiles();
 
     if (showSuccess) {
@@ -699,17 +720,22 @@ import { attachAccountableOfficerAutocomplete } from "../accountable-officers/au
 
   function bindAccountableOfficerSuggestions() {
     const suggestUrl = window.__gsoAirEdit?.accountableOfficerSuggestUrl;
+    const resolveUrl = window.__gsoAirEdit?.accountableOfficerResolveUrl;
     if (!suggestUrl) return;
 
     attachAccountableOfficerAutocomplete({
       input: qs("gsoAirInspectedByName"),
       suggestUrl,
+      storeUrl: resolveUrl,
+      departmentField: qs("gsoAirDepartmentId"),
       title: "Inspected By Suggestions",
     });
 
     attachAccountableOfficerAutocomplete({
       input: qs("gsoAirAcceptedByName"),
       suggestUrl,
+      storeUrl: resolveUrl,
+      departmentField: qs("gsoAirDepartmentId"),
       title: "Accepted By Suggestions",
     });
   }

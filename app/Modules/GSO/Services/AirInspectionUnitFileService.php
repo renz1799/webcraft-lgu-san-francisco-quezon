@@ -43,11 +43,19 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
         return $this->buildPayload($air, $airItem, $unit);
     }
 
-    public function upload(string $actorUserId, string $airId, string $airItemId, string $unitId, array $files, ?string $type = null): array
+    public function upload(
+        string $actorUserId,
+        string $airId,
+        string $airItemId,
+        string $unitId,
+        array $files,
+        ?string $type = null,
+        ?string $caption = null,
+    ): array
     {
         [$air, $airItem, $unit] = $this->resolveLineage($airId, $airItemId, $unitId, true);
 
-        DB::transaction(function () use ($actorUserId, $air, $airItem, $unit, $files, $type): void {
+        DB::transaction(function () use ($actorUserId, $air, $airItem, $unit, $files, $type, $caption): void {
             $folderId = $this->ensureDriveFolder($air, $airItem, $unit);
             $uploadedDriveFileIds = [];
             $createdFiles = [];
@@ -81,7 +89,7 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
                         'mime' => $this->nullableString($file->getMimeType())
                             ?? $this->nullableString($uploaded['mime_type'] ?? null),
                         'size' => $file->getSize(),
-                        'caption' => null,
+                        'caption' => $this->nullableString($caption),
                     ]);
                 }
             } catch (Throwable $exception) {
@@ -102,7 +110,7 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
 
             if ($createdFiles === []) {
                 throw ValidationException::withMessages([
-                    'files' => ['At least one valid image or PDF is required.'],
+                    'files' => ['At least one valid image is required.'],
                 ]);
             }
 
@@ -115,12 +123,12 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
                     'file_ids' => collect($createdFiles)->map(fn (AirItemUnitFile $createdFile) => (string) $createdFile->id)->values()->all(),
                 ],
                 meta: ['actor_user_id' => $actorUserId, 'air_item_id' => (string) $airItem->id],
-                message: 'AIR unit files uploaded: ' . $this->unitLabel($unit),
+                message: 'AIR unit images uploaded: ' . $this->unitLabel($unit),
                 display: [
-                    'summary' => 'AIR unit files uploaded: ' . $this->unitLabel($unit),
+                    'summary' => 'AIR unit images uploaded: ' . $this->unitLabel($unit),
                     'subject_label' => $this->unitLabel($unit),
                     'sections' => [[
-                        'title' => 'File Upload',
+                        'title' => 'Image Upload',
                         'items' => [
                             ['label' => 'AIR', 'before' => 'None', 'after' => $this->airLabel($air)],
                             ['label' => 'Uploaded Count', 'before' => '0', 'after' => (string) count($createdFiles)],
@@ -188,9 +196,9 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
                 changesOld: $before,
                 changesNew: ['deleted_at' => now()->toDateTimeString()],
                 meta: ['actor_user_id' => $actorUserId, 'air_item_id' => (string) $airItem->id],
-                message: 'AIR unit file deleted: ' . $this->unitLabel($unit),
+                message: 'AIR unit image deleted: ' . $this->unitLabel($unit),
                 display: [
-                    'summary' => 'AIR unit file deleted: ' . $this->unitLabel($unit),
+                    'summary' => 'AIR unit image deleted: ' . $this->unitLabel($unit),
                     'subject_label' => $this->unitLabel($unit),
                     'sections' => [[
                         'title' => 'File Lifecycle',
@@ -224,9 +232,9 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
                 changesOld: $before,
                 changesNew: ['is_primary' => true],
                 meta: ['actor_user_id' => $actorUserId, 'air_item_id' => (string) $airItem->id],
-                message: 'AIR unit file marked as primary: ' . $this->unitLabel($unit),
+                message: 'AIR unit image marked as primary: ' . $this->unitLabel($unit),
                 display: [
-                    'summary' => 'AIR unit file marked as primary: ' . $this->unitLabel($unit),
+                    'summary' => 'AIR unit image marked as primary: ' . $this->unitLabel($unit),
                     'subject_label' => $this->unitLabel($unit),
                     'sections' => [[
                         'title' => 'Primary File',
@@ -367,7 +375,7 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
 
         if ($poNumber === '') {
             throw ValidationException::withMessages([
-                'po_number' => ['PO number is required before uploading AIR unit files.'],
+                'po_number' => ['PO number is required before uploading AIR unit images.'],
             ]);
         }
 
@@ -376,7 +384,7 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
         $folderId = trim((string) ($folder['drive_folder_id'] ?? ''));
 
         if ($folderId === '') {
-            throw new RuntimeException('Failed to resolve the Google Drive folder for AIR unit files.');
+            throw new RuntimeException('Failed to resolve the Google Drive folder for AIR unit images.');
         }
 
         $unit->drive_folder_id = $folderId;
@@ -396,6 +404,12 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
                 ]);
             }
 
+            if (! in_array($type, InventoryFileTypes::airImageValues(), true)) {
+                throw ValidationException::withMessages([
+                    'type' => ['Image type is invalid.'],
+                ]);
+            }
+
             return $type;
         }
 
@@ -405,12 +419,8 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
             return InventoryFileTypes::PHOTO;
         }
 
-        if ($mime === 'application/pdf') {
-            return InventoryFileTypes::PDF;
-        }
-
         throw ValidationException::withMessages([
-            'files' => ['Only images and PDFs are supported right now.'],
+            'files' => ['Only image uploads are supported for AIR inspection units.'],
         ]);
     }
 

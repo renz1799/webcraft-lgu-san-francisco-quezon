@@ -3,13 +3,16 @@
 namespace App\Modules\GSO\Services;
 
 use App\Core\Models\Department;
+use App\Core\Models\Tasks\Task;
 use App\Core\Models\User;
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
 use App\Modules\GSO\Builders\Contracts\AirDatatableRowBuilderInterface;
 use App\Modules\GSO\Models\Air;
 use App\Modules\GSO\Models\AirItem;
 use App\Modules\GSO\Models\FundSource;
 use App\Modules\GSO\Repositories\Contracts\AirRepositoryInterface;
+use App\Modules\GSO\Services\Contracts\AccountableOfficerServiceInterface;
 use App\Modules\GSO\Services\Contracts\AirServiceInterface;
 use App\Modules\GSO\Support\AirStatuses;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,6 +25,8 @@ class AirService implements AirServiceInterface
         private readonly AirRepositoryInterface $airs,
         private readonly AuditLogServiceInterface $auditLogs,
         private readonly AirDatatableRowBuilderInterface $datatableRowBuilder,
+        private readonly AccountableOfficerServiceInterface $accountableOfficers,
+        private readonly TaskServiceInterface $tasks,
     ) {}
 
     public function datatable(array $params): array
@@ -124,6 +129,7 @@ class AirService implements AirServiceInterface
 
             $air->fill($payload);
             $air = $this->airs->save($air);
+            $this->ensureSignatoryRecords($actorUserId, $air);
             $after = $this->snapshotAuditFields($air);
 
             $this->auditLogs->record(
@@ -145,6 +151,7 @@ class AirService implements AirServiceInterface
         return DB::transaction(function () use ($actorUserId, $airId) {
             $air = $this->airs->findOrFail($airId, true);
             $this->assertEditableDraft($air);
+            $air = $this->reconcileLegacyFundSource($air);
             $this->assertHeaderComplete($air);
             $this->assertDraftHasItems($air);
             $this->assertDraftItemUnitsValid($air);
@@ -163,6 +170,8 @@ class AirService implements AirServiceInterface
 
             $air->status = AirStatuses::SUBMITTED;
             $air = $this->airs->save($air);
+            $this->ensureSignatoryRecords($actorUserId, $air);
+            $task = $this->syncInspectionTask($actorUserId, $air);
             $after = $this->snapshotAuditFields($air);
 
             $this->auditLogs->record(
@@ -170,7 +179,10 @@ class AirService implements AirServiceInterface
                 subject: $air,
                 changesOld: $before,
                 changesNew: $after,
-                meta: ['actor_user_id' => $actorUserId],
+                meta: array_filter([
+                    'actor_user_id' => $actorUserId,
+                    'task_id' => $task?->id ? (string) $task->id : null,
+                ]),
                 message: 'GSO AIR submitted: ' . $this->airLabel($air),
                 display: $this->buildLifecycleDisplay(
                     summary: 'AIR submitted for next workflow steps',
@@ -266,6 +278,187 @@ class AirService implements AirServiceInterface
 
             $this->airs->forceDelete($air);
         });
+    }
+
+    private function ensureSignatoryRecords(string $actorUserId, Air $air): void
+    {
+        $departmentId = $this->nullableString($air->requesting_department_id);
+        $office = $this->nullableString($air->requesting_department_name_snapshot);
+
+        foreach ([
+            $this->nullableString($air->inspected_by_name),
+            $this->nullableString($air->accepted_by_name),
+        ] as $signatoryName) {
+            if ($signatoryName === null || $this->isPlaceholderSignatoryName($signatoryName)) {
+                continue;
+            }
+
+            $this->accountableOfficers->createOrResolve($actorUserId, [
+                'full_name' => $signatoryName,
+                'department_id' => $departmentId,
+                'office' => $office,
+                'is_active' => true,
+            ]);
+        }
+    }
+
+    private function isPlaceholderSignatoryName(string $value): bool
+    {
+        $normalized = strtoupper(trim($value));
+
+        return in_array($normalized, ['TBD', 'TO BE DETERMINED', 'N/A', '-'], true);
+    }
+
+    private function reconcileLegacyFundSource(Air $air): Air
+    {
+        if ($this->nullableString($air->fund_source_id) !== null) {
+            return $air;
+        }
+
+        $legacyFundValue = $this->nullableString($air->fund);
+
+        if ($legacyFundValue === null) {
+            return $air;
+        }
+
+        $matched = FundSource::query()
+            ->withTrashed()
+            ->where(function (Builder $query) use ($legacyFundValue) {
+                $query->where('name', $legacyFundValue)
+                    ->orWhere('code', $legacyFundValue);
+            })
+            ->orderByRaw('CASE WHEN deleted_at IS NULL AND is_active = 1 THEN 0 ELSE 1 END')
+            ->orderBy('code')
+            ->orderBy('name')
+            ->first();
+
+        if (! $matched) {
+            return $air;
+        }
+
+        $air->fund_source_id = (string) $matched->id;
+        $air->fund = $this->nullableString($matched->name) ?? $legacyFundValue;
+
+        return $this->airs->save($air);
+    }
+
+    private function syncInspectionTask(string $actorUserId, Air $air): ?Task
+    {
+        $taskData = [
+            'eligible_roles' => ['Administrator', 'Staff', 'Inspector'],
+            'air_id' => (string) $air->id,
+            'air_number' => (string) ($air->air_number ?? ''),
+            'po_number' => (string) ($air->po_number ?? ''),
+            'requesting_department_id' => (string) ($air->requesting_department_id ?? ''),
+            'requesting_department_name_snapshot' => (string) ($air->requesting_department_name_snapshot ?? ''),
+            'fund' => $this->resolveFundLabel($air),
+            'subject_url' => $this->inspectionUrl($air),
+        ];
+
+        $title = $this->buildSubmittedTaskTitle($air);
+        $description = $this->buildSubmittedTaskDescription($air);
+        $task = $this->tasks->findLatestBySubject('air', (string) $air->id);
+
+        if (! $task) {
+            $task = $this->tasks->createUnassigned(
+                actorUserId: $actorUserId,
+                title: $title,
+                description: $description,
+                type: 'air_inspection',
+                subjectType: 'air',
+                subjectId: (string) $air->id,
+                data: $taskData,
+            );
+        } else {
+            $task = $this->tasks->syncTaskContext(
+                taskId: (string) $task->id,
+                data: $taskData,
+                assignmentMode: 'clear',
+                assignedToUserId: null,
+                title: $title,
+                description: $description,
+                type: 'air_inspection',
+                mergeData: false,
+            );
+        }
+
+        if ((string) $task->status !== Task::STATUS_PENDING) {
+            $task = $this->tasks->changeStatus(
+                actorUserId: $actorUserId,
+                taskId: (string) $task->id,
+                toStatus: Task::STATUS_PENDING,
+                note: 'AIR draft submitted.',
+            );
+        } else {
+            $this->tasks->recordEvent(
+                actorUserId: $actorUserId,
+                taskId: (string) $task->id,
+                eventType: 'workflow_submitted',
+                note: 'AIR draft submitted.',
+            );
+        }
+
+        return $task;
+    }
+
+    private function buildSubmittedTaskTitle(Air $air): string
+    {
+        $airNumber = trim((string) ($air->air_number ?? ''));
+        $poNumber = trim((string) ($air->po_number ?? ''));
+
+        if ($poNumber !== '') {
+            return "Inspect Purchase Order {$poNumber}";
+        }
+
+        if ($airNumber !== '') {
+            return "Inspect AIR {$airNumber}";
+        }
+
+        return 'Inspect AIR Delivery';
+    }
+
+    private function buildSubmittedTaskDescription(Air $air): string
+    {
+        $details = [];
+
+        $airNumber = trim((string) ($air->air_number ?? ''));
+        if ($airNumber !== '') {
+            $details[] = "AIR No.: {$airNumber}.";
+        }
+
+        $department = trim((string) ($air->requesting_department_name_snapshot ?? ''));
+        if ($department !== '') {
+            $details[] = "Requesting office: {$department}.";
+        }
+
+        $supplier = trim((string) ($air->supplier_name ?? ''));
+        if ($supplier !== '') {
+            $details[] = "Supplier: {$supplier}.";
+        }
+
+        $details[] = 'Review the delivery and complete the inspection details, delivered and accepted quantities, unit records, and photos.';
+
+        return implode(' ', $details);
+    }
+
+    private function resolveFundLabel(Air $air): ?string
+    {
+        $relatedName = trim((string) ($air->fundSource?->name ?? ''));
+
+        if ($relatedName !== '') {
+            return $relatedName;
+        }
+
+        return $this->nullableString($air->fund);
+    }
+
+    private function inspectionUrl(Air $air): string
+    {
+        try {
+            return route('gso.air.inspect', ['air' => $air->id]);
+        } catch (\Throwable) {
+            return '/gso/air/' . (string) $air->id . '/inspect';
+        }
     }
 
     private function resolveDefaultDepartment(?User $actor): ?Department
