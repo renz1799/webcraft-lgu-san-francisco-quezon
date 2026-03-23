@@ -78,8 +78,11 @@ Example:
 Core:
 NotificationDispatcher
 
-Module:
-TaskNotificationService deciding event, recipients, and message.
+Core shared capability:
+TaskNotificationService deciding task-related message payloads and recipients.
+
+Business module:
+InspectionTaskDispatchService deciding when a GSO workflow should create or escalate work.
 
 Core provides transport.
 Modules provide scenarios.
@@ -148,10 +151,27 @@ route('tasks.show',$id)
 
 Good:
 
-Module or UI-facing Builder builds URL.
+UI-facing Builder or shared capability layer builds URL.
 Core receives URL as data when needed.
 
 Core should treat URLs as payload only.
+
+## Shared Capability Rule
+
+Some services belong in Core even though they are user-facing, because they provide cross-cutting platform capabilities rather than governance.
+
+Examples:
+
+Tasks
+Notifications
+
+These services may remain under Core if they are:
+
+used by multiple modules
+not a business domain of their own
+module-aware through relational ownership such as `module_id`
+
+When this happens, business modules should decide when to invoke the capability, while Core-owned services provide the engine.
 
 ---
 

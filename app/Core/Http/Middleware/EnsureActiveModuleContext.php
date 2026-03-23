@@ -34,7 +34,11 @@ class EnsureActiveModuleContext
             return $next($request);
         }
 
-        $accessibleModules = $this->moduleAccess->accessibleModulesForUser($user);
+        $accessibleModules = $this->moduleAccess->switchableModulesForUser($user);
+
+        if ($accessibleModules->isEmpty()) {
+            $accessibleModules = $this->moduleAccess->accessibleModulesForUser($user);
+        }
 
         if ($accessibleModules->isEmpty()) {
             abort(403, 'No active module access is available for this account.');

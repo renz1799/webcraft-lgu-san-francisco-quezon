@@ -91,7 +91,7 @@ platform support services
 
 Simple test:
 
-If a module such as DTS, GSO, or Tasks is removed, would this still exist?
+If a business module such as DTS or GSO is removed, would this still exist?
 
 If yes:
 
@@ -120,10 +120,11 @@ Examples:
 
 DTS
 GSO
-Tasks
 HR
 Procurement
 Inventory
+
+Shared cross-cutting features such as Tasks do not belong in this list. They are Core-owned shared capabilities, not business modules.
 
 Simple test:
 
@@ -163,6 +164,14 @@ Core owns platform capabilities.
 
 Modules own business logic.
 
+Shared platform capabilities are Core-owned features that are used by multiple modules without becoming Core admin tools.
+
+Examples:
+
+Tasks
+Notifications
+future dashboard widgets
+
 Never mix these responsibilities.
 
 ## Folder Structure Standard
@@ -173,19 +182,24 @@ Target platform structure should follow this direction:
 app/
   Core/
     Builders/
+      Tasks/
     Services/
+      Tasks/
     Providers/
     Repositories/
+      Tasks/
     Support/
+    Http/
+      Controllers/
+        Tasks/
+      Requests/
+        Tasks/
+    Models/
+      Tasks/
+    Policies/
+      Tasks/
 
   Modules/
-    Tasks/
-      Builders/
-      Services/
-      Providers/
-      Repositories/
-      Policies/
-
     DTS/
       Builders/
       Services/
@@ -206,7 +220,7 @@ If code becomes reusable across modules, move it from Modules to Core.
 
 Example:
 
-TaskNotificationService -> Module concern
+TaskNotificationService -> shared Core capability concern
 NotificationService -> Core concern
 
 ## Architecture Drift Warning Signs
@@ -217,7 +231,7 @@ Core references a module
 Core contains business workflow logic
 module logic appears in Core
 module wording appears in Core services
-Core services start knowing about DTS, GSO, Tasks, or other business modules
+Core services start knowing about DTS, GSO, HR, or other business modules
 
 If this happens:
 
@@ -230,6 +244,17 @@ Core is the platform engine.
 Modules are applications running on the platform.
 
 Core must remain stable even if modules change.
+
+Use this mental model:
+
+Core asks:
+Does this person exist?
+
+Module asks:
+Can this person work here?
+
+Tasks asks:
+What work must this person do?
 
 ## Golden Rule
 
@@ -264,13 +289,16 @@ shared Core platform services
 Conceptually:
 
 Platform Layer
--> Core
+-> Core Admin
+-> Shared Platform Capabilities
 
 Application Layer
 -> DTS
 -> GSO
--> Tasks
 -> future modules
+
+Shared capability example:
+-> Tasks
 
 Core must remain stable while modules evolve inside each LGU deployment.
 

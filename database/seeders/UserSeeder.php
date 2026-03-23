@@ -18,7 +18,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            $moduleCodes = ['TASKS', 'GSO'];
+            $moduleCodes = ['GSO'];
 
             $modules = Module::query()
                 ->whereIn('code', $moduleCodes)
@@ -29,7 +29,7 @@ class UserSeeder extends Seeder
                 throw new \RuntimeException('UserSeeder: required modules not found. Run ModuleSeeder first.');
             }
 
-            $primaryModule = $modules->get('TASKS') ?? $modules->first();
+            $primaryModule = $modules->first();
             $primaryDepartmentId = (string) ($primaryModule?->default_department_id ?? '');
 
             if ($primaryDepartmentId === '') {
@@ -139,9 +139,9 @@ class UserSeeder extends Seeder
                 [
                     'user_id' => $user->id,
                     'module_id' => $module->id,
-                    'department_id' => $module->default_department_id,
                 ],
                 [
+                    'department_id' => $module->default_department_id,
                     'is_active' => true,
                     'granted_at' => now(),
                     'revoked_at' => null,

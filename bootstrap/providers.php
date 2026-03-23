@@ -6,6 +6,6 @@ return [
     App\Core\Providers\ViewServiceProvider::class,
     App\Core\Providers\CoreServiceProvider::class,
     App\Modules\GSO\Providers\GsoServiceProvider::class,
-    App\Modules\Tasks\Providers\TasksServiceProvider::class,
+    App\Core\Providers\TasksServiceProvider::class,
     Spatie\Permission\PermissionServiceProvider::class,
 ];

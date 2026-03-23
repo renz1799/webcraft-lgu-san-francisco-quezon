@@ -20,7 +20,7 @@ Rule: never merge Core changes directly into GSO `main` locally. Always land the
 - Core (`Webcraft-Core-System`) is the source of truth for shared architecture, contracts, and generic service behavior.
 - GSO must not keep long-lived forks of Core-owned/shared primitives.
 - If GSO needs a new behavior, implement it in Core first in a generic way, then sync it down to GSO.
-- During conflict resolution for Core-owned/shared primitives (for example `app/Core/Services/Contracts/**`, `app/Modules/Tasks/**`, `app/Core/Repositories/Contracts/**`), prefer Core-side changes and refactor module code to match.
+- During conflict resolution for Core-owned/shared primitives (for example `app/Core/Services/Contracts/**`, `app/Core/Services/Tasks/**`, `app/Core/Repositories/Contracts/**`), prefer Core-side changes and refactor module code to match.
 - Temporary direct edits in GSO Core-owned files are exception-only and must include `allow-core-touch` plus a follow-up re-alignment plan.
 
 ## Automation Flow

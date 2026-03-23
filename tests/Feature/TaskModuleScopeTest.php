@@ -2,20 +2,22 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Tasks\Builders\TaskAdminStatsBuilder;
-use App\Modules\Tasks\Builders\TaskDatatableRowBuilder;
-use App\Modules\Tasks\Builders\TaskReassignmentNoteBuilder;
-use App\Core\Builders\User\UserTaskReassignOptionBuilder;
+use App\Core\Builders\Tasks\TaskAdminStatsBuilder;
+use App\Core\Builders\Tasks\TaskDatatableRowBuilder;
+use App\Core\Builders\Tasks\TaskReassignmentNoteBuilder;
+use App\Core\Builders\Tasks\UserTaskReassignOptionBuilder;
+use App\Core\Models\Module;
 use App\Core\Models\Notification;
-use App\Modules\Tasks\Models\Task;
+use App\Core\Models\Tasks\Task;
 use App\Core\Models\User;
 use App\Core\Models\UserProfile;
 use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
-use App\Modules\Tasks\Policies\TaskPolicy;
-use App\Modules\Tasks\Services\Contracts\TaskNotificationServiceInterface;
-use App\Modules\Tasks\Services\TaskReadService;
-use App\Modules\Tasks\Services\TaskService;
-use App\Modules\Tasks\Services\TaskShowActionProvider;
+use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
+use App\Core\Policies\Tasks\TaskPolicy;
+use App\Core\Services\Tasks\Contracts\TaskNotificationServiceInterface;
+use App\Core\Services\Tasks\TaskReadService;
+use App\Core\Services\Tasks\TaskService;
+use App\Core\Services\Tasks\TaskShowActionProvider;
 use App\Core\Support\CurrentContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Schema\Blueprint;
@@ -73,8 +75,8 @@ class TaskModuleScopeTest extends TestCase
             ->andReturn(new Notification());
 
         $service = new TaskService(
-            app(\App\Modules\Tasks\Repositories\Contracts\TaskRepositoryInterface::class),
-            app(\App\Modules\Tasks\Repositories\Contracts\TaskEventRepositoryInterface::class),
+            app(\App\Core\Repositories\Tasks\Contracts\TaskRepositoryInterface::class),
+            app(\App\Core\Repositories\Tasks\Contracts\TaskEventRepositoryInterface::class),
             app(\App\Core\Repositories\Contracts\UserRepositoryInterface::class),
             $notifications,
             $context,
@@ -104,8 +106,29 @@ class TaskModuleScopeTest extends TestCase
         $this->assertDatabaseCount('task_events', 2);
     }
 
-    public function test_task_reads_are_scoped_to_the_current_module(): void
+    public function test_task_reads_are_scoped_to_accessible_owner_modules(): void
     {
+        \DB::table('modules')->insert([
+            [
+                'id' => 'module-1',
+                'code' => 'GSO',
+                'name' => 'General Services Office',
+                'type' => 'business',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 'module-2',
+                'code' => 'DTS',
+                'name' => 'Document Tracking System',
+                'type' => 'business',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
         $actor = $this->createUserWithModule('user-actor', 'module-1', 'department-1', 'Actor User');
 
         $currentTask = Task::query()->create([
@@ -128,16 +151,33 @@ class TaskModuleScopeTest extends TestCase
             'data' => [],
         ]);
 
-        $context = Mockery::mock(CurrentContext::class);
-        $context->shouldReceive('moduleId')->andReturn('module-1');
-        app()->instance(CurrentContext::class, $context);
+        $moduleAccess = Mockery::mock(ModuleAccessServiceInterface::class);
+        $accessibleModule = new Module([
+            'code' => 'GSO',
+            'name' => 'General Services Office',
+            'type' => 'business',
+            'is_active' => true,
+        ]);
+        $accessibleModule->id = 'module-1';
+        $moduleAccess->shouldReceive('accessibleModulesForUser')
+            ->andReturn(collect([
+                $accessibleModule,
+            ]));
+
+        $users = Mockery::mock(\App\Core\Repositories\Contracts\UserRepositoryInterface::class);
+        $users->shouldReceive('getRoleNamesInModule')
+            ->withArgs(function (User $actor, string $moduleId): bool {
+                return (string) $actor->id !== '' && $moduleId === 'module-1';
+            })
+            ->andReturn([]);
+        app()->instance(\App\Core\Repositories\Contracts\UserRepositoryInterface::class, $users);
 
         $readService = new TaskReadService(
-            app(\App\Modules\Tasks\Repositories\Contracts\TaskRepositoryInterface::class),
-            app(\App\Modules\Tasks\Repositories\Contracts\TaskEventRepositoryInterface::class),
-            app(\App\Core\Repositories\Contracts\UserRepositoryInterface::class),
+            app(\App\Core\Repositories\Tasks\Contracts\TaskRepositoryInterface::class),
+            app(\App\Core\Repositories\Tasks\Contracts\TaskEventRepositoryInterface::class),
+            $users,
+            $moduleAccess,
             new TaskPolicy(),
-            $context,
             new TaskDatatableRowBuilder(),
             new TaskAdminStatsBuilder(),
             new TaskShowActionProvider(),
@@ -155,9 +195,10 @@ class TaskModuleScopeTest extends TestCase
         $this->assertSame(1, $payload['total']);
         $this->assertCount(1, $payload['data']);
         $this->assertSame((string) $currentTask->id, $payload['data'][0]['id']);
+        $this->assertSame('GSO', $payload['data'][0]['owner_module_code']);
 
         $this->expectException(ModelNotFoundException::class);
-        $readService->findOrFail((string) $otherTask->id);
+        $readService->findAccessibleOrFail($actorWithPermissions, (string) $otherTask->id);
     }
 
     private function setUpSchema(): void
@@ -200,6 +241,16 @@ class TaskModuleScopeTest extends TestCase
             $table->boolean('is_active')->default(true);
             $table->timestamp('granted_at')->nullable();
             $table->timestamp('revoked_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('modules', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('code')->unique();
+            $table->string('name');
+            $table->string('type')->nullable();
+            $table->uuid('default_department_id')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
 

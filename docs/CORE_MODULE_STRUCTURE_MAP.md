@@ -17,7 +17,7 @@ app/
 
 This is a placement and ownership guide.
 
-Core and the Tasks module already follow this baseline.
+Core and the current business modules should follow this baseline.
 
 Future modules should mirror the same structure instead of reintroducing top-level drift.
 
@@ -35,48 +35,43 @@ Target shape:
 app/
   Core/
     Builders/
+      Tasks/
+        Contracts/
     Data/
     Http/
       Controllers/
+        Tasks/
       Requests/
+        Tasks/
       Middleware/
       View/
     Models/
+      Tasks/
     Policies/
+      Tasks/
     Providers/
     Repositories/
+      Tasks/
       Contracts/
       Eloquent/
     Services/
+      Tasks/
       Contracts/
     Support/
 
   Modules/
-    Tasks/
-      Builders/
-        Contracts/
-      Http/
-        Controllers/
-        Requests/
-      Models/
-      Policies/
-      Repositories/
-        Contracts/
-        Eloquent/
-      Services/
-        Contracts/
+    DTS/
+    GSO/
 
 resources/
   core/
     js/
+      tasks/
     views/
-  modules/
-    tasks/
-      js/
-      views/
+      tasks/
 ```
 
-This structure keeps platform concerns and business concerns visibly separate.
+This structure keeps platform concerns, shared capabilities, and business concerns visibly separate.
 
 ---
 
@@ -387,61 +382,58 @@ These remain Core because user administration is treated as a platform concern.
 
 ---
 
-# Module Target Map
+# Shared Capability Target Map
 
-## Tasks Module
+## Tasks Shared Capability
 
 Move to:
 
 ```text
-app/Modules/Tasks/
-  Builders/
-    Contracts/
-  Http/
-    Controllers/
-    Requests/
-  Models/
-  Policies/
-  Repositories/
-    Contracts/
-    Eloquent/
-  Services/
-    Contracts/
+app/Core/Builders/Tasks/
+  Contracts/
+app/Core/Http/Controllers/Tasks/
+app/Core/Http/Requests/Tasks/
+app/Core/Models/Tasks/
+app/Core/Policies/Tasks/
+app/Core/Repositories/Tasks/
+  Contracts/
+  Eloquent/
+app/Core/Services/Tasks/
+  Contracts/
 
-resources/modules/tasks/
-  js/
-  views/
+resources/core/js/tasks/
+resources/core/views/tasks/
 ```
 
 Current candidates:
 
-`app/Modules/Tasks/Services/TaskService.php`
-`app/Modules/Tasks/Services/TaskReadService.php`
-`app/Modules/Tasks/Services/TaskNotificationService.php`
-`app/Modules/Tasks/Services/TaskTimelineService.php`
-`app/Modules/Tasks/Services/TaskShowActionProvider.php`
-`app/Modules/Tasks/Services/Contracts/*`
-`app/Modules/Tasks/Builders/TaskAdminStatsBuilder.php`
-`app/Modules/Tasks/Builders/TaskDatatableRowBuilder.php`
-`app/Modules/Tasks/Builders/TaskNotificationPayloadBuilder.php`
-`app/Modules/Tasks/Builders/TaskReassignmentNoteBuilder.php`
-`app/Modules/Tasks/Builders/TaskTimelineContextMetaBuilder.php`
-`app/Modules/Tasks/Builders/Contracts/*`
-`app/Modules/Tasks/Repositories/Contracts/TaskRepositoryInterface.php`
-`app/Modules/Tasks/Repositories/Contracts/TaskEventRepositoryInterface.php`
-`app/Modules/Tasks/Repositories/Eloquent/EloquentTaskRepository.php`
-`app/Modules/Tasks/Repositories/Eloquent/EloquentTaskEventRepository.php`
-`app/Modules/Tasks/Models/Task.php`
-`app/Modules/Tasks/Models/TaskEvent.php`
-`app/Modules/Tasks/Policies/TaskPolicy.php`
-`app/Modules/Tasks/Http/Controllers/TaskController.php`
-`app/Modules/Tasks/Http/Controllers/TaskActionController.php`
-`app/Modules/Tasks/Http/Requests/*`
-`resources/modules/tasks/views/index.blade.php`
-`resources/modules/tasks/views/show.blade.php`
-`resources/modules/tasks/js/*`
+`app/Core/Services/Tasks/TaskService.php`
+`app/Core/Services/Tasks/TaskReadService.php`
+`app/Core/Services/Tasks/TaskNotificationService.php`
+`app/Core/Services/Tasks/TaskTimelineService.php`
+`app/Core/Services/Tasks/TaskShowActionProvider.php`
+`app/Core/Services/Tasks/Contracts/*`
+`app/Core/Builders/Tasks/TaskAdminStatsBuilder.php`
+`app/Core/Builders/Tasks/TaskDatatableRowBuilder.php`
+`app/Core/Builders/Tasks/TaskNotificationPayloadBuilder.php`
+`app/Core/Builders/Tasks/TaskReassignmentNoteBuilder.php`
+`app/Core/Builders/Tasks/TaskTimelineContextMetaBuilder.php`
+`app/Core/Builders/Tasks/Contracts/*`
+`app/Core/Repositories/Tasks/Contracts/TaskRepositoryInterface.php`
+`app/Core/Repositories/Tasks/Contracts/TaskEventRepositoryInterface.php`
+`app/Core/Repositories/Tasks/Eloquent/EloquentTaskRepository.php`
+`app/Core/Repositories/Tasks/Eloquent/EloquentTaskEventRepository.php`
+`app/Core/Models/Tasks/Task.php`
+`app/Core/Models/Tasks/TaskEvent.php`
+`app/Core/Policies/Tasks/TaskPolicy.php`
+`app/Core/Http/Controllers/Tasks/TaskController.php`
+`app/Core/Http/Controllers/Tasks/TaskActionController.php`
+`app/Core/Http/Requests/Tasks/*`
+`resources/core/views/tasks/index.blade.php`
+`resources/core/views/tasks/show.blade.php`
+`resources/core/js/tasks/*`
 
-`UserTaskReassignOptionBuilder` should move with Tasks even though it currently lives under `Builders/User`.
+`UserTaskReassignOptionBuilder` now lives with the Tasks shared capability under `app/Core/Builders/Tasks/`.
 
 ## Core Resource Shell
 

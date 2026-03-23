@@ -17,14 +17,12 @@ use App\Core\Repositories\Eloquent\EloquentUserRepository;
 // Builders
 use App\Core\Builders\Contracts\User\UserDatatableActionBuilderInterface;
 use App\Core\Builders\Contracts\User\UserDatatableRowBuilderInterface;
-use App\Core\Builders\Contracts\User\UserTaskReassignOptionBuilderInterface;
 use App\Core\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
 use App\Core\Builders\Contracts\Access\RoleAuditDisplayBuilderInterface;
 use App\Core\Builders\Contracts\GoogleDrive\GoogleDriveFileMetadataBuilderInterface;
 use App\Core\Builders\Contracts\GoogleDrive\GoogleDriveFolderNameSanitizerInterface;
 use App\Core\Builders\User\UserDatatableActionBuilder;
 use App\Core\Builders\User\UserDatatableRowBuilder;
-use App\Core\Builders\User\UserTaskReassignOptionBuilder;
 use App\Core\Builders\Access\PermissionAuditDisplayBuilder;
 use App\Core\Builders\Access\RoleAuditDisplayBuilder;
 use App\Core\Builders\GoogleDrive\GoogleDriveFileMetadataBuilder;
@@ -232,7 +230,6 @@ class CoreServiceProvider extends ServiceProvider
             // Users
             UserDatatableRowBuilderInterface::class => UserDatatableRowBuilder::class,
             UserDatatableActionBuilderInterface::class => UserDatatableActionBuilder::class,
-            UserTaskReassignOptionBuilderInterface::class => UserTaskReassignOptionBuilder::class,
 
             // Google Drive
             GoogleDriveFileMetadataBuilderInterface::class => GoogleDriveFileMetadataBuilder::class,

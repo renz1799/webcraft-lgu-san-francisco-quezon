@@ -16,6 +16,8 @@ interface ModuleAccessServiceInterface
 
     public function accessibleModulesForUser(User $user): Collection;
 
+    public function switchableModulesForUser(User $user): Collection;
+
     public function findActiveModuleByCode(string $moduleCode): ?Module;
 
     public function rememberActiveModule(Module|string $module): void;

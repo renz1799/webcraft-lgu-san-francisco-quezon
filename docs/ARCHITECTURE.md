@@ -130,6 +130,14 @@ Core owns platform capabilities.
 
 Modules own business behavior.
 
+Shared platform capabilities are Core-owned features used by all modules without becoming Core admin tools.
+
+Examples:
+
+Tasks
+Notifications
+future shared workflow engines
+
 Do not mix these responsibilities.
 
 ## Structural Direction
@@ -139,13 +147,47 @@ Target structure should follow this direction:
 ```text
 app/
   Core/
+    Builders/
+    Data/
+    Http/
+    Models/
+    Policies/
+    Providers/
+    Repositories/
+    Services/
+    Support/
   Modules/
-    Tasks/
     DTS/
     GSO/
 ```
 
 Concern folders such as Services, Builders, Providers, Repositories, and Policies should live under the owning side of that boundary.
+
+Tasks is no longer modeled as a business module. It is a Core-owned shared workflow capability, so its code belongs under Core while its records still carry `module_id` to indicate the owning business workflow context.
+
+## Platform Layers
+
+The platform now has three architectural layers:
+
+Core Admin
+platform governance and oversight
+
+Business Modules
+department workflows and domain records
+
+Shared Platform Capabilities
+cross-cutting features such as Tasks that are Core-owned but used across modules
+
+## Platform Mental Model
+
+Core asks:
+Does this person exist?
+
+Module asks:
+Can this person work here?
+
+Tasks asks:
+What work must this person do?
 
 ---
 

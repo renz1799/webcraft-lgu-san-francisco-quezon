@@ -57,6 +57,16 @@ Modules answer:
 
 WHEN something happens.
 
+Shared platform capabilities live in Core when they are reusable across modules but are not platform governance tools.
+
+Example:
+
+Core shared capability:
+Tasks engine
+
+Business module behavior:
+GSO deciding when an AIR inspection should create or update a task
+
 ---
 
 # Principle 2: Generic Before Specific
@@ -72,8 +82,11 @@ Example:
 Core:
 NotificationDispatcher
 
-Module:
+Core shared capability:
 TaskNotificationService
+
+Module:
+InspectionTaskDispatchService deciding when a module workflow should create work
 
 Do not move domain behavior into Core.
 

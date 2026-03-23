@@ -145,7 +145,11 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     public function getUserIdsByRoles(array $roleNames): array
     {
-        $moduleId = $this->requireModuleId();
+        return $this->getUserIdsByRolesInModule($roleNames, $this->requireModuleId());
+    }
+
+    public function getUserIdsByRolesInModule(array $roleNames, string $moduleId): array
+    {
         $requestedRoleNames = array_values(array_unique(array_filter(
             array_map(static fn ($roleName) => trim((string) $roleName), $roleNames)
         )));
@@ -199,6 +203,33 @@ class EloquentUserRepository implements UserRepositoryInterface
             ->pluck('users.id')
             ->map(fn ($id) => (string) $id)
             ->filter()
+            ->values()
+            ->all();
+    }
+
+    public function getRoleNamesInModule(User $user, string $moduleId): array
+    {
+        $moduleId = trim($moduleId);
+
+        if ($moduleId === '') {
+            return [];
+        }
+
+        return Role::query()
+            ->select('roles.name')
+            ->join('model_has_roles', function ($join) use ($user, $moduleId) {
+                $join->on('model_has_roles.role_id', '=', 'roles.id')
+                    ->where('model_has_roles.model_type', '=', User::class)
+                    ->where('model_has_roles.model_id', '=', $user->id)
+                    ->where('model_has_roles.module_id', '=', $moduleId);
+            })
+            ->where('roles.module_id', $moduleId)
+            ->where('roles.guard_name', 'web')
+            ->whereNull('roles.deleted_at')
+            ->pluck('roles.name')
+            ->map(fn ($name) => (string) $name)
+            ->filter()
+            ->unique()
             ->values()
             ->all();
     }

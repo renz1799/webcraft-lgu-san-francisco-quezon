@@ -41,12 +41,14 @@ class ModuleAccessServiceCoreContextTest extends TestCase
     {
         $user = $this->createUser('admin-user', 'Admin');
         $this->attachUserModule($user, 'module-gso');
+        $this->attachUserModule($user, 'module-tasks');
 
         $service = $this->makeService();
 
         $modules = $service->accessibleModulesForUser($user);
 
-        $this->assertSame(['CORE', 'GSO'], $modules->pluck('code')->all());
+        $this->assertSame(['CORE', 'GSO', 'TASKS'], $modules->pluck('code')->all());
+        $this->assertSame(['CORE', 'GSO'], $service->switchableModulesForUser($user)->pluck('code')->all());
     }
 
     public function test_has_active_module_access_grants_core_to_platform_admin_users(): void
@@ -73,6 +75,13 @@ class ModuleAccessServiceCoreContextTest extends TestCase
         $service = $this->makeService();
 
         $this->assertSame(route('access.users.index'), $service->homePathForModule('CORE'));
+    }
+
+    public function test_legacy_tasks_shared_capability_still_resolves_to_tasks_home_route(): void
+    {
+        $service = $this->makeService();
+
+        $this->assertSame(route('tasks.index'), $service->homePathForModule('TASKS'));
     }
 
     private function makeService(): ModuleAccessService
@@ -132,6 +141,16 @@ class ModuleAccessServiceCoreContextTest extends TestCase
                 'updated_at' => now(),
             ],
             [
+                'id' => 'module-tasks',
+                'code' => 'TASKS',
+                'name' => 'Tasks',
+                'type' => 'support',
+                'default_department_id' => null,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
                 'id' => 'module-gso',
                 'code' => 'GSO',
                 'name' => 'General Services Office',
@@ -148,6 +167,10 @@ class ModuleAccessServiceCoreContextTest extends TestCase
     {
         if (! Route::has('access.users.index')) {
             Route::get('/users', fn () => 'ok')->name('access.users.index');
+        }
+
+        if (! Route::has('tasks.index')) {
+            Route::get('/tasks', fn () => 'ok')->name('tasks.index');
         }
     }
 

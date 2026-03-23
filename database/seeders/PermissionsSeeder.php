@@ -13,9 +13,10 @@ class PermissionsSeeder extends Seeder
     public function run(): void
     {
         $permissionsByModule = [
-            'TASKS' => [
-                ['name' => 'view Tasks', 'page' => 'Manage Tasks'],
-                ['name' => 'modify Reassign Tasks', 'page' => 'Manage Tasks'],
+            'CORE' => [
+                ['name' => 'view Tasks', 'page' => 'Shared Tasks'],
+                ['name' => 'view All Tasks', 'page' => 'Shared Tasks'],
+                ['name' => 'modify Reassign Tasks', 'page' => 'Shared Tasks'],
             ],
             'GSO' => [
                 ['name' => 'view Asset Types', 'page' => 'GSO Reference Data'],

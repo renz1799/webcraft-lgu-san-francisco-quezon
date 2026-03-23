@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Tasks\Http\Requests\ReassignTaskRequest;
-use App\Modules\Tasks\Http\Requests\StoreTaskRequest;
-use App\Modules\Tasks\Http\Requests\TaskTableDataRequest;
+use App\Core\Http\Requests\Tasks\ReassignTaskRequest;
+use App\Core\Http\Requests\Tasks\StoreTaskRequest;
+use App\Core\Http\Requests\Tasks\TaskTableDataRequest;
+use App\Core\Models\Tasks\Task;
 use App\Core\Models\User;
 use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
@@ -46,6 +47,28 @@ class TaskRequestValidationTest extends TestCase
             $table->timestamp('granted_at')->nullable();
             $table->timestamp('revoked_at')->nullable();
             $table->timestamps();
+        });
+
+        Schema::create('tasks', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('module_id')->nullable();
+            $table->uuid('department_id')->nullable();
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->string('type')->nullable();
+            $table->string('status')->default('pending');
+            $table->unsignedTinyInteger('priority')->default(0);
+            $table->uuid('created_by_user_id');
+            $table->uuid('assigned_to_user_id')->nullable();
+            $table->string('subject_type')->nullable();
+            $table->uuid('subject_id')->nullable();
+            $table->timestamp('due_at')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->timestamp('cancelled_at')->nullable();
+            $table->json('data')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -92,6 +115,7 @@ class TaskRequestValidationTest extends TestCase
     {
         $inModule = $this->createUserWithModule('user-1', 'module-1');
         $outOfModule = $this->createUserWithModule('user-2', 'module-2');
+        $this->createTask('task-1', 'module-1', $inModule->id);
 
         $context = Mockery::mock(CurrentContext::class);
         $context->shouldReceive('moduleId')->andReturn('module-1');
@@ -102,6 +126,17 @@ class TaskRequestValidationTest extends TestCase
         ]);
         $request->setContainer($this->app);
         $request->setUserResolver(fn () => $this->mockActor($inModule, ['Staff'], ['modify Reassign Tasks']));
+        $request->setRouteResolver(function () {
+            $route = Mockery::mock();
+            $route->shouldReceive('parameter')
+                ->with('id', null)
+                ->andReturn('task-1');
+            $route->shouldReceive('parameter')
+                ->with('task', null)
+                ->andReturn(null);
+
+            return $route;
+        });
 
         $this->assertTrue($request->authorize());
         $this->assertFalse(Validator::make($request->all(), $request->rules())->passes());
@@ -168,6 +203,20 @@ class TaskRequestValidationTest extends TestCase
         ]);
 
         return $user;
+    }
+
+    private function createTask(string $id, string $moduleId, string $createdByUserId): void
+    {
+        Task::query()->create([
+            'id' => $id,
+            'module_id' => $moduleId,
+            'department_id' => null,
+            'title' => 'Task for validation',
+            'status' => Task::STATUS_PENDING,
+            'created_by_user_id' => $createdByUserId,
+            'assigned_to_user_id' => null,
+            'data' => [],
+        ]);
     }
 
     private function mockActor(User $user, array $roles = [], array $permissions = []): User

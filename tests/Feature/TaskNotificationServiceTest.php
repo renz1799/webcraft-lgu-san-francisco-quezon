@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Tasks\Builders\TaskNotificationPayloadBuilder;
+use App\Core\Builders\Tasks\TaskNotificationPayloadBuilder;
 use App\Core\Models\Notification;
-use App\Modules\Tasks\Models\Task;
-use App\Modules\Tasks\Repositories\Contracts\TaskEventRepositoryInterface;
+use App\Core\Models\Tasks\Task;
+use App\Core\Repositories\Tasks\Contracts\TaskEventRepositoryInterface;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
 use App\Core\Services\Contracts\Notifications\NotificationServiceInterface;
-use App\Modules\Tasks\Services\TaskNotificationService;
+use App\Core\Services\Tasks\TaskNotificationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
 use Mockery;
@@ -108,9 +108,9 @@ class TaskNotificationServiceTest extends TestCase
                 (object) ['actor_user_id' => 'assignee-2'],
             ]));
 
-        $users->shouldReceive('getUserIdsByRoles')
+        $users->shouldReceive('getUserIdsByRolesInModule')
             ->once()
-            ->with(['Administrator', 'admin'])
+            ->with(['Administrator', 'admin'], 'module-1')
             ->andReturn(['admin-1']);
 
         $notifications->shouldReceive('notifyUsers')

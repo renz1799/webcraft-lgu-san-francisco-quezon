@@ -32,4 +32,8 @@ interface UserRepositoryInterface
     public function getActiveUsersForModule(string $moduleId): Collection;
 
     public function getUserIdsByRoles(array $roleNames): array;
+
+    public function getUserIdsByRolesInModule(array $roleNames, string $moduleId): array;
+
+    public function getRoleNamesInModule(User $user, string $moduleId): array;
 }

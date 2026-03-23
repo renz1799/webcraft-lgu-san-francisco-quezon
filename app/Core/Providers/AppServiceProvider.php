@@ -74,7 +74,7 @@ class AppServiceProvider extends ServiceProvider
 
             if ($user && $this->platformModuleTablesAvailable()) {
                 $accessibleModules = app(ModuleAccessServiceInterface::class)
-                    ->accessibleModulesForUser($user);
+                    ->switchableModulesForUser($user);
             }
 
             $themeStyle = $user

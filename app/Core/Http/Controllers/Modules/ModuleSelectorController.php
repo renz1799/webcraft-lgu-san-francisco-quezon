@@ -16,7 +16,11 @@ class ModuleSelectorController extends Controller
 
     public function index(Request $request): View|RedirectResponse
     {
-        $modules = $this->moduleAccess->accessibleModulesForUser($request->user());
+        $modules = $this->moduleAccess->switchableModulesForUser($request->user());
+
+        if ($modules->isEmpty()) {
+            return redirect()->to($this->moduleAccess->postLoginRedirectPathForUser($request->user()));
+        }
 
         if ($modules->count() === 1) {
             $module = $modules->first();

@@ -26,12 +26,15 @@
   $adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class);
   $moduleLinks = $accessibleModules ?? collect();
   $currentModuleCode = strtoupper((string) ($currentModule->code ?? ''));
+  $currentRouteName = (string) (request()->route()?->getName() ?? '');
+  $isSharedCapabilityRoute = collect((array) config('modules.shared_capability_route_names', []))
+      ->contains(fn ($pattern) => is_string($pattern) && $pattern !== '' && \Illuminate\Support\Str::is($pattern, $currentRouteName));
   $hasCurrentModuleAccess = $currentModuleCode !== ''
       && $moduleLinks->contains(fn ($module) => strtoupper((string) $module->code) === $currentModuleCode);
   $moduleSidebarView = null;
-  $showCoreAdminSection = ! $adminRoutes->isModuleScoped();
+  $showCoreAdminSection = ! $adminRoutes->isModuleScoped() && ! $isSharedCapabilityRoute;
 
-  if ($hasCurrentModuleAccess) {
+  if ($hasCurrentModuleAccess && ! $isSharedCapabilityRoute) {
       $candidateView = strtolower($currentModuleCode) . '::layouts.components.sidebar-menu';
       $moduleSidebarView = view()->exists($candidateView) ? $candidateView : null;
   }
@@ -42,6 +45,8 @@
       'moduleLinks' => $moduleLinks,
       'currentModule' => $currentModule,
   ])
+
+  @include('layouts.components.sidebar.sections.shared')
 
   @if($moduleSidebarView)
     @include($moduleSidebarView)

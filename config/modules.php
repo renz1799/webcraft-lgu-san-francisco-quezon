@@ -9,13 +9,6 @@ return [
             'type' => 'platform',
             'home_route' => 'access.users.index',
         ],
-        'TASKS' => [
-            'code' => 'TASKS',
-            'name' => 'Tasks',
-            'description' => 'Cross-module work queue and task orchestration.',
-            'type' => 'support',
-            'home_route' => 'tasks.index',
-        ],
         'GSO' => [
             'code' => 'GSO',
             'name' => 'General Services Office',
@@ -35,6 +28,18 @@ return [
         'password.*',
         'sign-up',
         'register.*',
+    ],
+
+    'shared_capability_codes' => [
+        'TASKS',
+    ],
+
+    'shared_capability_home_routes' => [
+        'TASKS' => 'tasks.index',
+    ],
+
+    'shared_capability_route_names' => [
+        'tasks.*',
     ],
 
     'department_defaults' => [

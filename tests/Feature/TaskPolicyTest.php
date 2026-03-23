@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Tasks\Models\Task;
+use App\Core\Models\Tasks\Task;
 use App\Core\Models\User;
-use App\Modules\Tasks\Policies\TaskPolicy;
+use App\Core\Policies\Tasks\TaskPolicy;
+use App\Core\Repositories\Contracts\UserRepositoryInterface;
 use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Collection;
@@ -89,13 +90,44 @@ class TaskPolicyTest extends TestCase
             'data' => [],
         ]);
 
-        $context = Mockery::mock(CurrentContext::class);
-        $context->shouldReceive('moduleId')->andReturn('module-1');
-        app()->instance(CurrentContext::class, $context);
+        $users = Mockery::mock(UserRepositoryInterface::class);
+        $users->shouldReceive('getRoleNamesInModule')
+            ->andReturn([]);
+        app()->instance(UserRepositoryInterface::class, $users);
 
         $actor = $this->mockActor($user, roles: ['Staff']);
 
         $this->assertFalse((new TaskPolicy())->view($actor, $task));
+    }
+
+    public function test_view_uses_task_owner_module_access_instead_of_the_switched_module(): void
+    {
+        $user = $this->createUserWithModule('user-1', 'module-2');
+
+        $task = new Task([
+            'id' => 'task-1',
+            'module_id' => 'module-2',
+            'created_by_user_id' => 'user-2',
+            'assigned_to_user_id' => null,
+            'status' => Task::STATUS_PENDING,
+            'data' => [],
+        ]);
+
+        $context = Mockery::mock(CurrentContext::class);
+        $context->shouldReceive('moduleId')->andReturn('module-1');
+        app()->instance(CurrentContext::class, $context);
+
+        $users = Mockery::mock(UserRepositoryInterface::class);
+        $users->shouldReceive('getRoleNamesInModule')
+            ->withArgs(function (User $actor, string $moduleId): bool {
+                return (string) $actor->id === 'user-1' && $moduleId === 'module-2';
+            })
+            ->andReturn(['Administrator']);
+        app()->instance(UserRepositoryInterface::class, $users);
+
+        $actor = $this->mockActor($user, roles: ['Administrator']);
+
+        $this->assertTrue((new TaskPolicy())->view($actor, $task));
     }
 
     public function test_assigned_user_can_comment_and_update_status_in_current_module(): void
@@ -112,9 +144,10 @@ class TaskPolicyTest extends TestCase
             'data' => [],
         ]);
 
-        $context = Mockery::mock(CurrentContext::class);
-        $context->shouldReceive('moduleId')->andReturn('module-1');
-        app()->instance(CurrentContext::class, $context);
+        $users = Mockery::mock(UserRepositoryInterface::class);
+        $users->shouldReceive('getRoleNamesInModule')
+            ->andReturn([]);
+        app()->instance(UserRepositoryInterface::class, $users);
 
         $policy = new TaskPolicy();
         $assignedActor = $this->mockActor($user, roles: ['Staff']);
@@ -138,9 +171,10 @@ class TaskPolicyTest extends TestCase
             'data' => [],
         ]);
 
-        $context = Mockery::mock(CurrentContext::class);
-        $context->shouldReceive('moduleId')->andReturn('module-1');
-        app()->instance(CurrentContext::class, $context);
+        $users = Mockery::mock(UserRepositoryInterface::class);
+        $users->shouldReceive('getRoleNamesInModule')
+            ->andReturn([]);
+        app()->instance(UserRepositoryInterface::class, $users);
 
         $actor = $this->mockActor($user, roles: ['Staff'], permissions: ['modify Reassign Tasks']);
 

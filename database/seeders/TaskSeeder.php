@@ -3,10 +3,11 @@
 namespace Database\Seeders;
 
 use App\Core\Models\Notification;
+use App\Core\Models\Module;
 use App\Core\Models\User;
 use App\Core\Support\CurrentContext;
-use App\Modules\Tasks\Models\Task;
-use App\Modules\Tasks\Models\TaskEvent;
+use App\Core\Models\Tasks\Task;
+use App\Core\Models\Tasks\TaskEvent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -14,17 +15,14 @@ class TaskSeeder extends Seeder
 {
     public function run(): void
     {
-        $context = app(CurrentContext::class);
-
-        $moduleId = $context->moduleId();
-        $departmentId = $context->defaultDepartmentId();
+        [$moduleId, $departmentId] = $this->resolveOwnerContext();
 
         if (! $moduleId) {
-            throw new \RuntimeException('TaskSeeder: current module not found. Run ModuleSeeder first.');
+            throw new \RuntimeException('TaskSeeder: no business owner module found. Seed a business module such as GSO first.');
         }
 
         if (! $departmentId) {
-            throw new \RuntimeException('TaskSeeder: default department not found. Run DepartmentSeeder first.');
+            throw new \RuntimeException('TaskSeeder: owner module default department not found. Run DepartmentSeeder first.');
         }
 
         $admin = User::query()
@@ -204,6 +202,41 @@ class TaskSeeder extends Seeder
                 ['event_type' => 'created', 'note' => 'Staff-only pooled task created.', 'at' => now()->subHours(1)],
             ]);
         });
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function resolveOwnerContext(): array
+    {
+        $preferredModule = Module::query()
+            ->where('code', 'GSO')
+            ->where('is_active', true)
+            ->first();
+
+        if ($preferredModule) {
+            return [
+                (string) $preferredModule->id,
+                $preferredModule->default_department_id ? (string) $preferredModule->default_department_id : null,
+            ];
+        }
+
+        $fallbackModule = Module::query()
+            ->where('type', Module::TYPE_BUSINESS)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->first();
+
+        if ($fallbackModule) {
+            return [
+                (string) $fallbackModule->id,
+                $fallbackModule->default_department_id ? (string) $fallbackModule->default_department_id : null,
+            ];
+        }
+
+        $context = app(CurrentContext::class);
+
+        return [$context->moduleId(), $context->defaultDepartmentId()];
     }
 
     private function seedEventsForTask(Task $task, string $actorUserId, array $events): void

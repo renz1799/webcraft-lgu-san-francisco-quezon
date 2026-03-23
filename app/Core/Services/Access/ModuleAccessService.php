@@ -90,6 +90,21 @@ class ModuleAccessService implements ModuleAccessServiceInterface
             ->values();
     }
 
+    public function switchableModulesForUser(User $user): Collection
+    {
+        $sharedCapabilityCodes = collect((array) config('modules.shared_capability_codes', []))
+            ->map(fn (mixed $code): string => Str::upper(trim((string) $code)))
+            ->filter()
+            ->values()
+            ->all();
+
+        return $this->accessibleModulesForUser($user)
+            ->reject(function (Module $module) use ($sharedCapabilityCodes): bool {
+                return in_array(Str::upper((string) $module->code), $sharedCapabilityCodes, true);
+            })
+            ->values();
+    }
+
     public function findActiveModuleByCode(string $moduleCode): ?Module
     {
         $moduleCode = Str::upper(trim($moduleCode));
@@ -134,12 +149,29 @@ class ModuleAccessService implements ModuleAccessServiceInterface
     public function homeRouteNameForModule(Module|string $module): string
     {
         $resolvedModule = $this->resolveModule($module);
+        $moduleCode = Str::upper((string) $resolvedModule->code);
 
-        return (string) data_get(
+        $configuredRoute = (string) data_get(
             config('modules.registry', []),
-            Str::upper((string) $resolvedModule->code) . '.home_route',
-            'modules.index'
+            $moduleCode . '.home_route',
+            ''
         );
+
+        if ($configuredRoute !== '') {
+            return $configuredRoute;
+        }
+
+        $sharedCapabilityRoute = (string) data_get(
+            config('modules.shared_capability_home_routes', []),
+            $moduleCode,
+            ''
+        );
+
+        if ($sharedCapabilityRoute !== '') {
+            return $sharedCapabilityRoute;
+        }
+
+        return 'modules.index';
     }
 
     public function homePathForModule(Module|string $module): string
@@ -149,7 +181,11 @@ class ModuleAccessService implements ModuleAccessServiceInterface
 
     public function postLoginRedirectPathForUser(User $user): string
     {
-        $modules = $this->accessibleModulesForUser($user);
+        $modules = $this->switchableModulesForUser($user);
+
+        if ($modules->isEmpty()) {
+            $modules = $this->accessibleModulesForUser($user);
+        }
 
         if ($modules->isEmpty()) {
             throw new RuntimeException('The user does not have active access to any platform module.');

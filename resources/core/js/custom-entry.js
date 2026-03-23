@@ -63,15 +63,15 @@
 
   function loadTasksIndex() {
     return Promise.all([
-      import("../../modules/tasks/js/table.js"),
-      import("../../modules/tasks/js/filters.js"),
-      import("../../modules/tasks/js/actions.js"),
-      import("../../modules/tasks/js/stats.js"),
+      import("./tasks/table.js"),
+      import("./tasks/filters.js"),
+      import("./tasks/actions.js"),
+      import("./tasks/stats.js"),
     ]);
   }
 
   function loadTaskShow() {
-    return import("../../modules/tasks/js/show.js");
+    return import("./tasks/show.js");
   }
 
   function loadGsoAssetTypesIndex() {

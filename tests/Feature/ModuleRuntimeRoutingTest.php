@@ -59,9 +59,13 @@ class ModuleRuntimeRoutingTest extends TestCase
 
         $response = $this->actingAs($user)->get('/_test/active-module-probe');
 
-        $response->assertRedirect(route('modules.index'));
-        $response->assertSessionMissing('current_module_id');
-        $response->assertSessionMissing('current_module_code');
+        $response->assertOk();
+        $response->assertJson([
+            'module_id' => self::GSO_MODULE_ID,
+            'module_code' => 'GSO',
+            'session_module_id' => self::GSO_MODULE_ID,
+            'session_module_code' => 'GSO',
+        ]);
     }
 
     public function test_active_module_middleware_uses_session_selected_module_context(): void
