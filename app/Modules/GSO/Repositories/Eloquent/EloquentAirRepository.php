@@ -26,11 +26,13 @@ class EloquentAirRepository implements AirRepositoryInterface
         $archived = $this->resolveArchivedMode($filters);
         $search = trim((string) ($filters['search'] ?? $filters['q'] ?? ''));
         $supplier = trim((string) ($filters['supplier'] ?? ''));
-        $status = trim((string) ($filters['status'] ?? ''));
+        $status = trim((string) ($filters['status'] ?? $filters['inspection_status'] ?? ''));
+        $department = trim((string) ($filters['department'] ?? ''));
         $departmentId = trim((string) ($filters['department_id'] ?? ''));
         $fundSourceId = trim((string) ($filters['fund_source_id'] ?? ''));
         $dateFrom = trim((string) ($filters['date_from'] ?? ''));
         $dateTo = trim((string) ($filters['date_to'] ?? ''));
+        $receivedCompleteness = trim((string) ($filters['received_completeness'] ?? ''));
 
         if ($archived === 'all') {
             $query->withTrashed();
@@ -50,8 +52,26 @@ class EloquentAirRepository implements AirRepositoryInterface
             $query->where('requesting_department_id', $departmentId);
         }
 
+        if ($department !== '') {
+            $query->where(function (Builder $subQuery) use ($department) {
+                $subQuery->where('requesting_department_name_snapshot', 'like', "%{$department}%")
+                    ->orWhere('requesting_department_code_snapshot', 'like', "%{$department}%")
+                    ->orWhereHas('department', function (Builder $departmentQuery) use ($department) {
+                        $departmentQuery->withTrashed()
+                            ->where(function (Builder $departmentSearch) use ($department) {
+                                $departmentSearch->where('code', 'like', "%{$department}%")
+                                    ->orWhere('name', 'like', "%{$department}%");
+                            });
+                    });
+            });
+        }
+
         if ($fundSourceId !== '') {
             $query->where('fund_source_id', $fundSourceId);
+        }
+
+        if ($receivedCompleteness !== '') {
+            $query->where('received_completeness', $receivedCompleteness);
         }
 
         if ($dateFrom !== '') {

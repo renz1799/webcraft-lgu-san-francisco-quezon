@@ -258,57 +258,84 @@ import "sweetalert2/dist/sweetalert2.min.css";
       itemsContainer.innerHTML = state.items
         .map((item) => {
           const needsUnits = !!item?.needs_units;
+          const trackingType = normalizeText(item?.tracking_type_snapshot || "property");
+          const orderedQty = Math.max(0, Number(item?.qty_ordered || 0));
+          const deliveredQty = Math.max(0, Number(item?.qty_delivered || 0));
+          const acceptedQty = Math.max(0, Number(item?.qty_accepted || 0));
+          const unitsCount = Math.max(0, Number(item?.units_count || 0));
+          const isIncompleteDelivery = orderedQty > 0 && deliveredQty < orderedQty;
           const disabled = canEdit() ? "" : "disabled";
-          const unitsInfo = needsUnits
-            ? `Units ${escapeHtml(item?.units_count || 0)} / ${escapeHtml(item?.qty_accepted || 0)}`
-            : "No unit rows required";
+          const acceptedDisabled = canEdit() && isIncompleteDelivery ? "disabled" : disabled;
+          const serialLabel = item?.requires_serial_snapshot ? "Serial required" : "Serial optional";
+          const semiLabel = item?.is_semi_expendable_snapshot ? "ICS / semi-expendable" : "Regular property";
+          const itemNote = needsUnits
+            ? `${serialLabel}. ${semiLabel}.`
+            : "Consumable or non-unit-tracked line.";
 
           return `
             <div class="rounded-xl border border-defaultborder p-4 shadow-sm" data-air-item-id="${escapeHtml(item?.id || "")}">
               <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
+                <div class="min-w-0">
                   <p class="mb-1 text-sm font-semibold">${escapeHtml(item?.item_label || "AIR Item")}</p>
                   <p class="mb-0 text-xs text-[#8c9097] dark:text-white/50">
-                    ${escapeHtml(item?.tracking_type_snapshot || "property")}
+                    ${escapeHtml(trackingType || "property")}
                     ${item?.stock_no_snapshot ? ` | ${escapeHtml(item.stock_no_snapshot)}` : ""}
                     ${item?.unit_snapshot ? ` | Unit: ${escapeHtml(item.unit_snapshot)}` : ""}
+                  </p>
+                  <p class="mt-1 mb-0 text-xs text-[#8c9097] dark:text-white/50">
+                    Ordered <b>${escapeHtml(orderedQty)}</b>
+                    ${item?.unit_snapshot ? `(${escapeHtml(item.unit_snapshot)})` : ""}
+                    &middot; Delivered <b>${escapeHtml(deliveredQty)}</b>
+                    &middot; Accepted <b>${escapeHtml(acceptedQty)}</b>
                   </p>
                 </div>
                 ${
                   needsUnits
-                    ? `<button type="button" class="ti-btn ti-btn-light" data-action="open-units" data-air-item-id="${escapeHtml(
-                        item?.id || "",
-                      )}">
-                        Manage Units
-                      </button>`
+                    ? `<div class="flex flex-wrap items-center gap-2">
+                        <button type="button" class="ti-btn ti-btn-light" data-action="open-units" data-air-item-id="${escapeHtml(
+                          item?.id || "",
+                        )}">
+                          Units
+                        </button>
+                        <span class="rounded-full bg-light px-3 py-1 text-xs text-[#8c9097] dark:bg-black/20 dark:text-white/50">
+                          ${escapeHtml(unitsCount)} / ${escapeHtml(acceptedQty)} encoded
+                        </span>
+                      </div>`
                     : `<span class="rounded-full bg-light px-3 py-1 text-xs text-[#8c9097] dark:bg-black/20 dark:text-white/50">No Units</span>`
                 }
-              </div>
-              <div class="mt-4 grid gap-3 lg:grid-cols-3">
-                <div>
-                  <label class="mb-1 block text-xs text-[#8c9097]">Qty Ordered</label>
-                  <input type="number" class="ti-form-input w-full" value="${escapeHtml(
-                    item?.qty_ordered || 0,
-                  )}" disabled>
-                </div>
-                <div>
-                  <label class="mb-1 block text-xs text-[#8c9097]">Qty Delivered</label>
-                  <input type="number" min="0" class="ti-form-input w-full" data-field="qty_delivered" data-air-item-id="${escapeHtml(
-                    item?.id || "",
-                  )}" value="${escapeHtml(item?.qty_delivered || 0)}" ${disabled}>
-                </div>
-                <div>
-                  <label class="mb-1 block text-xs text-[#8c9097]">Qty Accepted</label>
-                  <input type="number" min="0" class="ti-form-input w-full" data-field="qty_accepted" data-air-item-id="${escapeHtml(
-                    item?.id || "",
-                  )}" value="${escapeHtml(item?.qty_accepted || 0)}" ${disabled}>
-                </div>
               </div>
               <div class="mt-3">
                 <label class="mb-1 block text-xs text-[#8c9097]">Description / Specs</label>
                 <textarea class="ti-form-input w-full" rows="4" data-field="description_snapshot" data-air-item-id="${escapeHtml(
                   item?.id || "",
                 )}" ${disabled}>${escapeHtml(item?.description_snapshot || "")}</textarea>
+              </div>
+              <div class="mt-4 grid gap-3 lg:grid-cols-3">
+                <div>
+                  <label class="mb-1 block text-xs text-[#8c9097]">Qty Ordered</label>
+                  <input type="number" class="ti-form-input w-full" value="${escapeHtml(
+                    orderedQty,
+                  )}" disabled>
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-[#8c9097]">Qty Delivered</label>
+                  <input type="number" min="0" class="ti-form-input w-full" data-field="qty_delivered" data-air-item-id="${escapeHtml(
+                    item?.id || "",
+                  )}" value="${escapeHtml(deliveredQty)}" ${disabled}>
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-[#8c9097]">Qty Accepted</label>
+                  <input type="number" min="0" class="ti-form-input w-full" data-field="qty_accepted" data-air-item-id="${escapeHtml(
+                    item?.id || "",
+                  )}" value="${escapeHtml(isIncompleteDelivery ? 0 : acceptedQty)}" ${acceptedDisabled}>
+                  ${
+                    isIncompleteDelivery
+                      ? `<div class="mt-1 text-[11px] text-warning">
+                          Accepted quantity stays 0 until the full ordered quantity is delivered.
+                        </div>`
+                      : ""
+                  }
+                </div>
               </div>
               <div class="mt-3">
                 <label class="mb-1 block text-xs text-[#8c9097]">Remarks</label>
@@ -317,12 +344,12 @@ import "sweetalert2/dist/sweetalert2.min.css";
                 )}" value="${escapeHtml(item?.remarks || "")}" ${disabled}>
               </div>
               <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#8c9097] dark:text-white/50">
-                <span>${unitsInfo}</span>
-                ${
+                <span>${escapeHtml(itemNote)}</span>
+                <span>${
                   needsUnits
-                    ? `<span>${item?.requires_serial_snapshot ? "Serial required for saved unit rows." : "Serial optional for saved unit rows."}</span>`
-                    : `<span>Consumable or non-unit-tracked line.</span>`
-                }
+                    ? "Use Units to manage unit rows, components, and evidence files."
+                    : "No encoded unit rows are required for this line."
+                }</span>
               </div>
             </div>
           `;

@@ -188,6 +188,25 @@ class GsoAirServiceTest extends TestCase
         $this->assertSame('Acme Trading', $filtered['data'][0]['supplier_name']);
         $this->assertSame('BUDG - Budget Office', $filtered['data'][0]['department_label']);
 
+        DB::table('airs')
+            ->where('id', $created->id)
+            ->update([
+                'received_completeness' => 'complete',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $legacyStyleFiltered = $service->datatable([
+            'department' => 'Budget',
+            'received_completeness' => 'complete',
+            'status' => AirStatuses::DRAFT,
+            'archived' => 'active',
+        ]);
+
+        $this->assertSame(1, $legacyStyleFiltered['total']);
+        $this->assertSame('complete', $legacyStyleFiltered['data'][0]['received_completeness']);
+        $this->assertSame('BUDG - Budget Office', $legacyStyleFiltered['data'][0]['department_label']);
+
         $submitted = $service->submitDraft('user-1', (string) $created->id);
 
         $this->assertSame(AirStatuses::SUBMITTED, $submitted->status);

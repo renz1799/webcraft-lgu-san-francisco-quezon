@@ -17,15 +17,33 @@ class AirTableDataRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $rawStatus = trim((string) $this->query('status', ''));
+        $workflowStatus = trim((string) $this->query('inspection_status', $rawStatus));
+        $archived = trim((string) ($this->query('archived', $this->query('record_status', ''))));
+
+        if (! in_array($workflowStatus, AirStatuses::values(), true)) {
+            $workflowStatus = '';
+        }
+
+        if ($archived === '' && in_array($rawStatus, ['active', 'archived', 'all'], true)) {
+            $archived = $rawStatus;
+        }
+
+        if ($archived === '') {
+            $archived = 'active';
+        }
+
         $this->merge([
             'search' => trim((string) ($this->query('search', $this->query('q', '')))),
-            'archived' => trim((string) ($this->query('archived', $this->query('record_status', 'active')))),
-            'status' => trim((string) $this->query('status', '')),
+            'archived' => $archived,
+            'status' => $workflowStatus,
             'supplier' => trim((string) $this->query('supplier', '')),
+            'department' => trim((string) $this->query('department', '')),
             'department_id' => trim((string) $this->query('department_id', '')),
             'fund_source_id' => trim((string) $this->query('fund_source_id', '')),
             'date_from' => trim((string) $this->query('date_from', '')),
             'date_to' => trim((string) $this->query('date_to', '')),
+            'received_completeness' => trim((string) $this->query('received_completeness', '')),
             'page' => max(1, (int) $this->query('page', 1)),
             'size' => min(100, max(1, (int) $this->query('size', 15))),
         ]);
@@ -38,10 +56,12 @@ class AirTableDataRequest extends FormRequest
             'archived' => ['nullable', Rule::in(['active', 'archived', 'all'])],
             'status' => ['nullable', Rule::in(AirStatuses::values())],
             'supplier' => ['nullable', 'string', 'max:255'],
+            'department' => ['nullable', 'string', 'max:255'],
             'department_id' => ['nullable', 'uuid'],
             'fund_source_id' => ['nullable', 'uuid'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'received_completeness' => ['nullable', Rule::in(['complete', 'partial'])],
             'page' => ['nullable', 'integer', 'min:1'],
             'size' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

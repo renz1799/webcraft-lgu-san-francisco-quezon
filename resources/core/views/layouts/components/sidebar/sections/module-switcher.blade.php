@@ -1,4 +1,4 @@
-@if($moduleLinks->isNotEmpty())
+@if($moduleLinks->count() > 1)
   <li class="slide__category">
     <span class="category-name">Platform Contexts</span>
   </li>

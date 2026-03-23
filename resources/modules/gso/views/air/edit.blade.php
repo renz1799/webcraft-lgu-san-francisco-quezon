@@ -5,53 +5,49 @@
         || auth()->user()?->can('modify AIR');
     $canForceDeleteAir = auth()->user()?->hasAnyRole(['Administrator', 'admin']);
     $isArchived = (bool) ($air['is_archived'] ?? false);
-    $isDraft = (string) ($air['status'] ?? '') === 'draft';
+    $status = (string) ($air['status'] ?? '');
+    $isDraft = $status === 'draft';
     $canEditDraft = $canManageAir && ! $isArchived && $isDraft;
     $canManageFiles = $canManageAir && ! $isArchived;
+    $canInspect = ! $isArchived && in_array($status, ['submitted', 'in_progress'], true);
+    $canViewInspection = ! $isArchived && $status === 'inspected';
+    $canPrintAir = ! $isArchived && in_array($status, ['submitted', 'in_progress', 'inspected'], true);
+    $continuationNo = max(1, (int) ($air['continuation_no'] ?? 1));
 @endphp
 
 @section('styles')
     <style>
-        .gso-air-edit-grid {
+        .gso-air-legacy-shell {
+            width: 100%;
+            max-width: 84rem;
+            margin: 0 auto;
+        }
+
+        .gso-air-legacy-grid {
             display: grid;
             grid-template-columns: repeat(1, minmax(0, 1fr));
-            gap: 16px;
+            gap: 1rem;
+            align-items: start;
         }
 
-        .gso-air-edit-meta {
+        .gso-air-legacy-meta {
             display: grid;
             grid-template-columns: repeat(1, minmax(0, 1fr));
-            gap: 12px;
+            gap: 1rem;
         }
 
-        @media (min-width: 1024px) {
-            .gso-air-edit-grid {
-                grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
-            }
-
-            .gso-air-edit-meta {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-
-        .gso-air-file-grid {
+        .gso-air-legacy-file-grid {
             display: grid;
             grid-template-columns: repeat(1, minmax(0, 1fr));
-            gap: 16px;
-        }
-
-        @media (min-width: 768px) {
-            .gso-air-file-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
+            gap: 1rem;
         }
 
         .gso-air-file-card {
             overflow: hidden;
             border: 1px solid rgba(15, 23, 42, 0.08);
             border-radius: 0.85rem;
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 18px 40px -30px rgba(15, 23, 42, 0.45);
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 0 16px 36px -28px rgba(15, 23, 42, 0.45);
         }
 
         .dark .gso-air-file-card {
@@ -89,391 +85,381 @@
                 radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 38%),
                 linear-gradient(135deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.98));
         }
+
+        @media (min-width: 1024px) {
+            .gso-air-legacy-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .gso-air-legacy-meta {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 768px) {
+            .gso-air-legacy-file-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
     </style>
 @endsection
 
 @section('content')
-<div id="gso-air-edit-page">
-    <div class="block justify-between page-header md:flex">
-        <div>
-            <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
-                {{ $air['label'] ?? 'AIR Record' }}
-            </h3>
-            <p class="text-[#8c9097] dark:text-white/50 text-[0.813rem] mb-0">
-                AIR header metadata and workflow state now live inside the platform.
-            </p>
-        </div>
-        <ol class="flex items-center whitespace-nowrap min-w-0">
-            <li class="text-[0.813rem] ps-[0.5rem]">
-                <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('gso.dashboard') }}">
-                    GSO
-                    <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
-                </a>
-            </li>
-            <li class="text-[0.813rem] ps-[0.5rem]">
-                <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('gso.air.index') }}">
-                    AIR
-                    <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
-                </a>
-            </li>
-            <li class="text-[0.813rem] text-defaulttextcolor font-semibold dark:text-white/50" aria-current="page">
-                Edit
-            </li>
-        </ol>
-    </div>
+    <div id="gso-air-edit-page">
+        <div class="page-header md:flex items-start justify-between gap-4">
+            <div>
+                <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
+                    Edit AIR Draft
+                </h3>
+                <p class="text-xs text-[#8c9097] mt-1">
+                    This draft already exists. Saving will update the same record without leaving the page.
+                </p>
+                <div class="text-xs text-[#8c9097] mt-2">
+                    Status: <b>{{ strtoupper($status !== '' ? $status : 'draft') }}</b>
+                    @if(!empty($air['label']))
+                        <span>&middot;</span> AIR: <b>{{ $air['label'] }}</b>
+                    @endif
+                </div>
+                @if($continuationNo > 1)
+                    <p class="text-xs text-info mt-2">
+                        This is follow-up AIR #{{ $continuationNo }} for unresolved items carried over from an earlier partial inspection.
+                    </p>
+                @endif
+            </div>
 
-    @if($isArchived)
-        <div class="box border border-warning/20">
-            <div class="box-body text-warning">
-                This AIR is archived. Restore it to continue editing.
+            <div class="mt-3 md:mt-0 flex flex-wrap items-center gap-2">
+                @if($canEditDraft)
+                    <button type="button" id="gsoAirSaveBtn" class="ti-btn ti-btn-primary">
+                        Save
+                    </button>
+                    <button type="button" id="gsoAirSubmitBtn" class="ti-btn ti-btn-success">
+                        Submit
+                    </button>
+                    <button type="button" id="gsoAirArchiveBtn" class="ti-btn ti-btn-danger">
+                        Archive
+                    </button>
+                @endif
+
+                @if($canManageAir && $isArchived)
+                    <button type="button" id="gsoAirRestoreBtn" class="ti-btn ti-btn-success">
+                        Restore
+                    </button>
+                    @if($canForceDeleteAir)
+                        <button type="button" id="gsoAirForceDeleteBtn" class="ti-btn ti-btn-danger">
+                            Force Delete
+                        </button>
+                    @endif
+                @endif
+
+                @if($canInspect)
+                    <a href="{{ route('gso.air.inspect', ['air' => $air['id'] ?? '']) }}" class="ti-btn ti-btn-warning">
+                        Inspect
+                    </a>
+                @elseif($canViewInspection)
+                    <a href="{{ route('gso.air.inspect', ['air' => $air['id'] ?? '']) }}" class="ti-btn ti-btn-warning">
+                        Inspection Report
+                    </a>
+                @endif
+
+                @if($canPrintAir && !empty($air['id']))
+                    <a
+                        href="{{ route('gso.air.print', ['air' => $air['id'], 'preview' => 1]) }}"
+                        class="ti-btn ti-btn-secondary"
+                        target="_blank"
+                        rel="noopener"
+                    >
+                        Print AIR
+                    </a>
+                @endif
+
+                <a href="{{ route('gso.air.index') }}" class="ti-btn ti-btn-light">
+                    Back
+                </a>
             </div>
         </div>
-    @elseif(! $isDraft)
-        <div class="box border border-primary/20">
-            <div class="box-body text-primary">
-                This AIR is already in <strong>{{ $air['status_text'] ?? 'workflow' }}</strong> status.
-                Draft header editing is locked in this migration slice, but the record remains visible here for continuity.
+
+        @if($isArchived)
+            <div class="mb-4 rounded border border-warning bg-warning/10 px-4 py-3 text-sm text-warning">
+                This AIR is archived. Restore it before editing the draft or its supporting documents.
             </div>
-        </div>
-    @endif
+        @elseif(! $isDraft)
+            <div class="mb-4 rounded border border-primary bg-primary/10 px-4 py-3 text-sm text-primary">
+                This AIR is already in <b>{{ $air['status_text'] ?? 'workflow' }}</b> status. Draft header editing is locked, but the record remains available here for review, printing, and inspection continuity.
+            </div>
+        @endif
 
-    <div class="gso-air-edit-grid">
-        <div class="space-y-4">
-            <div class="box">
-                <div class="box-header">
-                    <div class="box-title">AIR Header</div>
-                </div>
-                <div class="box-body">
-                    <div id="gsoAirFormError" class="hidden mb-3 rounded bg-danger/10 p-3 text-sm text-danger"></div>
-
-                    <form id="gsoAirEditForm" class="space-y-4">
-                        <div class="gso-air-edit-meta">
+        <div class="gso-air-legacy-shell">
+            <div class="gso-air-legacy-grid">
+                <div>
+                    <div class="box">
+                        <div class="box-header flex items-start justify-between gap-3">
                             <div>
-                                <label class="text-sm text-[#8c9097]">PO Number</label>
-                                <input id="gsoAirPoNumber" type="text" class="ti-form-input w-full" value="{{ $air['po_number'] ?? '' }}" @disabled(! $canEditDraft)>
-                                <div id="gsoAirPoNumberErr" class="hidden mt-1 text-xs text-danger"></div>
+                                <h5 class="box-title">AIR Draft Header</h5>
+                                <div class="text-xs text-[#8c9097] mt-1">
+                                    Status: <b>{{ strtoupper($status !== '' ? $status : 'draft') }}</b>
+                                </div>
                             </div>
-
-                            <div>
-                                <label class="text-sm text-[#8c9097]">PO Date</label>
-                                <input id="gsoAirPoDate" type="date" class="ti-form-input w-full" value="{{ $air['po_date'] ?? '' }}" @disabled(! $canEditDraft)>
-                                <div id="gsoAirPoDateErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-
-                            <div>
-                                <label class="text-sm text-[#8c9097]">AIR Number</label>
-                                <input id="gsoAirAirNumber" type="text" class="ti-form-input w-full" value="{{ $air['air_number'] ?? '' }}" @disabled(! $canEditDraft)>
-                                <div id="gsoAirAirNumberErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-
-                            <div>
-                                <label class="text-sm text-[#8c9097]">AIR Date</label>
-                                <input id="gsoAirAirDate" type="date" class="ti-form-input w-full" value="{{ $air['air_date'] ?? '' }}" @disabled(! $canEditDraft)>
-                                <div id="gsoAirAirDateErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-
-                            <div>
-                                <label class="text-sm text-[#8c9097]">Invoice Number</label>
-                                <input id="gsoAirInvoiceNumber" type="text" class="ti-form-input w-full" value="{{ $air['invoice_number'] ?? '' }}" @disabled(! $canEditDraft)>
-                                <div id="gsoAirInvoiceNumberErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-
-                            <div>
-                                <label class="text-sm text-[#8c9097]">Invoice Date</label>
-                                <input id="gsoAirInvoiceDate" type="date" class="ti-form-input w-full" value="{{ $air['invoice_date'] ?? '' }}" @disabled(! $canEditDraft)>
-                                <div id="gsoAirInvoiceDateErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-
-                            <div class="lg:col-span-2">
-                                <label class="text-sm text-[#8c9097]">Supplier Name</label>
-                                <input id="gsoAirSupplierName" type="text" class="ti-form-input w-full" value="{{ $air['supplier_name'] ?? '' }}" @disabled(! $canEditDraft)>
-                                <div id="gsoAirSupplierNameErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-
-                            <div>
-                                <label class="text-sm text-[#8c9097]">Requesting Department</label>
-                                <select id="gsoAirDepartmentId" class="ti-form-select w-full" @disabled(! $canEditDraft)>
-                                    <option value="">Select department</option>
-                                    @foreach($departments as $department)
-                                        <option value="{{ $department->id }}" @selected((string) ($air['requesting_department_id'] ?? '') === (string) $department->id)>
-                                            {{ trim((string) $department->code) !== '' ? $department->code . ' - ' : '' }}{{ $department->name }}
-                                            @if($department->deleted_at)
-                                                (Archived)
-                                            @endif
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <div id="gsoAirDepartmentIdErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-
-                            <div>
-                                <label class="text-sm text-[#8c9097]">Fund Source</label>
-                                <select id="gsoAirFundSourceId" class="ti-form-select w-full" @disabled(! $canEditDraft)>
-                                    <option value="">Select fund source</option>
-                                    @foreach($fundSources as $fundSource)
-                                        <option value="{{ $fundSource->id }}" @selected((string) ($air['fund_source_id'] ?? '') === (string) $fundSource->id)>
-                                            {{ trim((string) $fundSource->code) !== '' ? $fundSource->code . ' - ' : '' }}{{ $fundSource->name }}
-                                            @if($fundSource->deleted_at)
-                                                (Archived)
-                                            @endif
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <div id="gsoAirFundSourceIdErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-
-                            <div>
-                                <label class="text-sm text-[#8c9097]">Inspected By</label>
-                                <input id="gsoAirInspectedByName" type="text" class="ti-form-input w-full" value="{{ $air['inspected_by_name'] ?? '' }}" @disabled(! $canEditDraft)>
-                                <div id="gsoAirInspectedByNameErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-
-                            <div>
-                                <label class="text-sm text-[#8c9097]">Accepted By</label>
-                                <input id="gsoAirAcceptedByName" type="text" class="ti-form-input w-full" value="{{ $air['accepted_by_name'] ?? '' }}" @disabled(! $canEditDraft)>
-                                <div id="gsoAirAcceptedByNameErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-
-                            <div class="lg:col-span-2">
-                                <label class="text-sm text-[#8c9097]">Remarks</label>
-                                <textarea id="gsoAirRemarks" class="ti-form-input w-full" rows="5" @disabled(! $canEditDraft)>{{ $air['remarks'] ?? '' }}</textarea>
-                                <div id="gsoAirRemarksErr" class="hidden mt-1 text-xs text-danger"></div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="ti-modal-footer !justify-between">
-                    <a href="{{ route('gso.air.index') }}" class="ti-btn ti-btn-light">Back to Register</a>
-                    <div class="flex flex-wrap gap-2 justify-end">
-                        @if(!empty($air['id']))
-                            <a
-                                href="{{ route('gso.air.print', ['air' => $air['id'], 'preview' => 1]) }}"
-                                target="_blank"
-                                rel="noopener"
-                                class="ti-btn ti-btn-light"
-                            >
-                                Print Preview
-                            </a>
-                        @endif
-                        @if($canEditDraft)
-                            <button type="button" id="gsoAirSaveBtn" class="ti-btn btn-wave ti-btn-primary-full">
-                                Save Draft
-                            </button>
-                            <button type="button" id="gsoAirSubmitBtn" class="ti-btn btn-wave ti-btn-success-full">
-                                Submit AIR
-                            </button>
-                            <button type="button" id="gsoAirArchiveBtn" class="ti-btn btn-wave ti-btn-danger-full">
-                                Archive
-                            </button>
-                        @elseif(! $isArchived && ! $isDraft)
-                            <a href="{{ route('gso.air.inspect', ['air' => $air['id'] ?? '']) }}" class="ti-btn btn-wave ti-btn-primary-full">
-                                Open Inspection Workspace
-                            </a>
-                        @elseif($canManageAir && $isArchived)
-                            <button type="button" id="gsoAirRestoreBtn" class="ti-btn btn-wave ti-btn-success-full">
-                                Restore
-                            </button>
-                            @if($canForceDeleteAir)
-                                <button type="button" id="gsoAirForceDeleteBtn" class="ti-btn btn-wave ti-btn-danger-full">
-                                    Force Delete
-                                </button>
+                            @if(!empty($air['continuation_label']))
+                                <span class="rounded-full bg-light px-3 py-1 text-xs text-[#8c9097] dark:bg-black/20 dark:text-white/50">
+                                    {{ $air['continuation_label'] }}
+                                </span>
                             @endif
-                        @endif
+                        </div>
+
+                        <div class="box-body">
+                            <div id="gsoAirFormError" class="hidden mb-4 rounded bg-danger/10 p-3 text-sm text-danger"></div>
+
+                            <form id="gsoAirEditForm" class="space-y-5">
+                                <div class="gso-air-legacy-meta">
+                                    <div>
+                                        <label class="ti-form-label">PO Number <span class="text-danger">*</span></label>
+                                        <input id="gsoAirPoNumber" type="text" class="ti-form-input w-full" value="{{ $air['po_number'] ?? '' }}" placeholder="e.g. 2026-PO-001" @disabled(! $canEditDraft)>
+                                        <div id="gsoAirPoNumberErr" class="hidden mt-1 text-xs text-danger"></div>
+                                    </div>
+
+                                    <div>
+                                        <label class="ti-form-label">PO Date <span class="text-danger">*</span></label>
+                                        <input id="gsoAirPoDate" type="date" class="ti-form-input w-full" value="{{ $air['po_date'] ?? '' }}" @disabled(! $canEditDraft)>
+                                        <div id="gsoAirPoDateErr" class="hidden mt-1 text-xs text-danger"></div>
+                                    </div>
+
+                                    <div>
+                                        <label class="ti-form-label">Fund Source <span class="text-danger">*</span></label>
+                                        <select id="gsoAirFundSourceId" class="ti-form-select w-full" @disabled(! $canEditDraft)>
+                                            <option value="">Select fund source</option>
+                                            @foreach($fundSources as $fundSource)
+                                                <option value="{{ $fundSource->id }}" @selected((string) ($air['fund_source_id'] ?? '') === (string) $fundSource->id)>
+                                                    {{ trim((string) $fundSource->code) !== '' ? $fundSource->code . ' - ' : '' }}{{ $fundSource->name }}
+                                                    @if($fundSource->deleted_at)
+                                                        (Archived)
+                                                    @endif
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <div id="gsoAirFundSourceIdErr" class="hidden mt-1 text-xs text-danger"></div>
+                                    </div>
+
+                                    <div>
+                                        <label class="ti-form-label">AIR Number</label>
+                                        <input id="gsoAirAirNumber" type="text" class="ti-form-input w-full bg-gray-100 dark:bg-black/20" value="{{ $air['air_number'] ?? '' }}" placeholder="Automatically generated on submission" readonly>
+                                        <div id="gsoAirAirNumberErr" class="hidden mt-1 text-xs text-danger"></div>
+                                        <p class="text-[11px] text-[#8c9097] mt-1">
+                                            This number is generated once the draft is submitted.
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label class="ti-form-label">AIR Date <span class="text-danger">*</span></label>
+                                        <input id="gsoAirAirDate" type="date" class="ti-form-input w-full" value="{{ $air['air_date'] ?? '' }}" @disabled(! $canEditDraft)>
+                                        <div id="gsoAirAirDateErr" class="hidden mt-1 text-xs text-danger"></div>
+                                    </div>
+
+                                    <div>
+                                        <label class="ti-form-label">Requesting Department <span class="text-danger">*</span></label>
+                                        <select id="gsoAirDepartmentId" class="ti-form-select w-full" @disabled(! $canEditDraft)>
+                                            <option value="">Select department</option>
+                                            @foreach($departments as $department)
+                                                <option value="{{ $department->id }}" @selected((string) ($air['requesting_department_id'] ?? '') === (string) $department->id)>
+                                                    {{ trim((string) $department->code) !== '' ? $department->code . ' - ' : '' }}{{ $department->name }}
+                                                    @if($department->deleted_at)
+                                                        (Archived)
+                                                    @endif
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <div id="gsoAirDepartmentIdErr" class="hidden mt-1 text-xs text-danger"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="ti-form-label">Supplier Name <span class="text-danger">*</span></label>
+                                    <input id="gsoAirSupplierName" type="text" class="ti-form-input w-full" value="{{ $air['supplier_name'] ?? '' }}" placeholder="Supplier name" @disabled(! $canEditDraft)>
+                                    <div id="gsoAirSupplierNameErr" class="hidden mt-1 text-xs text-danger"></div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="ti-form-label">Inspected By (name) <span class="text-danger">*</span></label>
+                                        <input id="gsoAirInspectedByName" type="text" class="ti-form-input w-full" value="{{ $air['inspected_by_name'] ?? '________________________' }}" @disabled(! $canEditDraft)>
+                                        <div id="gsoAirInspectedByNameErr" class="hidden mt-1 text-xs text-danger"></div>
+                                    </div>
+
+                                    <div>
+                                        <label class="ti-form-label">Accepted By (name) <span class="text-danger">*</span></label>
+                                        <input id="gsoAirAcceptedByName" type="text" class="ti-form-input w-full" value="{{ $air['accepted_by_name'] ?? '________________________' }}" @disabled(! $canEditDraft)>
+                                        <div id="gsoAirAcceptedByNameErr" class="hidden mt-1 text-xs text-danger"></div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="ti-form-label">Invoice / DR / SI Number</label>
+                                        <input id="gsoAirInvoiceNumber" type="text" class="ti-form-input w-full" value="{{ $air['invoice_number'] ?? '' }}" placeholder="Optional while draft is open" @disabled(! $canEditDraft)>
+                                        <div id="gsoAirInvoiceNumberErr" class="hidden mt-1 text-xs text-danger"></div>
+                                    </div>
+
+                                    <div>
+                                        <label class="ti-form-label">Invoice / DR / SI Date</label>
+                                        <input id="gsoAirInvoiceDate" type="date" class="ti-form-input w-full" value="{{ $air['invoice_date'] ?? '' }}" @disabled(! $canEditDraft)>
+                                        <div id="gsoAirInvoiceDateErr" class="hidden mt-1 text-xs text-danger"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="ti-form-label">Remarks (optional)</label>
+                                    <textarea id="gsoAirRemarks" class="ti-form-input w-full" rows="3" placeholder="Notes..." @disabled(! $canEditDraft)>{{ $air['remarks'] ?? '' }}</textarea>
+                                    <div id="gsoAirRemarksErr" class="hidden mt-1 text-xs text-danger"></div>
+                                </div>
+
+                                <div class="text-xs text-[#8c9097]">
+                                    Tip: use the toolbar Save button to keep header changes and AIR item edits together.
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="box">
-                <div class="box-header">
-                    <div class="box-title">AIR Documents</div>
-                    <div class="rounded bg-light px-3 py-2 text-sm dark:bg-black/20">
-                        <span class="text-[#8c9097]">Files:</span>
-                        <span id="gsoAirFileCount" class="font-semibold">0</span>
-                    </div>
-                </div>
-                <div class="box-body space-y-4">
-                    <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <p class="mb-1 text-sm font-medium">Document Attachments</p>
-                            <p class="mb-0 text-xs text-[#8c9097] dark:text-white/50">
-                                AIR-level supporting files now stay inside the platform and reuse the shared Google Drive connection.
-                            </p>
-                        </div>
-                        <div class="rounded bg-light px-3 py-2 text-xs text-[#8c9097] dark:bg-black/20 dark:text-white/50">
-                            Images and PDFs only
-                        </div>
-                    </div>
-
-                    <div id="gsoAirFileError" class="hidden rounded bg-danger/10 p-3 text-sm text-danger"></div>
-
-                    <div
-                        id="gsoAirFileUploadPanel"
-                        class="{{ $canManageAir ? '' : 'hidden ' }}rounded-xl border border-dashed border-defaultborder p-4"
-                    >
-                        <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
+                <div>
+                    <div class="box">
+                        <div class="box-header flex items-start justify-between gap-3">
                             <div>
-                                <label for="gsoAirFilesInput" class="mb-1 block text-sm text-[#8c9097]">Upload Files</label>
-                                <input
-                                    id="gsoAirFilesInput"
-                                    type="file"
-                                    class="ti-form-input w-full"
-                                    accept="image/*,.pdf,application/pdf"
-                                    multiple
-                                    @disabled(! $canManageFiles)
-                                >
+                                <h5 class="box-title">Items to Inspect</h5>
+                                <div class="text-xs text-[#8c9097] mt-1">
+                                    Build the AIR draft item list from the current catalog, then submit when the draft is ready for inspection.
+                                </div>
                             </div>
-                            <div>
-                                <label for="gsoAirFilesType" class="mb-1 block text-sm text-[#8c9097]">Document Type</label>
-                                <select id="gsoAirFilesType" class="ti-form-select w-full" @disabled(! $canManageFiles)>
-                                    <option value="">Auto detect</option>
-                                    <option value="photo">Photo</option>
-                                    <option value="pdf">PDF</option>
-                                    <option value="document">Document</option>
-                                    <option value="receipt">Receipt</option>
-                                    <option value="property_card">Property Card</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div class="flex items-end">
-                                <button
-                                    type="button"
-                                    id="gsoAirFileUploadBtn"
-                                    class="ti-btn btn-wave ti-btn-primary-full w-full lg:w-auto"
-                                    @disabled(! $canManageFiles)
-                                >
-                                    Upload
-                                </button>
+                            <div class="text-xs text-[#8c9097] bg-light px-3 py-2 rounded dark:bg-black/20 dark:text-white/50">
+                                Selected: <b id="gsoAirItemCount">0</b>
                             </div>
                         </div>
-                        <p id="gsoAirFileUploadHint" class="mt-3 mb-0 text-xs text-[#8c9097] dark:text-white/50">
-                            Save a PO number in the AIR header before uploading documents.
-                        </p>
-                    </div>
 
-                    <div id="gsoAirFileGrid" class="gso-air-file-grid"></div>
-                    <div
-                        id="gsoAirFileEmpty"
-                        class="hidden rounded border border-dashed border-defaultborder p-4 text-sm text-[#8c9097] dark:text-white/50"
-                    >
-                        No AIR documents uploaded yet.
+                        <div class="box-body space-y-4">
+                            @if(! $canEditDraft)
+                                <div class="rounded border border-warning bg-warning/10 px-3 py-2 text-xs text-warning">
+                                    Items can no longer be changed because this AIR is no longer in draft status.
+                                </div>
+                            @endif
+
+                            @if($canEditDraft)
+                                <div class="space-y-2">
+                                    <label for="gsoAirItemSearch" class="ti-form-label">Search Item</label>
+
+                                    <div class="relative">
+                                        <input
+                                            id="gsoAirItemSearch"
+                                            type="search"
+                                            class="ti-form-input w-full"
+                                            placeholder="Type item name, description, or stock number..."
+                                            autocomplete="off"
+                                        >
+
+                                        <div
+                                            id="gsoAirItemSuggestions"
+                                            class="hidden absolute right-0 mt-2 w-full z-[9999] rounded-md border border-defaultborder bg-white dark:bg-bodybg shadow-lg"
+                                        ></div>
+                                    </div>
+
+                                    <div class="text-[11px] text-[#8c9097]">
+                                        Tip: click a suggestion to add it. Unsaved row edits are included in the toolbar Save button.
+                                    </div>
+                                </div>
+                            @endif
+
+                            <div id="gsoAirItemError" class="hidden rounded bg-danger/10 p-3 text-sm text-danger"></div>
+
+                            <div class="pt-2 border-t border-defaultborder">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="font-semibold text-sm">Selected</div>
+                                    <div class="text-xs text-[#8c9097]">
+                                        <span id="gsoAirItemCountSummary">0</span>
+                                    </div>
+                                </div>
+
+                                <div id="gsoAirItemList" class="space-y-3">
+                                    <div class="text-xs text-[#8c9097]">Loading items...</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="box">
-                <div class="box-header">
-                    <div class="box-title">AIR Items</div>
-                </div>
-                <div class="box-body space-y-4">
-                    <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="mt-4">
+                <div class="box">
+                    <div class="box-header flex items-start justify-between gap-3">
                         <div>
-                            <p class="mb-1 text-sm font-medium">Selected Rows</p>
-                            <p class="mb-0 text-xs text-[#8c9097] dark:text-white/50">
-                                Item rows now live in-platform. Inspection units and inventory promotion will layer on top of these saved draft rows next.
-                            </p>
-                        </div>
-                        <div class="rounded bg-light px-3 py-2 text-sm dark:bg-black/20">
-                            <span class="text-[#8c9097]">Rows:</span>
-                            <span id="gsoAirItemCount" class="font-semibold">0</span>
-                        </div>
-                    </div>
-
-                    @if($canEditDraft)
-                        <div class="space-y-2">
-                            <label for="gsoAirItemSearch" class="text-sm text-[#8c9097]">Add Item From Catalog</label>
-                            <div class="relative">
-                                <input id="gsoAirItemSearch" type="search" class="ti-form-input w-full" placeholder="Search by item name, description, or stock number">
-                                <div id="gsoAirItemSuggestions" class="hidden absolute left-0 right-0 z-10 mt-2 max-h-80 overflow-auto rounded-md border border-defaultborder bg-white shadow-lg dark:bg-bodybg"></div>
+                            <h5 class="box-title">Supporting Documents</h5>
+                            <div class="text-xs text-[#8c9097] mt-1">
+                                AIR-level supporting files are stored in the platform and linked to the same canonical AIR record.
                             </div>
-                            <p class="mb-0 text-xs text-[#8c9097] dark:text-white/50">
-                                Item row edits are saved together with the draft toolbar actions. Remove rows immediately from the card actions when needed.
+                        </div>
+                        <div class="text-xs text-[#8c9097] bg-light px-3 py-2 rounded dark:bg-black/20 dark:text-white/50">
+                            Files: <b id="gsoAirFileCount">0</b>
+                            <span class="mx-1">&middot;</span>
+                            Drive: <b id="gsoAirDriveFolderStatus">{{ !empty($air['drive_folder_id']) ? 'Ready' : 'Pending' }}</b>
+                        </div>
+                    </div>
+
+                    <div class="box-body space-y-4">
+                        <div id="gsoAirFileError" class="hidden rounded bg-danger/10 p-3 text-sm text-danger"></div>
+
+                        <div
+                            id="gsoAirFileUploadPanel"
+                            class="{{ $canManageAir ? '' : 'hidden ' }}rounded-xl border border-dashed border-defaultborder p-4"
+                        >
+                            <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
+                                <div>
+                                    <label for="gsoAirFilesInput" class="ti-form-label !mb-1">Upload Files</label>
+                                    <input
+                                        id="gsoAirFilesInput"
+                                        type="file"
+                                        class="ti-form-input w-full"
+                                        accept="image/*,.pdf,application/pdf"
+                                        multiple
+                                        @disabled(! $canManageFiles)
+                                    >
+                                </div>
+                                <div>
+                                    <label for="gsoAirFilesType" class="ti-form-label !mb-1">Document Type</label>
+                                    <select id="gsoAirFilesType" class="ti-form-select w-full" @disabled(! $canManageFiles)>
+                                        <option value="">Auto detect</option>
+                                        <option value="photo">Photo</option>
+                                        <option value="pdf">PDF</option>
+                                        <option value="document">Document</option>
+                                        <option value="receipt">Receipt</option>
+                                        <option value="property_card">Property Card</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-end">
+                                    <button
+                                        type="button"
+                                        id="gsoAirFileUploadBtn"
+                                        class="ti-btn ti-btn-primary w-full lg:w-auto"
+                                        @disabled(! $canManageFiles)
+                                    >
+                                        Upload
+                                    </button>
+                                </div>
+                            </div>
+
+                            <p id="gsoAirFileUploadHint" class="mt-3 mb-0 text-xs text-[#8c9097] dark:text-white/50">
+                                Save a PO number in the AIR header before uploading documents.
                             </p>
                         </div>
-                    @else
-                        <div class="rounded bg-light p-3 text-sm text-[#8c9097] dark:bg-black/20 dark:text-white/50">
-                            AIR item rows are read-only because this record is no longer an editable draft.
-                        </div>
-                    @endif
 
-                    <div id="gsoAirItemError" class="hidden rounded bg-danger/10 p-3 text-sm text-danger"></div>
-                    <div id="gsoAirItemList" class="space-y-3">
-                        <div class="rounded border border-dashed border-defaultborder p-4 text-sm text-[#8c9097] dark:text-white/50">
-                            Loading AIR items...
+                        <div id="gsoAirFileGrid" class="gso-air-legacy-file-grid"></div>
+                        <div
+                            id="gsoAirFileEmpty"
+                            class="hidden rounded border border-dashed border-defaultborder p-4 text-sm text-[#8c9097] dark:text-white/50"
+                        >
+                            No AIR documents uploaded yet.
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="space-y-4">
-            <div class="box">
-                <div class="box-header">
-                    <div class="box-title">Record Summary</div>
-                </div>
-                <div class="box-body text-sm space-y-3">
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-[#8c9097]">Workflow Status</span>
-                        <span class="font-medium">{{ $air['status_text'] ?? 'Unknown' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-[#8c9097]">Continuation</span>
-                        <span class="font-medium">{{ $air['continuation_label'] ?? 'Root AIR' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-[#8c9097]">Created By</span>
-                        <span class="font-medium text-right">{{ $air['created_by_label'] ?? 'System User' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-[#8c9097]">Created At</span>
-                        <span class="font-medium text-right">{{ $air['created_at_text'] ?? '-' }}</span>
-                    </div>
-                    @if(!empty($air['deleted_at_text']))
-                        <div class="flex items-center justify-between gap-3">
-                            <span class="text-[#8c9097]">Archived At</span>
-                            <span class="font-medium text-right">{{ $air['deleted_at_text'] }}</span>
-                        </div>
-                    @endif
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-[#8c9097]">Department Snapshot</span>
-                        <span class="font-medium text-right">{{ $air['department_label'] ?? 'None' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-[#8c9097]">Fund Source Snapshot</span>
-                        <span class="font-medium text-right">{{ $air['fund_source_label'] ?? 'None' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-[#8c9097]">Item Rows</span>
-                        <span id="gsoAirItemCountSummary" class="font-medium text-right">0</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-[#8c9097]">Document Files</span>
-                        <span id="gsoAirFileCountSummary" class="font-medium text-right">0</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-[#8c9097]">Drive Folder</span>
-                        <span id="gsoAirDriveFolderStatus" class="font-medium text-right">
-                            {{ !empty($air['drive_folder_id']) ? 'Ready' : 'Pending' }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="box">
-                <div class="box-header">
-                    <div class="box-title">Migration Boundary</div>
-                </div>
-                <div class="box-body text-sm text-[#8c9097] dark:text-white/50 space-y-3">
-                    <p class="mb-0">
-                        AIR headers, AIR item rows, AIR document files, and AIR print preview now run inside the platform on the same canonical document URL.
-                    </p>
-                    <p class="mb-0">
-                        Follow-up AIR generation and AIR component tracking still layer on top of this saved AIR data next.
-                    </p>
                 </div>
             </div>
         </div>
     </div>
-</div>
 @endsection
 
 @push('scripts')

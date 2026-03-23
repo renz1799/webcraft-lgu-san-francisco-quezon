@@ -25,18 +25,7 @@ class AirController extends Controller
 
     public function index(): View
     {
-        return view('gso::air.index', [
-            'departments' => Department::query()
-                ->withTrashed()
-                ->orderBy('code')
-                ->orderBy('name')
-                ->get(['id', 'code', 'name', 'deleted_at']),
-            'fundSources' => FundSource::query()
-                ->withTrashed()
-                ->orderBy('code')
-                ->orderBy('name')
-                ->get(['id', 'code', 'name', 'deleted_at']),
-        ]);
+        return view('gso::air.index');
     }
 
     public function data(AirTableDataRequest $request): JsonResponse
