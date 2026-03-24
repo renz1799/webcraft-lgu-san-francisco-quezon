@@ -11,6 +11,7 @@ use App\Modules\GSO\Http\Controllers\Air\AirInspectionUnitController;
 use App\Modules\GSO\Http\Controllers\Air\AirInspectionUnitFileController;
 use App\Modules\GSO\Http\Controllers\Air\AirItemController;
 use App\Modules\GSO\Http\Controllers\Air\AirPrintController;
+use App\Modules\GSO\Http\Controllers\Air\AirRisController;
 use App\Modules\GSO\Http\Controllers\AssetCategories\AssetCategoryActionController;
 use App\Modules\GSO\Http\Controllers\AssetCategories\AssetCategoryController;
 use App\Modules\GSO\Http\Controllers\AssetTypes\AssetTypeActionController;
@@ -36,7 +37,12 @@ use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemReportsControll
 use App\Modules\GSO\Http\Controllers\InventoryItems\PublicInventoryAssetController;
 use App\Modules\GSO\Http\Controllers\Items\ItemActionController;
 use App\Modules\GSO\Http\Controllers\Items\ItemController;
+use App\Modules\GSO\Http\Controllers\RIS\RisController;
+use App\Modules\GSO\Http\Controllers\RIS\RisItemController;
+use App\Modules\GSO\Http\Controllers\RIS\RisPrintController;
+use App\Modules\GSO\Http\Controllers\RIS\RisWorkflowController;
 use App\Modules\GSO\Http\Controllers\Stocks\StockController;
+use App\Modules\GSO\Models\Ris;
 use App\Core\Http\Controllers\Access\ModuleUserOnboardingController;
 use App\Core\Http\Controllers\Access\PermissionController;
 use App\Core\Http\Controllers\Access\RolesController;
@@ -45,6 +51,8 @@ use App\Core\Http\Controllers\AuditLogs\AuditLogController;
 use App\Core\Http\Controllers\AuditLogs\AuditLogPrintController;
 use App\Core\Http\Controllers\AuditLogs\AuditRestoreController;
 use Illuminate\Support\Facades\Route;
+
+Route::bind('ris', fn (string $value) => Ris::withTrashed()->findOrFail($value));
 
 Route::get('/gso/assets/{code}', [PublicInventoryAssetController::class, 'show'])
     ->name('gso.public-assets.show');
@@ -120,9 +128,25 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                 Route::post('/audit/restore', [AuditRestoreController::class, 'restore'])->name('audit.restore');
             });
 
-            Route::get('/ris', [GsoWorkspaceController::class, 'show'])
-                ->defaults('page', 'ris')
-                ->name('ris.index');
+            Route::get('/ris', [RisController::class, 'index'])->name('ris.index');
+            Route::get('/ris/data', [RisController::class, 'data'])->name('ris.data');
+            Route::post('/ris/create-draft', [RisController::class, 'createDraft'])->name('ris.create-draft');
+            Route::get('/ris/{ris}/edit', [RisController::class, 'edit'])->whereUuid('ris')->name('ris.edit');
+            Route::put('/ris/{ris}', [RisController::class, 'update'])->whereUuid('ris')->name('ris.update');
+            Route::delete('/ris/{ris}', [RisController::class, 'destroy'])->whereUuid('ris')->name('ris.destroy');
+            Route::patch('/ris/{ris}/restore', [RisController::class, 'restore'])->whereUuid('ris')->name('ris.restore');
+            Route::get('/ris/{ris}/print', [RisPrintController::class, 'print'])->whereUuid('ris')->name('ris.print');
+            Route::get('/ris/{ris}/items', [RisItemController::class, 'list'])->whereUuid('ris')->name('ris.items.list');
+            Route::get('/ris/{ris}/items/suggest', [RisItemController::class, 'suggest'])->whereUuid('ris')->name('ris.items.suggest');
+            Route::post('/ris/{ris}/items/add', [RisItemController::class, 'add'])->whereUuid('ris')->name('ris.items.add');
+            Route::put('/ris/{ris}/items', [RisItemController::class, 'bulkUpdate'])->whereUuid('ris')->name('ris.items.bulk-update');
+            Route::put('/ris/{ris}/items/{risItem}', [RisItemController::class, 'update'])->whereUuid(['ris', 'risItem'])->name('ris.items.update');
+            Route::delete('/ris/{ris}/items/{risItem}', [RisItemController::class, 'remove'])->whereUuid(['ris', 'risItem'])->name('ris.items.remove');
+            Route::post('/ris/{ris}/submit', [RisWorkflowController::class, 'submit'])->whereUuid('ris')->name('ris.submit');
+            Route::post('/ris/{ris}/approve', [RisWorkflowController::class, 'approve'])->whereUuid('ris')->name('ris.approve');
+            Route::post('/ris/{ris}/reject', [RisWorkflowController::class, 'reject'])->whereUuid('ris')->name('ris.reject');
+            Route::post('/ris/{ris}/reopen', [RisWorkflowController::class, 'reopen'])->whereUuid('ris')->name('ris.reopen');
+            Route::post('/ris/{ris}/revert-to-draft', [RisWorkflowController::class, 'revertToDraft'])->whereUuid('ris')->name('ris.revert-to-draft');
             Route::get('/pars', [GsoWorkspaceController::class, 'show'])
                 ->defaults('page', 'pars')
                 ->name('pars.index');
@@ -166,6 +190,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::put('/air/{air}/inspection', [AirInspectionController::class, 'save'])->whereUuid('air')->name('air.inspection.save');
             Route::put('/air/{air}/inspection/finalize', [AirInspectionController::class, 'finalize'])->whereUuid('air')->name('air.inspection.finalize');
             Route::post('/air/{air}/inspection/reopen', [AirInspectionController::class, 'reopen'])->whereUuid('air')->name('air.inspection.reopen');
+            Route::post('/air/{air}/ris/generate', [AirRisController::class, 'generate'])->whereUuid('air')->name('air.ris.generate');
             Route::get('/air/{air}/inventory/eligible', [AirInventoryPromotionController::class, 'eligible'])
                 ->whereUuid('air')
                 ->name('air.inventory.eligible');
@@ -296,6 +321,15 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::get('/air', function () {
         return redirect()->route('gso.air.index');
     });
+    Route::get('/ris', function () {
+        return redirect()->route('gso.ris.index');
+    });
+    Route::get('/ris/{ris}/edit', function (string $ris) {
+        return redirect()->route('gso.ris.edit', ['ris' => $ris] + request()->query());
+    })->whereUuid('ris');
+    Route::get('/ris/{ris}/print', function (string $ris) {
+        return redirect()->route('gso.ris.print', ['ris' => $ris] + request()->query());
+    })->whereUuid('ris');
     Route::get('/air/{air}/edit', function (string $air) {
         return redirect()->route('gso.air.edit', ['air' => $air] + request()->query());
     })->whereUuid('air');

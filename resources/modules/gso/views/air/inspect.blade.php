@@ -397,6 +397,20 @@
                     </button>
                 @endif
 
+                @if($status === 'inspected' && $hasConsumableItems)
+                    <button
+                        type="button"
+                        id="airGenerateRisBtn"
+                        class="ti-btn ti-btn-secondary"
+                        data-endpoint="{{ $existingRis
+                            ? route('gso.ris.edit', ['ris' => $existingRis->id])
+                            : route('gso.air.ris.generate', ['air' => $air['id'] ?? '']) }}"
+                        data-mode="{{ $existingRis ? 'view' : 'generate' }}"
+                    >
+                        {{ $existingRis ? 'View RIS' : 'Generate RIS' }}
+                    </button>
+                @endif
+
                 @if($canPromoteInventory)
                     <button
                         type="button"

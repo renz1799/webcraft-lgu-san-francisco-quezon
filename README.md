@@ -62,6 +62,7 @@ Architecture standards:
 UI standards:
 - Datatable patterns
 - Print workspace patterns
+- Frontend entry coordination through a thin global bootstrap plus module-owned JS entry registries
 
 Platform governance:
 - Core service rules

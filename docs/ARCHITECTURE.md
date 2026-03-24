@@ -753,6 +753,73 @@ reduced conflicts
 easier debugging
 module-specific separation without violating shared Core rules
 
+## Frontend Entry Coordination
+
+Authenticated pages load a single shared Vite entry from the main layout:
+
+`resources/core/js/custom-entry.js`
+
+That file should remain a thin coordinator only.
+
+Current structure:
+
+```text
+resources/
+  core/
+    js/
+      custom-entry.js
+      entry/
+        page-loader.js
+        core-pages.js
+        module-pages.js
+  modules/
+    gso/
+      js/
+        entry.js
+```
+
+Responsibilities:
+
+`custom-entry.js`
+boot once and delegate to registries
+
+`resources/core/js/entry/core-pages.js`
+register Core-owned page loaders
+
+`resources/core/js/entry/module-pages.js`
+register module entry bootstraps
+
+`resources/modules/<module>/js/entry.js`
+register page detectors and lazy imports for that module only
+
+`resources/core/js/entry/page-loader.js`
+shared DOM-ready and page-loader helpers
+
+### Page Detection Rule
+
+Page-specific JS should still be activated by stable DOM markers such as:
+
+`tasks-table`
+`gso-air-edit-page`
+`risForm`
+
+The registry should:
+
+1 map a DOM marker to a lazy import group
+2 keep error reporting local to that page loader
+3 avoid embedding business logic in the global coordinator
+
+### Module Growth Rule
+
+When a new module is added:
+
+1 create `resources/modules/<module>/js/entry.js`
+2 keep module-specific page loaders inside that file
+3 register that module bootstrap in `resources/core/js/entry/module-pages.js`
+4 do not expand `custom-entry.js` with page-by-page module logic
+
+This keeps the global bootstrap stable while allowing module-owned frontend growth.
+
 ---
 
 # Print Workspace Pattern

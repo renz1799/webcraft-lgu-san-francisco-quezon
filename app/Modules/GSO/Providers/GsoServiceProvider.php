@@ -24,6 +24,8 @@ use App\Modules\GSO\Builders\Contracts\InspectionDatatableRowBuilderInterface;
 use App\Modules\GSO\Builders\Contracts\InventoryItemDatatableRowBuilderInterface;
 use App\Modules\GSO\Builders\Contracts\ItemDatatableRowBuilderInterface;
 use App\Modules\GSO\Builders\Contracts\StockDatatableRowBuilderInterface;
+use App\Modules\GSO\Data\Contracts\RIS\RisItemDataProviderInterface;
+use App\Modules\GSO\Data\RIS\RisItemDataProvider;
 use App\Modules\GSO\Repositories\Contracts\AccountableOfficerRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\AirFileRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\AirItemRepositoryInterface;
@@ -101,6 +103,16 @@ use App\Modules\GSO\Services\Contracts\InventoryItemFileServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemPublicAssetServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemServiceInterface;
 use App\Modules\GSO\Services\Contracts\ItemServiceInterface;
+use App\Modules\GSO\Services\Contracts\Numbers\RisNumberServiceInterface;
+use App\Modules\GSO\Services\Contracts\RIS\RisItemServiceInterface;
+use App\Modules\GSO\Services\RIS\RisItemService;
+use App\Modules\GSO\Services\Contracts\RIS\RisPrintServiceInterface;
+use App\Modules\GSO\Services\Contracts\RIS\RisServiceInterface;
+use App\Modules\GSO\Services\Contracts\RIS\RisWorkflowServiceInterface;
+use App\Modules\GSO\Services\Numbers\RisNumberService;
+use App\Modules\GSO\Services\RIS\RisPrintService;
+use App\Modules\GSO\Services\RIS\RisService;
+use App\Modules\GSO\Services\RIS\RisWorkflowService;
 use App\Modules\GSO\Services\Contracts\RegspiReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RpcppeReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RpcspReportServiceInterface;
@@ -128,6 +140,7 @@ class GsoServiceProvider extends ServiceProvider
     {
         $this->registerRepositories();
         $this->registerApplicationBuilders();
+        $this->registerApplicationData();
         $this->registerApplicationServices();
     }
 
@@ -201,6 +214,14 @@ class GsoServiceProvider extends ServiceProvider
         ]);
     }
 
+    private function registerApplicationData(): void
+    {
+        $this->bindMany([
+            /* RIS */
+            RisItemDataProviderInterface::class => RisItemDataProvider::class,
+        ]);
+    }
+
     private function registerApplicationServices(): void
     {
         $this->bindMany([
@@ -236,6 +257,13 @@ class GsoServiceProvider extends ServiceProvider
 
             /* Stock */
             StockServiceInterface::class => StockService::class,
+
+            /* RIS */
+            RisItemServiceInterface::class => RisItemService::class,
+            RisPrintServiceInterface::class => RisPrintService::class,
+            RisServiceInterface::class => RisService::class,
+            RisWorkflowServiceInterface::class => RisWorkflowService::class,
+            RisNumberServiceInterface::class => RisNumberService::class,
 
             /* Reports */
             RegspiReportServiceInterface::class => RegspiReportService::class,

@@ -20,4 +20,15 @@ interface RisItemRepositoryInterface
     public function forceDelete(RisItem $risItem): void;
 
     public function bulkUpdate(string $risId, array $rowsById): int;
+
+    public function createMany(string $risId, array $itemsPayload): void;
+
+    public function existsActiveByRisIdAndItemId(string $risId, string $itemId): bool;
+
+    public function nextLineNumber(string $risId): int;
+
+    /**
+     * @return array<int, string>
+     */
+    public function listActiveItemIdsByRisId(string $risId): array;
 }

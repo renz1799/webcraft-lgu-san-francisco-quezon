@@ -87,6 +87,35 @@ class EloquentRisItemRepository implements RisItemRepositoryInterface
         DB::table('ris_items')->insert($rows);
     }
 
+    public function existsActiveByRisIdAndItemId(string $risId, string $itemId): bool
+    {
+        return RisItem::query()
+            ->where('ris_id', $risId)
+            ->where('item_id', $itemId)
+            ->whereNull('deleted_at')
+            ->exists();
+    }
+
+    public function nextLineNumber(string $risId): int
+    {
+        return ((int) (
+            RisItem::query()
+                ->where('ris_id', $risId)
+                ->whereNull('deleted_at')
+                ->max('line_no') ?? 0
+        )) + 1;
+    }
+
+    public function listActiveItemIdsByRisId(string $risId): array
+    {
+        return RisItem::query()
+            ->where('ris_id', $risId)
+            ->whereNull('deleted_at')
+            ->pluck('item_id')
+            ->map(fn ($value) => (string) $value)
+            ->all();
+    }
+
     private function applyBulkUpdatePayload(RisItem $item, array $row): void
     {
         $item->qty_requested = (int) ($row['qty_requested'] ?? $item->qty_requested);

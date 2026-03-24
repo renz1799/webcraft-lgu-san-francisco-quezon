@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Modules\GSO\Http\Requests\Air\FinalizeAirInspectionRequest;
 use App\Modules\GSO\Http\Requests\Air\ReopenAirInspectionRequest;
 use App\Modules\GSO\Http\Requests\Air\SaveAirInspectionRequest;
+use App\Modules\GSO\Models\Ris;
 use App\Modules\GSO\Services\Contracts\Air\AirServiceInterface;
 use App\Modules\GSO\Services\Contracts\Air\AirInspectionServiceInterface;
 use App\Modules\GSO\Support\InventoryConditions;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
@@ -31,11 +33,21 @@ class AirInspectionController extends Controller
     public function show(string $air): View
     {
         $payload = $this->inspection->getForInspection($air);
+        $existingRis = Ris::query()
+            ->where('air_id', $air)
+            ->first();
+        $hasConsumableItems = DB::table('air_items')
+            ->where('air_id', $air)
+            ->where('qty_accepted', '>', 0)
+            ->whereRaw("LOWER(TRIM(COALESCE(tracking_type_snapshot, ''))) IN ('consumable', 'consumables')")
+            ->exists();
 
         return view('gso::air.inspect', [
             'air' => $payload['air'],
             'items' => $payload['items'],
             'conditionStatuses' => InventoryConditions::labels(),
+            'existingRis' => $existingRis,
+            'hasConsumableItems' => $hasConsumableItems,
         ]);
     }
 

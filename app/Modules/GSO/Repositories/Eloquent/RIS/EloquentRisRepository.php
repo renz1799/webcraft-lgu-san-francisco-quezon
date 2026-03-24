@@ -2,7 +2,7 @@
 
 namespace App\Modules\GSO\Repositories\Eloquent\RIS;
 
-use App\Models\Ris;
+use App\Modules\GSO\Models\Ris;
 use App\Modules\GSO\Repositories\Contracts\RIS\RisRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
