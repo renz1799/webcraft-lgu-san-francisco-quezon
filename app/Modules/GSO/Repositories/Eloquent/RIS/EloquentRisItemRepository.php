@@ -58,15 +58,17 @@ class EloquentRisItemRepository implements RisItemRepositoryInterface
             ->whereIn('id', array_keys($rowsById))
             ->get();
 
-        foreach ($items as $it) {
-            $row = $rowsById[(string) $it->id] ?? null;
-            if (!$row) continue;
+        foreach ($items as $item) {
+            $row = $rowsById[(string) $item->id] ?? null;
 
-            $it->qty_requested = (int) ($row['qty_requested'] ?? $it->qty_requested);
-            $it->remarks = array_key_exists('remarks', $row) ? ($row['remarks'] ?? null) : $it->remarks;
+            if (!is_array($row)) {
+                continue;
+            }
 
-            if ($it->isDirty()) {
-                $it->save();
+            $this->applyBulkUpdatePayload($item, $row);
+
+            if ($item->isDirty()) {
+                $item->save();
                 $count++;
             }
         }
@@ -74,24 +76,40 @@ class EloquentRisItemRepository implements RisItemRepositoryInterface
         return $count;
     }
 
-        public function createMany(string $risId, array $itemsPayload): void
+    public function createMany(string $risId, array $itemsPayload): void
+    {
+        $rows = $this->buildCreateManyRows($risId, $itemsPayload);
+
+        if ($rows === []) {
+            return;
+        }
+
+        DB::table('ris_items')->insert($rows);
+    }
+
+    private function applyBulkUpdatePayload(RisItem $item, array $row): void
+    {
+        $item->qty_requested = (int) ($row['qty_requested'] ?? $item->qty_requested);
+
+        if (array_key_exists('remarks', $row)) {
+            $item->remarks = $row['remarks'] ?? null;
+        }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildCreateManyRows(string $risId, array $itemsPayload): array
     {
         $now = now();
 
-        $rows = array_map(function ($r) use ($risId, $now) {
+        return array_map(function (array $row) use ($risId, $now): array {
             return array_merge([
                 'id' => (string) Str::uuid(),
                 'ris_id' => $risId,
                 'created_at' => $now,
                 'updated_at' => $now,
-            ], $r);
+            ], $row);
         }, $itemsPayload);
-
-        if (!empty($rows)) {
-            DB::table('ris_items')->insert($rows);
-        }
     }
-
-    
-
 }
