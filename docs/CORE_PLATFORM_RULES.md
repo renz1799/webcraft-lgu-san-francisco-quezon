@@ -84,6 +84,7 @@ notification transport
 authentication and access control
 CurrentContext
 print infrastructure
+print config loading and paper profile resolution
 storage integrations
 shared repositories
 shared builders and providers
@@ -172,6 +173,14 @@ Tasks
 Notifications
 future dashboard widgets
 
+Print infrastructure follows the same split:
+
+Core owns:
+how printing works
+
+Modules/Core features own:
+what gets printed
+
 Never mix these responsibilities.
 
 ## Folder Structure Standard
@@ -255,6 +264,37 @@ Can this person work here?
 
 Tasks asks:
 What work must this person do?
+
+Printing asks:
+How should this document render on paper?
+
+Printable ownership asks:
+Which owner defines this document?
+
+## Print Architecture Rule
+
+Print configuration must scale with module growth.
+
+Use this structure:
+
+```text
+config/
+  print.php
+  print-modules/
+    core.php
+    gso.php
+    dts.php
+    hr.php
+```
+
+Rules:
+
+* `config/print.php` contains Core-owned print infrastructure only
+* `config/print-modules/*.php` contains owner-specific printable registrations
+* runtime printable access should resolve through `config('printables.*')`
+* legacy `config('print.modules.*')` access may be bridged temporarily during migration
+
+Avoid central printable registry bloat in `config/print.php`.
 
 ## Golden Rule
 

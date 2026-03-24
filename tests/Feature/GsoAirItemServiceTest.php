@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirItemRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirRepository;
-use App\Modules\GSO\Services\AirItemService;
+use App\Modules\GSO\Services\Air\AirItemService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

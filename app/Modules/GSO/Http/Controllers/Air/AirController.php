@@ -6,7 +6,7 @@ use App\Core\Models\Department;
 use App\Http\Controllers\Controller;
 use App\Modules\GSO\Http\Requests\Air\AirTableDataRequest;
 use App\Modules\GSO\Models\FundSource;
-use App\Modules\GSO\Services\Contracts\AirServiceInterface;
+use App\Modules\GSO\Services\Contracts\Air\AirServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;

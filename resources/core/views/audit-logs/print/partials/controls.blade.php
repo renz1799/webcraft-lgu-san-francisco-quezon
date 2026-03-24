@@ -1,8 +1,9 @@
 @php
     $adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class);
-    $selectedPaper = $filters['paper_profile'] ?? config('print.modules.audit_logs.default_paper', 'a4-portrait');
+    $printConfig = app(\App\Core\Services\Contracts\Print\PrintConfigLoaderInterface::class);
+    $selectedPaper = $filters['paper_profile'] ?? $printConfig->defaultPaper('audit_logs', 'a4-portrait');
 
-    $allowedPapers = config('print.modules.audit_logs.allowed_papers', []);
+    $allowedPapers = $printConfig->allowedPapers('audit_logs', 'a4-portrait');
 
     $paperOptions = collect($allowedPapers)
         ->mapWithKeys(fn ($code) => [

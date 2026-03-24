@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\GSO\Http\Requests\Air\DestroyAirFileRequest;
 use App\Modules\GSO\Http\Requests\Air\SetPrimaryAirFileRequest;
 use App\Modules\GSO\Http\Requests\Air\StoreAirFileRequest;
-use App\Modules\GSO\Services\Contracts\AirFileServiceInterface;
+use App\Modules\GSO\Services\Contracts\Air\AirFileServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 

@@ -3,12 +3,13 @@
 namespace Tests\Feature;
 
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Models\Tasks\Task;
 use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
-use App\Modules\GSO\Builders\AirDatatableRowBuilder;
+use App\Modules\GSO\Builders\Air\AirDatatableRowBuilder;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirRepository;
-use App\Modules\GSO\Services\AirService;
+use App\Modules\GSO\Services\Air\AirService;
 use App\Modules\GSO\Services\Contracts\AccountableOfficerServiceInterface;
-use App\Modules\GSO\Support\AirStatuses;
+use App\Modules\GSO\Support\Air\AirStatuses;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -414,6 +415,198 @@ class GsoAirServiceTest extends TestCase
         $this->expectExceptionMessage('Add at least one item before submitting this AIR.');
 
         $service->submitDraft('user-1', (string) $created->id);
+    }
+
+    public function test_it_creates_a_follow_up_air_for_unresolved_inspection_items(): void
+    {
+        DB::table('airs')->insert([
+            'id' => 'air-source',
+            'parent_air_id' => null,
+            'continuation_no' => 1,
+            'po_number' => 'PO-2026-020',
+            'po_date' => '2026-03-21',
+            'air_number' => 'AIR-2026-0020',
+            'air_date' => '2026-03-21',
+            'supplier_name' => 'Acme Trading',
+            'requesting_department_id' => 'dept-1',
+            'requesting_department_name_snapshot' => 'General Services Office',
+            'requesting_department_code_snapshot' => 'GSO',
+            'fund_source_id' => 'fund-gf',
+            'fund' => 'General Fund',
+            'status' => AirStatuses::INSPECTED,
+            'inspected_by_name' => 'Juan Dela Cruz',
+            'accepted_by_name' => 'Maria Clara',
+            'created_at' => now(),
+            'updated_at' => now(),
+            'deleted_at' => null,
+        ]);
+
+        DB::table('items')->insert([
+            [
+                'id' => 'item-1',
+                'item_name' => 'Laptop',
+                'description' => 'Portable computer',
+                'base_unit' => 'unit',
+                'item_identification' => 'ITM-001',
+                'tracking_type' => 'property',
+                'requires_serial' => true,
+                'is_semi_expendable' => false,
+                'is_selected' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+                'deleted_at' => null,
+            ],
+            [
+                'id' => 'item-2',
+                'item_name' => 'Bond Paper',
+                'description' => 'A4 ream',
+                'base_unit' => 'ream',
+                'item_identification' => 'ITM-002',
+                'tracking_type' => 'consumable',
+                'requires_serial' => false,
+                'is_semi_expendable' => false,
+                'is_selected' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+                'deleted_at' => null,
+            ],
+        ]);
+
+        DB::table('air_items')->insert([
+            [
+                'id' => 'air-item-1',
+                'air_id' => 'air-source',
+                'item_id' => 'item-1',
+                'stock_no_snapshot' => 'ITM-001',
+                'item_name_snapshot' => 'Laptop',
+                'description_snapshot' => 'Portable computer',
+                'unit_snapshot' => 'unit',
+                'acquisition_cost' => 55000,
+                'qty_ordered' => 2,
+                'qty_delivered' => 1,
+                'qty_accepted' => 1,
+                'tracking_type_snapshot' => 'property',
+                'requires_serial_snapshot' => true,
+                'is_semi_expendable_snapshot' => false,
+                'remarks' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 'air-item-2',
+                'air_id' => 'air-source',
+                'item_id' => 'item-2',
+                'stock_no_snapshot' => 'ITM-002',
+                'item_name_snapshot' => 'Bond Paper',
+                'description_snapshot' => 'A4 ream',
+                'unit_snapshot' => 'ream',
+                'acquisition_cost' => 250,
+                'qty_ordered' => 5,
+                'qty_delivered' => 5,
+                'qty_accepted' => 5,
+                'tracking_type_snapshot' => 'consumable',
+                'requires_serial_snapshot' => false,
+                'is_semi_expendable_snapshot' => false,
+                'remarks' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $audit = Mockery::mock(AuditLogServiceInterface::class);
+        $audit->shouldReceive('record')->once();
+        $accountableOfficers = Mockery::mock(AccountableOfficerServiceInterface::class);
+        $accountableOfficers->shouldNotReceive('createOrResolve');
+        $tasks = Mockery::mock(TaskServiceInterface::class);
+        $tasks->shouldReceive('createUnassigned')->once()->andReturn(new Task([
+            'id' => 'task-follow-up',
+            'status' => Task::STATUS_PENDING,
+        ]));
+
+        $service = new AirService(
+            new EloquentAirRepository(),
+            $audit,
+            new AirDatatableRowBuilder(),
+            $accountableOfficers,
+            $tasks,
+        );
+
+        $followUp = $service->createFollowUpFromInspection('user-1', 'air-source');
+
+        $this->assertSame(AirStatuses::DRAFT, $followUp->status);
+        $this->assertSame('air-source', (string) $followUp->parent_air_id);
+        $this->assertSame(2, (int) $followUp->continuation_no);
+
+        $this->assertDatabaseHas('airs', [
+            'id' => $followUp->id,
+            'parent_air_id' => 'air-source',
+            'status' => AirStatuses::DRAFT,
+        ]);
+
+        $this->assertSame(1, DB::table('air_items')->where('air_id', $followUp->id)->count());
+        $this->assertDatabaseHas('air_items', [
+            'air_id' => $followUp->id,
+            'item_id' => 'item-1',
+            'qty_delivered' => 0,
+            'qty_accepted' => 0,
+        ]);
+    }
+
+    public function test_it_reopens_an_inspected_air_back_to_submitted_and_reopens_its_task(): void
+    {
+        DB::table('airs')->insert([
+            'id' => 'air-reopen',
+            'parent_air_id' => null,
+            'continuation_no' => 1,
+            'po_number' => 'PO-2026-021',
+            'po_date' => '2026-03-21',
+            'air_number' => 'AIR-2026-0021',
+            'air_date' => '2026-03-21',
+            'supplier_name' => 'Acme Trading',
+            'requesting_department_id' => 'dept-1',
+            'requesting_department_name_snapshot' => 'General Services Office',
+            'requesting_department_code_snapshot' => 'GSO',
+            'fund_source_id' => 'fund-gf',
+            'fund' => 'General Fund',
+            'status' => AirStatuses::INSPECTED,
+            'created_at' => now(),
+            'updated_at' => now(),
+            'deleted_at' => null,
+        ]);
+
+        $audit = Mockery::mock(AuditLogServiceInterface::class);
+        $audit->shouldReceive('record')->once();
+        $accountableOfficers = Mockery::mock(AccountableOfficerServiceInterface::class);
+        $accountableOfficers->shouldNotReceive('createOrResolve');
+        $tasks = Mockery::mock(TaskServiceInterface::class);
+        $tasks->shouldReceive('findLatestBySubject')->once()->andReturn(new Task([
+            'id' => 'task-reopen',
+            'status' => Task::STATUS_DONE,
+        ]));
+        $tasks->shouldReceive('syncTaskContext')->once()->andReturn(new Task([
+            'id' => 'task-reopen',
+            'status' => Task::STATUS_DONE,
+        ]));
+        $tasks->shouldReceive('changeStatus')->once()->andReturn(new Task([
+            'id' => 'task-reopen',
+            'status' => Task::STATUS_PENDING,
+        ]));
+
+        $service = new AirService(
+            new EloquentAirRepository(),
+            $audit,
+            new AirDatatableRowBuilder(),
+            $accountableOfficers,
+            $tasks,
+        );
+
+        $reopened = $service->reopenInspection('user-1', 'air-reopen', 'Correction needed');
+
+        $this->assertSame(AirStatuses::SUBMITTED, $reopened->status);
+        $this->assertDatabaseHas('airs', [
+            'id' => 'air-reopen',
+            'status' => AirStatuses::SUBMITTED,
+        ]);
     }
 
     private function createSchema(): void

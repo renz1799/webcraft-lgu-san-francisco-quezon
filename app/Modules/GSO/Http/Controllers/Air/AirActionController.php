@@ -3,12 +3,13 @@
 namespace App\Modules\GSO\Http\Controllers\Air;
 
 use App\Http\Controllers\Controller;
+use App\Modules\GSO\Http\Requests\Air\CreateAirFollowUpRequest;
 use App\Modules\GSO\Http\Requests\Air\DestroyAirRequest;
 use App\Modules\GSO\Http\Requests\Air\ForceDestroyAirRequest;
 use App\Modules\GSO\Http\Requests\Air\RestoreAirRequest;
 use App\Modules\GSO\Http\Requests\Air\SubmitAirDraftRequest;
 use App\Modules\GSO\Http\Requests\Air\UpdateAirDraftRequest;
-use App\Modules\GSO\Services\Contracts\AirServiceInterface;
+use App\Modules\GSO\Services\Contracts\Air\AirServiceInterface;
 use Illuminate\Http\JsonResponse;
 
 class AirActionController extends Controller
@@ -17,7 +18,7 @@ class AirActionController extends Controller
         private readonly AirServiceInterface $airs,
     ) {
         $this->middleware('role_or_permission:Administrator|admin|modify AIR')
-            ->only(['update', 'submit', 'destroy', 'restore', 'forceDestroy']);
+            ->only(['update', 'submit', 'createFollowUp', 'destroy', 'restore', 'forceDestroy']);
     }
 
     public function update(UpdateAirDraftRequest $request, string $air): JsonResponse
@@ -37,6 +38,24 @@ class AirActionController extends Controller
         return response()->json([
             'data' => $this->airs->getForEdit((string) $submitted->id),
             'message' => 'AIR submitted.',
+        ]);
+    }
+
+    public function createFollowUp(CreateAirFollowUpRequest $request, string $air): JsonResponse
+    {
+        $followUp = $this->airs->createFollowUpFromInspection((string) $request->user()?->id, $air);
+        $status = (string) ($followUp->status ?? '');
+        $redirectUrl = in_array($status, ['submitted', 'in_progress', 'inspected'], true)
+            ? route('gso.air.inspect', ['air' => $followUp->id])
+            : route('gso.air.edit', ['air' => $followUp->id]);
+
+        return response()->json([
+            'data' => [
+                'id' => (string) $followUp->id,
+                'status' => $status,
+                'redirect_url' => $redirectUrl,
+            ],
+            'message' => 'Follow-up AIR is ready.',
         ]);
     }
 

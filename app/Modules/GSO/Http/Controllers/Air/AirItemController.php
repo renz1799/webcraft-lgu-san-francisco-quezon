@@ -7,7 +7,7 @@ use App\Modules\GSO\Http\Requests\Air\BulkUpdateAirItemsRequest;
 use App\Modules\GSO\Http\Requests\Air\StoreAirItemRequest;
 use App\Modules\GSO\Http\Requests\Air\SuggestAirItemRequest;
 use App\Modules\GSO\Http\Requests\Air\UpdateAirItemRequest;
-use App\Modules\GSO\Services\Contracts\AirItemServiceInterface;
+use App\Modules\GSO\Services\Contracts\Air\AirItemServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

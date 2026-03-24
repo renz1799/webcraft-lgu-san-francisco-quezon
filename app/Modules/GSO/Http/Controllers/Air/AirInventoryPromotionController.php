@@ -5,7 +5,7 @@ namespace App\Modules\GSO\Http\Controllers\Air;
 use App\Http\Controllers\Controller;
 use App\Modules\GSO\Http\Requests\Air\GetAirInventoryPromotionEligibilityRequest;
 use App\Modules\GSO\Http\Requests\Air\PromoteAirInventoryRequest;
-use App\Modules\GSO\Services\Contracts\AirInventoryPromotionServiceInterface;
+use App\Modules\GSO\Services\Contracts\Air\AirInventoryPromotionServiceInterface;
 use Illuminate\Http\JsonResponse;
 
 class AirInventoryPromotionController extends Controller

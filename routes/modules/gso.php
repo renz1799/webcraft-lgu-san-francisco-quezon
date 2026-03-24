@@ -145,6 +145,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::get('/air/{air}/edit', [AirController::class, 'edit'])->whereUuid('air')->name('air.edit');
             Route::put('/air/{air}', [AirActionController::class, 'update'])->whereUuid('air')->name('air.update');
             Route::put('/air/{air}/submit', [AirActionController::class, 'submit'])->whereUuid('air')->name('air.submit');
+            Route::post('/air/{air}/follow-up', [AirActionController::class, 'createFollowUp'])->whereUuid('air')->name('air.follow-up.create');
             Route::delete('/air/{air}', [AirActionController::class, 'destroy'])->whereUuid('air')->name('air.destroy');
             Route::patch('/air/{air}/restore', [AirActionController::class, 'restore'])->whereUuid('air')->name('air.restore');
             Route::delete('/air/{air}/force', [AirActionController::class, 'forceDestroy'])->whereUuid('air')->name('air.force-destroy');
@@ -155,7 +156,8 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::put('/air/{air}/items/{airItem}', [AirItemController::class, 'update'])->whereUuid(['air', 'airItem'])->name('air.items.update');
             Route::delete('/air/{air}/items/{airItem}', [AirItemController::class, 'destroy'])->whereUuid(['air', 'airItem'])->name('air.items.destroy');
             Route::get('/air/{air}/inspect', [AirInspectionController::class, 'show'])->whereUuid('air')->name('air.inspect');
-            Route::get('/air/{air}/print', [AirPrintController::class, 'print'])->whereUuid('air')->name('air.print');
+            Route::get('/air/{air}/print', [AirPrintController::class, 'preview'])->whereUuid('air')->name('air.print');
+            Route::get('/air/{air}/print/pdf', [AirPrintController::class, 'downloadPdf'])->whereUuid('air')->name('air.print.pdf');
             Route::get('/air/{air}/files', [AirFileController::class, 'index'])->whereUuid('air')->name('air.files.index');
             Route::post('/air/{air}/files', [AirFileController::class, 'store'])->whereUuid('air')->name('air.files.store');
             Route::get('/air/{air}/files/{file}/preview', [AirFileController::class, 'preview'])->whereUuid(['air', 'file'])->name('air.files.preview');
@@ -163,6 +165,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::put('/air/{air}/files/{file}/primary', [AirFileController::class, 'setPrimary'])->whereUuid(['air', 'file'])->name('air.files.set-primary');
             Route::put('/air/{air}/inspection', [AirInspectionController::class, 'save'])->whereUuid('air')->name('air.inspection.save');
             Route::put('/air/{air}/inspection/finalize', [AirInspectionController::class, 'finalize'])->whereUuid('air')->name('air.inspection.finalize');
+            Route::post('/air/{air}/inspection/reopen', [AirInspectionController::class, 'reopen'])->whereUuid('air')->name('air.inspection.reopen');
             Route::get('/air/{air}/inventory/eligible', [AirInventoryPromotionController::class, 'eligible'])
                 ->whereUuid('air')
                 ->name('air.inventory.eligible');
@@ -302,6 +305,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::get('/air/{air}/print', function (string $air) {
         return redirect()->route('gso.air.print', ['air' => $air] + request()->query());
     })->whereUuid('air')->name('gso.air.legacy.print');
+    Route::get('/air/{air}/print/pdf', function (string $air) {
+        return redirect()->route('gso.air.print.pdf', ['air' => $air] + request()->query());
+    })->whereUuid('air')->name('gso.air.legacy.print.pdf');
     Route::redirect('/items', '/gso/items');
     Route::redirect('/inventory-items', '/gso/inventory-items');
     Route::get('/inventory-items/{inventoryItem}/property-card/print', function (string $inventoryItem) {
@@ -347,6 +353,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::put('/air/{air}/files/{file}/primary', [AirFileController::class, 'setPrimary'])->whereUuid(['air', 'file']);
         Route::put('/air/{air}', [AirActionController::class, 'update'])->whereUuid('air');
         Route::put('/air/{air}/submit', [AirActionController::class, 'submit'])->whereUuid('air');
+        Route::post('/air/{air}/follow-up', [AirActionController::class, 'createFollowUp'])->whereUuid('air');
         Route::delete('/air/{air}', [AirActionController::class, 'destroy'])->whereUuid('air');
         Route::patch('/air/{air}/restore', [AirActionController::class, 'restore'])->whereUuid('air');
         Route::get('/air/{air}/items', [AirItemController::class, 'index'])->whereUuid('air');
@@ -359,6 +366,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::delete('/air/{air}/force', [AirActionController::class, 'forceDestroy'])->whereUuid('air');
         Route::put('/air/{air}/inspection', [AirInspectionController::class, 'save'])->whereUuid('air');
         Route::put('/air/{air}/inspection/finalize', [AirInspectionController::class, 'finalize'])->whereUuid('air');
+        Route::post('/air/{air}/inspection/reopen', [AirInspectionController::class, 'reopen'])->whereUuid('air');
         Route::get('/air/{air}/inventory/eligible', [AirInventoryPromotionController::class, 'eligible'])->whereUuid('air');
         Route::post('/air/{air}/inventory/promote', [AirInventoryPromotionController::class, 'promote'])->whereUuid('air');
         Route::get('/air/{air}/inspection/items/{airItem}/units', [AirInspectionUnitController::class, 'index'])->whereUuid(['air', 'airItem']);

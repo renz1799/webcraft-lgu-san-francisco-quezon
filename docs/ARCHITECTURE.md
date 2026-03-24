@@ -91,6 +91,7 @@ notification transport
 authentication and access control
 CurrentContext
 print infrastructure
+print config loading and paper-profile resolution
 storage integrations
 shared repositories
 shared builders and providers
@@ -137,6 +138,8 @@ Examples:
 Tasks
 Notifications
 future shared workflow engines
+
+Print infrastructure is also Core-owned, while printable registrations remain owned by the module or Core feature that produces the document.
 
 Do not mix these responsibilities.
 
@@ -188,6 +191,12 @@ Can this person work here?
 
 Tasks asks:
 What work must this person do?
+
+Printing asks:
+How should this document be rendered?
+
+Printable registration asks:
+What document does this owner expose for printing?
 
 ---
 

@@ -170,6 +170,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
     let fileState = null;
     let activeUnitId = null;
     let inspectionBaseline = null;
+    let inspectionGuardState = null;
     let unitRowsBaseline = [];
     let activeTabletTab = "receiving";
 
@@ -196,7 +197,11 @@ import "sweetalert2/dist/sweetalert2.min.css";
     const receivedNotesInput = qs("gsoAirInspectionReceivedNotes");
     const saveButton = qs("gsoAirInspectionSaveBtn");
     const finalizeButton = qs("gsoAirInspectionFinalizeBtn");
+    const followUpButton = qs("gsoAirInspectionFollowUpBtn");
+    const reopenButton = qs("gsoAirInspectionReopenBtn");
     const promoteButton = qs("gsoAirInspectionPromoteBtn");
+    const completenessHint = qs("gsoAirInspectionCompletenessHint");
+    const finalizeHint = qs("gsoAirInspectionFinalizeHint");
 
     const unitModal = qs("gsoAirUnitModal");
     const unitModalTitle = qs("gsoAirUnitModalTitle");
@@ -213,7 +218,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
     const componentEmpty = qs("gsoAirUnitComponentEmpty");
     const componentError = qs("gsoAirUnitComponentError");
     const componentTemplateNote = qs("gsoAirUnitComponentTemplateNote");
-    const componentUseDefaultsButton = qs("gsoAirUnitComponentUseDefaultsBtn");
     const componentAddRowButton = qs("gsoAirUnitComponentAddRowBtn");
 
     const fileModal = qs("gsoAirUnitFileModal");
@@ -316,6 +320,11 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
     function updateInspectionToolbar() {
       const dirtyCount = Math.max(0, Number(inspectionToolbarState.dirtyCount || 0));
+      const finalizeBlocked =
+        !!inspectionGuardState &&
+        (inspectionGuardState.missingFields.length > 0 ||
+          inspectionGuardState.completenessMismatch ||
+          inspectionGuardState.singleItemIncomplete);
 
       if (saveButton) {
         saveButton.textContent =
@@ -336,8 +345,12 @@ import "sweetalert2/dist/sweetalert2.min.css";
             : inspectionToolbarState.defaultFinalizeLabel;
         finalizeButton.disabled =
           !canEdit() ||
+          finalizeBlocked ||
           inspectionToolbarState.isSaving ||
           inspectionToolbarState.isFinalizing;
+        finalizeButton.title = finalizeBlocked
+          ? inspectionGuardState?.finalizeReason || ""
+          : "";
       }
 
       syncStickyOffsets();
@@ -422,7 +435,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
         unitCountText.textContent = String(totalUnits);
       }
       if (promoteButton) promoteButton.disabled = !canPromote();
-      updateInspectionToolbar();
+      refreshInspectionGuards();
       syncStickyOffsets();
     }
 
@@ -484,7 +497,9 @@ import "sweetalert2/dist/sweetalert2.min.css";
                         )}">
                           Units
                         </button>
-                        <span class="rounded-full bg-light px-3 py-1 text-xs text-[#8c9097] dark:bg-black/20 dark:text-white/50">
+                        <span class="rounded-full bg-light px-3 py-1 text-xs text-[#8c9097] dark:bg-black/20 dark:text-white/50" data-air-item-units-count="${escapeHtml(
+                          item?.id || "",
+                        )}">
                           ${escapeHtml(unitsCount)} / ${escapeHtml(acceptedQty)} encoded
                         </span>
                       </div>`
@@ -563,7 +578,207 @@ import "sweetalert2/dist/sweetalert2.min.css";
       const item = findItem(itemId);
       if (!item) return;
 
+      if (field === "qty_delivered") {
+        const delivered = Math.max(0, Number(value || 0));
+        const ordered = Math.max(0, Number(item?.qty_ordered || 0));
+        item.qty_delivered = delivered;
+
+        if (ordered > 0 && delivered < ordered) {
+          item.qty_accepted = 0;
+        } else {
+          item.qty_accepted = Math.min(
+            Math.max(0, Number(item?.qty_accepted || 0)),
+            delivered,
+          );
+        }
+
+        syncItemCardState(itemId);
+        return;
+      }
+
+      if (field === "qty_accepted") {
+        const delivered = Math.max(0, Number(item?.qty_delivered || 0));
+        const ordered = Math.max(0, Number(item?.qty_ordered || 0));
+        item.qty_accepted =
+          ordered > 0 && delivered < ordered
+            ? 0
+            : Math.min(Math.max(0, Number(value || 0)), delivered);
+        syncItemCardState(itemId);
+        return;
+      }
+
       item[field] = value;
+    }
+
+    function getInspectionGuardState() {
+      const unresolvedItems = (state.items || []).filter((item) => {
+        const ordered = Math.max(0, Number(item?.qty_ordered || 0));
+        const accepted = Math.max(0, Number(item?.qty_accepted || 0));
+
+        return accepted < ordered;
+      });
+      const needsFollowUp = unresolvedItems.length > 0;
+      const singleItemIncomplete =
+        (state.items || []).length === 1 && unresolvedItems.length > 0;
+      const expectedCompleteness = needsFollowUp ? "partial" : "complete";
+      const completenessValue = normalizeText(
+        completenessSelect?.value || "",
+      ).toLowerCase();
+      const missingFields = [];
+
+      if (!normalizeText(invoiceNumberInput?.value || "")) {
+        missingFields.push("Invoice / DR / SI No.");
+      }
+      if (!normalizeText(invoiceDateInput?.value || "")) {
+        missingFields.push("Invoice Date");
+      }
+      if (!normalizeText(dateReceivedInput?.value || "")) {
+        missingFields.push("Date Received");
+      }
+      if (!normalizeText(completenessSelect?.value || "")) {
+        missingFields.push("Received Completeness");
+      }
+
+      const completenessMismatch =
+        completenessValue === "" || completenessValue !== expectedCompleteness;
+      let finalizeReason = "";
+
+      if (missingFields.length > 0) {
+        finalizeReason = `Finalize is locked until these receiving fields are complete: ${missingFields.join(", ")}.`;
+      } else if (singleItemIncomplete) {
+        finalizeReason =
+          "Single-item AIR inspections cannot be finalized until the ordered quantity is fully accepted.";
+      } else if (completenessMismatch) {
+        finalizeReason = needsFollowUp
+          ? "Finalize is locked because this AIR still has unresolved items. Set Received Completeness to Partial first."
+          : "Finalize is locked because all ordered items are fully accepted. Set Received Completeness to Complete first.";
+      }
+
+      return {
+        needsFollowUp,
+        singleItemIncomplete,
+        unresolvedCount: unresolvedItems.length,
+        expectedCompleteness,
+        completenessValue,
+        completenessMismatch,
+        missingFields,
+        finalizeReason,
+      };
+    }
+
+    function syncCompletenessControl(guardState) {
+      if (!completenessSelect) return;
+
+      const completeOption = completenessSelect.querySelector('option[value="complete"]');
+      const partialOption = completenessSelect.querySelector('option[value="partial"]');
+
+      if (completeOption) {
+        completeOption.disabled = canEdit() && guardState.expectedCompleteness !== "complete";
+      }
+
+      if (partialOption) {
+        partialOption.disabled = canEdit() && guardState.expectedCompleteness !== "partial";
+      }
+
+      if (!completenessHint) return;
+
+      if (guardState.singleItemIncomplete) {
+        completenessHint.textContent = guardState.completenessMismatch
+          ? "This AIR only has one delivered item. Save it as Partial if needed, but finalization stays locked until the full ordered quantity is accepted."
+          : "This AIR only has one delivered item. Finalization stays locked until the full ordered quantity is accepted.";
+        return;
+      }
+
+      if (guardState.needsFollowUp) {
+        completenessHint.textContent = guardState.completenessMismatch
+          ? "This AIR still has unresolved items. Change Received Completeness to Partial before saving or finalizing."
+          : "This AIR is correctly marked Partial. You can finalize it, then create a follow-up AIR for the remaining quantity.";
+        return;
+      }
+
+      completenessHint.textContent = guardState.completenessMismatch
+        ? "All ordered items are fully accepted. Change Received Completeness to Complete before saving or finalizing."
+        : "This AIR is correctly marked Complete because all ordered items are fully accepted.";
+    }
+
+    function syncFinalizeControl(guardState) {
+      if (!finalizeHint) return;
+
+      finalizeHint.textContent =
+        guardState.finalizeReason ||
+        (guardState.needsFollowUp
+          ? "Finalize will keep this AIR marked Partial so a follow-up AIR can be created afterward."
+          : "");
+    }
+
+    function refreshInspectionGuards() {
+      inspectionGuardState = getInspectionGuardState();
+      syncCompletenessControl(inspectionGuardState);
+      syncFinalizeControl(inspectionGuardState);
+      updateInspectionToolbar();
+
+      return inspectionGuardState;
+    }
+
+    function syncItemCardState(itemId) {
+      const item = findItem(itemId);
+      if (!item || !itemsContainer) return;
+
+      const card = itemsContainer.querySelector(
+        `[data-air-item-id="${String(itemId)}"]`,
+      );
+      if (!card) return;
+
+      const deliveredInput = card.querySelector('[data-field="qty_delivered"]');
+      const acceptedInput = card.querySelector('[data-field="qty_accepted"]');
+      const unitsCountBadge = card.querySelector(
+        `[data-air-item-units-count="${String(itemId)}"]`,
+      );
+      const ordered = Math.max(0, Number(item?.qty_ordered || 0));
+      const delivered = Math.max(0, Number(item?.qty_delivered || 0));
+      const accepted = Math.max(0, Number(item?.qty_accepted || 0));
+      const isIncompleteDelivery = ordered > 0 && delivered < ordered;
+
+      if (deliveredInput) {
+        deliveredInput.value = String(delivered);
+      }
+
+      if (acceptedInput) {
+        acceptedInput.value = String(isIncompleteDelivery ? 0 : accepted);
+
+        if (canEdit() && isIncompleteDelivery) {
+          acceptedInput.setAttribute("disabled", "disabled");
+        } else if (canEdit()) {
+          acceptedInput.removeAttribute("disabled");
+        }
+      }
+
+      let incompleteNote = card.querySelector("[data-incomplete-note]");
+
+      if (isIncompleteDelivery) {
+        if (!incompleteNote && acceptedInput?.parentElement) {
+          incompleteNote = document.createElement("div");
+          incompleteNote.setAttribute("data-incomplete-note", "1");
+          incompleteNote.className = "mt-1 text-[11px] text-warning";
+          acceptedInput.parentElement.appendChild(incompleteNote);
+        }
+
+        if (incompleteNote) {
+          incompleteNote.textContent =
+            "Accepted quantity stays at 0 until the full ordered quantity is delivered.";
+        }
+      } else if (incompleteNote) {
+        incompleteNote.remove();
+      }
+
+      if (unitsCountBadge) {
+        unitsCountBadge.textContent = `${Math.max(
+          0,
+          Number(item?.units_count || 0),
+        )} / ${accepted} encoded`;
+      }
+
+      refreshInspectionGuards();
     }
 
     function buildInspectionPayload() {
@@ -654,7 +869,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
         getInspectionSnapshot(),
         inspectionBaseline,
       );
-      updateInspectionToolbar();
+      refreshInspectionGuards();
     }
 
     function resetInspectionBaseline() {
@@ -760,6 +975,22 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
     async function finalizeInspection() {
       const hasChanges = inspectionToolbarState.dirtyCount > 0;
+      const guardState = refreshInspectionGuards();
+
+      if (
+        guardState.missingFields.length > 0 ||
+        guardState.completenessMismatch ||
+        guardState.singleItemIncomplete
+      ) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Finalize blocked",
+          text:
+            guardState.finalizeReason ||
+            "Complete the required inspection fields before finalizing this AIR.",
+        });
+        return;
+      }
 
       const confirmation = await Swal.fire({
         icon: "question",
@@ -792,11 +1023,10 @@ import "sweetalert2/dist/sweetalert2.min.css";
           }
         }
 
-        Swal.fire({
-          title: "Finalizing inspection...",
-          allowOutsideClick: false,
-          didOpen: () => Swal.showLoading(),
-        });
+        showLoadingAlert(
+          "Finalizing inspection...",
+          "The AIR is being locked and the inspection workspace will refresh after completion.",
+        );
 
         const parsed = await requestJson(config.finalizeUrl, { method: "PUT" });
 
@@ -821,12 +1051,138 @@ import "sweetalert2/dist/sweetalert2.min.css";
         await Swal.fire({
           icon: "success",
           title: "Inspection finalized",
+          text: "Reloading the inspection workspace...",
           timer: 1200,
           showConfirmButton: false,
         });
+
+        window.location.reload();
+        return;
       } finally {
         inspectionToolbarState.isFinalizing = false;
         updateInspectionToolbar();
+      }
+    }
+
+    async function createFollowUpAir() {
+      if (!config.followUpCreateUrl) return;
+
+      const confirmation = await Swal.fire({
+        icon: "question",
+        title: "Create follow-up AIR?",
+        text: "This will create a new AIR draft for the unresolved quantities from this inspection.",
+        showCancelButton: true,
+        confirmButtonText: "Create Follow-up AIR",
+        cancelButtonText: "Cancel",
+      });
+
+      if (!confirmation.isConfirmed) {
+        return;
+      }
+
+      showLoadingAlert(
+        "Creating follow-up AIR...",
+        "The unresolved inspection quantities are being prepared in a new AIR draft.",
+      );
+
+      try {
+        const parsed = await requestJson(config.followUpCreateUrl, {
+          method: "POST",
+        });
+
+        if (!parsed.ok) {
+          await Swal.fire({
+            icon: parsed.status === 422 ? "warning" : "error",
+            title:
+              parsed.status === 422
+                ? "Follow-up AIR blocked"
+                : "Follow-up AIR failed",
+            html:
+              validationHtml(parsed.data?.errors || {}) ||
+              escapeHtml(parsed.message),
+          });
+          return;
+        }
+
+        await Swal.fire({
+          icon: "success",
+          title: "Follow-up AIR ready",
+          text:
+            parsed.message || "Redirecting to the follow-up AIR workspace...",
+          timer: 1100,
+          showConfirmButton: false,
+        });
+
+        const redirectUrl = normalizeText(
+          parsed.data?.data?.redirect_url || "",
+        );
+        window.location.href = redirectUrl || config.editUrl || config.indexUrl;
+      } finally {
+        Swal.close();
+      }
+    }
+
+    async function reopenInspection() {
+      if (!config.reopenUrl) return;
+
+      const confirmation = await Swal.fire({
+        icon: "warning",
+        title: "Reopen inspection?",
+        text: "This will move the AIR back to Submitted so it can be edited again.",
+        input: "textarea",
+        inputLabel: "Reason (optional)",
+        inputAttributes: {
+          maxlength: "500",
+          placeholder:
+            "Add a brief note about why this AIR is being reopened.",
+        },
+        showCancelButton: true,
+        confirmButtonText: "Reopen Inspection",
+        cancelButtonText: "Cancel",
+      });
+
+      if (!confirmation.isConfirmed) {
+        return;
+      }
+
+      showLoadingAlert(
+        "Reopening inspection...",
+        "The AIR is being moved back to an editable inspection status.",
+      );
+
+      try {
+        const parsed = await requestJson(config.reopenUrl, {
+          method: "POST",
+          body: JSON.stringify({
+            reason: String(confirmation.value || "").trim(),
+          }),
+        });
+
+        if (!parsed.ok) {
+          await Swal.fire({
+            icon: parsed.status === 422 ? "warning" : "error",
+            title:
+              parsed.status === 422
+                ? "Reopen blocked"
+                : "Reopen failed",
+            html:
+              validationHtml(parsed.data?.errors || {}) ||
+              escapeHtml(parsed.message),
+          });
+          return;
+        }
+
+        await Swal.fire({
+          icon: "success",
+          title: "Inspection reopened",
+          text: "Reloading the inspection workspace...",
+          timer: 1100,
+          showConfirmButton: false,
+        });
+
+        window.location.reload();
+      } finally {
+        Swal.close();
       }
     }
 
@@ -997,43 +1353,64 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
       if (!confirmation.isConfirmed) return;
 
-      const parsed = await requestJson(config.promoteUrl, {
-        method: "POST",
-        body: JSON.stringify({
-          air_item_unit_ids: propertyUnits
-            .map((row) => row?.air_item_unit_id || "")
-            .filter((value) => String(value).trim() !== ""),
-        }),
-      });
+      showLoadingAlert(
+        "Promoting to inventory...",
+        "Creating inventory records and copying related AIR data.",
+      );
 
-      if (!parsed.ok) {
-        await Swal.fire({
-          icon: parsed.status === 422 ? "warning" : "error",
-          title: parsed.status === 422 ? "Promotion blocked" : "Promotion failed",
-          html:
-            validationHtml(parsed.data?.errors || {}) ||
-            escapeHtml(parsed.message),
+      try {
+        const parsed = await requestJson(config.promoteUrl, {
+          method: "POST",
+          body: JSON.stringify({
+            air_item_unit_ids: propertyUnits
+              .map((row) => row?.air_item_unit_id || "")
+              .filter((value) => String(value).trim() !== ""),
+          }),
         });
-        return;
-      }
 
-      const result = parsed.data?.data || {};
+        Swal.close();
 
-      await Swal.fire({
-        icon: "success",
-        title: "Promotion complete",
-        html: `
-          <div class="text-left">
-            <p class="mb-3">${escapeHtml(parsed.message || "AIR promoted successfully.")}</p>
-            <div class="rounded bg-light p-3 text-sm text-[#475569]">
-              <div><strong>Property created:</strong> ${escapeHtml(result.property_created || 0)}</div>
-              <div><strong>Consumables posted:</strong> ${escapeHtml(result.consumable_posted || 0)}</div>
-              <div><strong>Copied files:</strong> ${escapeHtml(result.copied_files || 0)}</div>
-              <div><strong>Copied components:</strong> ${escapeHtml(result.components_copied || 0)}</div>
+        if (!parsed.ok) {
+          await Swal.fire({
+            icon: parsed.status === 422 ? "warning" : "error",
+            title: parsed.status === 422 ? "Promotion blocked" : "Promotion failed",
+            html:
+              validationHtml(parsed.data?.errors || {}) ||
+              escapeHtml(parsed.message),
+          });
+          return;
+        }
+
+        const result = parsed.data?.data || {};
+
+        await Swal.fire({
+          icon: "success",
+          title: "Promotion complete",
+          html: `
+            <div class="text-left">
+              <p class="mb-3">${escapeHtml(parsed.message || "AIR promoted successfully.")}</p>
+              <div class="rounded bg-light p-3 text-sm text-[#475569]">
+                <div><strong>Property created:</strong> ${escapeHtml(result.property_created || 0)}</div>
+                <div><strong>Consumables posted:</strong> ${escapeHtml(result.consumable_posted || 0)}</div>
+                <div><strong>Copied files:</strong> ${escapeHtml(result.copied_files || 0)}</div>
+                <div><strong>Copied components:</strong> ${escapeHtml(result.components_copied || 0)}</div>
+              </div>
             </div>
-          </div>
-        `,
-      });
+          `,
+        });
+      } catch (error) {
+        Swal.close();
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : "The AIR could not be promoted right now.";
+
+        await Swal.fire({
+          icon: "error",
+          title: "Promotion failed",
+          text: message,
+        });
+      }
     }
 
     function formatCurrency(value) {
@@ -1400,7 +1777,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
                   <label class="mb-1 block text-xs text-[#8c9097]">Property Number</label>
                   <input type="text" class="ti-form-input w-full" data-field="property_number" data-key="${escapeHtml(
                     row.__key,
-                  )}" value="${escapeHtml(row.property_number || "")}" ${canEdit() ? "" : "disabled"}>
+                  )}" value="${escapeHtml(row.property_number || "")}" readonly disabled>
                 </div>
                 <div>
                   <label class="mb-1 block text-xs text-[#8c9097]">Condition</label>
@@ -1584,6 +1961,12 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
       const defaultComponents = getDefaultComponentRows();
       const components = Array.isArray(unitRow.components) ? unitRow.components : [];
+      const conditionOptions = Object.entries(config.conditionStatuses || {})
+        .map(
+          ([value, label]) =>
+            `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`,
+        )
+        .join("");
 
       if (componentTemplateNote) {
         if (defaultComponents.length > 0) {
@@ -1597,12 +1980,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
         }
       }
 
-      if (componentUseDefaultsButton) {
-        componentUseDefaultsButton.classList.toggle(
-          "hidden",
-          !canEdit() || defaultComponents.length === 0,
-        );
-      }
       if (componentAddRowButton) {
         componentAddRowButton.classList.toggle("hidden", !canEdit());
       }
@@ -1670,9 +2047,12 @@ import "sweetalert2/dist/sweetalert2.min.css";
                 </div>
                 <div>
                   <label class="mb-1 block text-xs text-[#8c9097]">Condition</label>
-                  <input type="text" class="ti-form-input w-full" data-field="condition" data-key="${escapeHtml(
+                  <select class="ti-form-select w-full" data-field="condition" data-key="${escapeHtml(
                     row.__key,
-                  )}" value="${escapeHtml(row.condition || "")}" ${canEdit() ? "" : "disabled"}>
+                  )}" ${canEdit() ? "" : "disabled"}>
+                    <option value="">Select condition</option>
+                    ${conditionOptions}
+                  </select>
                 </div>
               </div>
               <div class="mt-3 flex items-center gap-3 rounded bg-light px-3 py-2 text-sm dark:bg-black/20">
@@ -1691,34 +2071,15 @@ import "sweetalert2/dist/sweetalert2.min.css";
           `,
         )
         .join("");
-    }
 
-    async function useDefaultComponents() {
-      const defaultComponents = getDefaultComponentRows();
-      const unitRow = findUnitRow(activeComponentUnitKey);
-
-      if (!unitRow || defaultComponents.length === 0 || !canEdit()) {
-        return;
-      }
-
-      const hasExisting = Array.isArray(unitRow.components) && unitRow.components.length > 0;
-      if (hasExisting) {
-        const confirmation = await Swal.fire({
-          icon: "question",
-          title: "Replace current components?",
-          text: "This will replace the staged component rows with the item template defaults.",
-          showCancelButton: true,
-          confirmButtonText: "Use Template",
-          cancelButtonText: "Cancel",
-        });
-
-        if (!confirmation.isConfirmed) return;
-      }
-
-      unitRow.components = defaultComponents;
-      showComponentError("");
-      renderComponentRows();
-      renderUnitRows();
+      components.forEach((row) => {
+        const select = componentRowsContainer.querySelector(
+          `select[data-key="${String(row.__key).replace(/"/g, '\\"')}"][data-field="condition"]`,
+        );
+        if (select) {
+          select.value = row.condition || "";
+        }
+      });
     }
 
     async function openComponentModal(unitKey) {
@@ -2141,6 +2502,14 @@ import "sweetalert2/dist/sweetalert2.min.css";
       await finalizeInspection();
     });
 
+    followUpButton?.addEventListener("click", async () => {
+      await createFollowUpAir();
+    });
+
+    reopenButton?.addEventListener("click", async () => {
+      await reopenInspection();
+    });
+
     promoteButton?.addEventListener("click", async () => {
       await promoteInventory();
     });
@@ -2292,10 +2661,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
       if (deleteButton) {
         deleteComponentRow(deleteButton.dataset.key || "");
       }
-    });
-
-    componentUseDefaultsButton?.addEventListener("click", async () => {
-      await useDefaultComponents();
     });
 
     componentAddRowButton?.addEventListener("click", async () => {

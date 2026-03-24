@@ -25,6 +25,12 @@ Print architecture separates:
 vs
 **Paper Layout**
 
+and
+
+**Print Infrastructure**
+vs
+**Printable Ownership**
+
 Meaning:
 
 * Report content is built by the report layer
@@ -238,10 +244,34 @@ This is mandatory to keep rendering aligned.
 
 # Print Configuration Rule
 
-All paper definitions and module print bindings must live in:
+Print configuration must be split by ownership.
+
+## Core infrastructure config
+
+Shared paper definitions and global print defaults live in:
 
 ```text
 config/print.php
+```
+
+This file should contain:
+
+* universal paper definitions
+* default header/footer assets
+* shared print rules
+
+## Module/Core printable registrations
+
+Printable registrations live in:
+
+```text
+config/print-modules/*.php
+```
+
+The runtime printable registry is aggregated into:
+
+```php
+config('printables')
 ```
 
 Configuration must separate:
@@ -258,10 +288,11 @@ Example:
 * preview_width
 * default header/footer assets
 
-## 2. Module-specific print profiles
+## 2. Printable registrations
 
 Example:
 
+* module or owner code
 * allowed papers
 * default paper
 * pages view
@@ -270,7 +301,28 @@ Example:
 * rows per page
 * optional header/footer overrides
 
-This keeps physical paper definitions reusable while allowing modules to define their own layout bindings.
+This keeps physical paper definitions reusable while allowing each module or Core-owned printable to define its own layout bindings.
+
+---
+
+# Print Config Loader Rule
+
+Print services must not duplicate print-config merging logic.
+
+Core should provide a shared loader/resolver such as:
+
+```text
+PrintConfigLoaderService
+```
+
+Recommended responsibilities:
+
+* load global papers from `print.php`
+* load aggregated printable registrations from `printables`
+* resolve allowed papers
+* resolve default paper
+* merge paper defaults with printable profile overrides
+* provide compatibility for legacy `print.modules.*` reads during migration
 
 ---
 
@@ -288,22 +340,22 @@ It must not happen in:
 Resolution flow must be:
 
 1. Read requested `paper_profile`
-2. Read module `allowed_papers`
-3. If requested paper is invalid or missing, fallback to module `default_paper`
+2. Read printable `allowed_papers`
+3. If requested paper is invalid or missing, fallback to printable `default_paper`
 4. Load universal paper definition from `print.papers.{code}`
-5. Load module profile from `print.modules.{module}.profiles.{code}`
+5. Load printable profile from `printables.{printable}.profiles.{code}`
 6. Merge them into one resolved paper profile
 7. Pass only the resolved paper profile forward
 
 Recommended merge rule:
 
 ```php
-$resolvedPaperProfile = array_merge($paperDefaults, $moduleProfile);
+$resolvedPaperProfile = array_merge($paperDefaults, $printableProfile);
 ```
 
-Module profile values override paper defaults.
+Printable profile values override paper defaults.
 
-This supports platform defaults with module-specific overrides.
+This supports platform defaults with module-owned overrides.
 
 ---
 
@@ -526,17 +578,17 @@ This is the required scalability model for Core printing.
 
 ---
 
-# Default Module Rule
+# Default Printable Rule
 
-Each printable module must define:
+Each printable must define:
 
 * `default_paper`
 * `allowed_papers`
-* per-paper module profiles
+* per-paper printable profiles
 
-This keeps module capabilities explicit.
+This keeps printable capabilities explicit.
 
-A module should not automatically support every paper just because a universal paper definition exists.
+A printable should not automatically support every paper just because a universal paper definition exists.
 
 ---
 

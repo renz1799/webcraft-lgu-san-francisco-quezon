@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\GSO\Http\Requests\Air\DestroyAirInspectionUnitFileRequest;
 use App\Modules\GSO\Http\Requests\Air\SetPrimaryAirInspectionUnitFileRequest;
 use App\Modules\GSO\Http\Requests\Air\StoreAirInspectionUnitFileRequest;
-use App\Modules\GSO\Services\Contracts\AirInspectionUnitFileServiceInterface;
+use App\Modules\GSO\Services\Contracts\Air\AirInspectionUnitFileServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 

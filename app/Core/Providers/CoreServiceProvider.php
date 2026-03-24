@@ -171,8 +171,10 @@ use App\Core\Repositories\Eloquent\EloquentThemePreferencesRepository;
 // Services
 use App\Core\Services\Contracts\Geocoding\GeocodingServiceInterface;
 use App\Core\Services\Contracts\Infrastructure\PdfGeneratorInterface;
+use App\Core\Services\Contracts\Print\PrintConfigLoaderInterface;
 use App\Core\Services\Geocoding\PositionstackGeocodingService;
 use App\Core\Services\Infrastructure\ChromePdfGenerator;
+use App\Core\Services\Print\PrintConfigLoaderService;
 
 class CoreServiceProvider extends ServiceProvider
 {
@@ -275,6 +277,9 @@ class CoreServiceProvider extends ServiceProvider
             GoogleDriveConnectionServiceInterface::class => GoogleDriveConnectionService::class,
             GoogleDriveFolderServiceInterface::class => GoogleDriveFolderService::class,
             GoogleDriveFileServiceInterface::class => GoogleDriveFileService::class,
+
+            // Print
+            PrintConfigLoaderInterface::class => PrintConfigLoaderService::class,
         ], true);
     }
 

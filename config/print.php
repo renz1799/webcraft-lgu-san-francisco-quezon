@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'entity_name' => env('PRINT_ENTITY_NAME'),
+
+    'defaults' => [
+        'header' => null,
+        'footer' => null,
+    ],
 
     'papers' => [
 
@@ -34,42 +40,21 @@ return [
             'footer_image_pdf' => 'headers/letter_portrait_footer_2550x250.png',
         ],
 
-    ],
+        'legal-portrait' => [
+            'code' => 'legal-portrait',
+            'label' => 'Legal Portrait (8.5 x 13)',
+            'width' => '8.5in',
+            'height' => '13in',
+            'orientation' => 'portrait',
+            'preview_width' => '8.5in',
 
-        'modules' => [
-
-            'audit_logs' => [
-                'default_paper' => 'a4-portrait',
-
-                'allowed_papers' => [
-                    'a4-portrait',
-                    'letter-portrait',
-                ],
-
-                'profiles' => [
-
-                    'a4-portrait' => [
-                        'pages_view' => 'audit-logs.print.paper.a4-portrait.pages',
-                        'styles_view' => 'audit-logs.print.paper.a4-portrait.styles',
-                        'pdf_styles_view' => 'audit-logs.print.paper.a4-portrait.pdf-styles',
-                        'rows_per_page' => 15,
-                    // optional module overrides
-                    // 'header_image_web' => '...',
-                    // 'footer_image_web' => '...',
-                    // 'header_image_pdf' => '...',
-                    // 'footer_image_pdf' => '...',
-                    ],
-
-                    'letter-portrait' => [
-                        'pages_view' => 'audit-logs.print.paper.letter-portrait.pages',
-                        'styles_view' => 'audit-logs.print.paper.letter-portrait.styles',
-                        'pdf_styles_view' => 'audit-logs.print.paper.letter-portrait.pdf-styles',
-                        'rows_per_page' => 15,
-                    ],
-
-                ],
-            ],
-
+            // platform defaults
+            'header_image_web' => 'headers/longbond_portrait_header_2550x300.png',
+            'footer_image_web' => 'headers/longbond_portrait_footer_2550x250.png',
+            'header_image_pdf' => 'headers/longbond_portrait_header_2550x300.png',
+            'footer_image_pdf' => 'headers/longbond_portrait_footer_2550x250.png',
         ],
+
+    ],
 
 ];

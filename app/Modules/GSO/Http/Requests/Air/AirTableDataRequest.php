@@ -2,7 +2,7 @@
 
 namespace App\Modules\GSO\Http\Requests\Air;
 
-use App\Modules\GSO\Support\AirStatuses;
+use App\Modules\GSO\Support\Air\AirStatuses;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

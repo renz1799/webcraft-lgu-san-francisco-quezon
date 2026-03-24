@@ -24,6 +24,12 @@ Print architecture separates:
 vs
 **Paper Layout**
 
+and
+
+**Print Infrastructure**
+vs
+**Printable Ownership**
+
 Meaning:
 
 One report implementation
@@ -33,6 +39,66 @@ Multiple paper profiles
 NOT:
 
 Multiple report implementations per paper size.
+
+Core provides:
+
+How printing works.
+
+Modules define:
+
+What gets printed.
+
+---
+
+# Print Architecture
+
+Print configuration must be separated by ownership.
+
+## Core-owned print infrastructure
+
+Core owns:
+
+* paper definitions
+* page dimensions
+* preview sizing rules
+* default header/footer assets
+* global print defaults
+
+These belong in:
+
+```text
+config/print.php
+```
+
+## Module-owned printable registrations
+
+Each module or Core-admin feature owns its own printable definitions.
+
+Examples:
+
+* GSO AIR
+* Core Audit Logs
+* future DTS reports
+* future HR forms
+
+These belong in:
+
+```text
+config/print-modules/
+  core.php
+  gso.php
+  dts.php
+  hr.php
+```
+
+The aggregated runtime registry is exposed through:
+
+```php
+config('printables.gso_air')
+config('printables.audit_logs')
+```
+
+This prevents `config/print.php` from becoming a central printable registry bottleneck.
 
 ---
 
@@ -113,11 +179,19 @@ Module profiles may extend this with:
 * first_page_rows (optional)
 * later_page_rows (optional)
 
-Paper profiles live in:
+Paper infrastructure lives in:
 
 ```
 config/print.php
 ```
+
+Printable registrations live in:
+
+```text
+config/print-modules/*.php
+```
+
+Core aggregates those registrations into the runtime printable registry.
 
 ---
 
@@ -331,8 +405,8 @@ Controls must include:
 
 Paper selector must:
 
-* use module allowed papers
-* default to module default paper
+* use printable allowed papers
+* default to printable default paper
 * persist across preview
 * persist to PDF download
 
@@ -452,7 +526,7 @@ PDF must always match preview.
 
 # Default Paper Rule
 
-Modules must define a default paper.
+Each printable must define a default paper.
 
 Example:
 
@@ -462,7 +536,7 @@ default_paper => a4-portrait
 
 If no paper selected:
 
-System must fallback to module default.
+System must fallback to printable default.
 
 If invalid paper selected:
 
@@ -495,6 +569,7 @@ System:
 Config driven
 Scalable
 Module extensible
+ownership aware
 
 ---
 

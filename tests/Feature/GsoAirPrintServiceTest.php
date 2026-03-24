@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Modules\GSO\Services\AirPrintService;
+use App\Core\Services\Contracts\Infrastructure\PdfGeneratorInterface;
+use App\Core\Services\Print\PrintConfigLoaderService;
+use App\Modules\GSO\Services\Air\AirPrintService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Mockery;
 use Tests\TestCase;
 
 class GsoAirPrintServiceTest extends TestCase
@@ -21,6 +24,13 @@ class GsoAirPrintServiceTest extends TestCase
         DB::reconnect('sqlite');
 
         $this->createSchema();
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+
+        parent::tearDown();
     }
 
     public function test_air_print_service_builds_unit_and_consumable_rows(): void
@@ -146,17 +156,20 @@ class GsoAirPrintServiceTest extends TestCase
             ],
         ]);
 
-        $payload = (new AirPrintService())->getPrintViewData('air-1');
+        $pdf = Mockery::mock(PdfGeneratorInterface::class);
+        $pdf->shouldNotReceive('generateFromView');
 
-        $this->assertSame('GF - General Fund', $payload['print']['fund_source']);
-        $this->assertSame('GSO - General Services Office', $payload['print']['office_department']);
-        $this->assertSame('Acme Trading', $payload['print']['supplier']);
-        $this->assertCount(3, $payload['rows']);
-        $this->assertSame([1, 1, 35], collect($payload['rows'])->pluck('quantity')->sort()->values()->all());
-        $this->assertSame(1, $payload['totalPages']);
+        $payload = (new AirPrintService($pdf, new PrintConfigLoaderService()))->buildReport('air-1');
+
+        $this->assertSame('GF - General Fund', $payload['report']['document']['fund_source']);
+        $this->assertSame('GSO - General Services Office', $payload['report']['document']['office_department']);
+        $this->assertSame('Acme Trading', $payload['report']['document']['supplier']);
+        $this->assertCount(3, $payload['report']['rows']);
+        $this->assertSame([1, 1, 35], collect($payload['report']['rows'])->pluck('quantity')->sort()->values()->all());
+        $this->assertSame('a4-portrait', $payload['paperProfile']['code']);
     }
 
-    public function test_air_print_service_adds_continuation_rows_when_multiple_pages_are_needed(): void
+    public function test_air_print_service_resolves_requested_paper_profile_for_preview_and_pdf(): void
     {
         DB::table('airs')->insert([
             'id' => 'air-2',
@@ -205,13 +218,28 @@ class GsoAirPrintServiceTest extends TestCase
 
         DB::table('air_items')->insert($rows);
 
-        $payload = (new AirPrintService())->getPrintViewData('air-2');
+        $pdf = Mockery::mock(PdfGeneratorInterface::class);
+        $pdf->shouldReceive('generateFromView')
+            ->once()
+            ->withArgs(function (string $view, array $data, string $outputPath): bool {
+                return $view === 'gso::air.print.pdf'
+                    && ($data['paperProfile']['code'] ?? null) === 'legal-portrait'
+                    && ($data['report']['air']['id'] ?? null) === 'air-2'
+                    && str_contains($outputPath, 'air-report-');
+            })
+            ->andReturn('C:\\temp\\air-report-test.pdf');
 
-        $this->assertSame(2, $payload['totalPages']);
-        $this->assertTrue((bool) ($payload['pages'][0][22]['__msg'] ?? false));
-        $this->assertSame('*** CONTINUED ON PAGE 2 ***', $payload['pages'][0][22]['description']);
-        $this->assertTrue((bool) ($payload['pages'][1][0]['__msg'] ?? false));
-        $this->assertSame('*** CONTINUATION FROM PAGE 1 ***', $payload['pages'][1][0]['description']);
+        $service = new AirPrintService($pdf, new PrintConfigLoaderService());
+
+        $payload = $service->buildReport('air-2', 'legal-portrait');
+
+        $this->assertSame('legal-portrait', $payload['paperProfile']['code']);
+        $this->assertSame(25, count($payload['report']['rows']));
+        $this->assertSame('Acceptance and Inspection Report', $payload['report']['title']);
+
+        $generatedPath = $service->generatePdf('air-2', 'legal-portrait');
+
+        $this->assertSame('C:\\temp\\air-report-test.pdf', $generatedPath);
     }
 
     private function createSchema(): void

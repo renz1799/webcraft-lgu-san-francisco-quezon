@@ -34,6 +34,7 @@ export default defineConfig({
                 'resources/core/js/logs-tabulator.js',
                 'resources/core/js/permissions-tabulator.js',
                 'resources/core/js/notifications/header.js',
+                'resources/modules/gso/js/air/print.js',
 
                 // Resources assets js file paths
                 'resources/assets/js/add-products.js',

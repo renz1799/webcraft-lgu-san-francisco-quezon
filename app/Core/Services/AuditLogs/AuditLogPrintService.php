@@ -6,6 +6,7 @@ use App\Core\Builders\Contracts\AuditLogs\AuditLogPrintReportBuilderInterface;
 use App\Core\Repositories\Contracts\AuditLogRepositoryInterface;
 use App\Core\Services\Contracts\AuditLogs\AuditLogPrintServiceInterface;
 use App\Core\Services\Contracts\Infrastructure\PdfGeneratorInterface;
+use App\Core\Services\Contracts\Print\PrintConfigLoaderInterface;
 use Illuminate\Support\Str;
 
 class AuditLogPrintService implements AuditLogPrintServiceInterface
@@ -14,12 +15,13 @@ class AuditLogPrintService implements AuditLogPrintServiceInterface
         private readonly AuditLogRepositoryInterface $auditLogRepository,
         private readonly AuditLogPrintReportBuilderInterface $reportBuilder,
         private readonly PdfGeneratorInterface $pdfGenerator,
+        private readonly PrintConfigLoaderInterface $printConfigLoader,
     ) {
     }
 
     public function buildReport(array $filters): array
     {
-        $paperProfile = $this->resolvePaperProfile($filters['paper_profile'] ?? null);
+        $paperProfile = $this->printConfigLoader->resolvePaperProfile('audit_logs', $filters['paper_profile'] ?? null);
 
         $logs = $this->auditLogRepository->findForPrint($filters);
         $report = $this->reportBuilder->build($logs, $filters);
@@ -45,31 +47,5 @@ class AuditLogPrintService implements AuditLogPrintServiceInterface
             ],
             outputPath: $outputPath,
         );
-    }
-
-    protected function resolvePaperProfile(?string $requestedPaper): array
-    {
-        $moduleConfig = config('print.modules.audit_logs', []);
-
-        $defaultPaper = $moduleConfig['default_paper'] ?? 'a4-portrait';
-        $allowedPapers = $moduleConfig['allowed_papers'] ?? [$defaultPaper];
-
-        $paperCode = in_array($requestedPaper, $allowedPapers, true)
-            ? $requestedPaper
-            : $defaultPaper;
-
-        $paperDefaults = config("print.papers.{$paperCode}", []);
-        $moduleProfile = config("print.modules.audit_logs.profiles.{$paperCode}", []);
-
-        $resolved = array_merge($paperDefaults, $moduleProfile);
-
-        if ($resolved === []) {
-            $fallbackDefaults = config("print.papers.{$defaultPaper}", []);
-            $fallbackModuleProfile = config("print.modules.audit_logs.profiles.{$defaultPaper}", []);
-
-            $resolved = array_merge($fallbackDefaults, $fallbackModuleProfile);
-        }
-
-        return $resolved;
     }
 }

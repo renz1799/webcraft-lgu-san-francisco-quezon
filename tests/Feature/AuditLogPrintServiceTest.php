@@ -7,6 +7,7 @@ use App\Core\Data\AuditLogs\AuditLogPrintData;
 use App\Core\Repositories\Contracts\AuditLogRepositoryInterface;
 use App\Core\Services\AuditLogs\AuditLogPrintService;
 use App\Core\Services\Contracts\Infrastructure\PdfGeneratorInterface;
+use App\Core\Services\Print\PrintConfigLoaderService;
 use Mockery;
 use Tests\TestCase;
 
@@ -21,10 +22,10 @@ class AuditLogPrintServiceTest extends TestCase
 
     public function test_build_report_uses_repository_builder_and_default_paper_profile_when_requested_paper_is_not_allowed(): void
     {
-        config()->set('print.modules.audit_logs.default_paper', 'a4-portrait');
-        config()->set('print.modules.audit_logs.allowed_papers', ['a4-portrait']);
+        config()->set('printables.audit_logs.default_paper', 'a4-portrait');
+        config()->set('printables.audit_logs.allowed_papers', ['a4-portrait']);
         config()->set('print.papers.a4-portrait', ['label' => 'A4 Portrait']);
-        config()->set('print.modules.audit_logs.profiles.a4-portrait', ['orientation' => 'portrait']);
+        config()->set('printables.audit_logs.profiles.a4-portrait', ['orientation' => 'portrait']);
 
         $filters = [
             'module' => 'access',
@@ -56,7 +57,7 @@ class AuditLogPrintServiceTest extends TestCase
 
         $pdf->shouldNotReceive('generateFromView');
 
-        $service = new AuditLogPrintService($repository, $builder, $pdf);
+        $service = new AuditLogPrintService($repository, $builder, $pdf, new PrintConfigLoaderService());
         $payload = $service->buildReport($filters);
 
         $this->assertSame($report, $payload['report']);
@@ -66,10 +67,10 @@ class AuditLogPrintServiceTest extends TestCase
 
     public function test_generate_pdf_passes_rendered_report_and_resolved_paper_profile_to_pdf_generator(): void
     {
-        config()->set('print.modules.audit_logs.default_paper', 'a4-portrait');
-        config()->set('print.modules.audit_logs.allowed_papers', ['a4-portrait', 'letter-portrait']);
+        config()->set('printables.audit_logs.default_paper', 'a4-portrait');
+        config()->set('printables.audit_logs.allowed_papers', ['a4-portrait', 'letter-portrait']);
         config()->set('print.papers.letter-portrait', ['label' => 'Letter Portrait']);
-        config()->set('print.modules.audit_logs.profiles.letter-portrait', ['orientation' => 'portrait']);
+        config()->set('printables.audit_logs.profiles.letter-portrait', ['orientation' => 'portrait']);
 
         $filters = [
             'module' => 'access',
@@ -113,7 +114,7 @@ class AuditLogPrintServiceTest extends TestCase
             })
             ->andReturn('C:\\tmp\\audit-log-report.pdf');
 
-        $service = new AuditLogPrintService($repository, $builder, $pdf);
+        $service = new AuditLogPrintService($repository, $builder, $pdf, new PrintConfigLoaderService());
 
         $this->assertSame('C:\\tmp\\audit-log-report.pdf', $service->generatePdf($filters));
     }

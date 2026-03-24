@@ -4,10 +4,10 @@
         margin: 0;
         padding: 0;
         background: #ffffff;
-        color: #111827;
+        color: #000;
         font-family: Arial, Helvetica, sans-serif;
         font-size: 11px;
-        line-height: 1.25;
+        line-height: 1.2;
     }
 
     *,
@@ -20,13 +20,13 @@
         width: {{ $paperProfile['width'] ?? '210mm' }};
         height: {{ $paperProfile['height'] ?? '297mm' }};
         background: #fff;
-        color: #111827;
+        color: #000;
         overflow: hidden;
         display: flex;
         flex-direction: column;
         position: relative;
         font-family: Arial, Helvetica, sans-serif;
-        line-height: 1.25;
+        line-height: 1.2;
     }
 
     .audit-print-header,
@@ -51,10 +51,12 @@
     }
 
     .audit-print-title {
-        font-size: 18px;
+        font-size: 14px;
         font-weight: 700;
         margin: 0 0 10px;
         line-height: 1.2;
+        letter-spacing: .4px;
+        text-transform: uppercase;
     }
 
     .audit-print-title-row {
@@ -69,8 +71,8 @@
         bottom: 22mm;
         right: 10mm;
         font-size: 10px;
-        font-weight: 600;
-        color: #334155;
+        font-weight: 700;
+        color: #000;
         background: rgba(255, 255, 255, 0.85);
         padding: 2px 6px;
         border-radius: 4px;
@@ -87,7 +89,7 @@
         gap: 4px 12px;
         font-size: 10px;
         margin-bottom: 12px;
-        line-height: 1.25;
+        line-height: 1.2;
     }
 
     .audit-print-table {
@@ -100,7 +102,7 @@
 
     .audit-print-table th,
     .audit-print-table td {
-        border: 1px solid #cbd5e1;
+        border: 1px solid #000;
         padding: 5px 6px;
         text-align: left;
         vertical-align: top;

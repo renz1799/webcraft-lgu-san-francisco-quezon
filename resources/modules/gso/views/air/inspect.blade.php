@@ -12,6 +12,13 @@
     $status = (string) ($air['status'] ?? '');
     $continuationNo = max(1, (int) ($air['continuation_no'] ?? 1));
     $canPrintAir = ! $isArchived && in_array($status, ['submitted', 'in_progress', 'inspected'], true);
+    $canReopenInspection = (auth()->user()?->hasAnyRole(['Administrator', 'admin'])
+        || auth()->user()?->can('modify Inspection Status'))
+        && (bool) ($air['can_reopen_inspection'] ?? false);
+    $canCreateFollowUpAir = $canManageAir && (bool) ($air['can_create_follow_up_air'] ?? false);
+    $latestFollowUpAir = is_array($air['latest_follow_up_air'] ?? null)
+        ? $air['latest_follow_up_air']
+        : null;
 @endphp
 
 @section('styles')
@@ -309,12 +316,13 @@
             }
 
             .gso-air-inspection-section--summary {
-                grid-column: 1;
+                grid-column: 1 / -1;
+                grid-row: 2;
             }
 
             .gso-air-inspection-section--items {
                 grid-column: 2;
-                grid-row: 1 / span 2;
+                grid-row: 1;
             }
 
             .gso-air-inspection-unit-grid {
@@ -368,6 +376,27 @@
                     </button>
                 @endif
 
+                @if($status === 'inspected' && $canReopenInspection)
+                    <button type="button" id="gsoAirInspectionReopenBtn" class="ti-btn ti-btn-danger">
+                        Reopen Inspection
+                    </button>
+                @endif
+
+                @if($status === 'inspected' && $latestFollowUpAir)
+                    <a
+                        href="{{ in_array((string) ($latestFollowUpAir['status'] ?? ''), ['submitted', 'in_progress', 'inspected'], true)
+                            ? route('gso.air.inspect', ['air' => $latestFollowUpAir['id'] ?? ''])
+                            : route('gso.air.edit', ['air' => $latestFollowUpAir['id'] ?? '']) }}"
+                        class="ti-btn ti-btn-primary"
+                    >
+                        View Follow-up AIR
+                    </a>
+                @elseif($status === 'inspected' && $canCreateFollowUpAir)
+                    <button type="button" id="gsoAirInspectionFollowUpBtn" class="ti-btn ti-btn-primary">
+                        Create Follow-up AIR
+                    </button>
+                @endif
+
                 @if($canPromoteInventory)
                     <button
                         type="button"
@@ -394,6 +423,8 @@
                     Back
                 </a>
             </div>
+
+            <div id="gsoAirInspectionFinalizeHint" class="mt-2 text-[11px] text-warning md:text-right"></div>
         </div>
 
         @if($isArchived)
@@ -473,6 +504,7 @@
                                         <option value="complete" @selected(($air['received_completeness'] ?? '') === 'complete')>Complete</option>
                                         <option value="partial" @selected(($air['received_completeness'] ?? '') === 'partial')>Partial</option>
                                     </select>
+                                    <div id="gsoAirInspectionCompletenessHint" class="mt-1 text-[11px] text-[#8c9097] dark:text-white/50"></div>
                                 </div>
 
                                 <div class="md:col-span-2">
@@ -624,7 +656,6 @@
                         </div>
                         <div class="ti-modal-footer !justify-between">
                             <div class="flex flex-wrap gap-2">
-                                <button type="button" id="gsoAirUnitComponentUseDefaultsBtn" class="ti-btn ti-btn-light hidden">Use Item Template</button>
                                 <button type="button" id="gsoAirUnitComponentAddRowBtn" class="ti-btn ti-btn-light">Add Component Row</button>
                             </div>
                             <button
@@ -740,6 +771,8 @@
             'items' => $items,
             'saveUrl' => route('gso.air.inspection.save', ['air' => $air['id'] ?? '']),
             'finalizeUrl' => route('gso.air.inspection.finalize', ['air' => $air['id'] ?? '']),
+            'followUpCreateUrl' => route('gso.air.follow-up.create', ['air' => $air['id'] ?? '']),
+            'reopenUrl' => route('gso.air.inspection.reopen', ['air' => $air['id'] ?? '']),
             'promoteEligibleUrl' => route('gso.air.inventory.eligible', ['air' => $air['id'] ?? '']),
             'promoteUrl' => route('gso.air.inventory.promote', ['air' => $air['id'] ?? '']),
             'unitsIndexUrlTemplate' => route('gso.air.inspection.units.index', ['air' => $air['id'] ?? '', 'airItem' => '__AIR_ITEM__']),

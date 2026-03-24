@@ -4,8 +4,9 @@ namespace App\Modules\GSO\Http\Controllers\Air;
 
 use App\Http\Controllers\Controller;
 use App\Modules\GSO\Http\Requests\Air\PrintAirRequest;
-use App\Modules\GSO\Services\Contracts\AirPrintServiceInterface;
+use App\Modules\GSO\Services\Contracts\Air\AirPrintServiceInterface;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AirPrintController extends Controller
 {
@@ -15,10 +16,31 @@ class AirPrintController extends Controller
         $this->middleware('role_or_permission:Administrator|admin|view AIR|modify AIR');
     }
 
-    public function print(PrintAirRequest $request, string $air): View
+    public function preview(PrintAirRequest $request, string $air): View
     {
-        return view('gso::air.print', $this->prints->getPrintViewData($air) + [
-            'isPreview' => $request->boolean('preview', true),
+        $payload = $this->prints->buildReport(
+            airId: $air,
+            requestedPaper: $request->validated('paper_profile'),
+        );
+
+        return view('gso::air.print.index', [
+            'report' => $payload['report'],
+            'paperProfile' => $payload['paperProfile'],
+            'filters' => $request->validated(),
         ]);
+    }
+
+    public function downloadPdf(PrintAirRequest $request, string $air): BinaryFileResponse
+    {
+        $path = $this->prints->generatePdf(
+            airId: $air,
+            requestedPaper: $request->validated('paper_profile'),
+        );
+
+        return response()->download(
+            file: $path,
+            name: basename($path),
+            headers: ['Content-Type' => 'application/pdf'],
+        )->deleteFileAfterSend(true);
     }
 }

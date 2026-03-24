@@ -21,6 +21,16 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $printables = config('printables', []);
+        $legacyModules = config('print.modules', []);
+
+        if (is_array($printables)) {
+            config()->set('print.modules', array_replace_recursive(
+                is_array($legacyModules) ? $legacyModules : [],
+                $printables,
+            ));
+        }
+
         $this->app->singleton(ThemeService::class, function ($app) {
             return new ThemeService(
                 $app->make(CacheRepository::class),

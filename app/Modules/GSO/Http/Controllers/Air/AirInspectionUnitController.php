@@ -5,7 +5,7 @@ namespace App\Modules\GSO\Http\Controllers\Air;
 use App\Http\Controllers\Controller;
 use App\Modules\GSO\Http\Requests\Air\DestroyAirInspectionUnitRequest;
 use App\Modules\GSO\Http\Requests\Air\SaveAirInspectionUnitsRequest;
-use App\Modules\GSO\Services\Contracts\AirInspectionUnitServiceInterface;
+use App\Modules\GSO\Services\Contracts\Air\AirInspectionUnitServiceInterface;
 use Illuminate\Http\JsonResponse;
 
 class AirInspectionUnitController extends Controller

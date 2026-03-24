@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
-use App\Modules\GSO\Builders\AirDatatableRowBuilder;
+use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
+use App\Core\Models\Tasks\Task;
+use App\Modules\GSO\Builders\Air\AirDatatableRowBuilder;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirItemRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirItemUnitRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirRepository;
-use App\Modules\GSO\Services\AirInspectionService;
-use App\Modules\GSO\Support\AirStatuses;
+use App\Modules\GSO\Services\Air\AirInspectionService;
+use App\Modules\GSO\Support\Air\AirStatuses;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -125,12 +127,22 @@ class GsoAirInspectionServiceTest extends TestCase
 
         $audit = Mockery::mock(AuditLogServiceInterface::class);
         $audit->shouldReceive('record')->twice();
+        $tasks = Mockery::mock(TaskServiceInterface::class);
+        $tasks->shouldReceive('findLatestBySubject')->once()->andReturn(new Task([
+            'id' => 'task-1',
+            'status' => Task::STATUS_PENDING,
+        ]));
+        $tasks->shouldReceive('changeStatus')->once()->andReturn(new Task([
+            'id' => 'task-1',
+            'status' => Task::STATUS_DONE,
+        ]));
 
         $service = new AirInspectionService(
             new EloquentAirRepository(),
             new EloquentAirItemRepository(),
             new EloquentAirItemUnitRepository(),
             $audit,
+            $tasks,
             new AirDatatableRowBuilder(),
         );
 
@@ -267,12 +279,16 @@ class GsoAirInspectionServiceTest extends TestCase
 
         $audit = Mockery::mock(AuditLogServiceInterface::class);
         $audit->shouldNotReceive('record');
+        $tasks = Mockery::mock(TaskServiceInterface::class);
+        $tasks->shouldNotReceive('findLatestBySubject');
+        $tasks->shouldNotReceive('changeStatus');
 
         $service = new AirInspectionService(
             new EloquentAirRepository(),
             new EloquentAirItemRepository(),
             new EloquentAirItemUnitRepository(),
             $audit,
+            $tasks,
             new AirDatatableRowBuilder(),
         );
 
@@ -280,6 +296,142 @@ class GsoAirInspectionServiceTest extends TestCase
         $this->expectExceptionMessage('unit rows must match the accepted quantity');
 
         $service->finalizeInspection('user-1', 'air-2');
+    }
+
+    public function test_it_blocks_saving_when_received_completeness_does_not_match_unresolved_items(): void
+    {
+        DB::table('airs')->insert([
+            'id' => 'air-3',
+            'po_number' => 'PO-2026-303',
+            'status' => AirStatuses::SUBMITTED,
+            'created_at' => now(),
+            'updated_at' => now(),
+            'deleted_at' => null,
+        ]);
+
+        DB::table('items')->insert([
+            'id' => 'item-3',
+            'item_name' => 'Printer Ink',
+            'item_identification' => 'ITM-303',
+            'created_at' => now(),
+            'updated_at' => now(),
+            'deleted_at' => null,
+        ]);
+
+        DB::table('air_items')->insert([
+            'id' => 'air-item-3',
+            'air_id' => 'air-3',
+            'item_id' => 'item-3',
+            'stock_no_snapshot' => 'ITM-303',
+            'item_name_snapshot' => 'Printer Ink',
+            'description_snapshot' => 'Ink cartridge',
+            'unit_snapshot' => 'piece',
+            'qty_ordered' => 2,
+            'qty_delivered' => 1,
+            'qty_accepted' => 0,
+            'tracking_type_snapshot' => 'consumable',
+            'requires_serial_snapshot' => false,
+            'is_semi_expendable_snapshot' => false,
+            'remarks' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $audit = Mockery::mock(AuditLogServiceInterface::class);
+        $audit->shouldNotReceive('record');
+        $tasks = Mockery::mock(TaskServiceInterface::class);
+        $tasks->shouldNotReceive('findLatestBySubject');
+        $tasks->shouldNotReceive('changeStatus');
+
+        $service = new AirInspectionService(
+            new EloquentAirRepository(),
+            new EloquentAirItemRepository(),
+            new EloquentAirItemUnitRepository(),
+            $audit,
+            $tasks,
+            new AirDatatableRowBuilder(),
+        );
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Received Completeness must be set to Partial');
+
+        $service->saveInspection('user-1', 'air-3', [
+            'invoice_number' => 'INV-303',
+            'invoice_date' => '2026-03-22',
+            'date_received' => '2026-03-22',
+            'received_completeness' => 'complete',
+            'items' => [[
+                'id' => 'air-item-3',
+                'qty_delivered' => 1,
+                'qty_accepted' => 0,
+            ]],
+        ]);
+    }
+
+    public function test_it_blocks_finalization_for_single_item_air_until_fully_accepted(): void
+    {
+        DB::table('airs')->insert([
+            'id' => 'air-4',
+            'po_number' => 'PO-2026-304',
+            'status' => AirStatuses::IN_PROGRESS,
+            'invoice_number' => 'INV-304',
+            'invoice_date' => '2026-03-22',
+            'date_received' => '2026-03-22',
+            'received_completeness' => 'partial',
+            'created_at' => now(),
+            'updated_at' => now(),
+            'deleted_at' => null,
+        ]);
+
+        DB::table('items')->insert([
+            'id' => 'item-4',
+            'item_name' => 'Office Chair',
+            'item_identification' => 'ITM-304',
+            'created_at' => now(),
+            'updated_at' => now(),
+            'deleted_at' => null,
+        ]);
+
+        DB::table('air_items')->insert([
+            'id' => 'air-item-4',
+            'air_id' => 'air-4',
+            'item_id' => 'item-4',
+            'stock_no_snapshot' => 'ITM-304',
+            'item_name_snapshot' => 'Office Chair',
+            'description_snapshot' => 'Ergonomic chair',
+            'unit_snapshot' => 'unit',
+            'qty_ordered' => 1,
+            'qty_delivered' => 1,
+            'qty_accepted' => 0,
+            'tracking_type_snapshot' => 'property',
+            'requires_serial_snapshot' => false,
+            'is_semi_expendable_snapshot' => false,
+            'remarks' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $audit = Mockery::mock(AuditLogServiceInterface::class);
+        $audit->shouldNotReceive('record');
+        $tasks = Mockery::mock(TaskServiceInterface::class);
+        $tasks->shouldNotReceive('findLatestBySubject');
+        $tasks->shouldNotReceive('changeStatus');
+
+        $service = new AirInspectionService(
+            new EloquentAirRepository(),
+            new EloquentAirItemRepository(),
+            new EloquentAirItemUnitRepository(),
+            $audit,
+            $tasks,
+            new AirDatatableRowBuilder(),
+        );
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage(
+            'Single-item AIR inspections cannot be finalized until the ordered quantity is fully accepted.'
+        );
+
+        $service->finalizeInspection('user-1', 'air-4');
     }
 
     private function createSchema(): void
