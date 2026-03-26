@@ -1,7 +1,8 @@
 <?php
 
+use App\Core\Http\Controllers\AccountablePersons\AccountablePersonActionController as CoreAccountablePersonActionController;
+use App\Core\Http\Controllers\AccountablePersons\AccountablePersonController as CoreAccountablePersonController;
 use App\Modules\GSO\Http\Controllers\AccountableOfficers\AccountableOfficerActionController;
-use App\Modules\GSO\Http\Controllers\AccountableOfficers\AccountableOfficerController;
 use App\Modules\GSO\Http\Controllers\Air\AirActionController;
 use App\Modules\GSO\Http\Controllers\Air\AirController;
 use App\Modules\GSO\Http\Controllers\Air\AirFileController;
@@ -136,6 +137,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::delete('/ris/{ris}', [RisController::class, 'destroy'])->whereUuid('ris')->name('ris.destroy');
             Route::patch('/ris/{ris}/restore', [RisController::class, 'restore'])->whereUuid('ris')->name('ris.restore');
             Route::get('/ris/{ris}/print', [RisPrintController::class, 'print'])->whereUuid('ris')->name('ris.print');
+            Route::get('/ris/{ris}/print/pdf', [RisPrintController::class, 'downloadPdf'])->whereUuid('ris')->name('ris.print.pdf');
             Route::get('/ris/{ris}/items', [RisItemController::class, 'list'])->whereUuid('ris')->name('ris.items.list');
             Route::get('/ris/{ris}/items/suggest', [RisItemController::class, 'suggest'])->whereUuid('ris')->name('ris.items.suggest');
             Route::post('/ris/{ris}/items/add', [RisItemController::class, 'add'])->whereUuid('ris')->name('ris.items.add');
@@ -308,14 +310,15 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::put('/fund-sources/{fundSource}', [FundSourceActionController::class, 'update'])->whereUuid('fundSource')->name('fund-sources.update');
             Route::delete('/fund-sources/{fundSource}', [FundSourceActionController::class, 'destroy'])->whereUuid('fundSource')->name('fund-sources.destroy');
             Route::patch('/fund-sources/{fundSource}/restore', [FundSourceActionController::class, 'restore'])->whereUuid('fundSource')->name('fund-sources.restore');
-            Route::get('/accountable-officers', [AccountableOfficerController::class, 'index'])->name('accountable-officers.index');
-            Route::get('/accountable-officers/data', [AccountableOfficerController::class, 'data'])->name('accountable-officers.data');
-            Route::get('/accountable-officers/suggest', [AccountableOfficerController::class, 'suggest'])->name('accountable-officers.suggest');
-            Route::post('/accountable-officers/resolve', [AccountableOfficerActionController::class, 'resolve'])->name('accountable-officers.resolve');
-            Route::post('/accountable-officers', [AccountableOfficerActionController::class, 'store'])->name('accountable-officers.store');
-            Route::put('/accountable-officers/{accountableOfficer}', [AccountableOfficerActionController::class, 'update'])->whereUuid('accountableOfficer')->name('accountable-officers.update');
-            Route::delete('/accountable-officers/{accountableOfficer}', [AccountableOfficerActionController::class, 'destroy'])->whereUuid('accountableOfficer')->name('accountable-officers.destroy');
-            Route::patch('/accountable-officers/{accountableOfficer}/restore', [AccountableOfficerActionController::class, 'restore'])->whereUuid('accountableOfficer')->name('accountable-officers.restore');
+            Route::get('/accountable-persons', [CoreAccountablePersonController::class, 'index'])->name('accountable-persons.index');
+            Route::get('/accountable-persons/data', [CoreAccountablePersonController::class, 'data'])->name('accountable-persons.data');
+            Route::get('/accountable-persons/suggest', [CoreAccountablePersonController::class, 'suggest'])->name('accountable-persons.suggest');
+            Route::post('/accountable-persons/resolve', [AccountableOfficerActionController::class, 'resolve'])->name('accountable-persons.resolve');
+            Route::post('/accountable-persons', [CoreAccountablePersonActionController::class, 'store'])->name('accountable-persons.store');
+            Route::put('/accountable-persons/{accountablePerson}', [CoreAccountablePersonActionController::class, 'update'])->whereUuid('accountablePerson')->name('accountable-persons.update');
+            Route::delete('/accountable-persons/{accountablePerson}', [CoreAccountablePersonActionController::class, 'destroy'])->whereUuid('accountablePerson')->name('accountable-persons.destroy');
+            Route::patch('/accountable-persons/{accountablePerson}/restore', [CoreAccountablePersonActionController::class, 'restore'])->whereUuid('accountablePerson')->name('accountable-persons.restore');
+            Route::redirect('/accountable-officers', '/gso/accountable-persons');
         });
 
     Route::get('/air', function () {
@@ -330,6 +333,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::get('/ris/{ris}/print', function (string $ris) {
         return redirect()->route('gso.ris.print', ['ris' => $ris] + request()->query());
     })->whereUuid('ris');
+    Route::get('/ris/{ris}/print/pdf', function (string $ris) {
+        return redirect()->route('gso.ris.print.pdf', ['ris' => $ris] + request()->query());
+    })->whereUuid('ris')->name('gso.ris.legacy.print.pdf');
     Route::get('/air/{air}/edit', function (string $air) {
         return redirect()->route('gso.air.edit', ['air' => $air] + request()->query());
     })->whereUuid('air');
@@ -375,7 +381,8 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::redirect('/departments', '/gso/departments');
     Route::redirect('/fund-sources', '/gso/fund-sources');
     Route::redirect('/fund-clusters', '/gso/fund-clusters');
-    Route::redirect('/accountable-officers', '/gso/accountable-officers');
+    Route::redirect('/accountable-persons', '/gso/accountable-persons');
+    Route::redirect('/accountable-officers', '/gso/accountable-persons');
 
     Route::middleware('module:gso')->group(function () {
         Route::get('/air/data', [AirController::class, 'data']);

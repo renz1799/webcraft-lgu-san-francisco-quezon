@@ -28,6 +28,15 @@ body {
 .box-footer {
   @apply border-t rounded-b-sm py-4 px-[1.25rem] text-defaultsize text-defaulttextcolor md:py-4 md:px-5 dark:border-white/10;
 }
+
+.datatable-toolbar {
+  @apply flex items-center justify-between gap-3 w-full;
+}
+
+.datatable-toolbar-actions {
+  @apply flex items-center gap-2 flex-wrap justify-end;
+}
+
 .display-1 {
   @apply text-[5rem];
 }

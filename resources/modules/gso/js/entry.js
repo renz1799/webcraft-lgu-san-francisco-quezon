@@ -47,15 +47,6 @@ const gsoPageLoaders = [
     errorMessage: "Failed to load GSO fund sources modules",
   },
   {
-    id: "accountable-officers-table",
-    load: () =>
-      Promise.all([
-        import("./accountable-officers/index.js"),
-        import("./accountable-officers/modal.js"),
-      ]),
-    errorMessage: "Failed to load GSO accountable officers modules",
-  },
-  {
     id: "gso-items-table",
     load: () =>
       Promise.all([

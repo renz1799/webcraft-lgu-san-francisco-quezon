@@ -9,6 +9,7 @@ use Database\Seeders\Modules\GSO\FundClusterSeeder;
 use Database\Seeders\Modules\GSO\FundSourceSeeder;
 use Database\Seeders\Modules\GSO\ItemSeeder;
 use Database\Seeders\Modules\GSO\AirWithItemsSeeder;
+use Database\Seeders\Modules\GSO\AirRisPrintTestSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -34,6 +35,7 @@ class DatabaseSeeder extends Seeder
         $this->call(FundSourceSeeder::class);
         $this->call(ItemSeeder::class);
         $this->call(AirWithItemsSeeder::class);
+        $this->call(AirRisPrintTestSeeder::class);
     }
 }
 

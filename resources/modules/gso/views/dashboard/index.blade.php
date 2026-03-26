@@ -81,7 +81,7 @@
                             ['label' => 'Departments', 'route' => 'gso.departments.index'],
                             ['label' => 'Fund Sources', 'route' => 'gso.fund-sources.index'],
                             ['label' => 'Fund Clusters', 'route' => 'gso.fund-clusters.index'],
-                            ['label' => 'Accountable Officers', 'route' => 'gso.accountable-officers.index'],
+                            ['label' => 'Accountable Persons', 'route' => 'gso.accountable-persons.index'],
                         ];
                     @endphp
 

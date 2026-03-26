@@ -379,8 +379,8 @@
             rejectUrl: @json(route('gso.ris.reject', ['ris' => $ris->id])),
             reopenUrl: @json(route('gso.ris.reopen', ['ris' => $ris->id])),
             revertUrl: @json(route('gso.ris.revert-to-draft', ['ris' => $ris->id])),
-            accountableOfficerSuggestUrl: @json(route('gso.accountable-officers.suggest')),
-            accountableOfficerResolveUrl: @json(route('gso.accountable-officers.resolve')),
+            accountableOfficerSuggestUrl: @json(route('gso.accountable-persons.suggest')),
+            accountableOfficerResolveUrl: @json(route('gso.accountable-persons.resolve')),
             status: @json($status),
         };
     </script>

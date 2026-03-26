@@ -11,10 +11,14 @@ use Illuminate\Support\ServiceProvider;
 */
 
 // Repositories
+use App\Core\Repositories\Contracts\AccountablePersonRepositoryInterface;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Repositories\Eloquent\EloquentAccountablePersonRepository;
 use App\Core\Repositories\Eloquent\EloquentUserRepository;
 
 // Builders
+use App\Core\Builders\AccountablePersons\AccountablePersonDatatableRowBuilder;
+use App\Core\Builders\Contracts\AccountablePersons\AccountablePersonDatatableRowBuilderInterface;
 use App\Core\Builders\Contracts\User\UserDatatableActionBuilderInterface;
 use App\Core\Builders\Contracts\User\UserDatatableRowBuilderInterface;
 use App\Core\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
@@ -27,6 +31,16 @@ use App\Core\Builders\Access\PermissionAuditDisplayBuilder;
 use App\Core\Builders\Access\RoleAuditDisplayBuilder;
 use App\Core\Builders\GoogleDrive\GoogleDriveFileMetadataBuilder;
 use App\Core\Builders\GoogleDrive\GoogleDriveFolderNameSanitizer;
+
+/*
+|--------------------------------------------------------------------------
+| Accountable Persons
+|--------------------------------------------------------------------------
+*/
+
+// Services
+use App\Core\Services\AccountablePersons\AccountablePersonService;
+use App\Core\Services\Contracts\AccountablePersons\AccountablePersonServiceInterface;
 
 /*
 |--------------------------------------------------------------------------
@@ -189,6 +203,9 @@ class CoreServiceProvider extends ServiceProvider
     private function registerRepositories(): void
     {
         $this->bindMany([
+            // Accountable Persons
+            AccountablePersonRepositoryInterface::class => EloquentAccountablePersonRepository::class,
+
             // Audit Logs
             AuditLogRepositoryInterface::class => EloquentAuditLogRepository::class,
 
@@ -214,6 +231,9 @@ class CoreServiceProvider extends ServiceProvider
     private function registerApplicationBuilders(): void
     {
         $this->bindMany([
+            // Accountable Persons
+            AccountablePersonDatatableRowBuilderInterface::class => AccountablePersonDatatableRowBuilder::class,
+
             // Audit Logs
             AuditLogDatatableRowBuilderInterface::class => AuditLogDatatableRowBuilder::class,
             AuditLogMetaBuilderInterface::class => AuditLogMetaBuilder::class,
@@ -242,6 +262,9 @@ class CoreServiceProvider extends ServiceProvider
     private function registerApplicationServices(): void
     {
         $this->bindMany([
+            // Accountable Persons
+            AccountablePersonServiceInterface::class => AccountablePersonService::class,
+
             // Audit Logs
             AuditLogServiceInterface::class => AuditLogService::class,
             AuditLogPrintServiceInterface::class => AuditLogPrintService::class,

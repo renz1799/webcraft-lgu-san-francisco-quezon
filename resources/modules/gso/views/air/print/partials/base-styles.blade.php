@@ -61,6 +61,15 @@
         font-family: Arial, Helvetica, sans-serif;
     }
 
+    .gso-air-print-flow-note {
+        margin-top: 4px;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+    }
+
     .gso-air-print-body {
         flex: 1 1 auto;
         padding: 4mm 10mm 6mm;
@@ -253,6 +262,12 @@
         text-align: right;
         font-size: 10px;
         color: #000;
+    }
+
+    .gso-air-print-flow-note-footer {
+        text-align: right;
+        margin-top: 0;
+        margin-bottom: 2px;
     }
 
     .gso-air-print-footer-image-wrap {

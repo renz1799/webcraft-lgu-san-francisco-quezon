@@ -2,8 +2,15 @@
     $document = $report['document'] ?? [];
     $rows = collect($rows ?? [])->values();
     $gridRows = max((int) ($gridRows ?? 24), $rows->count());
-    $remainingRows = max(0, $gridRows - $rows->count());
+    $fillRows = (bool) ($fillRows ?? true);
     $isLastPage = (int) ($pageIndex ?? 0) + 1 === (int) ($totalPages ?? 1);
+    $lastPageGridRows = max(0, (int) ($lastPageGridRows ?? 0));
+    $remainingRows = $fillRows ? max(0, $gridRows - $rows->count()) : 0;
+
+    if ($isLastPage && $lastPageGridRows > 0) {
+        $remainingRows = max(0, $lastPageGridRows - $rows->count());
+    }
+
     $receivedCompleteness = strtolower((string) ($document['received_completeness'] ?? ''));
     $dateReceived = ($document['date_received_label'] ?? '') ?: '';
     $dateInspected = ($document['date_inspected_label'] ?? '') ?: '';
@@ -37,21 +44,12 @@
             @php $remainingRows = max(0, $remainingRows - 1); @endphp
         @else
             @foreach ($rows as $row)
-                @if (!empty($row['__msg']))
-                    <tr>
-                        <td>&nbsp;</td>
-                        <td class="gso-air-print-message">{{ $row['description'] ?? '' }}</td>
-                        <td>&nbsp;</td>
-                        <td>&nbsp;</td>
-                    </tr>
-                @else
-                    <tr>
-                        <td class="gso-air-print-center">{{ $row['property_no'] ?: ' ' }}</td>
-                        <td>{{ $row['description'] ?: ' ' }}</td>
-                        <td class="gso-air-print-center">{{ $row['unit'] ?: ' ' }}</td>
-                        <td class="gso-air-print-center">{{ $row['quantity'] !== '' ? $row['quantity'] : ' ' }}</td>
-                    </tr>
-                @endif
+                <tr>
+                    <td class="gso-air-print-center">{{ $row['property_no'] ?: ' ' }}</td>
+                    <td>{{ $row['description'] ?: ' ' }}</td>
+                    <td class="gso-air-print-center">{{ $row['unit'] ?: ' ' }}</td>
+                    <td class="gso-air-print-center">{{ $row['quantity'] !== '' ? $row['quantity'] : ' ' }}</td>
+                </tr>
             @endforeach
         @endif
 

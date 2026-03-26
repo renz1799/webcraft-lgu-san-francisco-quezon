@@ -178,6 +178,7 @@ Module profiles may extend this with:
 * rows_per_page
 * first_page_rows (optional)
 * later_page_rows (optional)
+* last_page_grid_rows (optional)
 
 Paper infrastructure lives in:
 
@@ -357,6 +358,34 @@ Paper profiles control:
 
 This allows tuning per paper.
 
+Greedy chunking should be avoided for multi-page reports when it creates an underfilled tail page.
+
+Default pagination should be sequential fill-first:
+
+* fill page 1 to its configured capacity
+* fill later pages to their configured capacity
+* leave spare table space only on the last page
+
+If a form needs the last page to keep a taller table before a signature or acceptance block:
+
+Use `last_page_grid_rows` in the printable paper profile.
+
+This value represents the total visible table rows to reserve on the last page before the trailing section.
+
+Blank rows are then added automatically based on however many real rows landed on that last page.
+
+Continuation labels should live in page chrome such as:
+
+* header notes
+* footer notes
+* page metadata areas
+
+They should not consume table rows unless the printed form explicitly requires them inside the table body.
+
+Balanced redistribution across earlier pages should be treated as an exception, not the default.
+
+Use it only when a specific printed form explicitly benefits from that layout.
+
 ---
 
 # Header/Footer Rules
@@ -384,6 +413,14 @@ Modules may override platform defaults.
 If no override exists:
 
 Platform paper defaults must be used.
+
+Header and footer images should render full bleed across the page width.
+
+Do not wrap header/footer images in side padding containers.
+
+If page numbers or metadata need padding:
+
+Place that padded content in a separate block above or below the image.
 
 ---
 

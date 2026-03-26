@@ -21,6 +21,16 @@ const corePageLoaders = [
     errorMessage: "Failed to load audit logs modules",
   },
   {
+    id: "accountable-persons-table",
+    load: () =>
+      Promise.all([
+        import("../accountable-persons/table.js"),
+        import("../accountable-persons/filters.js"),
+        import("../accountable-persons/actions.js"),
+      ]),
+    errorMessage: "Failed to load accountable persons modules",
+  },
+  {
     id: "users-table",
     load: () =>
       Promise.all([

@@ -363,9 +363,9 @@ import {
     });
 
     const pageApi = window.__risEditPage || {};
-    const existingGetItemCount =
+    const originalGetItemCount =
       typeof pageApi.getItemCount === "function"
-        ? () => pageApi.getItemCount()
+        ? pageApi.getItemCount.bind(pageApi)
         : () => {
             const count = Number.parseInt(
               document.getElementById("risItemsCount")?.textContent || "0",
@@ -386,7 +386,7 @@ import {
         return getDirtyFields().length;
       },
       getItemCount() {
-        return existingGetItemCount();
+        return originalGetItemCount();
       },
       refreshDirtyState() {
         updateActionUi();

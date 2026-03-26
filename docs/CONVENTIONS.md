@@ -409,6 +409,23 @@ Avoid heavy broad text search as primary filter.
 
 ---
 
+# Frontend Datatable Toolbar Convention
+
+Index pages that follow the datatable baseline should use a uniform box-header toolbar layout.
+
+Default pattern:
+
+* use the shared `.datatable-toolbar` class for the box-header row
+* use the shared `.datatable-toolbar-actions` class for the control group
+* keep the section title and the main controls aligned in one row following the AIR and Accountable Persons reference pages
+* keep the visible controls compact: search field, `More Filters`, `Clear`, and one primary action button where applicable
+* move secondary filters such as status, department, or date refinements into the `More Filters` panel
+* avoid one-off title-height or vertical-alignment CSS when the shared toolbar classes satisfy the layout
+
+This convention exists so future table pages feel uniform across Core and module-owned screens.
+
+---
+
 # Core Service Provider Conventions
 
 ## Import Organization

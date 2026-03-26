@@ -1,40 +1,33 @@
 @php
+    $allRows = array_values($report['rows'] ?? []);
     $rowsPerPage = max(1, (int) ($paperProfile['rows_per_page'] ?? 18));
+    $firstPageRows = max(1, (int) ($paperProfile['first_page_rows'] ?? $rowsPerPage));
+    $laterPageRows = max(1, (int) ($paperProfile['later_page_rows'] ?? $rowsPerPage));
     $gridRows = max($rowsPerPage, (int) ($paperProfile['grid_rows'] ?? ($report['max_grid_rows'] ?? 20)));
-    $rawPages = array_chunk($report['rows'] ?? [], $rowsPerPage);
-    $rawPages = $rawPages === [] ? [[]] : $rawPages;
-    $totalPages = count($rawPages);
+    $pages = [];
+    $cursor = 0;
+    $pageNumber = 0;
+
+    if ($allRows === []) {
+        $pages = [[]];
+    } else {
+        while ($cursor < count($allRows)) {
+            $capacity = $pageNumber === 0 ? $firstPageRows : $laterPageRows;
+            $pages[] = array_slice($allRows, $cursor, $capacity);
+            $cursor += $capacity;
+            $pageNumber++;
+        }
+    }
+
+    $totalPages = count($pages);
 @endphp
 
-@foreach ($rawPages as $pageIndex => $rawPageRows)
-    @php
-        $pageRows = $rawPageRows;
-
-        if ($totalPages > 1 && $pageIndex > 0) {
-            array_unshift($pageRows, [
-                'property_no' => '',
-                'description' => '*** CONTINUATION FROM PAGE ' . $pageIndex . ' ***',
-                'unit' => '',
-                'quantity' => '',
-                '__msg' => true,
-            ]);
-        }
-
-        if ($totalPages > 1 && $pageIndex < ($totalPages - 1)) {
-            $pageRows[] = [
-                'property_no' => '',
-                'description' => '*** CONTINUED ON PAGE ' . ($pageIndex + 2) . ' ***',
-                'unit' => '',
-                'quantity' => '',
-                '__msg' => true,
-            ];
-        }
-    @endphp
-
+@foreach ($pages as $pageIndex => $pageRows)
     <div class="gso-air-print-page">
         @include('gso::air.print.partials.header', [
             'report' => $report,
             'headerImage' => $headerImage,
+            'continuationFromPage' => $totalPages > 1 && $pageIndex > 0 ? $pageIndex : null,
         ])
 
         <div class="gso-air-print-body">
@@ -44,6 +37,8 @@
                 'gridRows' => $gridRows,
                 'pageIndex' => $pageIndex,
                 'totalPages' => $totalPages,
+                'fillRows' => $pageIndex < ($totalPages - 1),
+                'lastPageGridRows' => (int) ($paperProfile['last_page_grid_rows'] ?? 0),
             ])
         </div>
 
@@ -52,6 +47,7 @@
             'footerImage' => $footerImage,
             'pageIndex' => $pageIndex,
             'totalPages' => $totalPages,
+            'continuedToPage' => $totalPages > 1 && $pageIndex < ($totalPages - 1) ? ($pageIndex + 2) : null,
         ])
     </div>
 @endforeach

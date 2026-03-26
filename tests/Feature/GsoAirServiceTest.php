@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Services\Contracts\AccountablePersons\AccountablePersonServiceInterface;
 use App\Core\Models\Tasks\Task;
 use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
 use App\Modules\GSO\Builders\Air\AirDatatableRowBuilder;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirRepository;
 use App\Modules\GSO\Services\Air\AirService;
-use App\Modules\GSO\Services\Contracts\AccountableOfficerServiceInterface;
 use App\Modules\GSO\Support\Air\AirStatuses;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
@@ -99,7 +99,7 @@ class GsoAirServiceTest extends TestCase
 
         $audit = Mockery::mock(AuditLogServiceInterface::class);
         $audit->shouldReceive('record')->times(5);
-        $accountableOfficers = Mockery::mock(AccountableOfficerServiceInterface::class);
+        $accountableOfficers = Mockery::mock(AccountablePersonServiceInterface::class);
         $accountableOfficers->shouldReceive('createOrResolve')->times(4)->andReturn([
             'officer' => ['id' => 'officer-1', 'full_name' => 'Juan Dela Cruz'],
             'created' => false,
@@ -288,7 +288,7 @@ class GsoAirServiceTest extends TestCase
 
         $audit = Mockery::mock(AuditLogServiceInterface::class);
         $audit->shouldReceive('record')->once();
-        $accountableOfficers = Mockery::mock(AccountableOfficerServiceInterface::class);
+        $accountableOfficers = Mockery::mock(AccountablePersonServiceInterface::class);
         $accountableOfficers->shouldNotReceive('createOrResolve');
         $tasks = Mockery::mock(TaskServiceInterface::class);
         $tasks->shouldNotReceive('findLatestBySubject');
@@ -379,7 +379,7 @@ class GsoAirServiceTest extends TestCase
 
         $audit = Mockery::mock(AuditLogServiceInterface::class);
         $audit->shouldReceive('record')->times(2);
-        $accountableOfficers = Mockery::mock(AccountableOfficerServiceInterface::class);
+        $accountableOfficers = Mockery::mock(AccountablePersonServiceInterface::class);
         $accountableOfficers->shouldReceive('createOrResolve')->times(2)->andReturn([
             'officer' => ['id' => 'officer-1', 'full_name' => 'Juan Dela Cruz'],
             'created' => false,
@@ -515,7 +515,7 @@ class GsoAirServiceTest extends TestCase
 
         $audit = Mockery::mock(AuditLogServiceInterface::class);
         $audit->shouldReceive('record')->once();
-        $accountableOfficers = Mockery::mock(AccountableOfficerServiceInterface::class);
+        $accountableOfficers = Mockery::mock(AccountablePersonServiceInterface::class);
         $accountableOfficers->shouldNotReceive('createOrResolve');
         $tasks = Mockery::mock(TaskServiceInterface::class);
         $tasks->shouldReceive('createUnassigned')->once()->andReturn(new Task([
@@ -576,7 +576,7 @@ class GsoAirServiceTest extends TestCase
 
         $audit = Mockery::mock(AuditLogServiceInterface::class);
         $audit->shouldReceive('record')->once();
-        $accountableOfficers = Mockery::mock(AccountableOfficerServiceInterface::class);
+        $accountableOfficers = Mockery::mock(AccountablePersonServiceInterface::class);
         $accountableOfficers->shouldNotReceive('createOrResolve');
         $tasks = Mockery::mock(TaskServiceInterface::class);
         $tasks->shouldReceive('findLatestBySubject')->once()->andReturn(new Task([

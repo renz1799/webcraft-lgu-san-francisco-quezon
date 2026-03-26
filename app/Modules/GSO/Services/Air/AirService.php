@@ -5,6 +5,7 @@ namespace App\Modules\GSO\Services\Air;
 use App\Core\Models\Department;
 use App\Core\Models\Tasks\Task;
 use App\Core\Models\User;
+use App\Core\Services\Contracts\AccountablePersons\AccountablePersonServiceInterface;
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
 use App\Modules\GSO\Builders\Contracts\Air\AirDatatableRowBuilderInterface;
@@ -12,7 +13,6 @@ use App\Modules\GSO\Models\Air;
 use App\Modules\GSO\Models\AirItem;
 use App\Modules\GSO\Models\FundSource;
 use App\Modules\GSO\Repositories\Contracts\AirRepositoryInterface;
-use App\Modules\GSO\Services\Contracts\AccountableOfficerServiceInterface;
 use App\Modules\GSO\Services\Contracts\Air\AirServiceInterface;
 use App\Modules\GSO\Support\Air\AirStatuses;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,7 +25,7 @@ class AirService implements AirServiceInterface
         private readonly AirRepositoryInterface $airs,
         private readonly AuditLogServiceInterface $auditLogs,
         private readonly AirDatatableRowBuilderInterface $datatableRowBuilder,
-        private readonly AccountableOfficerServiceInterface $accountableOfficers,
+        private readonly AccountablePersonServiceInterface $accountablePersons,
         private readonly TaskServiceInterface $tasks,
     ) {}
 
@@ -541,7 +541,7 @@ class AirService implements AirServiceInterface
                 continue;
             }
 
-            $this->accountableOfficers->createOrResolve($actorUserId, [
+            $this->accountablePersons->createOrResolve($actorUserId, [
                 'full_name' => $signatoryName,
                 'department_id' => $departmentId,
                 'office' => $office,

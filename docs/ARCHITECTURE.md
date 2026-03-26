@@ -727,6 +727,22 @@ filters.js → filter state
 
 This pattern should be followed for new table modules.
 
+Current shared reference-data example:
+
+`accountable-persons`
+
+Pattern notes:
+
+* Core owns the model, repository, service, requests, controller, Blade, and datatable JS
+* modules may expose the page through scoped routes such as `gso.accountable-persons.*`
+* Blade should resolve endpoints through `AdminRouteResolver` so the same Core view can work in both platform and module context
+* module navigation decides where the page appears; in GSO it lives under `Reference Data`
+* default to a compact toolbar with a visible search field, `More Filters`, `Clear`, and a single primary action button
+* secondary filters such as status and department should live inside the `More Filters` panel instead of occupying the main toolbar
+* box headers should use the shared `.datatable-toolbar` and `.datatable-toolbar-actions` classes so titles and controls align consistently across table pages
+* the AIR index and shared Accountable Persons page are the visual reference for this toolbar layout
+* avoid page-specific title-height or vertical-alignment overrides unless a document-specific layout genuinely requires them
+
 Detailed frontend conventions live in:
 
 docs/CONVENTIONS.md
@@ -845,7 +861,7 @@ shared modal markup
 shared validation prompts
 shared request callbacks
 
-When document editors need to create or enrich a reusable accountable officer record, prefer the module's resolve endpoint so users with document-level permissions can complete the flow without requiring access to the accountable-officer admin screen.
+When document editors need to create or enrich a reusable accountable person record, prefer the module's resolve endpoint so users with document-level permissions can complete the flow without requiring access to the shared Accountable Persons reference page.
 
 ---
 

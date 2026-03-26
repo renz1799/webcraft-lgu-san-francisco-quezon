@@ -8,22 +8,6 @@
 @section('styles')
     <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
     <style>
-        .gso-air-items-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            width: 100%;
-        }
-
-        .gso-air-items-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
-
         .box-header {
             overflow: visible !important;
         }
@@ -51,10 +35,10 @@
 
     <div class="box">
         <div class="box-header">
-            <div class="gso-air-items-header">
+            <div class="datatable-toolbar">
                 <h5 class="box-title">Acceptance &amp; Inspection Reports</h5>
 
-                <div class="gso-air-items-actions">
+                <div class="datatable-toolbar-actions">
                     <input
                         id="gso-air-search"
                         type="text"

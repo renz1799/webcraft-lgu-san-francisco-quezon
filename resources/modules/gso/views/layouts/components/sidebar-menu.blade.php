@@ -32,9 +32,6 @@
     <li class="slide">
       <a href="{{ route('gso.stocks.index') }}" class="side-menu__item">Stocks</a>
     </li>
-    <li class="slide">
-      <a href="{{ route('gso.accountable-officers.index') }}" class="side-menu__item">Accountable Officers</a>
-    </li>
   </ul>
 </li>
 
@@ -100,6 +97,9 @@
     </li>
     <li class="slide">
       <a href="{{ route('gso.fund-sources.index') }}" class="side-menu__item">Fund Sources</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.accountable-persons.index') }}" class="side-menu__item">Accountable Persons</a>
     </li>
   </ul>
 </li>

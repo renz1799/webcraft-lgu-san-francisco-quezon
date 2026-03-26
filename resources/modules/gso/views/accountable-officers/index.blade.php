@@ -65,7 +65,7 @@
             <h5 class="box-title">Accountable Officers</h5>
 
             <div class="gso-reference-actions">
-                <input id="accountable-officers-search" type="text" class="form-control w-[300px] !rounded-md" placeholder="Search name, designation, office, or department...">
+                <input id="accountable-officers-search" type="text" class="form-control !w-[300px] !rounded-md" placeholder="Search name, designation, office, or department...">
 
                 <select id="accountable-officers-department-filter" class="form-control w-[240px] !rounded-md">
                     <option value="">All Departments</option>

@@ -61,6 +61,8 @@ Architecture standards:
 
 UI standards:
 - Datatable patterns
+- Compact datatable toolbars using the shared `.datatable-toolbar` and `.datatable-toolbar-actions` classes, with a visible search field, `More Filters`, `Clear`, and a single primary action button
+- Shared reference-data pages owned by Core and surfaced through module-scoped routes when modules need their own navigation entry
 - Print workspace patterns
 - Frontend entry coordination through a thin global bootstrap plus module-owned JS entry registries
 - Module-owned reusable form helpers such as autocomplete plus modal-based resolve flows for document signatories
@@ -187,6 +189,10 @@ Add logic to Core only if:
 - it contains no module workflows
 - it requires no module branching
 - it can be reused without modification
+
+Example:
+
+The shared Accountable Persons reference page belongs in Core because multiple modules can reuse the same master records, datatable behavior, and CRUD rules while each module can still expose it through its own scoped routes and sidebar placement.
 
 If any fail:
 
