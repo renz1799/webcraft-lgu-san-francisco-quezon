@@ -38,14 +38,35 @@ function fillIfBlank(el, value) {
   dispatchFieldChange(el);
 }
 
+function normalizeMetaLine(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function pushUniqueMetaLine(lines, seen, value) {
+  const text = String(value ?? "").trim();
+  if (text === "") return;
+
+  const key = normalizeMetaLine(text);
+  if (seen.has(key)) return;
+
+  seen.add(key);
+  lines.push(escapeHtml(text));
+}
+
 function createMetaLines(officer) {
   const lines = [];
-  if (officer?.designation) lines.push(escapeHtml(officer.designation));
-  if (officer?.office) lines.push(escapeHtml(officer.office));
+  const seen = new Set();
+
+  pushUniqueMetaLine(lines, seen, officer?.designation);
+  pushUniqueMetaLine(lines, seen, officer?.office);
+
   if (officer?.department_name) {
-    lines.push(escapeHtml(officer.department_name));
+    pushUniqueMetaLine(lines, seen, officer.department_name);
   } else if (officer?.department_label) {
-    lines.push(escapeHtml(officer.department_label));
+    pushUniqueMetaLine(lines, seen, officer.department_label);
   }
   return lines;
 }
@@ -152,6 +173,8 @@ export function attachAccountableOfficerAutocomplete(options = {}) {
         fillIfBlank,
         setFieldValue,
         dispatchFieldChange,
+        saveOfficerRecord,
+        swal,
       });
 
       if (result === false) {

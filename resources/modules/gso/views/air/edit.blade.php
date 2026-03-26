@@ -264,6 +264,7 @@
                     @foreach($departments as $department)
                       <option
                         value="{{ $department->id }}"
+                        data-department-name="{{ $department->name }}"
                         @selected((string) ($air['requesting_department_id'] ?? '') === (string) $department->id)
                       >
                         {{ $department->name }}

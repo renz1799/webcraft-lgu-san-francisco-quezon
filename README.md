@@ -63,6 +63,7 @@ UI standards:
 - Datatable patterns
 - Print workspace patterns
 - Frontend entry coordination through a thin global bootstrap plus module-owned JS entry registries
+- Module-owned reusable form helpers such as autocomplete plus modal-based resolve flows for document signatories
 
 Platform governance:
 - Core service rules

@@ -1,5 +1,10 @@
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
+import { attachAccountableOfficerAutocomplete } from "../accountable-officers/autocomplete.js";
+import {
+  openAccountableOfficerDetailsModal,
+  resolveAccountableOfficerDetails,
+} from "../accountable-officers/details-modal.js";
 
 (function () {
   "use strict";
@@ -39,6 +44,10 @@ import "sweetalert2/dist/sweetalert2.min.css";
     if (typeof element.scrollIntoView === "function") {
       element.scrollIntoView({ behavior: "smooth", block: "center" });
     }
+  }
+
+  function getField(name) {
+    return document.querySelector(`[name="${name}"]`);
   }
 
   const FIELD_NAMES = [
@@ -264,6 +273,85 @@ import "sweetalert2/dist/sweetalert2.min.css";
       }
     }
 
+    function bindAccountableOfficerSuggestions() {
+      const suggestUrl = window.__ris?.accountableOfficerSuggestUrl;
+      const resolveUrl = window.__ris?.accountableOfficerResolveUrl;
+      const departmentField = getField("requesting_department_id");
+
+      if (String(window.__ris?.status || "") !== "draft" || !suggestUrl || !resolveUrl || !departmentField) {
+        return;
+      }
+
+      const signatoryFields = [
+        {
+          nameField: "requested_by_name",
+          designationField: "requested_by_designation",
+          roleLabel: "Requested By Signatory",
+          title: "Requested By Suggestions",
+        },
+        {
+          nameField: "approved_by_name",
+          designationField: "approved_by_designation",
+          roleLabel: "Approved By Signatory",
+          title: "Approved By Suggestions",
+        },
+        {
+          nameField: "issued_by_name",
+          designationField: "issued_by_designation",
+          roleLabel: "Issued By Signatory",
+          title: "Issued By Suggestions",
+        },
+        {
+          nameField: "received_by_name",
+          designationField: "received_by_designation",
+          roleLabel: "Received By Signatory",
+          title: "Received By Suggestions",
+        },
+      ];
+
+      signatoryFields.forEach((config) => {
+        const nameField = getField(config.nameField);
+        const designationField = getField(config.designationField);
+        if (!nameField) return;
+
+        attachAccountableOfficerAutocomplete({
+          input: nameField,
+          suggestUrl,
+          storeUrl: resolveUrl,
+          departmentField,
+          designationField,
+          swal: Swal,
+          title: config.title,
+          createOfficer: async ({ name, saveOfficerRecord }) =>
+            openAccountableOfficerDetailsModal({
+              swal: Swal,
+              saveOfficerRecord,
+              departmentField,
+              initialOfficer: { full_name: name },
+              initialDepartmentId: String(departmentField.value || "").trim(),
+              title: `Create ${config.roleLabel}`,
+              confirmButtonText: "Create and Use",
+              requireDepartment: true,
+              requireDesignation: true,
+            }),
+          beforeApplyOfficer: async (officer, helpers) =>
+            resolveAccountableOfficerDetails(officer, {
+              swal: Swal,
+              saveOfficerRecord: helpers.saveOfficerRecord,
+              departmentField,
+              initialDepartmentId: String(departmentField.value || "").trim(),
+              title: `Complete ${config.roleLabel} Details`,
+              confirmButtonText: "Save and Use",
+              requireDepartment: true,
+              requireDesignation: true,
+            }),
+          onOfficerSelected(officer, helpers) {
+            helpers.fillIfBlank(designationField, String(officer?.designation || "").trim());
+          },
+        });
+      });
+    }
+
     const inputSelector = FIELD_NAMES.map((name) => `[name="${name}"]`).join(",");
     document.querySelectorAll(inputSelector).forEach((element) => {
       element.addEventListener("input", updateActionUi);
@@ -307,6 +395,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
     window.__risEditPage = pageApi;
 
+    bindAccountableOfficerSuggestions();
     updateActionUi();
   });
 })();

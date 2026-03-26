@@ -820,6 +820,33 @@ When a new module is added:
 
 This keeps the global bootstrap stable while allowing module-owned frontend growth.
 
+## Reusable Form Helper Rule
+
+Reusable document-form interactions should live in module-owned helper files instead of being copied into each page script.
+
+Example pattern inside GSO:
+
+`resources/modules/gso/js/accountable-officers/autocomplete.js`
+search and selection UI
+
+`resources/modules/gso/js/accountable-officers/details-modal.js`
+modal-backed create or resolve flow for incomplete signatory records
+
+Page files such as AIR and RIS editors should only own:
+
+role labels
+field mapping
+page-specific autofill behavior
+
+Helper files should own:
+
+DOM plumbing
+shared modal markup
+shared validation prompts
+shared request callbacks
+
+When document editors need to create or enrich a reusable accountable officer record, prefer the module's resolve endpoint so users with document-level permissions can complete the flow without requiring access to the accountable-officer admin screen.
+
 ---
 
 # Print Workspace Pattern

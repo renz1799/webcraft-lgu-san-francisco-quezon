@@ -174,6 +174,7 @@
                                     @foreach(($departments ?? []) as $department)
                                         <option
                                             value="{{ (string) $department->id }}"
+                                            data-department-name="{{ (string) $department->name }}"
                                             @selected((string) old('requesting_department_id', (string) ($ris->requesting_department_id ?? '')) === (string) $department->id)
                                         >
                                             {{ (string) $department->name }}{{ !empty($department->code) ? ' - ' . $department->code : '' }}
@@ -378,6 +379,8 @@
             rejectUrl: @json(route('gso.ris.reject', ['ris' => $ris->id])),
             reopenUrl: @json(route('gso.ris.reopen', ['ris' => $ris->id])),
             revertUrl: @json(route('gso.ris.revert-to-draft', ['ris' => $ris->id])),
+            accountableOfficerSuggestUrl: @json(route('gso.accountable-officers.suggest')),
+            accountableOfficerResolveUrl: @json(route('gso.accountable-officers.resolve')),
             status: @json($status),
         };
     </script>

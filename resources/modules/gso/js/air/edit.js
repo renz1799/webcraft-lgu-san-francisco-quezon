@@ -1,6 +1,10 @@
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 import { attachAccountableOfficerAutocomplete } from "../accountable-officers/autocomplete.js";
+import {
+  openAccountableOfficerDetailsModal,
+  resolveAccountableOfficerDetails,
+} from "../accountable-officers/details-modal.js";
 
 (function () {
   "use strict";
@@ -721,22 +725,56 @@ import { attachAccountableOfficerAutocomplete } from "../accountable-officers/au
   function bindAccountableOfficerSuggestions() {
     const suggestUrl = window.__gsoAirEdit?.accountableOfficerSuggestUrl;
     const resolveUrl = window.__gsoAirEdit?.accountableOfficerResolveUrl;
-    if (!suggestUrl) return;
+    const departmentField = qs("gsoAirDepartmentId");
+    if (!window.__gsoAirEdit?.canEditDraft || !suggestUrl || !resolveUrl || !departmentField) return;
+
+    function createOfficerHandler(roleLabel) {
+      return async ({ name, saveOfficerRecord }) =>
+        openAccountableOfficerDetailsModal({
+          swal: Swal,
+          saveOfficerRecord,
+          departmentField,
+          initialOfficer: { full_name: name },
+          initialDepartmentId: String(departmentField.value || "").trim(),
+          title: `Create ${roleLabel}`,
+          confirmButtonText: "Create and Use",
+          requireDepartment: true,
+        });
+    }
+
+    function resolveOfficerHandler(roleLabel) {
+      return async (officer, helpers) =>
+        resolveAccountableOfficerDetails(officer, {
+          swal: Swal,
+          saveOfficerRecord: helpers.saveOfficerRecord,
+          departmentField,
+          initialDepartmentId: String(departmentField.value || "").trim(),
+          title: `Complete ${roleLabel} Details`,
+          confirmButtonText: "Save and Use",
+          requireDepartment: true,
+        });
+    }
 
     attachAccountableOfficerAutocomplete({
       input: qs("gsoAirInspectedByName"),
       suggestUrl,
       storeUrl: resolveUrl,
-      departmentField: qs("gsoAirDepartmentId"),
+      departmentField,
+      swal: Swal,
       title: "Inspected By Suggestions",
+      createOfficer: createOfficerHandler("Inspected By Signatory"),
+      beforeApplyOfficer: resolveOfficerHandler("Inspected By Signatory"),
     });
 
     attachAccountableOfficerAutocomplete({
       input: qs("gsoAirAcceptedByName"),
       suggestUrl,
       storeUrl: resolveUrl,
-      departmentField: qs("gsoAirDepartmentId"),
+      departmentField,
+      swal: Swal,
       title: "Accepted By Suggestions",
+      createOfficer: createOfficerHandler("Accepted By Signatory"),
+      beforeApplyOfficer: resolveOfficerHandler("Accepted By Signatory"),
     });
   }
 
