@@ -179,6 +179,7 @@ Module profiles may extend this with:
 * first_page_rows (optional)
 * later_page_rows (optional)
 * last_page_grid_rows (optional)
+* description_chars_per_line (optional)
 
 Paper infrastructure lives in:
 
@@ -374,6 +375,16 @@ This value represents the total visible table rows to reserve on the last page b
 
 Blank rows are then added automatically based on however many real rows landed on that last page.
 
+When data rows can wrap to multiple visual lines, pagination should use estimated line units instead of assuming every row consumes exactly one slot.
+
+Use `description_chars_per_line` to tune the wrap estimate for the main text column of that paper profile.
+
+This helps keep:
+
+* one-line rows dense
+* wrapped rows from overflowing the page
+* filler rows mostly limited to the last page
+
 Continuation labels should live in page chrome such as:
 
 * header notes
@@ -439,6 +450,24 @@ Controls must include:
 * preview button
 * PDF button
 * reset button
+
+Controls may also expose printable layout settings when the report supports user-tunable pagination.
+
+Typical layout settings:
+
+* rows_per_page
+* grid_rows
+* last_page_grid_rows
+* description_chars_per_line
+
+Layout settings must:
+
+* default from the resolved paper profile
+* stay optional so the report still works with config defaults
+* persist across preview
+* persist to PDF download
+
+Preview stats should prefer compact text rows instead of readonly input boxes when the sidebar already contains multiple tuning fields.
 
 Paper selector must:
 

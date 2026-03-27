@@ -111,7 +111,7 @@ class AirRisPrintTestSeeder extends Seeder
                 $item->fill([
                     'asset_id' => $assetCategory->id,
                     'item_name' => $name,
-                    'description' => "Printable office supply {$index} used for AIR and RIS multi-page testing.",
+                    'description' => "Sample printable office supply {$index} used for AIR and RIS multi-page testing with added char.",
                     'base_unit' => $unit,
                     'item_identification' => $code,
                     'major_sub_account_group' => 'Print Test Office Supplies',

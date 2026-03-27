@@ -21,6 +21,7 @@ class AirPrintController extends Controller
         $payload = $this->prints->buildReport(
             airId: $air,
             requestedPaper: $request->validated('paper_profile'),
+            paperOverrides: $request->paperOverrides(),
         );
 
         return view('gso::air.print.index', [
@@ -35,6 +36,7 @@ class AirPrintController extends Controller
         $path = $this->prints->generatePdf(
             airId: $air,
             requestedPaper: $request->validated('paper_profile'),
+            paperOverrides: $request->paperOverrides(),
         );
 
         return response()->download(

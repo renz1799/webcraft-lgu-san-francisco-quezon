@@ -15,13 +15,20 @@ class AirPrintService implements AirPrintServiceInterface
 {
     private const MAX_GRID_ROWS = 24;
 
+    private const PAPER_OVERRIDE_KEYS = [
+        'rows_per_page',
+        'grid_rows',
+        'last_page_grid_rows',
+        'description_chars_per_line',
+    ];
+
     public function __construct(
         private readonly PdfGeneratorInterface $pdfGenerator,
         private readonly PrintConfigLoaderInterface $printConfigLoader,
     ) {
     }
 
-    public function buildReport(string $airId, ?string $requestedPaper = null): array
+    public function buildReport(string $airId, ?string $requestedPaper = null, array $paperOverrides = []): array
     {
         $air = Air::query()
             ->withTrashed()
@@ -45,13 +52,15 @@ class AirPrintService implements AirPrintServiceInterface
             ->findOrFail($airId);
 
         $rows = $this->buildRows($air);
-        $paperProfile = $this->printConfigLoader->resolvePaperProfile('gso_air', $requestedPaper);
+        $paperProfile = $this->resolvePaperProfile($requestedPaper, $paperOverrides);
+        $pagination = $this->buildPagination($rows, $paperProfile);
         $report = [
             'title' => 'Acceptance and Inspection Report',
             'air' => $this->buildAirSummary($air),
             'document' => $this->buildPrintMeta($air, $rows),
             'rows' => $rows,
             'max_grid_rows' => self::MAX_GRID_ROWS,
+            'pagination' => $pagination,
             'can_open_inspection' => in_array(
                 (string) ($air->status ?? ''),
                 ['submitted', 'in_progress', 'inspected'],
@@ -65,9 +74,9 @@ class AirPrintService implements AirPrintServiceInterface
         ];
     }
 
-    public function generatePdf(string $airId, ?string $requestedPaper = null): string
+    public function generatePdf(string $airId, ?string $requestedPaper = null, array $paperOverrides = []): string
     {
-        $payload = $this->buildReport($airId, $requestedPaper);
+        $payload = $this->buildReport($airId, $requestedPaper, $paperOverrides);
 
         $filename = 'air-report-' . now()->format('Ymd-His') . '-' . Str::uuid() . '.pdf';
         $outputPath = storage_path('app/tmp/' . $filename);
@@ -321,6 +330,137 @@ class AirPrintService implements AirPrintServiceInterface
         $value = $this->nullableTrim($value);
 
         return $value !== null ? ucwords(str_replace('_', ' ', $value)) : 'None';
+    }
+
+    /**
+     * @param  array<string, mixed>  $paperOverrides
+     * @return array<string, mixed>
+     */
+    private function resolvePaperProfile(?string $requestedPaper, array $paperOverrides): array
+    {
+        $paperProfile = $this->printConfigLoader->resolvePaperProfile('gso_air', $requestedPaper);
+
+        foreach (self::PAPER_OVERRIDE_KEYS as $key) {
+            if (! array_key_exists($key, $paperOverrides)) {
+                continue;
+            }
+
+            $value = $paperOverrides[$key];
+
+            if (! is_int($value)) {
+                continue;
+            }
+
+            $paperProfile[$key] = $value;
+        }
+
+        return $paperProfile;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $paperProfile
+     * @return array<string, mixed>
+     */
+    private function buildPagination(array $rows, array $paperProfile): array
+    {
+        $rowsPerPage = max(1, (int) ($paperProfile['rows_per_page'] ?? 22));
+        $firstPageRows = max(1, (int) ($paperProfile['first_page_rows'] ?? $rowsPerPage));
+        $laterPageRows = max(1, (int) ($paperProfile['later_page_rows'] ?? $rowsPerPage));
+        $gridRows = max($rowsPerPage, (int) ($paperProfile['grid_rows'] ?? self::MAX_GRID_ROWS));
+        $lastPageGridRows = max(0, (int) ($paperProfile['last_page_grid_rows'] ?? 0));
+        $descriptionCharsPerLine = max(1, (int) ($paperProfile['description_chars_per_line'] ?? 52));
+        $pages = [];
+        $cursor = 0;
+        $pageNumber = 0;
+
+        if ($rows === []) {
+            $pages[] = [
+                'rows' => [],
+                'used_units' => 0,
+            ];
+        } else {
+            while ($cursor < count($rows)) {
+                $capacity = $pageNumber === 0 ? $firstPageRows : $laterPageRows;
+                $pageRows = [];
+                $usedUnits = 0;
+
+                while ($cursor < count($rows)) {
+                    $row = $rows[$cursor];
+                    $rowUnits = $this->estimateRowUnits($row, $descriptionCharsPerLine);
+
+                    if ($pageRows !== [] && ($usedUnits + $rowUnits) > $capacity) {
+                        break;
+                    }
+
+                    $pageRows[] = $row;
+                    $usedUnits += $rowUnits;
+                    $cursor++;
+
+                    if ($usedUnits >= $capacity) {
+                        break;
+                    }
+                }
+
+                if ($pageRows === []) {
+                    $row = $rows[$cursor];
+                    $pageRows[] = $row;
+                    $usedUnits = $this->estimateRowUnits($row, $descriptionCharsPerLine);
+                    $cursor++;
+                }
+
+                $pages[] = [
+                    'rows' => $pageRows,
+                    'used_units' => $usedUnits,
+                ];
+                $pageNumber++;
+            }
+        }
+
+        $pageRowCounts = array_map(
+            static fn (array $page): int => count($page['rows'] ?? []),
+            $pages,
+        );
+        $pageUsedUnits = array_map(
+            static fn (array $page): int => (int) ($page['used_units'] ?? 0),
+            $pages,
+        );
+        $lastUsedUnits = (int) ($pageUsedUnits !== [] ? end($pageUsedUnits) : 0);
+
+        return [
+            'pages' => $pages,
+            'stats' => [
+                'page_count' => max(1, count($pages)),
+                'rows_per_page' => $rowsPerPage,
+                'grid_rows' => $gridRows,
+                'first_page_rows' => $firstPageRows,
+                'later_page_rows' => $laterPageRows,
+                'last_page_grid_rows' => $lastPageGridRows,
+                'description_chars_per_line' => $descriptionCharsPerLine,
+                'page_row_counts' => $pageRowCounts,
+                'page_used_units' => $pageUsedUnits,
+                'last_page_padding' => $lastPageGridRows > 0
+                    ? max(0, $lastPageGridRows - $lastUsedUnits)
+                    : 0,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function estimateRowUnits(array $row, int $descriptionCharsPerLine): int
+    {
+        $description = str_replace(["\r\n", "\r"], "\n", (string) ($row['description'] ?? ''));
+        $segments = explode("\n", $description);
+        $units = 0;
+
+        foreach ($segments as $segment) {
+            $text = preg_replace('/\s+/u', ' ', trim($segment)) ?? '';
+            $units += max(1, (int) ceil(mb_strlen($text) / $descriptionCharsPerLine));
+        }
+
+        return max(1, $units);
     }
 
     private function nullableTrim(mixed $value): ?string

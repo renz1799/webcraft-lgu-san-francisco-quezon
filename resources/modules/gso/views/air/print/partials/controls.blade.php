@@ -1,18 +1,37 @@
 @php
     $printConfig = app(\App\Core\Services\Contracts\Print\PrintConfigLoaderInterface::class);
+    $printable = $printConfig->printable('gso_air');
     $air = $report['air'] ?? [];
     $document = $report['document'] ?? [];
     $summary = $document['summary'] ?? [];
+    $pagination = $report['pagination']['stats'] ?? [];
     $selectedPaper = $filters['paper_profile'] ?? ($paperProfile['code'] ?? $printConfig->defaultPaper('gso_air', 'a4-portrait'));
     $allowedPapers = $printConfig->allowedPapers('gso_air', 'a4-portrait');
     $paperOptions = collect($allowedPapers)
         ->mapWithKeys(fn ($code) => [$code => config("print.papers.{$code}.label", $code)])
         ->all();
+    $paperDefaults = collect($allowedPapers)
+        ->mapWithKeys(function (string $code) use ($printable): array {
+            $profile = $printable['profiles'][$code] ?? [];
 
-    $rowsPerPage = max(1, (int) ($paperProfile['rows_per_page'] ?? 22));
-    $pageCount = max(1, count(array_chunk($report['rows'] ?? [], $rowsPerPage)));
+            return [$code => [
+                'rows_per_page' => max(1, (int) ($profile['rows_per_page'] ?? 0)),
+                'grid_rows' => max(1, (int) ($profile['grid_rows'] ?? 0)),
+                'last_page_grid_rows' => max(0, (int) ($profile['last_page_grid_rows'] ?? 0)),
+                'description_chars_per_line' => max(1, (int) ($profile['description_chars_per_line'] ?? 0)),
+            ]];
+        })
+        ->all();
+    $currentRowsPerPage = (int) ($filters['rows_per_page'] ?? ($paperProfile['rows_per_page'] ?? 22));
+    $currentGridRows = (int) ($filters['grid_rows'] ?? ($paperProfile['grid_rows'] ?? 22));
+    $currentLastPageGridRows = (int) ($filters['last_page_grid_rows'] ?? ($paperProfile['last_page_grid_rows'] ?? 0));
+    $currentDescriptionCharsPerLine = (int) ($filters['description_chars_per_line'] ?? ($paperProfile['description_chars_per_line'] ?? 52));
     $pdfParams = array_filter([
         'paper_profile' => $selectedPaper,
+        'rows_per_page' => $filters['rows_per_page'] ?? null,
+        'grid_rows' => $filters['grid_rows'] ?? null,
+        'last_page_grid_rows' => $filters['last_page_grid_rows'] ?? null,
+        'description_chars_per_line' => $filters['description_chars_per_line'] ?? null,
     ], fn ($value) => $value !== null && $value !== '');
 @endphp
 
@@ -29,7 +48,13 @@
             </p>
         </div>
 
-        <form method="GET" action="{{ route('gso.air.print', ['air' => $air['id'] ?? '']) }}" class="core-print-sidebar__form">
+        <form
+            method="GET"
+            action="{{ route('gso.air.print', ['air' => $air['id'] ?? '']) }}"
+            class="core-print-sidebar__form"
+            data-air-print-form="1"
+            data-air-print-paper-defaults='@json($paperDefaults)'
+        >
             <div class="core-print-sidebar__section">
                 <div class="core-print-sidebar__section-title">Preview Settings</div>
 
@@ -38,6 +63,7 @@
                     <select
                         name="paper_profile"
                         class="form-control"
+                        data-air-print-paper-select="1"
                         @disabled(count($paperOptions) <= 1)
                     >
                         @foreach ($paperOptions as $code => $label)
@@ -48,31 +74,106 @@
             </div>
 
             <div class="core-print-sidebar__section">
+                <div class="core-print-sidebar__section-title">Layout Settings</div>
+
+                <p class="core-print-sidebar__note">
+                    Tune the page row budget for this preview. Reset anytime to return to the paper defaults.
+                </p>
+
+                <div class="core-print-sidebar__field-grid">
+                    <div class="core-print-sidebar__field">
+                        <label class="form-label">Rows / Page</label>
+                        <input
+                            type="number"
+                            min="1"
+                            max="200"
+                            name="rows_per_page"
+                            value="{{ $currentRowsPerPage }}"
+                            class="form-control"
+                            data-air-print-setting="rows_per_page"
+                        >
+                    </div>
+
+                    <div class="core-print-sidebar__field">
+                        <label class="form-label">Grid Rows</label>
+                        <input
+                            type="number"
+                            min="1"
+                            max="200"
+                            name="grid_rows"
+                            value="{{ $currentGridRows }}"
+                            class="form-control"
+                            data-air-print-setting="grid_rows"
+                        >
+                    </div>
+
+                    <div class="core-print-sidebar__field">
+                        <label class="form-label">Last Page Grid</label>
+                        <input
+                            type="number"
+                            min="0"
+                            max="200"
+                            name="last_page_grid_rows"
+                            value="{{ $currentLastPageGridRows }}"
+                            class="form-control"
+                            data-air-print-setting="last_page_grid_rows"
+                        >
+                    </div>
+
+                    <div class="core-print-sidebar__field">
+                        <label class="form-label">Wrap Width</label>
+                        <input
+                            type="number"
+                            min="10"
+                            max="300"
+                            name="description_chars_per_line"
+                            value="{{ $currentDescriptionCharsPerLine }}"
+                            class="form-control"
+                            data-air-print-setting="description_chars_per_line"
+                        >
+                    </div>
+                </div>
+
+                <button type="button" class="core-print-sidebar__link-button" data-air-print-apply-defaults="1">
+                    Use Selected Paper Defaults
+                </button>
+            </div>
+
+            <div class="core-print-sidebar__section">
                 <div class="core-print-sidebar__section-title">Preview Stats</div>
 
-                <div class="core-print-sidebar__field">
-                    <label class="form-label">Pages</label>
-                    <input type="text" class="form-control" value="{{ number_format($pageCount) }}" readonly>
-                </div>
+                <div class="core-print-sidebar__stats">
+                    <div class="core-print-sidebar__stat">
+                        <span class="core-print-sidebar__stat-label">Estimated Pages</span>
+                        <strong class="core-print-sidebar__stat-value">{{ number_format((int) ($pagination['page_count'] ?? 1)) }}</strong>
+                    </div>
 
-                <div class="core-print-sidebar__field">
-                    <label class="form-label">Item Lines</label>
-                    <input type="text" class="form-control" value="{{ number_format((int) ($summary['line_items'] ?? 0)) }}" readonly>
-                </div>
+                    <div class="core-print-sidebar__stat">
+                        <span class="core-print-sidebar__stat-label">Item Lines</span>
+                        <strong class="core-print-sidebar__stat-value">{{ number_format((int) ($summary['line_items'] ?? 0)) }}</strong>
+                    </div>
 
-                <div class="core-print-sidebar__field">
-                    <label class="form-label">Printed Rows</label>
-                    <input type="text" class="form-control" value="{{ number_format((int) ($summary['printed_rows'] ?? 0)) }}" readonly>
-                </div>
+                    <div class="core-print-sidebar__stat">
+                        <span class="core-print-sidebar__stat-label">Printed Rows</span>
+                        <strong class="core-print-sidebar__stat-value">{{ number_format((int) ($summary['printed_rows'] ?? 0)) }}</strong>
+                    </div>
 
-                <div class="core-print-sidebar__field">
-                    <label class="form-label">Unit Rows</label>
-                    <input type="text" class="form-control" value="{{ number_format((int) ($summary['unit_rows'] ?? 0)) }}" readonly>
-                </div>
+                    <div class="core-print-sidebar__stat">
+                        <span class="core-print-sidebar__stat-label">Page Usage</span>
+                        <strong class="core-print-sidebar__stat-value">
+                            {{ collect($pagination['page_used_units'] ?? [])->map(fn ($value) => number_format((int) $value))->implode(' / ') ?: '0' }}
+                        </strong>
+                    </div>
 
-                <div class="core-print-sidebar__field">
-                    <label class="form-label">Total Quantity</label>
-                    <input type="text" class="form-control" value="{{ number_format((int) ($summary['quantity_total'] ?? 0)) }}" readonly>
+                    <div class="core-print-sidebar__stat">
+                        <span class="core-print-sidebar__stat-label">Last-Page Filler</span>
+                        <strong class="core-print-sidebar__stat-value">{{ number_format((int) ($pagination['last_page_padding'] ?? 0)) }}</strong>
+                    </div>
+
+                    <div class="core-print-sidebar__stat">
+                        <span class="core-print-sidebar__stat-label">Total Quantity</span>
+                        <strong class="core-print-sidebar__stat-value">{{ number_format((int) ($summary['quantity_total'] ?? 0)) }}</strong>
+                    </div>
                 </div>
             </div>
 
@@ -87,6 +188,7 @@
                     <a
                         href="{{ route('gso.air.print.pdf', ['air' => $air['id'] ?? ''] + $pdfParams) }}"
                         data-air-print-pdf-download="1"
+                        data-air-print-pdf-base="{{ route('gso.air.print.pdf', ['air' => $air['id'] ?? '']) }}"
                         class="ti-btn btn-wave ti-btn-outline-primary label-ti-btn w-full text-center"
                     >
                         <i class="ri-file-pdf-line label-ti-btn-icon me-2"></i>

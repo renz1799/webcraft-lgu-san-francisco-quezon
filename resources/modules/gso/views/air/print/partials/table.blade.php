@@ -5,10 +5,11 @@
     $fillRows = (bool) ($fillRows ?? true);
     $isLastPage = (int) ($pageIndex ?? 0) + 1 === (int) ($totalPages ?? 1);
     $lastPageGridRows = max(0, (int) ($lastPageGridRows ?? 0));
-    $remainingRows = $fillRows ? max(0, $gridRows - $rows->count()) : 0;
+    $usedGridUnits = max($rows->count(), (int) ($usedGridUnits ?? $rows->count()));
+    $remainingRows = $fillRows ? max(0, $gridRows - $usedGridUnits) : 0;
 
     if ($isLastPage && $lastPageGridRows > 0) {
-        $remainingRows = max(0, $lastPageGridRows - $rows->count());
+        $remainingRows = max(0, $lastPageGridRows - $usedGridUnits);
     }
 
     $receivedCompleteness = strtolower((string) ($document['received_completeness'] ?? ''));

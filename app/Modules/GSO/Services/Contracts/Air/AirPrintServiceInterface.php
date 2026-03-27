@@ -7,7 +7,7 @@ interface AirPrintServiceInterface
     /**
      * @return array<string, mixed>
      */
-    public function buildReport(string $airId, ?string $requestedPaper = null): array;
+    public function buildReport(string $airId, ?string $requestedPaper = null, array $paperOverrides = []): array;
 
-    public function generatePdf(string $airId, ?string $requestedPaper = null): string;
+    public function generatePdf(string $airId, ?string $requestedPaper = null, array $paperOverrides = []): string;
 }

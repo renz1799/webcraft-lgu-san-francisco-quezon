@@ -58,6 +58,12 @@
         gap: 0.45rem;
     }
 
+    .core-print-sidebar__field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
+    }
+
     .core-print-sidebar .form-label {
         margin-bottom: 0;
         font-size: 0.94rem;
@@ -75,6 +81,53 @@
     .core-print-sidebar .form-control::placeholder {
         color: rgb(148, 163, 184);
         font-size: 0.93rem;
+    }
+
+    .core-print-sidebar__note {
+        margin: -0.15rem 0 0;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        color: rgb(100, 116, 139);
+    }
+
+    .core-print-sidebar__link-button {
+        align-self: flex-start;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: rgb(37, 99, 235);
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .core-print-sidebar__link-button:hover {
+        color: rgb(29, 78, 216);
+        text-decoration: underline;
+    }
+
+    .core-print-sidebar__stats {
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+    }
+
+    .core-print-sidebar__stat {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        font-size: 0.94rem;
+    }
+
+    .core-print-sidebar__stat-label {
+        color: rgb(71, 85, 105);
+    }
+
+    .core-print-sidebar__stat-value {
+        color: rgb(15, 23, 42);
+        font-weight: 700;
+        text-align: right;
     }
 
     .core-print-sidebar__actions {
@@ -110,5 +163,11 @@
         background: rgba(148, 163, 184, 0.08);
         color: rgb(15, 23, 42);
         text-decoration: none;
+    }
+
+    @media (max-width: 640px) {
+        .core-print-sidebar__field-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
     }
 </style>
