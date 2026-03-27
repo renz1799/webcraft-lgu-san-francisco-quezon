@@ -71,6 +71,32 @@
         color: rgb(30, 41, 59);
     }
 
+    .core-print-sidebar__label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .core-print-sidebar__tooltip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.1rem;
+        height: 1.1rem;
+        border-radius: 9999px;
+        background: rgba(37, 99, 235, 0.12);
+        color: rgb(37, 99, 235);
+        font-size: 0.78rem;
+        line-height: 1;
+        cursor: help;
+        user-select: none;
+    }
+
+    .core-print-sidebar__tooltip:focus-visible {
+        outline: 2px solid rgba(37, 99, 235, 0.35);
+        outline-offset: 2px;
+    }
+
     .core-print-sidebar .form-control {
         min-height: 2.9rem;
         font-size: 0.96rem;

@@ -22,6 +22,7 @@ class RisPrintController extends Controller
         $payload = $this->risPrints->buildReport(
             risId: (string) $ris->id,
             requestedPaper: $request->validated('paper_profile'),
+            paperOverrides: $request->paperOverrides(),
         );
 
         return view('gso::ris.print.index', [
@@ -36,6 +37,7 @@ class RisPrintController extends Controller
         $path = $this->risPrints->generatePdf(
             risId: (string) $ris->id,
             requestedPaper: $request->validated('paper_profile'),
+            paperOverrides: $request->paperOverrides(),
         );
 
         return response()->download(

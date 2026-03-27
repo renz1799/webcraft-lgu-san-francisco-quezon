@@ -90,7 +90,7 @@ class AirRisPrintTestSeeder extends Seeder
         return collect(range(1, $count))
             ->map(function (int $index) use ($assetCategory, $units): Item {
                 $code = sprintf('PRINT-TEST-%03d', $index);
-                $name = sprintf('Print Test Supply %02d', $index);
+                $name = sprintf('Print Test %02d', $index);
                 $unit = $units[($index - 1) % count($units)];
 
                 $item = Item::query()
@@ -111,7 +111,7 @@ class AirRisPrintTestSeeder extends Seeder
                 $item->fill([
                     'asset_id' => $assetCategory->id,
                     'item_name' => $name,
-                    'description' => "Sample printable office supply {$index} used for AIR and RIS multi-page testing with added char.",
+                    'description' => "Sample printable {$index} multi-page testing",
                     'base_unit' => $unit,
                     'item_identification' => $code,
                     'major_sub_account_group' => 'Print Test Office Supplies',

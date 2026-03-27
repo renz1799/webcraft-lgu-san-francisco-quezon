@@ -36,6 +36,15 @@
     z-index: 1;
   }
 
+  .print-workspace.is-preview-loading .print-workspace-preview {
+    opacity: 0.68;
+    transition: opacity 0.18s ease;
+  }
+
+  .print-workspace.is-preview-loading .print-workspace-sidebar {
+    pointer-events: none;
+  }
+
   .print-workspace-panel {
     background: #fff;
     border: 1px solid #d9e2ee;

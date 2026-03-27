@@ -26,6 +26,12 @@
     $currentGridRows = (int) ($filters['grid_rows'] ?? ($paperProfile['grid_rows'] ?? 22));
     $currentLastPageGridRows = (int) ($filters['last_page_grid_rows'] ?? ($paperProfile['last_page_grid_rows'] ?? 0));
     $currentDescriptionCharsPerLine = (int) ($filters['description_chars_per_line'] ?? ($paperProfile['description_chars_per_line'] ?? 52));
+    $layoutHelp = [
+        'rows_per_page' => 'Maximum estimated row units placed on each full page before a new page starts.',
+        'grid_rows' => 'Total visible grid height for non-final pages, including any filler rows.',
+        'last_page_grid_rows' => 'Target grid height for the last page before the closing section; blank rows are added until it is reached.',
+        'description_chars_per_line' => 'Wrap estimate for long text. Lower values assume earlier wrapping; higher values pack more text into one row.',
+    ];
     $pdfParams = array_filter([
         'paper_profile' => $selectedPaper,
         'rows_per_page' => $filters['rows_per_page'] ?? null,
@@ -82,7 +88,18 @@
 
                 <div class="core-print-sidebar__field-grid">
                     <div class="core-print-sidebar__field">
-                        <label class="form-label">Rows / Page</label>
+                        <label class="form-label core-print-sidebar__label">
+                            <span>Rows / Page</span>
+                            <span
+                                class="core-print-sidebar__tooltip"
+                                tabindex="0"
+                                role="img"
+                                aria-label="{{ $layoutHelp['rows_per_page'] }}"
+                                title="{{ $layoutHelp['rows_per_page'] }}"
+                            >
+                                <i class="ri-information-line"></i>
+                            </span>
+                        </label>
                         <input
                             type="number"
                             min="1"
@@ -95,7 +112,18 @@
                     </div>
 
                     <div class="core-print-sidebar__field">
-                        <label class="form-label">Grid Rows</label>
+                        <label class="form-label core-print-sidebar__label">
+                            <span>Grid Rows</span>
+                            <span
+                                class="core-print-sidebar__tooltip"
+                                tabindex="0"
+                                role="img"
+                                aria-label="{{ $layoutHelp['grid_rows'] }}"
+                                title="{{ $layoutHelp['grid_rows'] }}"
+                            >
+                                <i class="ri-information-line"></i>
+                            </span>
+                        </label>
                         <input
                             type="number"
                             min="1"
@@ -108,7 +136,18 @@
                     </div>
 
                     <div class="core-print-sidebar__field">
-                        <label class="form-label">Last Page Grid</label>
+                        <label class="form-label core-print-sidebar__label">
+                            <span>Last Page Grid</span>
+                            <span
+                                class="core-print-sidebar__tooltip"
+                                tabindex="0"
+                                role="img"
+                                aria-label="{{ $layoutHelp['last_page_grid_rows'] }}"
+                                title="{{ $layoutHelp['last_page_grid_rows'] }}"
+                            >
+                                <i class="ri-information-line"></i>
+                            </span>
+                        </label>
                         <input
                             type="number"
                             min="0"
@@ -121,7 +160,18 @@
                     </div>
 
                     <div class="core-print-sidebar__field">
-                        <label class="form-label">Wrap Width</label>
+                        <label class="form-label core-print-sidebar__label">
+                            <span>Wrap Width</span>
+                            <span
+                                class="core-print-sidebar__tooltip"
+                                tabindex="0"
+                                role="img"
+                                aria-label="{{ $layoutHelp['description_chars_per_line'] }}"
+                                title="{{ $layoutHelp['description_chars_per_line'] }}"
+                            >
+                                <i class="ri-information-line"></i>
+                            </span>
+                        </label>
                         <input
                             type="number"
                             min="10"

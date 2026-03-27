@@ -181,6 +181,14 @@ Module profiles may extend this with:
 * last_page_grid_rows (optional)
 * description_chars_per_line (optional)
 
+Portrait print workspaces created or refactored in the platform should register this default paper set:
+
+* a4-portrait
+* letter-portrait
+* legal-portrait
+
+This should be treated as the standard baseline for new printable modules and print refactors.
+
 Paper infrastructure lives in:
 
 ```
@@ -379,6 +387,8 @@ When data rows can wrap to multiple visual lines, pagination should use estimate
 
 Use `description_chars_per_line` to tune the wrap estimate for the main text column of that paper profile.
 
+If a row has more than one text column that can wrap, estimate against the tallest printable cell for that row instead of only counting one column.
+
 This helps keep:
 
 * one-line rows dense
@@ -392,6 +402,13 @@ Continuation labels should live in page chrome such as:
 * page metadata areas
 
 They should not consume table rows unless the printed form explicitly requires them inside the table body.
+
+For multi-page reports, continuation chrome is required:
+
+* pages after page 1 should show `Continuation from Page x`
+* pages before the last page should show `Continued on Page x`
+
+These notes should remain visible after refactors and when creating new print layouts.
 
 Balanced redistribution across earlier pages should be treated as an exception, not the default.
 
@@ -466,8 +483,19 @@ Layout settings must:
 * stay optional so the report still works with config defaults
 * persist across preview
 * persist to PDF download
+* include concise hover or focus help text when a numeric control may not be self-explanatory
 
 Preview stats should prefer compact text rows instead of readonly input boxes when the sidebar already contains multiple tuning fields.
+
+When JavaScript is available, `Update Preview` should refresh the print workspace in place instead of doing a full page reload.
+
+In-place preview refresh must:
+
+* update the rendered preview pages
+* update dependent sidebar stats and control defaults returned by the server
+* keep the current scroll context stable so the user does not lose the preview position
+* keep the URL query string in sync with the active preview state
+* replace paper-specific head styles when a different paper profile changes the preview CSS
 
 Paper selector must:
 
@@ -475,6 +503,7 @@ Paper selector must:
 * default to printable default paper
 * persist across preview
 * persist to PDF download
+* include `a4-portrait`, `letter-portrait`, and `legal-portrait` for standard portrait print workspaces
 
 ---
 

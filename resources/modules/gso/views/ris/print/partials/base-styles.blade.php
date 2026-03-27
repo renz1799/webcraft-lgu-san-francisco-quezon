@@ -61,6 +61,19 @@
         font-family: Arial, Helvetica, sans-serif;
     }
 
+    .gso-ris-print-flow-note {
+        margin-top: 4px;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .gso-ris-print-flow-note-footer {
+        text-align: right;
+    }
+
     .gso-ris-print-body {
         flex: 1 1 auto;
         padding: 4mm 10mm 6mm;

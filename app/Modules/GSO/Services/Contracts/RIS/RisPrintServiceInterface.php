@@ -7,7 +7,7 @@ interface RisPrintServiceInterface
     /**
      * @return array<string, mixed>
      */
-    public function buildReport(string $risId, ?string $requestedPaper = null): array;
+    public function buildReport(string $risId, ?string $requestedPaper = null, array $paperOverrides = []): array;
 
-    public function generatePdf(string $risId, ?string $requestedPaper = null): string;
+    public function generatePdf(string $risId, ?string $requestedPaper = null, array $paperOverrides = []): string;
 }

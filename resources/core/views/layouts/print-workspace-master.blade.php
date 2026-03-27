@@ -15,7 +15,9 @@
     href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css"
 />
 
+    <meta data-print-workspace-styles-start="1">
     @stack('styles')
+    <meta data-print-workspace-styles-end="1">
 </head>
 <body>
     <div class="min-h-screen bg-bodybg">

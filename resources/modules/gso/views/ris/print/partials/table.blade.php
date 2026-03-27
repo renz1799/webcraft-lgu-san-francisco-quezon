@@ -1,8 +1,13 @@
 @php
     $document = $report['document'] ?? [];
-    $rowsPrinted = 0;
     $maxRows = $gridRows ?? 24;
     $pageRows = $rows ?? [];
+    $usedGridUnits = max(count($pageRows), (int) ($usedGridUnits ?? count($pageRows)));
+    $lastPageGridRows = max(0, (int) ($lastPageGridRows ?? 0));
+    $isLastPage = (bool) ($isLastPage ?? false);
+    $blankRows = $isLastPage && $lastPageGridRows > 0
+        ? max(0, $lastPageGridRows - $usedGridUnits)
+        : max(0, $maxRows - $usedGridUnits);
 @endphp
 
 <table class="gso-ris-print-sheet gso-ris-print-stack-next">
@@ -28,7 +33,6 @@
 
     <tbody>
         @foreach ($pageRows as $row)
-            @php $rowsPrinted++; @endphp
             <tr class="gso-ris-print-items-row">
                 <td class="gso-ris-print-center">{{ $row['stock_no'] ?: ' ' }}</td>
                 <td class="gso-ris-print-center">{{ $row['unit'] ?: ' ' }}</td>
@@ -39,7 +43,7 @@
             </tr>
         @endforeach
 
-        @for ($i = $rowsPrinted; $i < $maxRows; $i++)
+        @for ($i = 0; $i < $blankRows; $i++)
             <tr class="gso-ris-print-items-row">
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>

@@ -1,9 +1,18 @@
 @extends('layouts.print-workspace-master')
 
 @section('content')
+    @php
+        $sidebarWidth = 'clamp(360px, calc(' . ($paperProfile['height'] ?? '297mm') . ' * 0.34), 430px)';
+        $previewWidth = 'min('
+            . ($paperProfile['preview_width'] ?? ($paperProfile['width'] ?? '210mm'))
+            . ', calc(100vw - '
+            . $sidebarWidth
+            . ' - 172px))';
+    @endphp
+
     <x-print.workspace
-        sidebar-width="clamp(320px, calc({{ $paperProfile['height'] ?? '297mm' }} * 0.30), 390px)"
-        preview-width="min({{ $paperProfile['preview_width'] ?? ($paperProfile['width'] ?? '210mm') }}, calc(100vw - clamp(320px, calc({{ $paperProfile['height'] ?? '297mm' }} * 0.30), 390px) - 160px))"
+        sidebar-width="{{ $sidebarWidth }}"
+        preview-width="{{ $previewWidth }}"
     >
         <x-slot:sidebar>
             @include('gso::air.print.partials.controls', [

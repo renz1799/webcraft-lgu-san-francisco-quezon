@@ -6,13 +6,14 @@
 
 <div
   class="print-workspace"
+  data-print-workspace="1"
   style="--print-workspace-sidebar-width: {{ $sidebarWidth }}; --print-workspace-preview-width: {{ $previewWidth }}; --print-workspace-gap: {{ $gap }};"
 >
   <aside class="print-workspace-sidebar">
     {{ $sidebar ?? '' }}
   </aside>
 
-  <main class="print-workspace-preview">
+  <main class="print-workspace-preview" data-print-workspace-preview="1">
     {{ $slot }}
   </main>
 </div>

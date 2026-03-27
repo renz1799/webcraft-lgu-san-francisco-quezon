@@ -1,6 +1,6 @@
 @php
     $pages = $report['pagination']['pages'] ?? [['rows' => $report['rows'] ?? [], 'used_units' => count($report['rows'] ?? [])]];
-    $gridRows = max(1, (int) ($paperProfile['grid_rows'] ?? 30));
+    $gridRows = max(1, (int) ($paperProfile['grid_rows'] ?? 22));
     $lastPageGridRows = max(0, (int) ($paperProfile['last_page_grid_rows'] ?? 0));
     $totalPages = count($pages);
 @endphp
