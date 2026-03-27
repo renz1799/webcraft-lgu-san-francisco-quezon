@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Numbers;
+namespace App\Modules\GSO\Services\Numbers;
 
 use App\Models\DocumentNumberCounter;
-use App\Services\Contracts\ItrNumberServiceInterface;
+use App\Modules\GSO\Services\Contracts\Numbers\ItrNumberServiceInterface;
 use Illuminate\Support\Facades\DB;
 
 class ItrNumberService implements ItrNumberServiceInterface

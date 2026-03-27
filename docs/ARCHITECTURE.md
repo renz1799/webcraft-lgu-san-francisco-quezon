@@ -731,6 +731,10 @@ Current shared reference-data example:
 
 `accountable-persons`
 
+Current module-owned document example:
+
+`gso.pars.index`
+
 Pattern notes:
 
 * Core owns the model, repository, service, requests, controller, Blade, and datatable JS
@@ -818,6 +822,12 @@ Page-specific JS should still be activated by stable DOM markers such as:
 `tasks-table`
 `gso-air-edit-page`
 `risForm`
+`par-table`
+`parShowPage`
+`ptr-table`
+`ptrForm`
+`itr-table`
+`itrForm`
 
 The registry should:
 
@@ -848,7 +858,7 @@ search and selection UI
 `resources/modules/gso/js/accountable-officers/details-modal.js`
 modal-backed create or resolve flow for incomplete signatory records
 
-Page files such as AIR and RIS editors should only own:
+Page files such as AIR, RIS, PAR, ICS, PTR, ITR, and WMR editors should only own:
 
 role labels
 field mapping

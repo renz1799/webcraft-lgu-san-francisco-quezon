@@ -35,7 +35,12 @@ export default defineConfig({
                 'resources/core/js/permissions-tabulator.js',
                 'resources/core/js/notifications/header.js',
                 'resources/modules/gso/js/air/print.js',
+                'resources/modules/gso/js/ics/print.js',
+                'resources/modules/gso/js/itrs/print.js',
+                'resources/modules/gso/js/pars/print.js',
+                'resources/modules/gso/js/ptrs/print.js',
                 'resources/modules/gso/js/ris/print.js',
+                'resources/modules/gso/js/wmrs/print.js',
 
                 // Resources assets js file paths
                 'resources/assets/js/add-products.js',

@@ -99,6 +99,106 @@ const gsoPageLoaders = [
     errorMessage: "Failed to load GSO RIS edit modules",
   },
   {
+    id: "par-table",
+    load: () =>
+      Promise.all([
+        import("./pars/table.js"),
+        import("./pars/filters.js"),
+      ]),
+    errorMessage: "Failed to load GSO PAR index modules",
+  },
+  {
+    id: "ics-table",
+    load: () =>
+      Promise.all([
+        import("./ics/table.js"),
+        import("./ics/filters.js"),
+        import("./ics/actions.js"),
+      ]),
+    errorMessage: "Failed to load GSO ICS index modules",
+  },
+  {
+    id: "icsForm",
+    load: () =>
+      Promise.all([
+        import("./ics/edit.js"),
+        import("./ics/edit-items.js"),
+        import("./ics/workflow.js"),
+      ]),
+    errorMessage: "Failed to load GSO ICS edit modules",
+  },
+  {
+    id: "ptr-table",
+    load: () =>
+      Promise.all([
+        import("./ptrs/table.js"),
+        import("./ptrs/filters.js"),
+        import("./ptrs/actions.js"),
+      ]),
+    errorMessage: "Failed to load GSO PTR index modules",
+  },
+  {
+    id: "ptrForm",
+    load: () =>
+      Promise.all([
+        import("./ptrs/edit.js"),
+        import("./ptrs/edit-items.js"),
+        import("./ptrs/workflow.js"),
+      ]),
+    errorMessage: "Failed to load GSO PTR edit modules",
+  },
+  {
+    id: "itr-table",
+    load: () =>
+      Promise.all([
+        import("./itrs/table.js"),
+        import("./itrs/filters.js"),
+        import("./itrs/actions.js"),
+      ]),
+    errorMessage: "Failed to load GSO ITR index modules",
+  },
+  {
+    id: "itrForm",
+    load: () =>
+      Promise.all([
+        import("./itrs/edit.js"),
+        import("./itrs/edit-items.js"),
+        import("./itrs/workflow.js"),
+      ]),
+    errorMessage: "Failed to load GSO ITR edit modules",
+  },
+  {
+    id: "wmr-table",
+    load: () =>
+      Promise.all([
+        import("./wmrs/table.js"),
+        import("./wmrs/filters.js"),
+        import("./wmrs/actions.js"),
+      ]),
+    errorMessage: "Failed to load GSO WMR index modules",
+  },
+  {
+    id: "wmrForm",
+    load: () =>
+      Promise.all([
+        import("./wmrs/edit.js"),
+        import("./wmrs/edit-items.js"),
+        import("./wmrs/workflow.js"),
+      ]),
+    errorMessage: "Failed to load GSO WMR edit modules",
+  },
+  {
+    id: "parShowPage",
+    load: () =>
+      Promise.all([
+        import("./pars/show-edit.js"),
+        import("./pars/show-items.js"),
+        import("./pars/show-items-suggest.js"),
+        import("./pars/show-workflow.js"),
+      ]),
+    errorMessage: "Failed to load GSO PAR show modules",
+  },
+  {
     id: "gso-inventory-items-table",
     load: () =>
       Promise.all([

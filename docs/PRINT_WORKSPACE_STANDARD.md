@@ -450,6 +450,10 @@ If page numbers or metadata need padding:
 
 Place that padded content in a separate block above or below the image.
 
+Signature values that sit in signatory blocks should render on dedicated underline fields using a real bottom border, not only `text-decoration`.
+
+This keeps printed names, roles, and dates visually consistent across reports and holds up better when values are empty or short.
+
 ---
 
 # Controls Rules

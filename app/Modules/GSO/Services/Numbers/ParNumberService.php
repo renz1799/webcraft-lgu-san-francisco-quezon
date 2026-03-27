@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Numbers;
+namespace App\Modules\GSO\Services\Numbers;
 
 use App\Models\DocumentNumberCounter;
-use App\Services\Contracts\ParNumberServiceInterface;
+use App\Modules\GSO\Services\Contracts\Numbers\ParNumberServiceInterface;
 use Illuminate\Support\Facades\DB;
 
 class ParNumberService implements ParNumberServiceInterface

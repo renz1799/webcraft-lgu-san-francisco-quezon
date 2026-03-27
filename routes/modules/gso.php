@@ -24,7 +24,10 @@ use App\Modules\GSO\Http\Controllers\FundClusters\FundClusterController;
 use App\Modules\GSO\Http\Controllers\FundSources\FundSourceActionController;
 use App\Modules\GSO\Http\Controllers\FundSources\FundSourceController;
 use App\Modules\GSO\Http\Controllers\GsoDashboardController;
-use App\Modules\GSO\Http\Controllers\GsoWorkspaceController;
+use App\Modules\GSO\Http\Controllers\ICS\IcsController;
+use App\Modules\GSO\Http\Controllers\ICS\IcsItemController;
+use App\Modules\GSO\Http\Controllers\ICS\IcsPrintController;
+use App\Modules\GSO\Http\Controllers\ICS\IcsWorkflowController;
 use App\Modules\GSO\Http\Controllers\Inspections\InspectionActionController;
 use App\Modules\GSO\Http\Controllers\Inspections\InspectionController;
 use App\Modules\GSO\Http\Controllers\Inspections\InspectionPhotoController;
@@ -38,12 +41,33 @@ use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemReportsControll
 use App\Modules\GSO\Http\Controllers\InventoryItems\PublicInventoryAssetController;
 use App\Modules\GSO\Http\Controllers\Items\ItemActionController;
 use App\Modules\GSO\Http\Controllers\Items\ItemController;
+use App\Modules\GSO\Http\Controllers\ITR\ItrController;
+use App\Modules\GSO\Http\Controllers\ITR\ItrItemController;
+use App\Modules\GSO\Http\Controllers\ITR\ItrPrintController;
+use App\Modules\GSO\Http\Controllers\ITR\ItrWorkflowController;
+use App\Modules\GSO\Http\Controllers\PAR\ParController;
+use App\Modules\GSO\Http\Controllers\PAR\ParItemController;
+use App\Modules\GSO\Http\Controllers\PAR\ParPrintController;
+use App\Modules\GSO\Http\Controllers\PAR\ParWorkflowController;
+use App\Modules\GSO\Http\Controllers\PTR\PtrController;
+use App\Modules\GSO\Http\Controllers\PTR\PtrItemController;
+use App\Modules\GSO\Http\Controllers\PTR\PtrPrintController;
+use App\Modules\GSO\Http\Controllers\PTR\PtrWorkflowController;
 use App\Modules\GSO\Http\Controllers\RIS\RisController;
 use App\Modules\GSO\Http\Controllers\RIS\RisItemController;
 use App\Modules\GSO\Http\Controllers\RIS\RisPrintController;
 use App\Modules\GSO\Http\Controllers\RIS\RisWorkflowController;
 use App\Modules\GSO\Http\Controllers\Stocks\StockController;
+use App\Modules\GSO\Http\Controllers\WMR\WmrController;
+use App\Modules\GSO\Http\Controllers\WMR\WmrItemController;
+use App\Modules\GSO\Http\Controllers\WMR\WmrPrintController;
+use App\Modules\GSO\Http\Controllers\WMR\WmrWorkflowController;
+use App\Modules\GSO\Models\Ics;
+use App\Modules\GSO\Models\Itr;
+use App\Modules\GSO\Models\Par;
+use App\Modules\GSO\Models\Ptr;
 use App\Modules\GSO\Models\Ris;
+use App\Modules\GSO\Models\Wmr;
 use App\Core\Http\Controllers\Access\ModuleUserOnboardingController;
 use App\Core\Http\Controllers\Access\PermissionController;
 use App\Core\Http\Controllers\Access\RolesController;
@@ -53,7 +77,12 @@ use App\Core\Http\Controllers\AuditLogs\AuditLogPrintController;
 use App\Core\Http\Controllers\AuditLogs\AuditRestoreController;
 use Illuminate\Support\Facades\Route;
 
-Route::bind('ris', fn (string $value) => Ris::withTrashed()->findOrFail($value));
+Route::bind('ics', fn ($value) => $value instanceof Ics ? $value : Ics::withTrashed()->findOrFail($value));
+Route::bind('ris', fn ($value) => $value instanceof Ris ? $value : Ris::withTrashed()->findOrFail($value));
+Route::bind('par', fn ($value) => $value instanceof Par ? $value : Par::withTrashed()->findOrFail($value));
+Route::bind('ptr', fn ($value) => $value instanceof Ptr ? $value : Ptr::withTrashed()->findOrFail($value));
+Route::bind('itr', fn ($value) => $value instanceof Itr ? $value : Itr::withTrashed()->findOrFail($value));
+Route::bind('wmr', fn ($value) => $value instanceof Wmr ? $value : Wmr::withTrashed()->findOrFail($value));
 
 Route::get('/gso/assets/{code}', [PublicInventoryAssetController::class, 'show'])
     ->name('gso.public-assets.show');
@@ -149,21 +178,94 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::post('/ris/{ris}/reject', [RisWorkflowController::class, 'reject'])->whereUuid('ris')->name('ris.reject');
             Route::post('/ris/{ris}/reopen', [RisWorkflowController::class, 'reopen'])->whereUuid('ris')->name('ris.reopen');
             Route::post('/ris/{ris}/revert-to-draft', [RisWorkflowController::class, 'revertToDraft'])->whereUuid('ris')->name('ris.revert-to-draft');
-            Route::get('/pars', [GsoWorkspaceController::class, 'show'])
-                ->defaults('page', 'pars')
-                ->name('pars.index');
-            Route::get('/ics', [GsoWorkspaceController::class, 'show'])
-                ->defaults('page', 'ics')
-                ->name('ics.index');
-            Route::get('/ptrs', [GsoWorkspaceController::class, 'show'])
-                ->defaults('page', 'ptrs')
-                ->name('ptrs.index');
-            Route::get('/itrs', [GsoWorkspaceController::class, 'show'])
-                ->defaults('page', 'itrs')
-                ->name('itrs.index');
-            Route::get('/wmrs', [GsoWorkspaceController::class, 'show'])
-                ->defaults('page', 'wmrs')
-                ->name('wmrs.index');
+            Route::get('/pars', [ParController::class, 'index'])->name('pars.index');
+            Route::get('/pars/data', [ParController::class, 'data'])->name('pars.data');
+            Route::post('/pars/create-draft', [ParController::class, 'createDraft'])->name('pars.create-draft');
+            Route::get('/pars/create', [ParController::class, 'create'])->name('pars.create');
+            Route::post('/pars', [ParController::class, 'store'])->name('pars.store');
+            Route::get('/pars/{par}', [ParController::class, 'show'])->whereUuid('par')->name('pars.show');
+            Route::put('/pars/{par}', [ParController::class, 'update'])->whereUuid('par')->name('pars.update');
+            Route::delete('/pars/{par}', [ParController::class, 'destroy'])->whereUuid('par')->name('pars.destroy');
+            Route::patch('/pars/{par}/restore', [ParController::class, 'restore'])->whereUuid('par')->name('pars.restore');
+            Route::post('/pars/{par}/submit', [ParWorkflowController::class, 'submit'])->whereUuid('par')->name('pars.submit');
+            Route::post('/pars/{par}/reopen', [ParWorkflowController::class, 'reopen'])->whereUuid('par')->name('pars.reopen');
+            Route::post('/pars/{par}/finalize', [ParWorkflowController::class, 'finalize'])->whereUuid('par')->name('pars.finalize');
+            Route::post('/pars/{par}/cancel', [ParWorkflowController::class, 'cancel'])->whereUuid('par')->name('pars.cancel');
+            Route::get('/pars/{par}/items/suggest', [ParItemController::class, 'suggest'])->whereUuid('par')->name('pars.items.suggest');
+            Route::post('/pars/{par}/items', [ParItemController::class, 'store'])->whereUuid('par')->name('pars.items.store');
+            Route::delete('/pars/{par}/items/{parItem}', [ParItemController::class, 'destroy'])->whereUuid(['par', 'parItem'])->name('pars.items.destroy');
+            Route::get('/pars/{par}/print', [ParPrintController::class, 'print'])->whereUuid('par')->name('pars.print');
+            Route::get('/pars/{par}/print/pdf', [ParPrintController::class, 'downloadPdf'])->whereUuid('par')->name('pars.print.pdf');
+            Route::get('/ics', [IcsController::class, 'index'])->name('ics.index');
+            Route::get('/ics/data', [IcsController::class, 'data'])->name('ics.data');
+            Route::post('/ics/create-draft', [IcsController::class, 'createDraft'])->name('ics.create-draft');
+            Route::get('/ics/{ics}/edit', [IcsController::class, 'edit'])->whereUuid('ics')->name('ics.edit');
+            Route::put('/ics/{ics}', [IcsController::class, 'update'])->whereUuid('ics')->name('ics.update');
+            Route::delete('/ics/{ics}', [IcsController::class, 'destroy'])->whereUuid('ics')->name('ics.destroy');
+            Route::patch('/ics/{ics}/restore', [IcsController::class, 'restore'])->whereUuid('ics')->name('ics.restore');
+            Route::post('/ics/{ics}/submit', [IcsWorkflowController::class, 'submit'])->whereUuid('ics')->name('ics.submit');
+            Route::post('/ics/{ics}/reopen', [IcsWorkflowController::class, 'reopen'])->whereUuid('ics')->name('ics.reopen');
+            Route::post('/ics/{ics}/finalize', [IcsWorkflowController::class, 'finalize'])->whereUuid('ics')->name('ics.finalize');
+            Route::post('/ics/{ics}/cancel', [IcsWorkflowController::class, 'cancel'])->whereUuid('ics')->name('ics.cancel');
+            Route::get('/ics/{ics}/items', [IcsItemController::class, 'list'])->whereUuid('ics')->name('ics.items.list');
+            Route::get('/ics/{ics}/items/suggest', [IcsItemController::class, 'suggest'])->whereUuid('ics')->name('ics.items.suggest');
+            Route::post('/ics/{ics}/items', [IcsItemController::class, 'store'])->whereUuid('ics')->name('ics.items.store');
+            Route::delete('/ics/{ics}/items/{icsItem}', [IcsItemController::class, 'destroy'])->whereUuid(['ics', 'icsItem'])->name('ics.items.destroy');
+            Route::get('/ics/{ics}/print', [IcsPrintController::class, 'print'])->whereUuid('ics')->name('ics.print');
+            Route::get('/ics/{ics}/print/pdf', [IcsPrintController::class, 'downloadPdf'])->whereUuid('ics')->name('ics.print.pdf');
+            Route::get('/ptrs', [PtrController::class, 'index'])->name('ptrs.index');
+            Route::get('/ptrs/data', [PtrController::class, 'data'])->name('ptrs.data');
+            Route::post('/ptrs/create-draft', [PtrController::class, 'createDraft'])->name('ptrs.create-draft');
+            Route::get('/ptrs/{ptr}/edit', [PtrController::class, 'edit'])->whereUuid('ptr')->name('ptrs.edit');
+            Route::put('/ptrs/{ptr}', [PtrController::class, 'update'])->whereUuid('ptr')->name('ptrs.update');
+            Route::delete('/ptrs/{ptr}', [PtrController::class, 'destroy'])->whereUuid('ptr')->name('ptrs.destroy');
+            Route::patch('/ptrs/{ptr}/restore', [PtrController::class, 'restore'])->whereUuid('ptr')->name('ptrs.restore');
+            Route::post('/ptrs/{ptr}/submit', [PtrWorkflowController::class, 'submit'])->whereUuid('ptr')->name('ptrs.submit');
+            Route::post('/ptrs/{ptr}/reopen', [PtrWorkflowController::class, 'reopen'])->whereUuid('ptr')->name('ptrs.reopen');
+            Route::post('/ptrs/{ptr}/finalize', [PtrWorkflowController::class, 'finalize'])->whereUuid('ptr')->name('ptrs.finalize');
+            Route::post('/ptrs/{ptr}/cancel', [PtrWorkflowController::class, 'cancel'])->whereUuid('ptr')->name('ptrs.cancel');
+            Route::get('/ptrs/{ptr}/items/list', [PtrItemController::class, 'list'])->whereUuid('ptr')->name('ptrs.items.list');
+            Route::get('/ptrs/{ptr}/items/suggest', [PtrItemController::class, 'suggest'])->whereUuid('ptr')->name('ptrs.items.suggest');
+            Route::post('/ptrs/{ptr}/items', [PtrItemController::class, 'store'])->whereUuid('ptr')->name('ptrs.items.store');
+            Route::delete('/ptrs/{ptr}/items/{ptrItem}', [PtrItemController::class, 'destroy'])->whereUuid(['ptr', 'ptrItem'])->name('ptrs.items.destroy');
+            Route::get('/ptrs/{ptr}/print', [PtrPrintController::class, 'print'])->whereUuid('ptr')->name('ptrs.print');
+            Route::get('/ptrs/{ptr}/print/pdf', [PtrPrintController::class, 'downloadPdf'])->whereUuid('ptr')->name('ptrs.print.pdf');
+            Route::get('/itrs', [ItrController::class, 'index'])->name('itrs.index');
+            Route::get('/itrs/data', [ItrController::class, 'data'])->name('itrs.data');
+            Route::post('/itrs/create-draft', [ItrController::class, 'createDraft'])->name('itrs.create-draft');
+            Route::get('/itrs/{itr}/edit', [ItrController::class, 'edit'])->whereUuid('itr')->name('itrs.edit');
+            Route::put('/itrs/{itr}', [ItrController::class, 'update'])->whereUuid('itr')->name('itrs.update');
+            Route::delete('/itrs/{itr}', [ItrController::class, 'destroy'])->whereUuid('itr')->name('itrs.destroy');
+            Route::patch('/itrs/{itr}/restore', [ItrController::class, 'restore'])->whereUuid('itr')->name('itrs.restore');
+            Route::post('/itrs/{itr}/submit', [ItrWorkflowController::class, 'submit'])->whereUuid('itr')->name('itrs.submit');
+            Route::post('/itrs/{itr}/reopen', [ItrWorkflowController::class, 'reopen'])->whereUuid('itr')->name('itrs.reopen');
+            Route::post('/itrs/{itr}/finalize', [ItrWorkflowController::class, 'finalize'])->whereUuid('itr')->name('itrs.finalize');
+            Route::post('/itrs/{itr}/cancel', [ItrWorkflowController::class, 'cancel'])->whereUuid('itr')->name('itrs.cancel');
+            Route::get('/itrs/{itr}/items', [ItrItemController::class, 'list'])->whereUuid('itr')->name('itrs.items.list');
+            Route::get('/itrs/{itr}/items/suggest', [ItrItemController::class, 'suggest'])->whereUuid('itr')->name('itrs.items.suggest');
+            Route::post('/itrs/{itr}/items', [ItrItemController::class, 'store'])->whereUuid('itr')->name('itrs.items.store');
+            Route::delete('/itrs/{itr}/items/{itrItem}', [ItrItemController::class, 'destroy'])->whereUuid(['itr', 'itrItem'])->name('itrs.items.destroy');
+            Route::get('/itrs/{itr}/print', [ItrPrintController::class, 'print'])->whereUuid('itr')->name('itrs.print');
+            Route::get('/itrs/{itr}/print/pdf', [ItrPrintController::class, 'downloadPdf'])->whereUuid('itr')->name('itrs.print.pdf');
+            Route::get('/wmrs', [WmrController::class, 'index'])->name('wmrs.index');
+            Route::get('/wmrs/data', [WmrController::class, 'data'])->name('wmrs.data');
+            Route::post('/wmrs/create-draft', [WmrController::class, 'createDraft'])->name('wmrs.createDraft');
+            Route::get('/wmrs/{wmr}/edit', [WmrController::class, 'edit'])->whereUuid('wmr')->name('wmrs.edit');
+            Route::get('/wmrs/{wmr}/print', [WmrPrintController::class, 'print'])->whereUuid('wmr')->name('wmrs.print');
+            Route::get('/wmrs/{wmr}/print/pdf', [WmrPrintController::class, 'downloadPdf'])->whereUuid('wmr')->name('wmrs.print.pdf');
+            Route::get('/wmrs/{wmr}/items/suggest', [WmrItemController::class, 'suggest'])->whereUuid('wmr')->name('wmrs.items.suggest');
+            Route::get('/wmrs/{wmr}/items/list', [WmrItemController::class, 'list'])->whereUuid('wmr')->name('wmrs.items.list');
+            Route::post('/wmrs/{wmr}/items', [WmrItemController::class, 'store'])->whereUuid('wmr')->name('wmrs.items.store');
+            Route::patch('/wmrs/{wmr}/items/{wmrItem}', [WmrItemController::class, 'update'])->whereUuid(['wmr', 'wmrItem'])->name('wmrs.items.update');
+            Route::delete('/wmrs/{wmr}/items/{wmrItem}', [WmrItemController::class, 'destroy'])->whereUuid(['wmr', 'wmrItem'])->name('wmrs.items.destroy');
+            Route::put('/wmrs/{wmr}', [WmrController::class, 'update'])->whereUuid('wmr')->name('wmrs.update');
+            Route::post('/wmrs/{wmr}/submit', [WmrWorkflowController::class, 'submit'])->whereUuid('wmr')->name('wmrs.submit');
+            Route::post('/wmrs/{wmr}/approve', [WmrWorkflowController::class, 'approve'])->whereUuid('wmr')->name('wmrs.approve');
+            Route::post('/wmrs/{wmr}/reopen', [WmrWorkflowController::class, 'reopen'])->whereUuid('wmr')->name('wmrs.reopen');
+            Route::post('/wmrs/{wmr}/finalize', [WmrWorkflowController::class, 'finalize'])->whereUuid('wmr')->name('wmrs.finalize');
+            Route::post('/wmrs/{wmr}/cancel', [WmrWorkflowController::class, 'cancel'])->whereUuid('wmr')->name('wmrs.cancel');
+            Route::delete('/wmrs/{wmr}', [WmrController::class, 'destroy'])->whereUuid('wmr')->name('wmrs.destroy');
+            Route::patch('/wmrs/{wmr}/restore', [WmrController::class, 'restore'])->whereUuid('wmr')->name('wmrs.restore');
 
             Route::get('/air', [AirController::class, 'index'])->name('air.index');
             Route::get('/air/data', [AirController::class, 'data'])->name('air.data');
@@ -327,6 +429,39 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::get('/ris', function () {
         return redirect()->route('gso.ris.index');
     });
+    Route::get('/pars', function () {
+        return redirect()->route('gso.pars.index');
+    });
+    Route::get('/pars/{par}', function (string $par) {
+        return redirect()->route('gso.pars.show', ['par' => $par] + request()->query());
+    })->whereUuid('par');
+    Route::get('/pars/{par}/print', function (string $par) {
+        return redirect()->route('gso.pars.print', ['par' => $par] + request()->query());
+    })->whereUuid('par');
+    Route::get('/ics', function () {
+        return redirect()->route('gso.ics.index');
+    });
+    Route::get('/ics/{ics}/edit', function (string $ics) {
+        return redirect()->route('gso.ics.edit', ['ics' => $ics] + request()->query());
+    })->whereUuid('ics');
+    Route::get('/ics/{ics}/print', function (string $ics) {
+        return redirect()->route('gso.ics.print', ['ics' => $ics] + request()->query());
+    })->whereUuid('ics');
+    Route::get('/ics/{ics}/print/pdf', function (string $ics) {
+        return redirect()->route('gso.ics.print.pdf', ['ics' => $ics] + request()->query());
+    })->whereUuid('ics')->name('gso.ics.legacy.print.pdf');
+    Route::get('/wmrs', function () {
+        return redirect()->route('gso.wmrs.index');
+    });
+    Route::get('/wmrs/{wmr}/edit', function (string $wmr) {
+        return redirect()->route('gso.wmrs.edit', ['wmr' => $wmr] + request()->query());
+    })->whereUuid('wmr');
+    Route::get('/wmrs/{wmr}/print', function (string $wmr) {
+        return redirect()->route('gso.wmrs.print', ['wmr' => $wmr] + request()->query());
+    })->whereUuid('wmr');
+    Route::get('/wmrs/{wmr}/print/pdf', function (string $wmr) {
+        return redirect()->route('gso.wmrs.print.pdf', ['wmr' => $wmr] + request()->query());
+    })->whereUuid('wmr')->name('gso.wmrs.legacy.print.pdf');
     Route::get('/ris/{ris}/edit', function (string $ris) {
         return redirect()->route('gso.ris.edit', ['ris' => $ris] + request()->query());
     })->whereUuid('ris');

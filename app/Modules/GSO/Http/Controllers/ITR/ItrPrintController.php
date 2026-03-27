@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Modules\GSO\Http\Controllers\ITR;
+
+use App\Http\Controllers\Controller;
+use App\Modules\GSO\Http\Requests\ITR\PrintItrRequest;
+use App\Modules\GSO\Models\Itr;
+use App\Modules\GSO\Services\Contracts\ITR\ItrPrintServiceInterface;
+use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+
+class ItrPrintController extends Controller
+{
+    public function __construct(
+        private readonly ItrPrintServiceInterface $printer,
+    ) {
+        $this->middleware('role_or_permission:Administrator|admin|view ITR|modify ITR');
+    }
+
+    public function print(PrintItrRequest $request, Itr $itr): View
+    {
+        $payload = $this->printer->buildReport(
+            itrId: (string) $itr->id,
+            requestedPaper: $request->validated('paper_profile'),
+            paperOverrides: $request->paperOverrides(),
+        );
+
+        return view('gso::itrs.print.index', [
+            'report' => $payload['report'],
+            'paperProfile' => $payload['paperProfile'],
+            'filters' => $request->validated(),
+        ]);
+    }
+
+    public function downloadPdf(PrintItrRequest $request, Itr $itr): BinaryFileResponse
+    {
+        $path = $this->printer->generatePdf(
+            itrId: (string) $itr->id,
+            requestedPaper: $request->validated('paper_profile'),
+            paperOverrides: $request->paperOverrides(),
+        );
+
+        return response()->download(
+            file: $path,
+            name: basename($path),
+            headers: ['Content-Type' => 'application/pdf'],
+        )->deleteFileAfterSend(true);
+    }
+}
+
+

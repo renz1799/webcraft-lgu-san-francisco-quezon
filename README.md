@@ -66,6 +66,7 @@ UI standards:
 - Print workspace patterns
 - Frontend entry coordination through a thin global bootstrap plus module-owned JS entry registries
 - Module-owned reusable form helpers such as autocomplete plus modal-based resolve flows for document signatories
+- Module-owned document workflows such as AIR, RIS, PAR, ICS, PTR, ITR, and WMR staying inside the owning module while reusing shared Core standards
 
 Platform governance:
 - Core service rules

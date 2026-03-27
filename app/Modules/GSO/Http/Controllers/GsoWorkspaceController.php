@@ -28,10 +28,6 @@ class GsoWorkspaceController extends Controller
             'title' => 'ITR',
             'description' => 'Inventory Transfer Report workflows are reserved here for the next GSO document migration wave.',
         ],
-        'wmrs' => [
-            'title' => 'WMR',
-            'description' => 'Waste Materials Report workflows will be hosted in this documents area after the current reference-data and AIR migration passes.',
-        ],
         'items' => [
             'title' => 'Items',
             'description' => 'Legacy item master-data and catalog management are being migrated into the platform module.',

@@ -237,10 +237,14 @@
     }
 
     .gso-air-print-signature-name {
-        margin-top: 18px;
+        margin: 18px auto 0;
+        width: 90%;
+        min-height: 18px;
+        line-height: 18px;
+        padding: 0 6px 2px;
+        border-bottom: 1px solid #000;
         font-weight: 700;
         text-transform: uppercase;
-        text-decoration: underline;
         font-family: Arial, Helvetica, sans-serif;
     }
 

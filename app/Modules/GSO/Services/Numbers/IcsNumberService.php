@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Numbers;
+namespace App\Modules\GSO\Services\Numbers;
 
 use App\Models\DocumentNumberCounter;
-use App\Services\Contracts\IcsNumberServiceInterface;
+use App\Modules\GSO\Services\Contracts\Numbers\IcsNumberServiceInterface;
 use Illuminate\Support\Facades\DB;
 
 class IcsNumberService implements IcsNumberServiceInterface
@@ -24,7 +24,7 @@ class IcsNumberService implements IcsNumberServiceInterface
                 ->lockForUpdate()
                 ->first();
 
-            if (!$counter) {
+            if (! $counter) {
                 $counter = DocumentNumberCounter::query()->create([
                     'document_type' => $documentType,
                     'year' => $year,

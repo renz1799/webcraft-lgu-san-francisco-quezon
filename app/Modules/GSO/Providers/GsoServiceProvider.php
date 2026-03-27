@@ -42,12 +42,22 @@ use App\Modules\GSO\Repositories\Contracts\InspectionRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\InventoryItemEventRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\InventoryItemFileRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\InventoryItemRepositoryInterface;
+use App\Modules\GSO\Repositories\Contracts\ICS\IcsItemRepositoryInterface;
+use App\Modules\GSO\Repositories\Contracts\ICS\IcsRepositoryInterface;
+use App\Modules\GSO\Repositories\Contracts\ITR\ItrItemRepositoryInterface;
+use App\Modules\GSO\Repositories\Contracts\ITR\ItrRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\ItemRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\ItemUnitConversionRepositoryInterface;
+use App\Modules\GSO\Repositories\Contracts\PAR\ParItemRepositoryInterface;
+use App\Modules\GSO\Repositories\Contracts\PAR\ParRepositoryInterface;
+use App\Modules\GSO\Repositories\Contracts\PTR\PtrItemRepositoryInterface;
+use App\Modules\GSO\Repositories\Contracts\PTR\PtrRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\RIS\RisItemRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\RIS\RisRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\StockMovementRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\StockRepositoryInterface;
+use App\Modules\GSO\Repositories\Contracts\WMR\WmrItemRepositoryInterface;
+use App\Modules\GSO\Repositories\Contracts\WMR\WmrRepositoryInterface;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAccountableOfficerRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirFileRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirItemRepository;
@@ -64,12 +74,22 @@ use App\Modules\GSO\Repositories\Eloquent\EloquentInspectionRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentInventoryItemEventRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentInventoryItemFileRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentInventoryItemRepository;
+use App\Modules\GSO\Repositories\Eloquent\ICS\EloquentIcsItemRepository;
+use App\Modules\GSO\Repositories\Eloquent\ICS\EloquentIcsRepository;
+use App\Modules\GSO\Repositories\Eloquent\ITR\EloquentItrItemRepository;
+use App\Modules\GSO\Repositories\Eloquent\ITR\EloquentItrRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentItemRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentItemUnitConversionRepository;
+use App\Modules\GSO\Repositories\Eloquent\PAR\EloquentParItemRepository;
+use App\Modules\GSO\Repositories\Eloquent\PAR\EloquentParRepository;
+use App\Modules\GSO\Repositories\Eloquent\PTR\EloquentPtrItemRepository;
+use App\Modules\GSO\Repositories\Eloquent\PTR\EloquentPtrRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentStockMovementRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentStockRepository;
 use App\Modules\GSO\Repositories\Eloquent\RIS\EloquentRisItemRepository;
 use App\Modules\GSO\Repositories\Eloquent\RIS\EloquentRisRepository;
+use App\Modules\GSO\Repositories\Eloquent\WMR\EloquentWmrItemRepository;
+use App\Modules\GSO\Repositories\Eloquent\WMR\EloquentWmrRepository;
 use App\Modules\GSO\Services\AccountableOfficerService;
 use App\Modules\GSO\Services\Air\AirFileService;
 use App\Modules\GSO\Services\Air\AirInspectionService;
@@ -102,8 +122,39 @@ use App\Modules\GSO\Services\Contracts\InventoryItemEventServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemFileServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemPublicAssetServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemServiceInterface;
+use App\Modules\GSO\Services\Contracts\ICS\IcsItemServiceInterface;
+use App\Modules\GSO\Services\Contracts\ICS\IcsPrintServiceInterface;
+use App\Modules\GSO\Services\Contracts\ICS\IcsServiceInterface;
+use App\Modules\GSO\Services\Contracts\ICS\IcsWorkflowServiceInterface;
+use App\Modules\GSO\Services\Contracts\ITR\ItrItemServiceInterface;
+use App\Modules\GSO\Services\Contracts\ITR\ItrPrintServiceInterface;
+use App\Modules\GSO\Services\Contracts\ITR\ItrServiceInterface;
+use App\Modules\GSO\Services\Contracts\ITR\ItrWorkflowServiceInterface;
 use App\Modules\GSO\Services\Contracts\ItemServiceInterface;
+use App\Modules\GSO\Services\Contracts\Numbers\IcsNumberServiceInterface;
+use App\Modules\GSO\Services\Contracts\Numbers\ItrNumberServiceInterface;
+use App\Modules\GSO\Services\Contracts\Numbers\ParNumberServiceInterface;
+use App\Modules\GSO\Services\Contracts\Numbers\PtrNumberServiceInterface;
 use App\Modules\GSO\Services\Contracts\Numbers\RisNumberServiceInterface;
+use App\Modules\GSO\Services\Contracts\Numbers\WmrNumberServiceInterface;
+use App\Modules\GSO\Services\Contracts\PAR\ParItemServiceInterface;
+use App\Modules\GSO\Services\Contracts\PAR\ParPrintServiceInterface;
+use App\Modules\GSO\Services\Contracts\PAR\ParServiceInterface;
+use App\Modules\GSO\Services\Contracts\PAR\ParWorkflowServiceInterface;
+use App\Modules\GSO\Services\Contracts\PTR\PtrItemServiceInterface;
+use App\Modules\GSO\Services\Contracts\PTR\PtrPrintServiceInterface;
+use App\Modules\GSO\Services\Contracts\PTR\PtrServiceInterface;
+use App\Modules\GSO\Services\Contracts\PTR\PtrWorkflowServiceInterface;
+use App\Modules\GSO\Services\PAR\ParItemService;
+use App\Modules\GSO\Services\PAR\ParPrintService;
+use App\Modules\GSO\Services\PAR\ParService;
+use App\Modules\GSO\Services\PAR\ParWorkflowService;
+use App\Modules\GSO\Services\Numbers\ParNumberService;
+use App\Modules\GSO\Services\Numbers\PtrNumberService;
+use App\Modules\GSO\Services\PTR\PtrItemService;
+use App\Modules\GSO\Services\PTR\PtrPrintService;
+use App\Modules\GSO\Services\PTR\PtrService;
+use App\Modules\GSO\Services\PTR\PtrWorkflowService;
 use App\Modules\GSO\Services\Contracts\RIS\RisItemServiceInterface;
 use App\Modules\GSO\Services\RIS\RisItemService;
 use App\Modules\GSO\Services\Contracts\RIS\RisPrintServiceInterface;
@@ -117,6 +168,10 @@ use App\Modules\GSO\Services\Contracts\RegspiReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RpcppeReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RpcspReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\StockServiceInterface;
+use App\Modules\GSO\Services\Contracts\WMR\WmrItemServiceInterface;
+use App\Modules\GSO\Services\Contracts\WMR\WmrPrintServiceInterface;
+use App\Modules\GSO\Services\Contracts\WMR\WmrServiceInterface;
+use App\Modules\GSO\Services\Contracts\WMR\WmrWorkflowServiceInterface;
 use App\Modules\GSO\Services\DepartmentService;
 use App\Modules\GSO\Services\FundClusterService;
 use App\Modules\GSO\Services\FundSourceService;
@@ -127,11 +182,26 @@ use App\Modules\GSO\Services\InventoryItemEventService;
 use App\Modules\GSO\Services\InventoryItemFileService;
 use App\Modules\GSO\Services\InventoryItemPublicAssetService;
 use App\Modules\GSO\Services\InventoryItemService;
+use App\Modules\GSO\Services\ICS\IcsItemService;
+use App\Modules\GSO\Services\ICS\IcsPrintService;
+use App\Modules\GSO\Services\ICS\IcsService;
+use App\Modules\GSO\Services\ICS\IcsWorkflowService;
+use App\Modules\GSO\Services\ITR\ItrItemService;
+use App\Modules\GSO\Services\ITR\ItrPrintService;
+use App\Modules\GSO\Services\ITR\ItrService;
+use App\Modules\GSO\Services\ITR\ItrWorkflowService;
 use App\Modules\GSO\Services\ItemService;
+use App\Modules\GSO\Services\Numbers\IcsNumberService;
+use App\Modules\GSO\Services\Numbers\ItrNumberService;
+use App\Modules\GSO\Services\Numbers\WmrNumberService;
 use App\Modules\GSO\Services\RegspiReportService;
 use App\Modules\GSO\Services\RpcppeReportService;
 use App\Modules\GSO\Services\RpcspReportService;
 use App\Modules\GSO\Services\StockService;
+use App\Modules\GSO\Services\WMR\WmrItemService;
+use App\Modules\GSO\Services\WMR\WmrPrintService;
+use App\Modules\GSO\Services\WMR\WmrService;
+use App\Modules\GSO\Services\WMR\WmrWorkflowService;
 use Illuminate\Support\ServiceProvider;
 
 class GsoServiceProvider extends ServiceProvider
@@ -185,6 +255,26 @@ class GsoServiceProvider extends ServiceProvider
             /* RIS */
             RisRepositoryInterface::class => EloquentRisRepository::class,
             RisItemRepositoryInterface::class => EloquentRisItemRepository::class,
+
+            /* PAR */
+            ParRepositoryInterface::class => EloquentParRepository::class,
+            ParItemRepositoryInterface::class => EloquentParItemRepository::class,
+
+            /* PTR */
+            PtrRepositoryInterface::class => EloquentPtrRepository::class,
+            PtrItemRepositoryInterface::class => EloquentPtrItemRepository::class,
+
+            /* ICS */
+            IcsRepositoryInterface::class => EloquentIcsRepository::class,
+            IcsItemRepositoryInterface::class => EloquentIcsItemRepository::class,
+
+            /* ITR */
+            ItrRepositoryInterface::class => EloquentItrRepository::class,
+            ItrItemRepositoryInterface::class => EloquentItrItemRepository::class,
+
+            /* WMR */
+            WmrRepositoryInterface::class => EloquentWmrRepository::class,
+            WmrItemRepositoryInterface::class => EloquentWmrItemRepository::class,
         ]);
     }
 
@@ -264,6 +354,41 @@ class GsoServiceProvider extends ServiceProvider
             RisServiceInterface::class => RisService::class,
             RisWorkflowServiceInterface::class => RisWorkflowService::class,
             RisNumberServiceInterface::class => RisNumberService::class,
+
+            /* PAR */
+            ParItemServiceInterface::class => ParItemService::class,
+            ParPrintServiceInterface::class => ParPrintService::class,
+            ParServiceInterface::class => ParService::class,
+            ParWorkflowServiceInterface::class => ParWorkflowService::class,
+            ParNumberServiceInterface::class => ParNumberService::class,
+
+            /* PTR */
+            PtrItemServiceInterface::class => PtrItemService::class,
+            PtrPrintServiceInterface::class => PtrPrintService::class,
+            PtrServiceInterface::class => PtrService::class,
+            PtrWorkflowServiceInterface::class => PtrWorkflowService::class,
+            PtrNumberServiceInterface::class => PtrNumberService::class,
+
+            /* ICS */
+            IcsItemServiceInterface::class => IcsItemService::class,
+            IcsPrintServiceInterface::class => IcsPrintService::class,
+            IcsServiceInterface::class => IcsService::class,
+            IcsWorkflowServiceInterface::class => IcsWorkflowService::class,
+            IcsNumberServiceInterface::class => IcsNumberService::class,
+
+            /* ITR */
+            ItrItemServiceInterface::class => ItrItemService::class,
+            ItrPrintServiceInterface::class => ItrPrintService::class,
+            ItrServiceInterface::class => ItrService::class,
+            ItrWorkflowServiceInterface::class => ItrWorkflowService::class,
+            ItrNumberServiceInterface::class => ItrNumberService::class,
+
+            /* WMR */
+            WmrItemServiceInterface::class => WmrItemService::class,
+            WmrPrintServiceInterface::class => WmrPrintService::class,
+            WmrServiceInterface::class => WmrService::class,
+            WmrWorkflowServiceInterface::class => WmrWorkflowService::class,
+            WmrNumberServiceInterface::class => WmrNumberService::class,
 
             /* Reports */
             RegspiReportServiceInterface::class => RegspiReportService::class,

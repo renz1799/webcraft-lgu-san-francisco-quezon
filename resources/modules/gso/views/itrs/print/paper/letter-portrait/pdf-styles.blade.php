@@ -1,0 +1,3 @@
+@include('gso::itrs.print.paper.a4-portrait.pdf-styles', [
+    'paperProfile' => $paperProfile,
+])

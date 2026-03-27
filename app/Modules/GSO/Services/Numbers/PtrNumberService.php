@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Numbers;
+namespace App\Modules\GSO\Services\Numbers;
 
 use App\Models\DocumentNumberCounter;
-use App\Services\Contracts\PtrNumberServiceInterface;
+use App\Modules\GSO\Services\Contracts\Numbers\PtrNumberServiceInterface;
 use Illuminate\Support\Facades\DB;
 
 class PtrNumberService implements PtrNumberServiceInterface
