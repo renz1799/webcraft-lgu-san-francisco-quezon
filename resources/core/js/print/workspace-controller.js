@@ -271,4 +271,8 @@ export function initPrintWorkspaceController(config) {
       );
     });
   });
+
+  if (typeof config.onInit === "function") {
+    config.onInit({ form, paperSelect, defaultsButton });
+  }
 }

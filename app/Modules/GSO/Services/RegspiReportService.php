@@ -3,6 +3,8 @@
 namespace App\Modules\GSO\Services;
 
 use App\Core\Models\Department;
+use App\Core\Services\Contracts\Infrastructure\PdfGeneratorInterface;
+use App\Core\Services\Contracts\Print\PrintConfigLoaderInterface;
 use App\Modules\GSO\Models\AccountableOfficer;
 use App\Modules\GSO\Models\FundSource;
 use App\Modules\GSO\Models\InventoryItem;
@@ -12,17 +14,32 @@ use App\Modules\GSO\Services\Contracts\RegspiReportServiceInterface;
 use App\Modules\GSO\Support\InventoryCustodyStates;
 use App\Modules\GSO\Support\InventoryEventTypes;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class RegspiReportService implements RegspiReportServiceInterface
 {
     use BuildsInventoryItemReportSupport;
+
+    private const PAPER_OVERRIDE_KEYS = [
+        'rows_per_page',
+        'grid_rows',
+        'last_page_grid_rows',
+        'description_chars_per_line',
+    ];
+
+    public function __construct(
+        private readonly PdfGeneratorInterface $pdfGenerator,
+        private readonly PrintConfigLoaderInterface $printConfigLoader,
+    ) {}
 
     public function getPrintViewData(
         ?string $fundSourceId,
         ?string $departmentId = null,
         ?string $accountableOfficerId = null,
         ?string $asOf = null,
-        array $signatories = []
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = [],
     ): array {
         $asOfDate = $this->resolveAsOfDate($asOf);
 
@@ -41,30 +58,72 @@ class RegspiReportService implements RegspiReportServiceInterface
             selectedOfficer: $selectedOfficer,
         );
 
+        $document = [
+            'entity_name' => config('print.entity_name')
+                ?: config('app.lgu_name', config('app.name', 'Local Government Unit')),
+            'appendix_label' => 'RegSPI',
+            'fund_source_id' => $selectedFund?->id ? (string) $selectedFund->id : '',
+            'department_id' => $selectedDepartment?->id ? (string) $selectedDepartment->id : '',
+            'accountable_officer_id' => $selectedOfficer?->id ? (string) $selectedOfficer->id : '',
+            'fund_source' => $selectedFund
+                ? $this->buildFundSourceLabel($selectedFund->code, $selectedFund->name)
+                : 'All Fund Sources',
+            'fund_cluster' => $this->resolveFundClusterLabel($selectedFund, $rows),
+            'department' => $selectedDepartment
+                ? $this->buildDepartmentScopeLabel($selectedDepartment)
+                : 'All Offices',
+            'accountable_officer' => $selectedOfficer?->full_name ?: 'All Accountable Officers',
+            'as_of' => $asOfDate->toDateString(),
+            'as_of_label' => $asOfDate->format('F j, Y'),
+            'summary' => $summary,
+            'signatories' => $this->buildSignatories($signatories),
+        ];
+
+        $paperProfile = $this->resolveRegspiPaperProfile($requestedPaper, $paperOverrides);
+        $pagination = $this->buildRegspiPagination($rows, $paperProfile);
+
         return [
             'report' => [
-                'entity_name' => config('print.entity_name')
-                    ?: config('app.lgu_name', config('app.name', 'Local Government Unit')),
-                'appendix_label' => 'RegSPI',
-                'fund_source_id' => $selectedFund?->id ? (string) $selectedFund->id : '',
-                'department_id' => $selectedDepartment?->id ? (string) $selectedDepartment->id : '',
-                'accountable_officer_id' => $selectedOfficer?->id ? (string) $selectedOfficer->id : '',
-                'fund_source' => $selectedFund
-                    ? $this->buildFundSourceLabel($selectedFund->code, $selectedFund->name)
-                    : 'All Fund Sources',
-                'fund_cluster' => $this->resolveFundClusterLabel($selectedFund, $rows),
-                'department' => $selectedDepartment
-                    ? $this->buildDepartmentScopeLabel($selectedDepartment)
-                    : 'All Offices',
-                'accountable_officer' => $selectedOfficer?->full_name ?: 'All Accountable Officers',
-                'as_of' => $asOfDate->toDateString(),
-                'as_of_label' => $asOfDate->format('F j, Y'),
-                'summary' => $summary,
-                'signatories' => $this->buildSignatories($signatories),
+                'title' => 'Register of Semi-Expendable Property Issued',
+                'document' => $document,
+                'rows' => $rows,
+                'pagination' => $pagination,
             ],
-            'rows' => $rows,
+            'paperProfile' => $paperProfile,
             ...$this->buildFilterOptions($activeFundSources, $departments, $accountableOfficers),
         ];
+    }
+
+    public function generatePdf(
+        ?string $fundSourceId,
+        ?string $departmentId = null,
+        ?string $accountableOfficerId = null,
+        ?string $asOf = null,
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = [],
+    ): string {
+        $payload = $this->getPrintViewData(
+            fundSourceId: $fundSourceId,
+            departmentId: $departmentId,
+            accountableOfficerId: $accountableOfficerId,
+            asOf: $asOf,
+            signatories: $signatories,
+            requestedPaper: $requestedPaper,
+            paperOverrides: $paperOverrides,
+        );
+
+        $filename = 'regspi-report-' . now()->format('Ymd-His') . '-' . Str::uuid() . '.pdf';
+        $outputPath = storage_path('app/tmp/' . $filename);
+
+        return $this->pdfGenerator->generateFromView(
+            view: 'gso::reports.regspi.print.pdf',
+            data: [
+                'report' => $payload['report'],
+                'paperProfile' => $payload['paperProfile'],
+            ],
+            outputPath: $outputPath,
+        );
     }
 
     /**
@@ -259,5 +318,135 @@ class RegspiReportService implements RegspiReportServiceInterface
         }
 
         return $resolved;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $paperProfile
+     * @return array<string, mixed>
+     */
+    private function buildRegspiPagination(array $rows, array $paperProfile): array
+    {
+        $rowsPerPage = max(1, (int) ($paperProfile['rows_per_page'] ?? 14));
+        $gridRows = max($rowsPerPage, (int) ($paperProfile['grid_rows'] ?? $rowsPerPage));
+        $lastPageGridRows = max(0, (int) ($paperProfile['last_page_grid_rows'] ?? 0));
+        $descriptionCharsPerLine = max(1, (int) ($paperProfile['description_chars_per_line'] ?? 52));
+        $pages = [];
+        $cursor = 0;
+
+        if ($rows === []) {
+            $pages[] = [
+                'rows' => [],
+                'used_units' => 0,
+            ];
+        } else {
+            while ($cursor < count($rows)) {
+                $pageRows = [];
+                $usedUnits = 0;
+
+                while ($cursor < count($rows)) {
+                    $row = $rows[$cursor];
+                    $rowUnits = $this->estimateRegspiRowUnits($row, $descriptionCharsPerLine);
+
+                    if ($pageRows !== [] && ($usedUnits + $rowUnits) > $rowsPerPage) {
+                        break;
+                    }
+
+                    $pageRows[] = $row;
+                    $usedUnits += $rowUnits;
+                    $cursor++;
+                }
+
+                if ($pageRows === []) {
+                    $pageRows[] = $rows[$cursor];
+                    $usedUnits = $this->estimateRegspiRowUnits($rows[$cursor], $descriptionCharsPerLine);
+                    $cursor++;
+                }
+
+                $pages[] = [
+                    'rows' => $pageRows,
+                    'used_units' => $usedUnits,
+                ];
+            }
+        }
+
+        $pageRowCounts = array_map(
+            static fn (array $page): int => count($page['rows'] ?? []),
+            $pages,
+        );
+        $pageUsedUnits = array_map(
+            static fn (array $page): int => (int) ($page['used_units'] ?? 0),
+            $pages,
+        );
+        $lastUsedUnits = $pageUsedUnits !== [] ? (int) end($pageUsedUnits) : 0;
+
+        return [
+            'pages' => $pages,
+            'stats' => [
+                'page_count' => max(1, count($pages)),
+                'rows_per_page' => $rowsPerPage,
+                'grid_rows' => $gridRows,
+                'last_page_grid_rows' => $lastPageGridRows,
+                'description_chars_per_line' => $descriptionCharsPerLine,
+                'page_row_counts' => $pageRowCounts,
+                'page_used_units' => $pageUsedUnits,
+                'last_page_padding' => $lastPageGridRows > 0
+                    ? max(0, $lastPageGridRows - $lastUsedUnits)
+                    : 0,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function estimateRegspiRowUnits(array $row, int $descriptionCharsPerLine): int
+    {
+        $maxUnits = max(
+            $this->estimateRegspiCellUnits($row['reference'] ?? '', max(10, (int) round($descriptionCharsPerLine * 0.45))),
+            $this->estimateRegspiCellUnits($row['property_no'] ?? '', max(10, (int) round($descriptionCharsPerLine * 0.45))),
+            $this->estimateRegspiCellUnits($row['article'] ?? '', max(12, (int) round($descriptionCharsPerLine * 0.6))),
+            $this->estimateRegspiCellUnits($row['description'] ?? '', $descriptionCharsPerLine),
+            $this->estimateRegspiCellUnits($row['office'] ?? '', max(10, (int) round($descriptionCharsPerLine * 0.45))),
+            $this->estimateRegspiCellUnits($row['accountable_officer'] ?? '', max(10, (int) round($descriptionCharsPerLine * 0.45))),
+            $this->estimateRegspiCellUnits($row['remarks'] ?? '', max(10, (int) round($descriptionCharsPerLine * 0.4))),
+        );
+
+        return max(1, $maxUnits);
+    }
+
+    private function estimateRegspiCellUnits(mixed $value, int $charsPerLine): int
+    {
+        $text = $this->nullableTrim($value) ?? '';
+
+        if ($text === '') {
+            return 1;
+        }
+
+        $lines = preg_split('/\R/u', $text) ?: [$text];
+        $units = 0;
+
+        foreach ($lines as $line) {
+            $units += max(1, (int) ceil(mb_strlen($line) / max(1, $charsPerLine)));
+        }
+
+        return max(1, $units);
+    }
+
+    /**
+     * @param  array<string, int>  $overrides
+     * @return array<string, mixed>
+     */
+    private function resolveRegspiPaperProfile(?string $requestedPaper, array $overrides): array
+    {
+        $paperProfile = $this->printConfigLoader->resolvePaperProfile('gso_regspi', $requestedPaper);
+
+        foreach (self::PAPER_OVERRIDE_KEYS as $key) {
+            if (array_key_exists($key, $overrides) && is_int($overrides[$key])) {
+                $paperProfile[$key] = $overrides[$key];
+            }
+        }
+
+        return $paperProfile;
     }
 }

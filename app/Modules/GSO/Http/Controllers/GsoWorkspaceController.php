@@ -44,6 +44,42 @@ class GsoWorkspaceController extends Controller
             'title' => 'Stocks',
             'description' => 'Stock ledgers, movement history, and report workspaces will be hosted under this module area.',
         ],
+        'reports' => [
+            'title' => 'Reports',
+            'description' => 'Cross-document and inventory reporting pages will be migrated here so the GSO module keeps one shared reports workspace.',
+        ],
+        'reports-rpci' => [
+            'title' => 'RPCI',
+            'description' => 'The Report on the Physical Count of Inventories menu entry is reserved here while the shared GSO reports workspace is being migrated.',
+        ],
+        'reports-rpcppe' => [
+            'title' => 'RPCPPE',
+            'description' => 'The Report on the Physical Count of Property, Plant, and Equipment will be surfaced from this reports area once the legacy entry is fully unified here.',
+        ],
+        'reports-rpcsp' => [
+            'title' => 'RPCSP',
+            'description' => 'The Report on the Physical Count of Semi-Expendable Property is reserved here while report navigation is moved into the module sidebar.',
+        ],
+        'reports-regspi' => [
+            'title' => 'RegSPI',
+            'description' => 'The Register of Semi-Expendable Property Issued menu entry will be reconnected from this shared reports area.',
+        ],
+        'reports-rspi' => [
+            'title' => 'RSPI',
+            'description' => 'The Report on Semi-Expendable Property Issued placeholder is reserved here for the next GSO reports migration wave.',
+        ],
+        'reports-rrsp' => [
+            'title' => 'RRSP',
+            'description' => 'The Report of Returned Semi-Expendable Property placeholder is queued here for the shared reports workspace.',
+        ],
+        'reports-ssmi' => [
+            'title' => 'SSMI',
+            'description' => 'The Summary of Supplies and Materials Issued placeholder is reserved here while stock and issuance reports are consolidated.',
+        ],
+        'reports-stock-card' => [
+            'title' => 'Stock Card',
+            'description' => 'The stock card reporting entry will be surfaced from this reports menu once the shared reports workspace is fully connected.',
+        ],
         'asset-types' => [
             'title' => 'Asset Types',
             'description' => 'Reference data for asset types will be migrated before the document workflows that depend on them.',

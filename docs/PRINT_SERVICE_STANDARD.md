@@ -498,8 +498,8 @@ Examples:
 * `a4-landscape`
 * `letter-portrait`
 * `letter-landscape`
-* `long-bond-portrait`
-* `long-bond-landscape`
+* `legal-portrait`
+* `legal-landscape`
 
 Do not use display labels as identifiers.
 

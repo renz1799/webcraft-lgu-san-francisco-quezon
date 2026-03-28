@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Modules\GSO\Http\Requests\InventoryItems;
+namespace App\Modules\GSO\Http\Requests\Reports;
 
+use App\Core\Services\Contracts\Print\PrintConfigLoaderInterface;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class PrintRegspiRequest extends FormRequest
 {
@@ -13,6 +15,9 @@ class PrintRegspiRequest extends FormRequest
 
     public function rules(): array
     {
+        $allowedPapers = app(PrintConfigLoaderInterface::class)
+            ->allowedPapers('gso_regspi', 'a4-landscape');
+
         return [
             'fund_source_id' => ['nullable', 'uuid', 'exists:fund_sources,id'],
             'department_id' => ['nullable', 'uuid', 'exists:departments,id'],
@@ -24,12 +29,35 @@ class PrintRegspiRequest extends FormRequest
             'reviewed_by_designation' => ['nullable', 'string', 'max:255'],
             'approved_by_name' => ['nullable', 'string', 'max:255'],
             'approved_by_designation' => ['nullable', 'string', 'max:255'],
+            'paper_profile' => ['nullable', 'string', 'max:100', Rule::in($allowedPapers)],
+            'rows_per_page' => ['nullable', 'integer', 'min:1', 'max:200'],
+            'grid_rows' => ['nullable', 'integer', 'min:1', 'max:200'],
+            'last_page_grid_rows' => ['nullable', 'integer', 'min:0', 'max:200'],
+            'description_chars_per_line' => ['nullable', 'integer', 'min:10', 'max:300'],
             'preview' => ['nullable', 'boolean'],
         ];
     }
 
     protected function prepareForValidation(): void
     {
+        $normalizeInteger = function (string $key): void {
+            if (! $this->has($key)) {
+                return;
+            }
+
+            $value = $this->input($key);
+
+            if ($value === '' || $value === null) {
+                $this->merge([$key => null]);
+
+                return;
+            }
+
+            if (is_numeric($value)) {
+                $this->merge([$key => (int) $value]);
+            }
+        };
+
         $this->merge([
             'fund_source_id' => $this->nullableTrim('fund_source_id'),
             'department_id' => $this->nullableTrim('department_id'),
@@ -41,8 +69,27 @@ class PrintRegspiRequest extends FormRequest
             'reviewed_by_designation' => $this->nullableTrim('reviewed_by_designation'),
             'approved_by_name' => $this->nullableTrim('approved_by_name'),
             'approved_by_designation' => $this->nullableTrim('approved_by_designation'),
+            'paper_profile' => $this->nullableTrim('paper_profile'),
             'preview' => $this->has('preview') ? $this->boolean('preview') : null,
         ]);
+
+        $normalizeInteger('rows_per_page');
+        $normalizeInteger('grid_rows');
+        $normalizeInteger('last_page_grid_rows');
+        $normalizeInteger('description_chars_per_line');
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function paperOverrides(): array
+    {
+        return array_filter([
+            'rows_per_page' => $this->validated('rows_per_page'),
+            'grid_rows' => $this->validated('grid_rows'),
+            'last_page_grid_rows' => $this->validated('last_page_grid_rows'),
+            'description_chars_per_line' => $this->validated('description_chars_per_line'),
+        ], static fn (mixed $value): bool => is_int($value));
     }
 
     private function nullableTrim(string $key): ?string

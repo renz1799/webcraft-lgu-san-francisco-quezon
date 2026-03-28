@@ -3,7 +3,10 @@
 namespace App\Modules\GSO\Services;
 
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Services\Contracts\Infrastructure\PdfGeneratorInterface;
+use App\Core\Services\Contracts\Print\PrintConfigLoaderInterface;
 use App\Modules\GSO\Builders\Contracts\StockDatatableRowBuilderInterface;
+use App\Modules\GSO\Models\AccountableOfficer;
 use App\Modules\GSO\Models\FundSource;
 use App\Modules\GSO\Models\Item;
 use App\Modules\GSO\Models\Stock;
@@ -21,11 +24,20 @@ use Illuminate\Validation\ValidationException;
 
 class StockService implements StockServiceInterface
 {
+    private const PAPER_OVERRIDE_KEYS = [
+        'rows_per_page',
+        'grid_rows',
+        'last_page_grid_rows',
+        'description_chars_per_line',
+    ];
+
     public function __construct(
         private readonly StockRepositoryInterface $stocks,
         private readonly StockMovementRepositoryInterface $movements,
         private readonly AuditLogServiceInterface $auditLogs,
         private readonly StockDatatableRowBuilderInterface $datatableRowBuilder,
+        private readonly PdfGeneratorInterface $pdfGenerator,
+        private readonly PrintConfigLoaderInterface $printConfigLoader,
     ) {}
 
     public function datatable(array $params): array
@@ -141,6 +153,218 @@ class StockService implements StockServiceInterface
             'rows' => $rows,
             'available_funds' => $this->buildAvailableFundOptions($stockRows),
         ];
+    }
+
+    public function getRpciPrintViewData(
+        ?string $fundSourceId,
+        ?string $asOf = null,
+        ?string $inventoryType = null,
+        bool $prefillCount = false,
+        ?string $accountableOfficerId = null,
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = [],
+    ): array {
+        $activeFundSources = FundSource::query()
+            ->where('is_active', true)
+            ->with('fundCluster')
+            ->orderBy('code')
+            ->orderBy('name')
+            ->get();
+
+        abort_if($activeFundSources->isEmpty(), 404, 'No active fund sources are available for RPCI printing.');
+
+        $selectedFundSourceId = $this->resolveRpciFundSourceId($activeFundSources, $fundSourceId);
+        $selectedFund = $activeFundSources->firstWhere('id', $selectedFundSourceId);
+
+        abort_if(! $selectedFund, 404, 'The selected fund source was not found.');
+
+        $selectedOfficer = $this->resolveRpciSelectedOfficer($accountableOfficerId);
+        $asOfDate = $this->resolveRpciAsOfDate($asOf);
+        [$rows, $summary] = $this->buildRpciRows(
+            fundSourceId: $selectedFundSourceId,
+            asOfDate: $asOfDate,
+            prefillCount: $prefillCount,
+        );
+        $paperProfile = $this->resolveRpciPaperProfile($requestedPaper, $paperOverrides);
+        $pagination = $this->buildRpciPagination($rows, $paperProfile);
+
+        $inventoryType = trim((string) ($inventoryType ?? ''));
+        $resolvedSummary = $summary + [
+            'printed_rows' => count($rows),
+        ];
+
+        return [
+            'report' => [
+                'title' => 'Report on the Physical Count of Inventories',
+                'document' => [
+                    'entity_name' => config('print.entity_name')
+                        ?: config('app.lgu_name', config('app.name', 'Local Government Unit')),
+                    'appendix_label' => 'Annex 48',
+                    'fund_source_id' => $selectedFundSourceId,
+                    'accountable_officer_id' => $selectedOfficer?->id ? (string) $selectedOfficer->id : '',
+                    'fund_source' => $this->buildFundSourceLabel(
+                        $selectedFund->code,
+                        $selectedFund->name,
+                    ),
+                    'fund_cluster' => $this->buildFundClusterLabel(
+                        $selectedFund->fundCluster?->code,
+                        $selectedFund->fundCluster?->name,
+                    ),
+                    'inventory_type' => $inventoryType !== '' ? $inventoryType : 'Office Supplies',
+                    'as_of' => $asOfDate->toDateString(),
+                    'as_of_label' => $asOfDate->format('F j, Y'),
+                    'prefill_count' => $prefillCount,
+                    'summary' => $resolvedSummary,
+                    'signatories' => $this->buildRpciSignatories($signatories, $selectedOfficer),
+                ],
+                'rows' => $rows,
+                'pagination' => $pagination,
+            ],
+            'paperProfile' => $paperProfile,
+            'available_funds' => $activeFundSources
+                ->map(fn (FundSource $fund): array => [
+                    'id' => (string) $fund->id,
+                    'label' => $this->buildFundSourceLabel($fund->code, $fund->name),
+                ])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    public function generateRpciPdf(
+        ?string $fundSourceId,
+        ?string $asOf = null,
+        ?string $inventoryType = null,
+        bool $prefillCount = false,
+        ?string $accountableOfficerId = null,
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = [],
+    ): string {
+        $payload = $this->getRpciPrintViewData(
+            fundSourceId: $fundSourceId,
+            asOf: $asOf,
+            inventoryType: $inventoryType,
+            prefillCount: $prefillCount,
+            accountableOfficerId: $accountableOfficerId,
+            signatories: $signatories,
+            requestedPaper: $requestedPaper,
+            paperOverrides: $paperOverrides,
+        );
+
+        $filename = 'rpci-report-' . now()->format('Ymd-His') . '-' . Str::uuid() . '.pdf';
+        $outputPath = storage_path('app/tmp/' . $filename);
+
+        return $this->pdfGenerator->generateFromView(
+            view: 'gso::reports.rpci.print.pdf',
+            data: [
+                'report' => $payload['report'],
+                'paperProfile' => $payload['paperProfile'],
+            ],
+            outputPath: $outputPath,
+        );
+    }
+
+    public function getSsmiPrintViewData(
+        ?string $fundSourceId,
+        ?string $dateFrom = null,
+        ?string $dateTo = null,
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = [],
+    ): array {
+        $activeFundSources = FundSource::query()
+            ->whereNull('deleted_at')
+            ->where('is_active', true)
+            ->with('fundCluster')
+            ->orderBy('code')
+            ->orderBy('name')
+            ->get();
+
+        abort_if($activeFundSources->isEmpty(), 404, 'No active fund sources are available for SSMI printing.');
+
+        $selectedFundSourceId = $this->resolveSsmiFundSourceId($activeFundSources, $fundSourceId);
+        $selectedFund = $activeFundSources->firstWhere('id', $selectedFundSourceId);
+
+        abort_if(! $selectedFund, 404, 'The selected fund source was not found.');
+
+        [$periodFrom, $periodTo] = $this->resolveSsmiPeriod($dateFrom, $dateTo);
+        [$rows, $summary] = $this->buildSsmiRows(
+            fundSourceId: $selectedFundSourceId,
+            periodFrom: $periodFrom,
+            periodTo: $periodTo,
+        );
+
+        $document = [
+            'entity_name' => config('print.entity_name')
+                ?: config('app.lgu_name', config('app.name', 'Local Government Unit')),
+            'appendix_label' => 'SSMI',
+            'fund_source_id' => $selectedFundSourceId,
+            'fund_source' => $this->buildFundSourceLabel(
+                $selectedFund->code,
+                $selectedFund->name,
+            ),
+            'fund_cluster' => $this->buildFundClusterLabel(
+                $selectedFund->fundCluster?->code,
+                $selectedFund->fundCluster?->name,
+            ),
+            'period_from' => $periodFrom->toDateString(),
+            'period_to' => $periodTo->toDateString(),
+            'period_label' => sprintf('%s to %s', $periodFrom->format('F j, Y'), $periodTo->format('F j, Y')),
+            'summary' => $summary,
+            'signatories' => $this->buildSsmiSignatories($signatories),
+        ];
+
+        $paperProfile = $this->resolveSsmiPaperProfile($requestedPaper, $paperOverrides);
+        $pagination = $this->buildSsmiPagination($rows, $paperProfile);
+
+        return [
+            'report' => [
+                'title' => 'Summary of Supplies and Materials Issued',
+                'document' => $document,
+                'rows' => $rows,
+                'pagination' => $pagination,
+            ],
+            'paperProfile' => $paperProfile,
+            'available_funds' => $activeFundSources
+                ->map(fn (FundSource $fund): array => [
+                    'id' => (string) $fund->id,
+                    'label' => $this->buildFundSourceLabel($fund->code, $fund->name),
+                ])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    public function generateSsmiPdf(
+        ?string $fundSourceId,
+        ?string $dateFrom = null,
+        ?string $dateTo = null,
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = [],
+    ): string {
+        $payload = $this->getSsmiPrintViewData(
+            fundSourceId: $fundSourceId,
+            dateFrom: $dateFrom,
+            dateTo: $dateTo,
+            signatories: $signatories,
+            requestedPaper: $requestedPaper,
+            paperOverrides: $paperOverrides,
+        );
+
+        $filename = 'ssmi-report-' . now()->format('Ymd-His') . '-' . Str::uuid() . '.pdf';
+        $outputPath = storage_path('app/tmp/' . $filename);
+
+        return $this->pdfGenerator->generateFromView(
+            view: 'gso::reports.ssmi.print.pdf',
+            data: [
+                'report' => $payload['report'],
+                'paperProfile' => $payload['paperProfile'],
+            ],
+            outputPath: $outputPath,
+        );
     }
 
     public function adjustManual(
@@ -309,6 +533,33 @@ class StockService implements StockServiceInterface
     }
 
     /**
+     * @param  Collection<int, FundSource>  $activeFundSources
+     */
+    private function resolveRpciFundSourceId(Collection $activeFundSources, ?string $requestedFundSourceId): string
+    {
+        $requested = $this->normalizeNullableId($requestedFundSourceId);
+
+        if ($requested !== null) {
+            $match = $activeFundSources->first(function (FundSource $fundSource) use ($requested): bool {
+                return (string) $fundSource->id === $requested;
+            });
+
+            abort_if(! $match, 404, 'The selected fund source is not available for RPCI printing.');
+
+            return $requested;
+        }
+
+        $generalFund = $activeFundSources->first(function (FundSource $fundSource): bool {
+            $code = Str::lower(trim((string) ($fundSource->code ?? '')));
+            $name = Str::lower(trim((string) ($fundSource->name ?? '')));
+
+            return $code === 'general fund' || $name === 'general fund';
+        });
+
+        return (string) ($generalFund?->id ?? $activeFundSources->first()?->id ?? '');
+    }
+
+    /**
      * @param  Collection<int, Stock>  $stockRows
      */
     private function resolveCardFundSourceId(Collection $stockRows, ?string $requestedFundSourceId): ?string
@@ -362,6 +613,15 @@ class StockService implements StockServiceInterface
         return null;
     }
 
+    private function resolveRpciAsOfDate(?string $asOf): Carbon
+    {
+        $asOf = trim((string) ($asOf ?? ''));
+
+        return $asOf !== ''
+            ? Carbon::parse($asOf)->startOfDay()
+            : Carbon::today()->startOfDay();
+    }
+
     /**
      * @return array{0:string,1:int,2:int}
      */
@@ -406,6 +666,207 @@ class StockService implements StockServiceInterface
         return [null, null, $targetBalance];
     }
 
+    /**
+     * @return array{0:array<int, array<string, mixed>>, 1:array<string, int|float|null>}
+     */
+    private function buildRpciRows(string $fundSourceId, Carbon $asOfDate, bool $prefillCount): array
+    {
+        $stockRows = DB::table('stocks as s')
+            ->join('items as i', function ($join) {
+                $join->on('i.id', '=', 's.item_id')
+                    ->whereNull('i.deleted_at');
+            })
+            ->whereNull('s.deleted_at')
+            ->where('s.fund_source_id', $fundSourceId)
+            ->where('i.tracking_type', 'consumable')
+            ->orderBy('i.item_identification')
+            ->orderBy('i.item_name')
+            ->select([
+                's.item_id',
+                's.on_hand',
+                'i.item_name',
+                'i.item_identification',
+                'i.description',
+                'i.base_unit',
+            ])
+            ->get();
+
+        if ($stockRows->isEmpty()) {
+            return [[], [
+                'total_items' => 0,
+                'total_balance_qty' => 0,
+                'total_count_qty' => $prefillCount ? 0 : null,
+                'total_shortage_overage_qty' => $prefillCount ? 0 : null,
+                'total_shortage_overage_value' => $prefillCount ? 0.0 : null,
+                'total_book_value' => 0.0,
+            ]];
+        }
+
+        $itemIds = $stockRows
+            ->pluck('item_id')
+            ->filter(fn ($itemId) => trim((string) $itemId) !== '')
+            ->map(fn ($itemId) => (string) $itemId)
+            ->unique()
+            ->values()
+            ->all();
+
+        $movementRows = DB::table('stock_movements as sm')
+            ->whereNull('sm.deleted_at')
+            ->where('sm.fund_source_id', $fundSourceId)
+            ->whereIn('sm.item_id', $itemIds)
+            ->where('sm.occurred_at', '<=', $asOfDate->copy()->endOfDay())
+            ->orderBy('sm.item_id')
+            ->orderBy('sm.occurred_at')
+            ->orderBy('sm.created_at')
+            ->select([
+                'sm.item_id',
+                'sm.movement_type',
+                'sm.qty',
+            ])
+            ->get();
+
+        $balanceByItem = [];
+        foreach ($movementRows as $movement) {
+            $itemId = (string) ($movement->item_id ?? '');
+            if ($itemId === '') {
+                continue;
+            }
+
+            $runningBalance = (int) ($balanceByItem[$itemId] ?? 0);
+            [, , $runningBalance] = $this->resolveCardMovementQuantities(
+                (string) ($movement->movement_type ?? ''),
+                (int) ($movement->qty ?? 0),
+                $runningBalance,
+            );
+
+            $balanceByItem[$itemId] = $runningBalance;
+        }
+
+        $isToday = $asOfDate->isSameDay(Carbon::today());
+        $unitValueMap = $this->buildRpciLatestUnitValueMap(
+            fundSourceId: $fundSourceId,
+            itemIds: $itemIds,
+            asOfDate: $asOfDate,
+        );
+
+        $rows = [];
+        $totalBalanceQty = 0;
+        $totalCountQty = 0;
+        $totalBookValue = 0.0;
+
+        foreach ($stockRows as $stockRow) {
+            $itemId = (string) ($stockRow->item_id ?? '');
+            if ($itemId === '') {
+                continue;
+            }
+
+            $balanceQty = $isToday
+                ? (int) ($stockRow->on_hand ?? 0)
+                : (int) ($balanceByItem[$itemId] ?? 0);
+
+            if ($balanceQty <= 0) {
+                continue;
+            }
+
+            $unitValue = round((float) ($unitValueMap[$itemId] ?? 0.0), 2);
+            $countQty = $prefillCount ? $balanceQty : null;
+            $shortageQty = $prefillCount ? 0 : null;
+            $shortageValue = $prefillCount ? 0.0 : null;
+
+            $rows[] = [
+                'article' => trim((string) ($stockRow->item_name ?? '')) ?: 'Item',
+                'description' => $this->buildRpciDescription($stockRow),
+                'stock_no' => trim((string) ($stockRow->item_identification ?? '')),
+                'unit' => trim((string) ($stockRow->base_unit ?? '')),
+                'unit_value' => $unitValue,
+                'balance_per_card_qty' => $balanceQty,
+                'count_qty' => $countQty,
+                'shortage_overage_qty' => $shortageQty,
+                'shortage_overage_value' => $shortageValue,
+                'remarks' => '',
+            ];
+
+            $totalBalanceQty += $balanceQty;
+            $totalBookValue += ($balanceQty * $unitValue);
+            if ($prefillCount) {
+                $totalCountQty += $balanceQty;
+            }
+        }
+
+        return [$rows, [
+            'total_items' => count($rows),
+            'total_balance_qty' => $totalBalanceQty,
+            'total_count_qty' => $prefillCount ? $totalCountQty : null,
+            'total_shortage_overage_qty' => $prefillCount ? 0 : null,
+            'total_shortage_overage_value' => $prefillCount ? 0.0 : null,
+            'total_book_value' => round($totalBookValue, 2),
+        ]];
+    }
+
+    /**
+     * @param  array<int, string>  $itemIds
+     * @return array<string, float>
+     */
+    private function buildRpciLatestUnitValueMap(string $fundSourceId, array $itemIds, Carbon $asOfDate): array
+    {
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $receiptRows = DB::table('stock_movements as sm')
+            ->join('air_items as ai', 'ai.id', '=', 'sm.air_item_id')
+            ->leftJoin('items as i', function ($join) {
+                $join->on('i.id', '=', 'sm.item_id')
+                    ->whereNull('i.deleted_at');
+            })
+            ->leftJoin('item_unit_conversions as iuc', function ($join) {
+                $join->on('iuc.item_id', '=', 'ai.item_id')
+                    ->on('iuc.from_unit', '=', 'ai.unit_snapshot')
+                    ->whereNull('iuc.deleted_at');
+            })
+            ->whereNull('sm.deleted_at')
+            ->where('sm.movement_type', 'in')
+            ->where('sm.fund_source_id', $fundSourceId)
+            ->whereIn('sm.item_id', $itemIds)
+            ->where('sm.occurred_at', '<=', $asOfDate->copy()->endOfDay())
+            ->orderBy('sm.item_id')
+            ->orderByDesc('sm.occurred_at')
+            ->orderByDesc('sm.created_at')
+            ->select([
+                'sm.item_id',
+                'ai.acquisition_cost',
+                'ai.unit_snapshot',
+                'i.base_unit',
+                'iuc.multiplier',
+            ])
+            ->get();
+
+        $unitValues = [];
+
+        foreach ($receiptRows as $receipt) {
+            $itemId = (string) ($receipt->item_id ?? '');
+            if ($itemId === '' || array_key_exists($itemId, $unitValues)) {
+                continue;
+            }
+
+            $baseUnit = trim((string) ($receipt->base_unit ?? ''));
+            $receiptUnit = trim((string) ($receipt->unit_snapshot ?? ''));
+            $multiplier = 1;
+
+            if ($receiptUnit !== '' && $baseUnit !== '' && strcasecmp($receiptUnit, $baseUnit) !== 0) {
+                $multiplier = max(1, (int) ($receipt->multiplier ?? 1));
+            }
+
+            $acquisitionCost = max(0.0, (float) ($receipt->acquisition_cost ?? 0.0));
+            $unitValues[$itemId] = round(
+                $multiplier > 0 ? ($acquisitionCost / $multiplier) : $acquisitionCost,
+                2
+            );
+        }
+
+        return $unitValues;
+    }
+
     private function buildMovementReferenceLabel(object $movement): string
     {
         $referenceType = trim((string) ($movement->reference_type ?? ''));
@@ -420,6 +881,721 @@ class StockService implements StockServiceInterface
         }
 
         return $referenceType !== '' ? $referenceType : $referenceId;
+    }
+
+    private function buildRpciDescription(object $row): string
+    {
+        $description = trim((string) ($row->description ?? ''));
+        $itemName = trim((string) ($row->item_name ?? ''));
+
+        if ($description !== '' && $itemName !== '' && stripos($description, $itemName) === false) {
+            return sprintf('%s - %s', $itemName, $description);
+        }
+
+        if ($description !== '') {
+            return $description;
+        }
+
+        return $itemName !== '' ? $itemName : 'Inventory Item';
+    }
+
+    private function resolveRpciSelectedOfficer(?string $accountableOfficerId): ?AccountableOfficer
+    {
+        $accountableOfficerId = $this->normalizeNullableId($accountableOfficerId);
+
+        if ($accountableOfficerId === null) {
+            return null;
+        }
+
+        return AccountableOfficer::query()
+            ->whereNull('deleted_at')
+            ->find($accountableOfficerId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $paperOverrides
+     * @return array<string, mixed>
+     */
+    private function resolveRpciPaperProfile(?string $requestedPaper, array $paperOverrides): array
+    {
+        $paperProfile = $this->printConfigLoader->resolvePaperProfile('gso_rpci', $requestedPaper);
+
+        foreach (self::PAPER_OVERRIDE_KEYS as $key) {
+            if (! array_key_exists($key, $paperOverrides)) {
+                continue;
+            }
+
+            $value = $paperOverrides[$key];
+            if (! is_int($value)) {
+                continue;
+            }
+
+            $paperProfile[$key] = $value;
+        }
+
+        return $paperProfile;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $paperProfile
+     * @return array<string, mixed>
+     */
+    private function buildRpciPagination(array $rows, array $paperProfile): array
+    {
+        $rowsPerPage = max(1, (int) ($paperProfile['rows_per_page'] ?? 16));
+        $gridRows = max($rowsPerPage, (int) ($paperProfile['grid_rows'] ?? $rowsPerPage));
+        $lastPageGridRows = max(0, (int) ($paperProfile['last_page_grid_rows'] ?? 0));
+        $descriptionCharsPerLine = max(1, (int) ($paperProfile['description_chars_per_line'] ?? 44));
+        $pages = [];
+        $cursor = 0;
+
+        if ($rows === []) {
+            $pages[] = [
+                'rows' => [],
+                'used_units' => 0,
+            ];
+        } else {
+            while ($cursor < count($rows)) {
+                $pageRows = [];
+                $usedUnits = 0;
+
+                while ($cursor < count($rows)) {
+                    $row = $rows[$cursor];
+                    $rowUnits = $this->estimateRpciRowUnits($row, $descriptionCharsPerLine);
+
+                    if ($pageRows !== [] && ($usedUnits + $rowUnits) > $rowsPerPage) {
+                        break;
+                    }
+
+                    $pageRows[] = $row;
+                    $usedUnits += $rowUnits;
+                    $cursor++;
+
+                    if ($usedUnits >= $rowsPerPage) {
+                        break;
+                    }
+                }
+
+                if ($pageRows === []) {
+                    $row = $rows[$cursor];
+                    $pageRows[] = $row;
+                    $usedUnits = $this->estimateRpciRowUnits($row, $descriptionCharsPerLine);
+                    $cursor++;
+                }
+
+                $pages[] = [
+                    'rows' => $pageRows,
+                    'used_units' => $usedUnits,
+                ];
+            }
+        }
+
+        $pageRowCounts = array_map(
+            static fn (array $page): int => count($page['rows'] ?? []),
+            $pages,
+        );
+        $pageUsedUnits = array_map(
+            static fn (array $page): int => (int) ($page['used_units'] ?? 0),
+            $pages,
+        );
+        $lastUsedUnits = (int) ($pageUsedUnits !== [] ? end($pageUsedUnits) : 0);
+
+        return [
+            'pages' => $pages,
+            'stats' => [
+                'page_count' => max(1, count($pages)),
+                'rows_per_page' => $rowsPerPage,
+                'grid_rows' => $gridRows,
+                'last_page_grid_rows' => $lastPageGridRows,
+                'description_chars_per_line' => $descriptionCharsPerLine,
+                'page_row_counts' => $pageRowCounts,
+                'page_used_units' => $pageUsedUnits,
+                'last_page_padding' => $lastPageGridRows > 0
+                    ? max(0, $lastPageGridRows - $lastUsedUnits)
+                    : 0,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function estimateRpciRowUnits(array $row, int $descriptionCharsPerLine): int
+    {
+        $articleCharsPerLine = max(8, (int) floor($descriptionCharsPerLine * (14 / 22)));
+        $remarksCharsPerLine = max(8, (int) floor($descriptionCharsPerLine * (10 / 22)));
+
+        $descriptionUnits = $this->estimateRpciCellUnits((string) ($row['description'] ?? ''), $descriptionCharsPerLine);
+        $articleUnits = $this->estimateRpciCellUnits((string) ($row['article'] ?? ''), $articleCharsPerLine);
+        $remarksUnits = $this->estimateRpciCellUnits((string) ($row['remarks'] ?? ''), $remarksCharsPerLine);
+
+        return max(1, $descriptionUnits, $articleUnits, $remarksUnits);
+    }
+
+    private function estimateRpciCellUnits(string $text, int $charsPerLine): int
+    {
+        $normalizedText = str_replace(["\r\n", "\r"], "\n", $text);
+        $segments = explode("\n", $normalizedText);
+        $units = 0;
+
+        foreach ($segments as $segment) {
+            $value = preg_replace('/\s+/u', ' ', trim($segment)) ?? '';
+            $units += max(1, (int) ceil(mb_strlen($value) / max(1, $charsPerLine)));
+        }
+
+        return max(1, $units);
+    }
+
+    /**
+     * @param  Collection<int, FundSource>  $activeFundSources
+     */
+    private function resolveSsmiFundSourceId(Collection $activeFundSources, ?string $requestedFundSourceId): string
+    {
+        $requested = $this->normalizeNullableId($requestedFundSourceId);
+
+        if ($requested !== null) {
+            $match = $activeFundSources->first(function (FundSource $fundSource) use ($requested): bool {
+                return (string) $fundSource->id === $requested;
+            });
+
+            abort_if(! $match, 404, 'The selected fund source is not available for SSMI printing.');
+
+            return $requested;
+        }
+
+        $generalFund = $activeFundSources->first(function (FundSource $fundSource): bool {
+            $code = Str::lower(trim((string) ($fundSource->code ?? '')));
+            $name = Str::lower(trim((string) ($fundSource->name ?? '')));
+
+            return $code === 'general fund' || $name === 'general fund';
+        });
+
+        return (string) ($generalFund?->id ?? $activeFundSources->first()?->id ?? '');
+    }
+
+    /**
+     * @return array{0:Carbon,1:Carbon}
+     */
+    private function resolveSsmiPeriod(?string $dateFrom, ?string $dateTo): array
+    {
+        $dateFrom = trim((string) ($dateFrom ?? ''));
+        $dateTo = trim((string) ($dateTo ?? ''));
+
+        $to = $dateTo !== '' ? Carbon::parse($dateTo) : Carbon::today();
+        $from = $dateFrom !== '' ? Carbon::parse($dateFrom) : $to->copy()->startOfMonth();
+
+        if ($from->gt($to)) {
+            throw ValidationException::withMessages([
+                'date_to' => 'Date To must be on or after Date From.',
+            ]);
+        }
+
+        return [$from->copy()->startOfDay(), $to->copy()->endOfDay()];
+    }
+
+    /**
+     * @return array{0:array<int, array<string, mixed>>,1:array<string, int|float>}
+     */
+    private function buildSsmiRows(string $fundSourceId, Carbon $periodFrom, Carbon $periodTo): array
+    {
+        $issueRows = DB::table('ris_items as ri')
+            ->join('ris as r', function ($join) {
+                $join->on('r.id', '=', 'ri.ris_id')
+                    ->whereNull('r.deleted_at');
+            })
+            ->leftJoin('departments as d', function ($join) {
+                $join->on('d.id', '=', 'r.requesting_department_id')
+                    ->whereNull('d.deleted_at');
+            })
+            ->leftJoin('items as i', function ($join) {
+                $join->on('i.id', '=', 'ri.item_id')
+                    ->whereNull('i.deleted_at');
+            })
+            ->whereNull('ri.deleted_at')
+            ->whereRaw("LOWER(COALESCE(r.status, '')) = 'issued'")
+            ->where('r.fund_source_id', $fundSourceId)
+            ->where('ri.qty_issued', '>', 0)
+            ->whereDate(DB::raw('COALESCE(r.issued_by_date, r.ris_date)'), '>=', $periodFrom->toDateString())
+            ->whereDate(DB::raw('COALESCE(r.issued_by_date, r.ris_date)'), '<=', $periodTo->toDateString())
+            ->orderByRaw('COALESCE(r.issued_by_date, r.ris_date) asc')
+            ->orderBy('r.ris_number')
+            ->orderByRaw('COALESCE(ri.line_no, 999999) asc')
+            ->select([
+                DB::raw('COALESCE(r.issued_by_date, r.ris_date) as issue_date'),
+                'ri.id as line_id',
+                'ri.ris_id',
+                'ri.item_id',
+                'ri.line_no',
+                'ri.qty_issued',
+                'ri.stock_no_snapshot',
+                'ri.description_snapshot',
+                'ri.unit_snapshot',
+                'r.ris_number',
+                'r.requesting_department_code_snapshot',
+                'r.requesting_department_name_snapshot',
+                'd.code as department_code',
+                'd.name as department_name',
+                'i.item_name',
+                'i.item_identification',
+                'i.description as item_description',
+                'i.base_unit',
+            ])
+            ->get();
+
+        if ($issueRows->isEmpty()) {
+            return [[], [
+                'total_ris' => 0,
+                'total_lines' => 0,
+                'total_qty' => 0,
+                'total_cost' => 0.0,
+            ]];
+        }
+
+        $itemIds = $issueRows
+            ->pluck('item_id')
+            ->filter(fn ($itemId) => trim((string) $itemId) !== '')
+            ->map(fn ($itemId) => (string) $itemId)
+            ->unique()
+            ->values()
+            ->all();
+
+        $valuationMap = $this->buildSsmiIssueValuationMap(
+            fundSourceId: $fundSourceId,
+            itemIds: $itemIds,
+            periodFrom: $periodFrom,
+            periodTo: $periodTo,
+        );
+
+        $rows = [];
+        $totalQty = 0;
+        $totalCost = 0.0;
+        $risIds = [];
+        $lineNo = 1;
+
+        foreach ($issueRows as $row) {
+            $qtyIssued = max(0, (int) ($row->qty_issued ?? 0));
+            $valuation = $valuationMap[(string) ($row->line_id ?? '')] ?? [
+                'unit_cost' => 0.0,
+                'total_cost' => 0.0,
+            ];
+
+            $unitCost = round((float) ($valuation['unit_cost'] ?? 0.0), 4);
+            $lineTotal = round((float) ($valuation['total_cost'] ?? 0.0), 2);
+
+            $rows[] = [
+                'line_no' => $lineNo++,
+                'issue_date' => $row->issue_date
+                    ? Carbon::parse($row->issue_date)->format('m/d/Y')
+                    : '',
+                'ris_number' => trim((string) ($row->ris_number ?? '')),
+                'office' => $this->buildSsmiOfficeLabel($row),
+                'stock_no' => trim((string) ($row->stock_no_snapshot ?? $row->item_identification ?? '')),
+                'description' => $this->buildSsmiDescription($row),
+                'unit' => trim((string) ($row->unit_snapshot ?? $row->base_unit ?? '')),
+                'qty_issued' => $qtyIssued,
+                'unit_cost' => $unitCost,
+                'total_cost' => $lineTotal,
+            ];
+
+            $totalQty += $qtyIssued;
+            $totalCost += $lineTotal;
+            $risIds[(string) ($row->ris_id ?? '')] = true;
+        }
+
+        return [$rows, [
+            'total_ris' => count(array_filter(array_keys($risIds))),
+            'total_lines' => count($rows),
+            'total_qty' => $totalQty,
+            'total_cost' => round($totalCost, 2),
+        ]];
+    }
+
+    /**
+     * @param  array<int, string>  $itemIds
+     * @return array<string, array{unit_cost: float, total_cost: float}>
+     */
+    private function buildSsmiIssueValuationMap(
+        string $fundSourceId,
+        array $itemIds,
+        Carbon $periodFrom,
+        Carbon $periodTo,
+    ): array {
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $receiptRows = DB::table('stock_movements as sm')
+            ->join('air_items as ai', 'ai.id', '=', 'sm.air_item_id')
+            ->leftJoin('items as i', function ($join) {
+                $join->on('i.id', '=', 'sm.item_id')
+                    ->whereNull('i.deleted_at');
+            })
+            ->leftJoin('item_unit_conversions as iuc', function ($join) {
+                $join->on('iuc.item_id', '=', 'ai.item_id')
+                    ->on('iuc.from_unit', '=', 'ai.unit_snapshot')
+                    ->whereNull('iuc.deleted_at');
+            })
+            ->whereNull('sm.deleted_at')
+            ->where('sm.movement_type', StockMovementTypes::IN)
+            ->where('sm.fund_source_id', $fundSourceId)
+            ->whereIn('sm.item_id', $itemIds)
+            ->where('sm.occurred_at', '<=', $periodTo->copy()->endOfDay())
+            ->orderBy('sm.occurred_at')
+            ->orderBy('sm.created_at')
+            ->select([
+                'sm.item_id',
+                'sm.qty as base_qty',
+                'sm.occurred_at',
+                'ai.acquisition_cost',
+                'ai.unit_snapshot',
+                'i.base_unit',
+                'iuc.multiplier',
+            ])
+            ->get();
+
+        $issueRows = DB::table('ris_items as ri')
+            ->join('ris as r', function ($join) {
+                $join->on('r.id', '=', 'ri.ris_id')
+                    ->whereNull('r.deleted_at');
+            })
+            ->whereNull('ri.deleted_at')
+            ->whereRaw("LOWER(COALESCE(r.status, '')) = 'issued'")
+            ->where('r.fund_source_id', $fundSourceId)
+            ->whereIn('ri.item_id', $itemIds)
+            ->where('ri.qty_issued', '>', 0)
+            ->whereDate(DB::raw('COALESCE(r.issued_by_date, r.ris_date)'), '<=', $periodTo->toDateString())
+            ->orderByRaw('COALESCE(r.issued_by_date, r.ris_date) asc')
+            ->orderBy('r.ris_number')
+            ->orderByRaw('COALESCE(ri.line_no, 999999) asc')
+            ->select([
+                DB::raw('COALESCE(r.issued_by_date, r.ris_date) as issue_date'),
+                'ri.id as line_id',
+                'ri.item_id',
+                'ri.qty_issued',
+            ])
+            ->get();
+
+        $eventsByItem = [];
+        $sequence = 0;
+
+        foreach ($receiptRows as $receipt) {
+            $itemId = (string) ($receipt->item_id ?? '');
+            if ($itemId === '') {
+                continue;
+            }
+
+            $baseQty = max(0, (int) ($receipt->base_qty ?? 0));
+            if ($baseQty <= 0) {
+                continue;
+            }
+
+            $multiplier = 1;
+            $baseUnit = trim((string) ($receipt->base_unit ?? ''));
+            $receiptUnit = trim((string) ($receipt->unit_snapshot ?? ''));
+            if ($receiptUnit !== '' && $baseUnit !== '' && strcasecmp($receiptUnit, $baseUnit) !== 0) {
+                $multiplier = max(1, (int) ($receipt->multiplier ?? 1));
+            }
+
+            $acquisitionCost = (float) ($receipt->acquisition_cost ?? 0);
+            $unitCost = $multiplier > 0 ? ($acquisitionCost / $multiplier) : $acquisitionCost;
+
+            $eventsByItem[$itemId][] = [
+                'sort_at' => Carbon::parse($receipt->occurred_at)->toDateTimeString(),
+                'priority' => 0,
+                'sequence' => $sequence++,
+                'type' => 'receipt',
+                'qty' => $baseQty,
+                'unit_cost' => $unitCost > 0 ? $unitCost : 0.0,
+            ];
+        }
+
+        foreach ($issueRows as $issue) {
+            $itemId = (string) ($issue->item_id ?? '');
+            if ($itemId === '') {
+                continue;
+            }
+
+            $qtyIssued = max(0, (int) ($issue->qty_issued ?? 0));
+            if ($qtyIssued <= 0) {
+                continue;
+            }
+
+            $eventsByItem[$itemId][] = [
+                'sort_at' => Carbon::parse((string) $issue->issue_date)->endOfDay()->toDateTimeString(),
+                'priority' => 1,
+                'sequence' => $sequence++,
+                'type' => 'issue',
+                'qty' => $qtyIssued,
+                'line_id' => (string) ($issue->line_id ?? ''),
+            ];
+        }
+
+        $periodStart = $periodFrom->toDateString();
+        $periodEnd = $periodTo->toDateString();
+        $valuations = [];
+
+        foreach ($eventsByItem as $events) {
+            usort($events, function (array $a, array $b): int {
+                $timeCompare = strcmp((string) ($a['sort_at'] ?? ''), (string) ($b['sort_at'] ?? ''));
+                if ($timeCompare !== 0) {
+                    return $timeCompare;
+                }
+
+                $priorityCompare = ((int) ($a['priority'] ?? 0)) <=> ((int) ($b['priority'] ?? 0));
+                if ($priorityCompare !== 0) {
+                    return $priorityCompare;
+                }
+
+                return ((int) ($a['sequence'] ?? 0)) <=> ((int) ($b['sequence'] ?? 0));
+            });
+
+            $qtyOnHand = 0;
+            $valueOnHand = 0.0;
+            $lastUnitCost = 0.0;
+
+            foreach ($events as $event) {
+                $qty = max(0, (int) ($event['qty'] ?? 0));
+                if ($qty <= 0) {
+                    continue;
+                }
+
+                if (($event['type'] ?? '') === 'receipt') {
+                    $unitCost = max(0.0, (float) ($event['unit_cost'] ?? 0.0));
+                    $qtyOnHand += $qty;
+                    $valueOnHand = round($valueOnHand + ($qty * $unitCost), 6);
+                    if ($unitCost > 0) {
+                        $lastUnitCost = $unitCost;
+                    }
+                    continue;
+                }
+
+                $averageUnitCost = $qtyOnHand > 0
+                    ? round($valueOnHand / $qtyOnHand, 6)
+                    : $lastUnitCost;
+
+                $issueValue = round($qty * $averageUnitCost, 6);
+
+                $qtyOnHand = max(0, $qtyOnHand - $qty);
+                $valueOnHand = max(0.0, round($valueOnHand - $issueValue, 6));
+
+                if ($averageUnitCost > 0) {
+                    $lastUnitCost = $averageUnitCost;
+                }
+
+                $eventDate = substr((string) ($event['sort_at'] ?? ''), 0, 10);
+                $lineId = (string) ($event['line_id'] ?? '');
+
+                if ($lineId !== '' && $eventDate >= $periodStart && $eventDate <= $periodEnd) {
+                    $valuations[$lineId] = [
+                        'unit_cost' => round($averageUnitCost, 4),
+                        'total_cost' => round($issueValue, 2),
+                    ];
+                }
+            }
+        }
+
+        return $valuations;
+    }
+
+    private function buildSsmiOfficeLabel(object $row): string
+    {
+        $code = trim((string) (
+            $row->requesting_department_code_snapshot
+            ?? $row->department_code
+            ?? ''
+        ));
+        $name = trim((string) (
+            $row->requesting_department_name_snapshot
+            ?? $row->department_name
+            ?? ''
+        ));
+
+        if ($code !== '' && $name !== '') {
+            return sprintf('%s - %s', $code, $name);
+        }
+
+        if ($code !== '') {
+            return $code;
+        }
+
+        return $name !== '' ? $name : 'Unspecified Office';
+    }
+
+    private function buildSsmiDescription(object $row): string
+    {
+        $snapshotDescription = trim((string) ($row->description_snapshot ?? ''));
+        if ($snapshotDescription !== '') {
+            return $snapshotDescription;
+        }
+
+        $itemName = trim((string) ($row->item_name ?? ''));
+        $itemDescription = trim((string) ($row->item_description ?? ''));
+
+        if ($itemName !== '' && $itemDescription !== '' && stripos($itemDescription, $itemName) === false) {
+            return sprintf('%s - %s', $itemName, $itemDescription);
+        }
+
+        if ($itemName !== '') {
+            return $itemName;
+        }
+
+        return $itemDescription !== '' ? $itemDescription : 'Item';
+    }
+
+    private function buildSsmiSignatories(array $signatories): array
+    {
+        $defaults = [
+            'prepared_by_name' => (string) config('gso.gso_designate_name', ''),
+            'prepared_by_designation' => (string) config('gso.gso_designate_designation', ''),
+            'prepared_by_date' => Carbon::today()->toDateString(),
+            'certified_by_name' => '',
+            'certified_by_designation' => '',
+            'certified_by_date' => Carbon::today()->toDateString(),
+        ];
+
+        $resolved = [];
+        foreach ($defaults as $key => $defaultValue) {
+            $value = $signatories[$key] ?? $defaultValue;
+            $resolved[$key] = trim((string) ($value ?? ''));
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * @param  array<string, mixed>  $paperOverrides
+     * @return array<string, mixed>
+     */
+    private function resolveSsmiPaperProfile(?string $requestedPaper, array $paperOverrides): array
+    {
+        $paperProfile = $this->printConfigLoader->resolvePaperProfile('gso_ssmi', $requestedPaper);
+
+        foreach (self::PAPER_OVERRIDE_KEYS as $key) {
+            if (! array_key_exists($key, $paperOverrides)) {
+                continue;
+            }
+
+            $value = $paperOverrides[$key];
+            if (! is_int($value)) {
+                continue;
+            }
+
+            $paperProfile[$key] = $value;
+        }
+
+        return $paperProfile;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $paperProfile
+     * @return array<string, mixed>
+     */
+    private function buildSsmiPagination(array $rows, array $paperProfile): array
+    {
+        $rowsPerPage = max(1, (int) ($paperProfile['rows_per_page'] ?? 18));
+        $gridRows = max($rowsPerPage, (int) ($paperProfile['grid_rows'] ?? $rowsPerPage));
+        $lastPageGridRows = max(0, (int) ($paperProfile['last_page_grid_rows'] ?? 8));
+        $descriptionCharsPerLine = max(1, (int) ($paperProfile['description_chars_per_line'] ?? 44));
+        $pages = [];
+        $cursor = 0;
+
+        if ($rows === []) {
+            $pages[] = [
+                'rows' => [],
+                'used_units' => 0,
+            ];
+        } else {
+            while ($cursor < count($rows)) {
+                $pageRows = [];
+                $usedUnits = 0;
+
+                while ($cursor < count($rows)) {
+                    $row = $rows[$cursor];
+                    $rowUnits = $this->estimateSsmiRowUnits($row, $descriptionCharsPerLine);
+
+                    if ($pageRows !== [] && ($usedUnits + $rowUnits) > $rowsPerPage) {
+                        break;
+                    }
+
+                    $pageRows[] = $row;
+                    $usedUnits += $rowUnits;
+                    $cursor++;
+
+                    if ($usedUnits >= $rowsPerPage) {
+                        break;
+                    }
+                }
+
+                if ($pageRows === []) {
+                    $row = $rows[$cursor];
+                    $pageRows[] = $row;
+                    $usedUnits = $this->estimateSsmiRowUnits($row, $descriptionCharsPerLine);
+                    $cursor++;
+                }
+
+                $pages[] = [
+                    'rows' => $pageRows,
+                    'used_units' => $usedUnits,
+                ];
+            }
+        }
+
+        $pageRowCounts = array_map(
+            static fn (array $page): int => count($page['rows'] ?? []),
+            $pages,
+        );
+        $pageUsedUnits = array_map(
+            static fn (array $page): int => (int) ($page['used_units'] ?? 0),
+            $pages,
+        );
+        $lastUsedUnits = (int) ($pageUsedUnits !== [] ? end($pageUsedUnits) : 0);
+
+        return [
+            'pages' => $pages,
+            'stats' => [
+                'page_count' => max(1, count($pages)),
+                'rows_per_page' => $rowsPerPage,
+                'grid_rows' => $gridRows,
+                'last_page_grid_rows' => $lastPageGridRows,
+                'description_chars_per_line' => $descriptionCharsPerLine,
+                'page_row_counts' => $pageRowCounts,
+                'page_used_units' => $pageUsedUnits,
+                'last_page_padding' => $lastPageGridRows > 0
+                    ? max(0, $lastPageGridRows - $lastUsedUnits)
+                    : 0,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function estimateSsmiRowUnits(array $row, int $descriptionCharsPerLine): int
+    {
+        $officeCharsPerLine = max(8, (int) floor($descriptionCharsPerLine * (16 / 26)));
+        $stockNoCharsPerLine = max(8, (int) floor($descriptionCharsPerLine * (10 / 26)));
+
+        $descriptionUnits = $this->estimateSsmiCellUnits((string) ($row['description'] ?? ''), $descriptionCharsPerLine);
+        $officeUnits = $this->estimateSsmiCellUnits((string) ($row['office'] ?? ''), $officeCharsPerLine);
+        $stockNoUnits = $this->estimateSsmiCellUnits((string) ($row['stock_no'] ?? ''), $stockNoCharsPerLine);
+
+        return max(1, $descriptionUnits, $officeUnits, $stockNoUnits);
+    }
+
+    private function estimateSsmiCellUnits(string $text, int $charsPerLine): int
+    {
+        $normalizedText = str_replace(["\r\n", "\r"], "\n", $text);
+        $segments = explode("\n", $normalizedText);
+        $units = 0;
+
+        foreach ($segments as $segment) {
+            $value = preg_replace('/\s+/u', ' ', trim($segment)) ?? '';
+            $units += max(1, (int) ceil(mb_strlen($value) / max(1, $charsPerLine)));
+        }
+
+        return max(1, $units);
     }
 
     private function buildFundClusterLabel(?string $code, ?string $name): string
@@ -444,6 +1620,33 @@ class StockService implements StockServiceInterface
         }
 
         return $code !== '' ? $code : $name;
+    }
+
+    /**
+     * @param  array<string, mixed>  $signatories
+     * @return array<string, string>
+     */
+    private function buildRpciSignatories(array $signatories, ?AccountableOfficer $selectedOfficer = null): array
+    {
+        $defaults = [
+            'accountable_officer_name' => (string) ($selectedOfficer?->full_name ?? config('gso.gso_designate_name', '')),
+            'accountable_officer_designation' => (string) ($selectedOfficer?->designation ?? config('gso.gso_designate_designation', '')),
+            'date_of_assumption' => Carbon::today()->toDateString(),
+            'committee_chair_name' => '',
+            'committee_member_1_name' => '',
+            'committee_member_2_name' => '',
+            'approved_by_name' => '',
+            'approved_by_designation' => '',
+            'verified_by_name' => '',
+            'verified_by_designation' => '',
+        ];
+
+        $resolved = [];
+        foreach ($defaults as $key => $defaultValue) {
+            $resolved[$key] = trim((string) ($signatories[$key] ?? $defaultValue));
+        }
+
+        return $resolved;
     }
 
     private function adjustmentTypeLabel(string $type): string

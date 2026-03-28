@@ -104,6 +104,45 @@
   </ul>
 </li>
 
+<li class="slide__category">
+  <span class="category-name">Reports</span>
+</li>
+
+<li class="slide has-sub">
+  <a href="javascript:void(0);" class="side-menu__item">
+    <i class="bi bi-bar-chart-line side-menu__icon"></i>
+    <span class="side-menu__label">Reports</span>
+    <i class="fe fe-chevron-right side-menu__angle"></i>
+  </a>
+
+  <ul class="slide-menu child1">
+    <li class="slide">
+      <a href="{{ route('gso.stocks.rpci.print', ['preview' => 1]) }}" class="side-menu__item">RPCI</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.reports.rpcppe.print', ['preview' => 1]) }}" class="side-menu__item">RPCPPE</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.reports.rpcsp.print', ['preview' => 1]) }}" class="side-menu__item">RPCSP</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.reports.regspi.print', ['preview' => 1]) }}" class="side-menu__item">RegSPI</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.reports.rspi.print', ['preview' => 1]) }}" class="side-menu__item">RSPI</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.reports.rrsp.print', ['preview' => 1]) }}" class="side-menu__item">RRSP</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.stocks.ssmi.print', ['preview' => 1]) }}" class="side-menu__item">SSMI</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.stocks.index', ['view' => 'stock-cards']) }}" class="side-menu__item">Stock Card</a>
+    </li>
+  </ul>
+</li>
+
 @if ($canManageGsoAccess || $canViewGsoAuditLogs)
   <li class="slide__category">
     <span class="category-name">GSO Access</span>

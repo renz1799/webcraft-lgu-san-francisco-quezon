@@ -149,6 +149,17 @@ Structure example:
 Controls modify the preview.
 Preview reflects the resolved paper profile.
 
+Report-specific controls may stay in the sidebar when they are required to produce a valid printable output.
+
+Examples:
+
+* signatory inputs
+* date windows
+* scope selectors
+* document-specific toggles
+
+The standard panel should add shared paper and layout controls without removing business-required report fields.
+
 ---
 
 # Paper Profile Concept
@@ -188,6 +199,12 @@ Portrait print workspaces created or refactored in the platform should register 
 * legal-portrait
 
 This should be treated as the standard baseline for new printable modules and print refactors.
+
+Landscape print workspaces created or refactored in the platform should register this default paper set:
+
+* a4-landscape
+* letter-landscape
+* legal-landscape
 
 Paper infrastructure lives in:
 
@@ -436,6 +453,8 @@ $paperProfile['header_image_pdf']
 $paperProfile['footer_image_pdf']
 ```
 
+When passing local image assets into PDF Blade views, use `public_path(...)` instead of `asset(...)` so the PDF renderer reads the files directly from disk.
+
 Modules may override platform defaults.
 
 If no override exists:
@@ -508,6 +527,7 @@ Paper selector must:
 * persist across preview
 * persist to PDF download
 * include `a4-portrait`, `letter-portrait`, and `legal-portrait` for standard portrait print workspaces
+* include `a4-landscape`, `letter-landscape`, and `legal-landscape` for standard landscape print workspaces
 
 ---
 
@@ -525,8 +545,8 @@ Example codes:
 * a4-landscape
 * letter-portrait
 * letter-landscape
-* long-bond-portrait
-* long-bond-landscape
+* legal-portrait
+* legal-landscape
 
 Never use labels as identifiers.
 
@@ -570,8 +590,8 @@ Never duplicate reports.
 
 Example process:
 
-```
-paper/long-bond-portrait/
+```text
+paper/legal-portrait/
 ├─ pages.blade.php
 ├─ styles.blade.php
 └─ pdf-styles.blade.php

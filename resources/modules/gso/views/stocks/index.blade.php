@@ -1,8 +1,26 @@
 @extends('layouts.master')
 
 @php
+    $isStockCardView = request('view') === 'stock-cards';
     $canManageStocks = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
         || auth()->user()?->can('modify Stocks');
+    $pageTitle = $isStockCardView ? 'Stock Card' : 'Stocks';
+    $pageCopy = $isStockCardView
+        ? 'Choose a consumable item, then open its Appendix 58 stock card preview by fund source.'
+        : 'Consumable stock balances, movement history, and stock card previews are now running inside the GSO platform module.';
+    $boxTitle = $isStockCardView ? 'Stock Card Source Items' : 'Consumable Stock Register';
+    $boxNote = $isStockCardView
+        ? 'Select an item below and use the print action to open its stock card preview.'
+        : 'Stock register, ledger, manual adjustments, and Appendix 58 stock card previews are available here.';
+    $searchPlaceholder = $isStockCardView
+        ? 'Search stock card source item or stock no...'
+        : 'Search consumable item or stock no...';
+    $fundSourceOptions = $fundSources->map(fn ($fundSource) => [
+        'id' => (string) $fundSource->id,
+        'code' => (string) $fundSource->code,
+        'name' => (string) $fundSource->name,
+        'label' => trim((string) $fundSource->code . ' - ' . (string) $fundSource->name),
+    ])->values();
 @endphp
 
 @section('styles')
@@ -49,10 +67,10 @@
 <div class="block justify-between page-header md:flex">
     <div>
         <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
-            Stocks
+            {{ $pageTitle }}
         </h3>
         <p class="text-[#8c9097] dark:text-white/50 text-[0.813rem] mb-0">
-            Consumable stock balances, movement history, and stock card previews are now running inside the GSO platform module.
+            {{ $pageCopy }}
         </p>
     </div>
     <ol class="flex items-center whitespace-nowrap min-w-0">
@@ -63,7 +81,7 @@
             </a>
         </li>
         <li class="text-[0.813rem] text-defaulttextcolor font-semibold dark:text-white/50" aria-current="page">
-            Stocks
+            {{ $pageTitle }}
         </li>
     </ol>
 </div>
@@ -71,8 +89,10 @@
 <div class="box">
     <div class="box-body">
         <div class="gso-stock-note text-sm">
-            Stock register, ledger, manual adjustments, and Appendix 58 stock card previews are available here.
-            The legacy <strong>SSMI</strong> and <strong>RPCI</strong> financial print packs still depend on AIR and RIS migration, so they will be reconnected in the next document-flow waves.
+            {{ $boxNote }}
+            @unless($isStockCardView)
+                The legacy <strong>SSMI</strong> and <strong>RPCI</strong> financial print packs still depend on AIR and RIS migration, so they will be reconnected in the next document-flow waves.
+            @endunless
         </div>
     </div>
 </div>
@@ -80,14 +100,14 @@
 <div class="box">
     <div class="box-header">
         <div class="gso-stocks-toolbar">
-            <h5 class="box-title">Consumable Stock Register</h5>
+            <h5 class="box-title">{{ $boxTitle }}</h5>
 
             <div class="gso-stocks-actions">
                 <input
                     id="gso-stocks-search"
                     type="text"
                     class="form-control w-[260px] !rounded-md"
-                    placeholder="Search consumable item or stock no..."
+                    placeholder="{{ $searchPlaceholder }}"
                 />
 
                 <select id="gso-stocks-fund-filter" class="form-control w-[220px] !rounded-md">
@@ -131,14 +151,8 @@
             adjustUrl: @json(route('gso.stocks.adjust')),
             csrf: @json(csrf_token()),
             canManage: @json($canManageStocks),
-            fundSources: @json(
-                $fundSources->map(fn ($fundSource) => [
-                    'id' => (string) $fundSource->id,
-                    'code' => (string) $fundSource->code,
-                    'name' => (string) $fundSource->name,
-                    'label' => trim((string) $fundSource->code . ' - ' . (string) $fundSource->name),
-                ])->values()
-            ),
+            pageMode: @json($isStockCardView ? 'stock-cards' : 'stocks'),
+            fundSources: @json($fundSourceOptions),
         };
     </script>
 @endpush

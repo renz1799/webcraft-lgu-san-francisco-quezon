@@ -54,7 +54,7 @@
         </div>
       </div>
 
-      <form method="GET" action="{{ route('gso.inventory-items.regspi.print') }}" class="gso-report-filter-form">
+      <form method="GET" action="{{ route('gso.reports.regspi.print') }}" class="gso-report-filter-form">
         <input type="hidden" name="preview" value="1">
 
         <div class="gso-report-filter-group">

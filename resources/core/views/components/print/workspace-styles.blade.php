@@ -6,6 +6,22 @@
     color: #0f172a;
   }
 
+  .print-workspace-body--embedded {
+    background: transparent;
+  }
+
+  .print-workspace-body--embedded .print-workspace {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding-inline: 0;
+    justify-content: start;
+  }
+
+  .print-workspace-body--embedded .print-workspace-panel {
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  }
+
   .print-workspace {
     width: max-content;
     margin: 0 auto;
@@ -83,6 +99,10 @@
   @media screen {
     .print-workspace-body {
       min-width: 1280px;
+    }
+
+    .print-workspace-body--embedded {
+      min-width: 0;
     }
 
     .print-workspace-preview .print-page {

@@ -9,6 +9,18 @@ interface RegspiReportServiceInterface
         ?string $departmentId = null,
         ?string $accountableOfficerId = null,
         ?string $asOf = null,
-        array $signatories = []
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = []
     ): array;
+
+    public function generatePdf(
+        ?string $fundSourceId,
+        ?string $departmentId = null,
+        ?string $accountableOfficerId = null,
+        ?string $asOf = null,
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = []
+    ): string;
 }

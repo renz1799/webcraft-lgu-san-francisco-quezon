@@ -175,7 +175,7 @@
                 </button>
 
                 <a
-                    href="{{ route('gso.inventory-items.regspi.print', ['preview' => 1]) }}"
+                    href="{{ route('gso.reports.regspi.print', ['preview' => 1]) }}"
                     target="_blank"
                     rel="noopener"
                     class="ti-btn ti-btn-light"
@@ -184,7 +184,7 @@
                 </a>
 
                 <a
-                    href="{{ route('gso.inventory-items.rpcppe.print', ['preview' => 1]) }}"
+                    href="{{ route('gso.reports.rpcppe.print', ['preview' => 1]) }}"
                     target="_blank"
                     rel="noopener"
                     class="ti-btn ti-btn-light"
@@ -193,7 +193,7 @@
                 </a>
 
                 <a
-                    href="{{ route('gso.inventory-items.rpcsp.print', ['preview' => 1]) }}"
+                    href="{{ route('gso.reports.rpcsp.print', ['preview' => 1]) }}"
                     target="_blank"
                     rel="noopener"
                     class="ti-btn ti-btn-light"

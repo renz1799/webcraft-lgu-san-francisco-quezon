@@ -116,6 +116,24 @@
         color: rgb(100, 116, 139);
     }
 
+    .core-print-sidebar__toggle {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.85rem 0.95rem;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 0.8rem;
+        background: rgba(248, 250, 252, 0.95);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: rgb(51, 65, 85);
+    }
+
+    .core-print-sidebar__toggle input {
+        margin-top: 0.2rem;
+        flex: 0 0 auto;
+    }
+
     .core-print-sidebar__link-button {
         align-self: flex-start;
         padding: 0;

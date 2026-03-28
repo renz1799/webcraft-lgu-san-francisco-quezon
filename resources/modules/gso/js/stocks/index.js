@@ -275,6 +275,8 @@ import "sweetalert2/dist/sweetalert2.min.css";
     if (!tableElement) return;
 
     const config = window.__gsoStocks || {};
+    const pageMode = String(config.pageMode || "stocks").trim();
+    const isStockCardMode = pageMode === "stock-cards";
     const infoElement = document.getElementById("gso-stocks-info");
     const searchInput = document.getElementById("gso-stocks-search");
     const fundFilter = document.getElementById("gso-stocks-fund-filter");
@@ -312,7 +314,11 @@ import "sweetalert2/dist/sweetalert2.min.css";
       const start = (page - 1) * size + 1;
       const end = Math.min(start + size - 1, lastTotal);
 
-      setInfo(`Showing ${start}-${end} of ${lastTotal} consumable item(s)`);
+      setInfo(
+        isStockCardMode
+          ? `Showing ${start}-${end} of ${lastTotal} stock-card source item(s)`
+          : `Showing ${start}-${end} of ${lastTotal} consumable item(s)`
+      );
     }
 
     function reload(table) {
@@ -402,6 +408,23 @@ import "sweetalert2/dist/sweetalert2.min.css";
             const itemId = escapeHtml(cell.getValue() || "");
             const funds = escapeHtml(JSON.stringify(row?.funds || []));
             const printDisabled = row?.has_stock_rows ? "" : "disabled";
+
+            if (isStockCardMode) {
+              return `
+                <div class="hstack flex gap-2 justify-end">
+                  <button
+                    class="ti-btn ti-btn-sm ti-btn-info !rounded-full"
+                    type="button"
+                    data-action="stock-card"
+                    data-item-id="${itemId}"
+                    data-funds="${funds}"
+                    ${printDisabled}
+                  >
+                    <i class="ri-printer-line"></i>
+                  </button>
+                </div>
+              `;
+            }
 
             return `
               <div class="hstack flex gap-2 justify-end">

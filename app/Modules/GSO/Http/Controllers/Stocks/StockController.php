@@ -4,6 +4,8 @@ namespace App\Modules\GSO\Http\Controllers\Stocks;
 
 use App\Http\Controllers\Controller;
 use App\Modules\GSO\Http\Requests\Stocks\AdjustStockRequest;
+use App\Modules\GSO\Http\Requests\Stocks\PrintRpciRequest;
+use App\Modules\GSO\Http\Requests\Stocks\PrintSsmiRequest;
 use App\Modules\GSO\Http\Requests\Stocks\PrintStockCardRequest;
 use App\Modules\GSO\Http\Requests\Stocks\ShowStockLedgerRequest;
 use App\Modules\GSO\Http\Requests\Stocks\StockTableDataRequest;
@@ -11,6 +13,7 @@ use App\Modules\GSO\Models\FundSource;
 use App\Modules\GSO\Services\Contracts\StockServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class StockController extends Controller
 {
@@ -18,7 +21,7 @@ class StockController extends Controller
         private readonly StockServiceInterface $stocks,
     ) {
         $this->middleware('role_or_permission:Administrator|admin|view Stocks|modify Stocks')
-            ->only(['index', 'data', 'ledger', 'printCard']);
+            ->only(['index', 'data', 'ledger', 'printCard', 'printRpci', 'printSsmi']);
 
         $this->middleware('role_or_permission:Administrator|admin|modify Stocks')
             ->only(['adjust']);
@@ -63,6 +66,128 @@ class StockController extends Controller
         ) + [
             'isPreview' => $request->boolean('preview', true),
         ]);
+    }
+
+    public function printRpci(PrintRpciRequest $request): View
+    {
+        $validated = $request->validated();
+
+        $payload = $this->stocks->getRpciPrintViewData(
+            fundSourceId: $validated['fund_source_id'] ?? null,
+            asOf: $validated['as_of'] ?? null,
+            inventoryType: $validated['inventory_type'] ?? null,
+            prefillCount: (bool) ($validated['prefill_count'] ?? false),
+            accountableOfficerId: $validated['accountable_officer_id'] ?? null,
+            signatories: [
+                'accountable_officer_name' => $validated['accountable_officer_name'] ?? null,
+                'accountable_officer_designation' => $validated['accountable_officer_designation'] ?? null,
+                'date_of_assumption' => $validated['date_of_assumption'] ?? null,
+                'committee_chair_name' => $validated['committee_chair_name'] ?? null,
+                'committee_member_1_name' => $validated['committee_member_1_name'] ?? null,
+                'committee_member_2_name' => $validated['committee_member_2_name'] ?? null,
+                'approved_by_name' => $validated['approved_by_name'] ?? null,
+                'approved_by_designation' => $validated['approved_by_designation'] ?? null,
+                'verified_by_name' => $validated['verified_by_name'] ?? null,
+                'verified_by_designation' => $validated['verified_by_designation'] ?? null,
+            ],
+            requestedPaper: $request->validated('paper_profile'),
+            paperOverrides: $request->paperOverrides(),
+        );
+
+        return view('gso::reports.rpci.print.index', [
+            'report' => $payload['report'],
+            'paperProfile' => $payload['paperProfile'],
+            'availableFunds' => $payload['available_funds'] ?? [],
+            'filters' => $request->validated(),
+        ]);
+    }
+
+    public function downloadRpciPdf(PrintRpciRequest $request): BinaryFileResponse
+    {
+        $validated = $request->validated();
+
+        $path = $this->stocks->generateRpciPdf(
+            fundSourceId: $validated['fund_source_id'] ?? null,
+            asOf: $validated['as_of'] ?? null,
+            inventoryType: $validated['inventory_type'] ?? null,
+            prefillCount: (bool) ($validated['prefill_count'] ?? false),
+            accountableOfficerId: $validated['accountable_officer_id'] ?? null,
+            signatories: [
+                'accountable_officer_name' => $validated['accountable_officer_name'] ?? null,
+                'accountable_officer_designation' => $validated['accountable_officer_designation'] ?? null,
+                'date_of_assumption' => $validated['date_of_assumption'] ?? null,
+                'committee_chair_name' => $validated['committee_chair_name'] ?? null,
+                'committee_member_1_name' => $validated['committee_member_1_name'] ?? null,
+                'committee_member_2_name' => $validated['committee_member_2_name'] ?? null,
+                'approved_by_name' => $validated['approved_by_name'] ?? null,
+                'approved_by_designation' => $validated['approved_by_designation'] ?? null,
+                'verified_by_name' => $validated['verified_by_name'] ?? null,
+                'verified_by_designation' => $validated['verified_by_designation'] ?? null,
+            ],
+            requestedPaper: $request->validated('paper_profile'),
+            paperOverrides: $request->paperOverrides(),
+        );
+
+        return response()->download(
+            file: $path,
+            name: basename($path),
+            headers: ['Content-Type' => 'application/pdf'],
+        )->deleteFileAfterSend(true);
+    }
+
+    public function printSsmi(PrintSsmiRequest $request): View
+    {
+        $validated = $request->validated();
+
+        $data = $this->stocks->getSsmiPrintViewData(
+            fundSourceId: $validated['fund_source_id'] ?? null,
+            dateFrom: $validated['date_from'] ?? null,
+            dateTo: $validated['date_to'] ?? null,
+            signatories: [
+                'prepared_by_name' => $validated['prepared_by_name'] ?? null,
+                'prepared_by_designation' => $validated['prepared_by_designation'] ?? null,
+                'prepared_by_date' => $validated['prepared_by_date'] ?? null,
+                'certified_by_name' => $validated['certified_by_name'] ?? null,
+                'certified_by_designation' => $validated['certified_by_designation'] ?? null,
+                'certified_by_date' => $validated['certified_by_date'] ?? null,
+            ],
+            requestedPaper: $validated['paper_profile'] ?? null,
+            paperOverrides: $request->paperOverrides(),
+        );
+
+        return view('gso::reports.ssmi.print.index', [
+            'report' => $data['report'],
+            'paperProfile' => $data['paperProfile'],
+            'availableFunds' => $data['available_funds'],
+            'filters' => $validated,
+        ]);
+    }
+
+    public function downloadSsmiPdf(PrintSsmiRequest $request): BinaryFileResponse
+    {
+        $validated = $request->validated();
+
+        $path = $this->stocks->generateSsmiPdf(
+            fundSourceId: $validated['fund_source_id'] ?? null,
+            dateFrom: $validated['date_from'] ?? null,
+            dateTo: $validated['date_to'] ?? null,
+            signatories: [
+                'prepared_by_name' => $validated['prepared_by_name'] ?? null,
+                'prepared_by_designation' => $validated['prepared_by_designation'] ?? null,
+                'prepared_by_date' => $validated['prepared_by_date'] ?? null,
+                'certified_by_name' => $validated['certified_by_name'] ?? null,
+                'certified_by_designation' => $validated['certified_by_designation'] ?? null,
+                'certified_by_date' => $validated['certified_by_date'] ?? null,
+            ],
+            requestedPaper: $validated['paper_profile'] ?? null,
+            paperOverrides: $request->paperOverrides(),
+        );
+
+        return response()->download(
+            file: $path,
+            name: basename($path),
+            headers: ['Content-Type' => 'application/pdf'],
+        )->deleteFileAfterSend(true);
     }
 
     public function adjust(AdjustStockRequest $request): JsonResponse

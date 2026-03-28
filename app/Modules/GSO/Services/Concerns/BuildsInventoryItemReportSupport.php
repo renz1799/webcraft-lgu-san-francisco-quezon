@@ -123,6 +123,9 @@ trait BuildsInventoryItemReportSupport
                 ->map(fn (AccountableOfficer $officer): array => [
                     'id' => (string) $officer->id,
                     'label' => $this->buildAccountableOfficerOptionLabel($officer),
+                    'full_name' => (string) ($officer->full_name ?? ''),
+                    'designation' => (string) ($officer->designation ?? ''),
+                    'department_id' => (string) ($officer->department_id ?? ''),
                 ])
                 ->values()
                 ->all(),

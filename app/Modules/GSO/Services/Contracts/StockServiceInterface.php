@@ -22,6 +22,54 @@ interface StockServiceInterface
     public function getCardPrintViewData(string $itemId, ?string $fundSourceId, ?string $asOf = null): array;
 
     /**
+     * @param  array<string, mixed>  $signatories
+     * @return array<string, mixed>
+     */
+    public function getRpciPrintViewData(
+        ?string $fundSourceId,
+        ?string $asOf = null,
+        ?string $inventoryType = null,
+        bool $prefillCount = false,
+        ?string $accountableOfficerId = null,
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = [],
+    ): array;
+
+    public function generateRpciPdf(
+        ?string $fundSourceId,
+        ?string $asOf = null,
+        ?string $inventoryType = null,
+        bool $prefillCount = false,
+        ?string $accountableOfficerId = null,
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = [],
+    ): string;
+
+    /**
+     * @param  array<string, mixed>  $signatories
+     * @return array<string, mixed>
+     */
+    public function getSsmiPrintViewData(
+        ?string $fundSourceId,
+        ?string $dateFrom = null,
+        ?string $dateTo = null,
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = [],
+    ): array;
+
+    public function generateSsmiPdf(
+        ?string $fundSourceId,
+        ?string $dateFrom = null,
+        ?string $dateTo = null,
+        array $signatories = [],
+        ?string $requestedPaper = null,
+        array $paperOverrides = [],
+    ): string;
+
+    /**
      * @return array<string, mixed>
      */
     public function adjustManual(

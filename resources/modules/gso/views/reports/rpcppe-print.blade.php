@@ -59,7 +59,7 @@
         </div>
       </div>
 
-      <form method="GET" action="{{ route('gso.inventory-items.rpcppe.print') }}" class="gso-report-filter-form">
+      <form method="GET" action="{{ route('gso.reports.rpcppe.print') }}" class="gso-report-filter-form">
         <input type="hidden" name="preview" value="1">
         <input type="hidden" name="prefill_count" value="0">
 

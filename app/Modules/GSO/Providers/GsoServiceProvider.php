@@ -165,6 +165,8 @@ use App\Modules\GSO\Services\RIS\RisPrintService;
 use App\Modules\GSO\Services\RIS\RisService;
 use App\Modules\GSO\Services\RIS\RisWorkflowService;
 use App\Modules\GSO\Services\Contracts\RegspiReportServiceInterface;
+use App\Modules\GSO\Services\Contracts\RspiReportServiceInterface;
+use App\Modules\GSO\Services\Contracts\RrspReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RpcppeReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RpcspReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\StockServiceInterface;
@@ -195,6 +197,8 @@ use App\Modules\GSO\Services\Numbers\IcsNumberService;
 use App\Modules\GSO\Services\Numbers\ItrNumberService;
 use App\Modules\GSO\Services\Numbers\WmrNumberService;
 use App\Modules\GSO\Services\RegspiReportService;
+use App\Modules\GSO\Services\RspiReportService;
+use App\Modules\GSO\Services\RrspReportService;
 use App\Modules\GSO\Services\RpcppeReportService;
 use App\Modules\GSO\Services\RpcspReportService;
 use App\Modules\GSO\Services\StockService;
@@ -392,6 +396,8 @@ class GsoServiceProvider extends ServiceProvider
 
             /* Reports */
             RegspiReportServiceInterface::class => RegspiReportService::class,
+            RspiReportServiceInterface::class => RspiReportService::class,
+            RrspReportServiceInterface::class => RrspReportService::class,
             RpcppeReportServiceInterface::class => RpcppeReportService::class,
             RpcspReportServiceInterface::class => RpcspReportService::class,
         ], true);

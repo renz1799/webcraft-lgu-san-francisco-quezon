@@ -24,6 +24,7 @@ use App\Modules\GSO\Http\Controllers\FundClusters\FundClusterController;
 use App\Modules\GSO\Http\Controllers\FundSources\FundSourceActionController;
 use App\Modules\GSO\Http\Controllers\FundSources\FundSourceController;
 use App\Modules\GSO\Http\Controllers\GsoDashboardController;
+use App\Modules\GSO\Http\Controllers\GsoWorkspaceController;
 use App\Modules\GSO\Http\Controllers\ICS\IcsController;
 use App\Modules\GSO\Http\Controllers\ICS\IcsItemController;
 use App\Modules\GSO\Http\Controllers\ICS\IcsPrintController;
@@ -37,7 +38,6 @@ use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemController;
 use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemEventController;
 use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemFileController;
 use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemPropertyCardController;
-use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemReportsController;
 use App\Modules\GSO\Http\Controllers\InventoryItems\PublicInventoryAssetController;
 use App\Modules\GSO\Http\Controllers\Items\ItemActionController;
 use App\Modules\GSO\Http\Controllers\Items\ItemController;
@@ -53,6 +53,11 @@ use App\Modules\GSO\Http\Controllers\PTR\PtrController;
 use App\Modules\GSO\Http\Controllers\PTR\PtrItemController;
 use App\Modules\GSO\Http\Controllers\PTR\PtrPrintController;
 use App\Modules\GSO\Http\Controllers\PTR\PtrWorkflowController;
+use App\Modules\GSO\Http\Controllers\Reports\RegspiReportController;
+use App\Modules\GSO\Http\Controllers\Reports\RspiReportController;
+use App\Modules\GSO\Http\Controllers\Reports\RrspReportController;
+use App\Modules\GSO\Http\Controllers\Reports\RpcppeReportController;
+use App\Modules\GSO\Http\Controllers\Reports\RpcspReportController;
 use App\Modules\GSO\Http\Controllers\RIS\RisController;
 use App\Modules\GSO\Http\Controllers\RIS\RisItemController;
 use App\Modules\GSO\Http\Controllers\RIS\RisPrintController;
@@ -355,12 +360,59 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                 ->name('inventory-items.property-card.print');
             Route::get('/inventory-items/property-cards/print', [InventoryItemBatchPropertyCardController::class, 'print'])
                 ->name('inventory-items.property-cards.print-batch');
-            Route::get('/reports/regspi/print', [InventoryItemReportsController::class, 'printRegspi'])
-                ->name('inventory-items.regspi.print');
-            Route::get('/reports/rpcppe/print', [InventoryItemReportsController::class, 'printRpcppe'])
-                ->name('inventory-items.rpcppe.print');
-            Route::get('/reports/rpcsp/print', [InventoryItemReportsController::class, 'printRpcsp'])
-                ->name('inventory-items.rpcsp.print');
+            Route::get('/reports/regspi/print', [RegspiReportController::class, 'print'])
+                ->name('reports.regspi.print');
+            Route::get('/reports/regspi/print/pdf', [RegspiReportController::class, 'downloadPdf'])
+                ->name('reports.regspi.print.pdf');
+            Route::get('/inventory-items/reports/regspi/print', function () {
+                return redirect()->route('gso.reports.regspi.print', request()->query());
+            })->name('inventory-items.regspi.print');
+            Route::get('/reports/rspi/print', [RspiReportController::class, 'print'])
+                ->name('reports.rspi.print');
+            Route::get('/reports/rspi/print/pdf', [RspiReportController::class, 'downloadPdf'])
+                ->name('reports.rspi.print.pdf');
+            Route::get('/inventory-items/reports/rspi/print', function () {
+                return redirect()->route('gso.reports.rspi.print', request()->query());
+            })->name('inventory-items.rspi.print');
+            Route::get('/reports/rrsp/print', [RrspReportController::class, 'print'])
+                ->name('reports.rrsp.print');
+            Route::get('/reports/rrsp/print/pdf', [RrspReportController::class, 'downloadPdf'])
+                ->name('reports.rrsp.print.pdf');
+            Route::get('/inventory-items/reports/rrsp/print', function () {
+                return redirect()->route('gso.reports.rrsp.print', request()->query());
+            })->name('inventory-items.rrsp.print');
+            Route::get('/reports/rpci/print', [StockController::class, 'printRpci'])
+                ->name('stocks.rpci.print');
+            Route::get('/reports/rpci/print/pdf', [StockController::class, 'downloadRpciPdf'])
+                ->name('stocks.rpci.print.pdf');
+            Route::get('/reports/ssmi/print', [StockController::class, 'printSsmi'])
+                ->name('stocks.ssmi.print');
+            Route::get('/reports/ssmi/print/pdf', [StockController::class, 'downloadSsmiPdf'])
+                ->name('stocks.ssmi.print.pdf');
+            Route::get('/reports/rpcppe/print', [RpcppeReportController::class, 'print'])
+                ->name('reports.rpcppe.print');
+            Route::get('/reports/rpcppe/print/pdf', [RpcppeReportController::class, 'downloadPdf'])
+                ->name('reports.rpcppe.print.pdf');
+            Route::get('/inventory-items/reports/rpcppe/print', function () {
+                return redirect()->route('gso.reports.rpcppe.print', request()->query());
+            })->name('inventory-items.rpcppe.print');
+            Route::get('/reports/rpcsp/print', [RpcspReportController::class, 'print'])
+                ->name('reports.rpcsp.print');
+            Route::get('/reports/rpcsp/print/pdf', [RpcspReportController::class, 'downloadPdf'])
+                ->name('reports.rpcsp.print.pdf');
+            Route::get('/inventory-items/reports/rpcsp/print', function () {
+                return redirect()->route('gso.reports.rpcsp.print', request()->query());
+            })->name('inventory-items.rpcsp.print');
+            Route::get('/reports', fn () => app(GsoWorkspaceController::class)->show('reports'))
+                ->name('reports.index');
+            Route::get('/reports/{page}', function (string $page) {
+                if ($page === 'stock-card') {
+                    return redirect()->route('gso.stocks.index', ['view' => 'stock-cards'] + request()->query());
+                }
+
+                return app(GsoWorkspaceController::class)->show('reports-'.$page);
+            })->whereIn('page', ['rpci', 'rpcppe', 'rpcsp', 'regspi', 'rspi', 'rrsp', 'ssmi', 'stock-card'])
+                ->name('reports.show');
             Route::get('/inspections', [InspectionController::class, 'index'])->name('inspections.index');
             Route::get('/inspections/data', [InspectionController::class, 'data'])->name('inspections.data');
             Route::get('/inspections/{inspection}', [InspectionActionController::class, 'show'])->whereUuid('inspection')->name('inspections.show');
@@ -485,6 +537,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     })->whereUuid('air')->name('gso.air.legacy.print.pdf');
     Route::redirect('/items', '/gso/items');
     Route::redirect('/inventory-items', '/gso/inventory-items');
+    Route::redirect('/reports', '/gso/reports');
     Route::get('/inventory-items/{inventoryItem}/property-card/print', function (string $inventoryItem) {
         return redirect()->route('gso.inventory-items.property-card.print', [
             'inventoryItem' => $inventoryItem,
@@ -495,13 +548,28 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         return redirect()->route('gso.inventory-items.property-cards.print-batch', request()->query());
     });
     Route::get('/reports/regspi/print', function () {
-        return redirect()->route('gso.inventory-items.regspi.print', request()->query());
+        return redirect()->route('gso.reports.regspi.print', request()->query());
+    });
+    Route::get('/reports/rspi/print', function () {
+        return redirect()->route('gso.reports.rspi.print', request()->query());
+    });
+    Route::get('/reports/rrsp/print', function () {
+        return redirect()->route('gso.reports.rrsp.print', request()->query());
+    });
+    Route::get('/reports/rpci/print', function () {
+        return redirect()->route('gso.stocks.rpci.print', request()->query());
+    });
+    Route::get('/reports/ssmi/print', function () {
+        return redirect()->route('gso.stocks.ssmi.print', request()->query());
+    });
+    Route::get('/reports/stock-card', function () {
+        return redirect()->route('gso.stocks.index', ['view' => 'stock-cards'] + request()->query());
     });
     Route::get('/reports/rpcppe/print', function () {
-        return redirect()->route('gso.inventory-items.rpcppe.print', request()->query());
+        return redirect()->route('gso.reports.rpcppe.print', request()->query());
     });
     Route::get('/reports/rpcsp/print', function () {
-        return redirect()->route('gso.inventory-items.rpcsp.print', request()->query());
+        return redirect()->route('gso.reports.rpcsp.print', request()->query());
     });
     Route::redirect('/inspections', '/gso/inspections');
     Route::get('/stocks/{item}/ledger', function (string $item) {
