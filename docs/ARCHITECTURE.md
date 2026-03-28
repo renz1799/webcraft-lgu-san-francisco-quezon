@@ -141,6 +141,8 @@ future shared workflow engines
 
 Print infrastructure is also Core-owned, while printable registrations remain owned by the module or Core feature that produces the document.
 
+When a business module needs those shared capabilities to feel local, it may surface them through module-scoped routes/controllers that preserve module shell context while still delegating to the shared Core services and repositories.
+
 Do not mix these responsibilities.
 
 ## Structural Direction
@@ -508,6 +510,7 @@ Core provides engines.
 Domain behavior:
 
 business workflows
+module landing pages and authenticated dashboards
 events
 recipients
 wording

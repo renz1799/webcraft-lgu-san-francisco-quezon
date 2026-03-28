@@ -7,13 +7,13 @@ use App\Core\Models\User;
 
 interface TaskReadServiceInterface
 {
-    public function indexData(?User $actor): array;
+    public function indexData(?User $actor, array|string|null $ownerModuleIds = null): array;
 
-    public function datatable(User $actor, array $params): array;
+    public function datatable(User $actor, array $params, array|string|null $ownerModuleIds = null): array;
 
     public function showData(User $actor, Task $task): array;
 
-    public function sidebarCounts(User $actor): array;
+    public function sidebarCounts(User $actor, array|string|null $ownerModuleIds = null): array;
 
     public function findAccessibleOrFail(User $actor, string $taskId): Task;
 

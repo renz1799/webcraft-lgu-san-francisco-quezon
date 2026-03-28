@@ -1,30 +1,30 @@
 <?php
 
-namespace App\Core\Http\Controllers\Tasks;
+namespace App\Modules\GSO\Http\Controllers\Tasks;
 
-use App\Http\Controllers\Controller;
 use App\Core\Http\Requests\Tasks\AddTaskCommentRequest;
 use App\Core\Http\Requests\Tasks\ChangeTaskStatusRequest;
 use App\Core\Http\Requests\Tasks\DeleteTaskRequest;
 use App\Core\Http\Requests\Tasks\ReassignTaskRequest;
 use App\Core\Http\Requests\Tasks\RestoreTaskRequest;
-use App\Core\Http\Requests\Tasks\StoreTaskRequest;
+use App\Core\Models\Module;
 use App\Core\Models\Tasks\Task;
 use App\Core\Services\Tasks\Contracts\TaskReadServiceInterface;
 use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
+use App\Core\Support\CurrentContext;
+use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
-class TaskActionController extends Controller
+class GsoTaskActionController extends Controller
 {
     public function __construct(
         private readonly TaskServiceInterface $taskService,
         private readonly TaskReadServiceInterface $taskReadService,
+        private readonly CurrentContext $context,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin')
-            ->only(['store']);
-
         $this->middleware('role_or_permission:Administrator|admin|Staff')
             ->only(['changeStatus', 'comment', 'claim']);
 
@@ -32,38 +32,13 @@ class TaskActionController extends Controller
             ->only(['reassign']);
     }
 
-    public function store(StoreTaskRequest $request): JsonResponse
-    {
-        $this->authorize('create', Task::class);
-
-        $actorUserId = (string) $request->user()->id;
-
-        $task = $this->taskService->createAndAssign(
-            actorUserId: $actorUserId,
-            assigneeUserId: (string) $request->input('assignee_user_id'),
-            title: (string) $request->input('title'),
-            description: $request->input('description'),
-            type: $request->input('type'),
-            subjectType: $request->input('subject_type'),
-            subjectId: $request->input('subject_id'),
-            data: (array) $request->input('data', [])
-        );
-
-        return response()->json([
-            'message' => 'Task created and assigned.',
-            'task' => $task,
-        ]);
-    }
-
     public function changeStatus(ChangeTaskStatusRequest $request, string $id): JsonResponse
     {
-        $task = $this->taskReadService->findAccessibleOrFail($request->user(), $id);
+        $task = $this->findTaskForCurrentModule($request->user(), $id);
         $this->authorize('updateStatus', $task);
 
-        $actorUserId = (string) $request->user()->id;
-
-        $task = $this->taskService->changeStatus(
-            actorUserId: $actorUserId,
+        $updatedTask = $this->taskService->changeStatus(
+            actorUserId: (string) $request->user()->id,
             taskId: $id,
             toStatus: (string) $request->input('status'),
             note: $request->input('note')
@@ -71,19 +46,17 @@ class TaskActionController extends Controller
 
         return response()->json([
             'message' => 'Task status updated.',
-            'task' => $task,
+            'task' => $updatedTask,
         ]);
     }
 
     public function comment(AddTaskCommentRequest $request, string $id): JsonResponse
     {
-        $task = $this->taskReadService->findAccessibleOrFail($request->user(), $id);
+        $task = $this->findTaskForCurrentModule($request->user(), $id);
         $this->authorize('comment', $task);
 
-        $actorUserId = (string) $request->user()->id;
-
         $this->taskService->addComment(
-            actorUserId: $actorUserId,
+            actorUserId: (string) $request->user()->id,
             taskId: $id,
             note: (string) $request->input('note')
         );
@@ -95,13 +68,11 @@ class TaskActionController extends Controller
 
     public function reassign(ReassignTaskRequest $request, string $id): JsonResponse
     {
-        $task = $this->taskReadService->findAccessibleOrFail($request->user(), $id);
+        $task = $this->findTaskForCurrentModule($request->user(), $id);
         $this->authorize('reassign', $task);
 
-        $actorUserId = (string) $request->user()->id;
-
-        $task = $this->taskService->reassign(
-            actorUserId: $actorUserId,
+        $updatedTask = $this->taskService->reassign(
+            actorUserId: (string) $request->user()->id,
             taskId: $id,
             newAssigneeUserId: (string) $request->input('assignee_user_id'),
             note: $request->input('note')
@@ -109,45 +80,38 @@ class TaskActionController extends Controller
 
         return response()->json([
             'message' => 'Task reassigned.',
-            'task' => $task,
+            'task' => $updatedTask,
         ]);
     }
 
     public function claim(Request $request, string $id): JsonResponse|RedirectResponse
     {
-        $task = $this->taskReadService->findAccessibleOrFail($request->user(), $id);
+        $task = $this->findTaskForCurrentModule($request->user(), $id);
         $this->authorize('claim', $task);
 
-        $userId = (string) $request->user()->id;
-
-        $task = $this->taskService->claim(
-            actorUserId: $userId,
+        $claimedTask = $this->taskService->claim(
+            actorUserId: (string) $request->user()->id,
             taskId: $id,
-            note: 'Task claimed via UI.'
+            note: 'Task claimed via GSO UI.'
         );
 
         if ($request->expectsJson() || $request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'message' => 'Task claimed successfully.',
                 'task' => [
-                    'id' => (string) $task->id,
+                    'id' => (string) $claimedTask->id,
                 ],
             ]);
         }
 
-        $redirectRouteName = trim((string) $request->input('redirect_route_name', 'tasks.show'));
-        if (! \Illuminate\Support\Facades\Route::has($redirectRouteName)) {
-            $redirectRouteName = 'tasks.show';
-        }
-
         return redirect()
-            ->route($redirectRouteName, $id)
+            ->route('gso.tasks.show', $id)
             ->with('success', 'Task claimed successfully.');
     }
 
     public function destroy(DeleteTaskRequest $request, string $id): JsonResponse
     {
-        $task = $this->taskReadService->findAccessibleOrFail($request->user(), $id);
+        $task = $this->findTaskForCurrentModule($request->user(), $id);
         $this->authorize('delete', $task);
 
         $this->taskService->archive((string) $request->user()->id, $id);
@@ -157,7 +121,7 @@ class TaskActionController extends Controller
 
     public function restore(RestoreTaskRequest $request, string $id): JsonResponse
     {
-        $task = $this->taskReadService->findAccessibleWithTrashedOrFail($request->user(), $id);
+        $task = $this->findTaskForCurrentModule($request->user(), $id, withTrashed: true);
         $this->authorize('restore', $task);
 
         $ok = $this->taskService->restore((string) $request->user()->id, $id);
@@ -167,5 +131,41 @@ class TaskActionController extends Controller
         }
 
         return response()->json(['message' => 'Task restored successfully.']);
+    }
+
+    private function findTaskForCurrentModule($user, string $taskId, bool $withTrashed = false): Task
+    {
+        $task = $withTrashed
+            ? $this->taskReadService->findAccessibleWithTrashedOrFail($user, $taskId)
+            : $this->taskReadService->findAccessibleOrFail($user, $taskId);
+
+        if (trim((string) $task->module_id) === $this->currentModuleId()) {
+            return $task;
+        }
+
+        $exception = new ModelNotFoundException();
+        $exception->setModel(Task::class);
+
+        throw $exception;
+    }
+
+    private function currentModuleId(): string
+    {
+        $moduleId = trim((string) ($this->context->moduleId() ?? ''));
+
+        if ($moduleId !== '') {
+            return $moduleId;
+        }
+
+        $fallback = (string) (Module::query()
+            ->where('code', 'GSO')
+            ->where('is_active', true)
+            ->value('id') ?? '');
+
+        if ($fallback !== '') {
+            return $fallback;
+        }
+
+        abort(404);
     }
 }

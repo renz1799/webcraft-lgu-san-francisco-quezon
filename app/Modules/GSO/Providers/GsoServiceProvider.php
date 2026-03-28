@@ -115,6 +115,7 @@ use App\Modules\GSO\Services\Contracts\AssetTypeServiceInterface;
 use App\Modules\GSO\Services\Contracts\DepartmentServiceInterface;
 use App\Modules\GSO\Services\Contracts\FundClusterServiceInterface;
 use App\Modules\GSO\Services\Contracts\FundSourceServiceInterface;
+use App\Modules\GSO\Services\Contracts\GsoDashboardServiceInterface;
 use App\Modules\GSO\Services\Contracts\InspectionPhotoServiceInterface;
 use App\Modules\GSO\Services\Contracts\InspectionServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemCardPrintServiceInterface;
@@ -178,6 +179,7 @@ use App\Modules\GSO\Services\Contracts\WMR\WmrWorkflowServiceInterface;
 use App\Modules\GSO\Services\DepartmentService;
 use App\Modules\GSO\Services\FundClusterService;
 use App\Modules\GSO\Services\FundSourceService;
+use App\Modules\GSO\Services\GsoDashboardService;
 use App\Modules\GSO\Services\InspectionPhotoService;
 use App\Modules\GSO\Services\InspectionService;
 use App\Modules\GSO\Services\InventoryItemCardPrintService;
@@ -208,6 +210,11 @@ use App\Modules\GSO\Services\WMR\WmrItemService;
 use App\Modules\GSO\Services\WMR\WmrPrintService;
 use App\Modules\GSO\Services\WMR\WmrService;
 use App\Modules\GSO\Services\WMR\WmrWorkflowService;
+use App\Core\Services\Tasks\Contracts\TaskReadServiceInterface;
+use App\Core\Support\CurrentContext;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class GsoServiceProvider extends ServiceProvider
@@ -223,6 +230,29 @@ class GsoServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadViewsFrom(resource_path('modules/gso/views'), 'gso');
+
+        View::composer('gso::layouts.components.sidebar-menu', function ($view) {
+            $user = Auth::user();
+            $taskCounts = null;
+
+            if ($user) {
+                $moduleId = trim((string) app(CurrentContext::class)->moduleId());
+                $cacheKey = 'task_counts:gso:' . $user->id . ':' . $moduleId;
+
+                $taskCounts = Cache::remember($cacheKey, now()->addSeconds(20), function () use ($user, $moduleId) {
+                    if ($moduleId === '') {
+                        return [
+                            'my' => 0,
+                            'claimable' => 0,
+                        ];
+                    }
+
+                    return app(TaskReadServiceInterface::class)->sidebarCounts($user, $moduleId);
+                });
+            }
+
+            $view->with('gsoTaskCounts', $taskCounts);
+        });
     }
 
     private function registerRepositories(): void
@@ -321,6 +351,8 @@ class GsoServiceProvider extends ServiceProvider
     private function registerApplicationServices(): void
     {
         $this->bindMany([
+            GsoDashboardServiceInterface::class => GsoDashboardService::class,
+
             /* Asset Catalog */
             AssetTypeServiceInterface::class => AssetTypeService::class,
             AssetCategoryServiceInterface::class => AssetCategoryService::class,

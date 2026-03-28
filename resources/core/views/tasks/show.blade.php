@@ -308,6 +308,22 @@
 
 @section('content')
 @php
+    $taskRouteNames = array_merge([
+        'index' => 'tasks.index',
+        'show' => 'tasks.show',
+        'claim' => 'tasks.claim',
+        'status.update' => 'tasks.status.update',
+        'reassign' => 'tasks.reassign',
+        'comment.store' => 'tasks.comment.store',
+    ], is_array($taskRouteNames ?? null) ? $taskRouteNames : []);
+    $tasksShowPageDescription = trim((string) ($tasksShowPageDescription ?? 'Review task details, take action, and follow the complete activity timeline from one page.'))
+        ?: 'Review task details, take action, and follow the complete activity timeline from one page.';
+    $tasksShowBreadcrumbRootLabel = trim((string) ($tasksShowBreadcrumbRootLabel ?? 'Shared Workspace')) ?: 'Shared Workspace';
+    $tasksShowBreadcrumbRootUrl = trim((string) ($tasksShowBreadcrumbRootUrl ?? route($taskRouteNames['index']))) ?: route($taskRouteNames['index']);
+    $tasksShowBreadcrumbIndexLabel = trim((string) ($tasksShowBreadcrumbIndexLabel ?? 'Tasks')) ?: 'Tasks';
+    $tasksShowBreadcrumbCurrentLabel = trim((string) ($tasksShowBreadcrumbCurrentLabel ?? 'Timeline')) ?: 'Timeline';
+    $tasksShowOverviewDescription = trim((string) ($tasksShowOverviewDescription ?? 'Summary, owner module, and available workflow actions stay on the left.'))
+        ?: 'Summary, owner module, and available workflow actions stay on the left.';
     $statusLabels = [
         'pending' => 'Pending',
         'in_progress' => 'In Progress',
@@ -454,25 +470,25 @@
                 {{ $task->title }}
             </h3>
             <p class="text-sm text-[#8c9097] dark:text-white/50 mt-1">
-                Review task details, take action, and follow the complete activity timeline from one page.
+                {{ $tasksShowPageDescription }}
             </p>
         </div>
         <div class="mt-4 md:mt-0">
             <ol class="flex items-center whitespace-nowrap min-w-0">
                 <li class="text-[0.813rem] ps-[0.5rem]">
-                    <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('tasks.index') }}">
-                        Shared Workspace
+                    <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ $tasksShowBreadcrumbRootUrl }}">
+                        {{ $tasksShowBreadcrumbRootLabel }}
                         <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
                     </a>
                 </li>
                 <li class="text-[0.813rem] ps-[0.5rem]">
-                    <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('tasks.index') }}">
-                        Tasks
+                    <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route($taskRouteNames['index']) }}">
+                        {{ $tasksShowBreadcrumbIndexLabel }}
                         <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
                     </a>
                 </li>
                 <li class="text-[0.813rem] text-defaulttextcolor font-semibold dark:text-[#8c9097] dark:text-white/50" aria-current="page">
-                    Timeline
+                    {{ $tasksShowBreadcrumbCurrentLabel }}
                 </li>
             </ol>
         </div>
@@ -488,7 +504,7 @@
                             <span class="task-show-section-status">({{ $currentStatusLabel }})</span>
                         </h5>
                         <p class="text-xs text-[#8c9097] dark:text-white/50 mt-1">
-                            Summary, owner module, and available workflow actions stay on the left.
+                            {{ $tasksShowOverviewDescription }}
                         </p>
                     </div>
                     @if($subjectUrl)
@@ -559,8 +575,9 @@
                     @endif
 
                     @can('claim', $task)
-                        <form method="POST" action="{{ route('tasks.claim', $task->id) }}">
+                        <form method="POST" action="{{ route($taskRouteNames['claim'], $task->id) }}">
                             @csrf
+                            <input type="hidden" name="redirect_route_name" value="{{ $taskRouteNames['show'] }}">
                             <button type="submit" class="ti-btn ti-btn-primary w-full">Claim Task</button>
                         </form>
                     @endcan
@@ -573,7 +590,7 @@
                             </p>
 
                             <form method="POST"
-                                action="{{ route('tasks.status.update', $task->id) }}"
+                                action="{{ route($taskRouteNames['status.update'], $task->id) }}"
                                 class="space-y-2 js-task-status-form">
                                 @csrf
                                 <select name="status" class="ti-form-select w-full">
@@ -605,7 +622,7 @@
                             <div class="font-semibold text-defaulttextcolor dark:text-white mb-2">Reassign Task</div>
 
                             <form method="POST"
-                                action="{{ route('tasks.reassign', $task->id) }}"
+                                action="{{ route($taskRouteNames['reassign'], $task->id) }}"
                                 class="space-y-2 js-task-reassign-form">
                                 @csrf
 
@@ -632,7 +649,7 @@
                             <div class="font-semibold text-defaulttextcolor dark:text-white mb-2">Add Comment</div>
 
                             <form method="POST"
-                                action="{{ route('tasks.comment.store', $task->id) }}"
+                                action="{{ route($taskRouteNames['comment.store'], $task->id) }}"
                                 class="space-y-2 js-task-comment-form">
                                 @csrf
                                 <textarea name="note" rows="3" class="ti-form-input w-full" required

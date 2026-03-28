@@ -285,7 +285,7 @@
                 <div class="public-asset-brand-title">General Services Office - San Francisco, Quezon</div>
             </div>
         </div>
-        <a href="{{ route('landing') }}" class="ti-btn ti-btn-light !font-medium">Back to Home</a>
+        <a href="{{ route('gso.landing') }}" class="ti-btn ti-btn-light !font-medium">Back to Home</a>
     </header>
 
     <article class="asset-card">

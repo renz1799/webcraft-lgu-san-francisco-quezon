@@ -63,6 +63,8 @@ use App\Modules\GSO\Http\Controllers\RIS\RisItemController;
 use App\Modules\GSO\Http\Controllers\RIS\RisPrintController;
 use App\Modules\GSO\Http\Controllers\RIS\RisWorkflowController;
 use App\Modules\GSO\Http\Controllers\Stocks\StockController;
+use App\Modules\GSO\Http\Controllers\Tasks\GsoTaskActionController;
+use App\Modules\GSO\Http\Controllers\Tasks\GsoTaskController;
 use App\Modules\GSO\Http\Controllers\WMR\WmrController;
 use App\Modules\GSO\Http\Controllers\WMR\WmrItemController;
 use App\Modules\GSO\Http\Controllers\WMR\WmrPrintController;
@@ -103,13 +105,41 @@ Route::get('/asset/{code}/files/{file}/preview', function (string $code, string 
         'file' => $file,
     ]);
 })->whereUuid('file')->name('gso.public-assets.legacy.files.preview');
+Route::view('/gso', 'gso::public.landing')->name('gso.landing');
 
 Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::prefix('gso')
         ->as('gso.')
         ->middleware('module:gso')
         ->group(function () {
-            Route::get('/', GsoDashboardController::class)->name('dashboard');
+            Route::get('/dashboard', GsoDashboardController::class)->name('dashboard');
+            Route::get('/tasks', [GsoTaskController::class, 'index'])->name('tasks.index');
+            Route::get('/tasks/my', fn () => redirect()->route('gso.tasks.index', ['scope' => 'mine', 'archived' => 'active']))
+                ->name('tasks.my');
+            Route::get('/tasks/available', fn () => redirect()->route('gso.tasks.index', ['scope' => 'available', 'archived' => 'active']))
+                ->name('tasks.available');
+            Route::get('/tasks/data', [GsoTaskController::class, 'data'])->name('tasks.data');
+            Route::get('/tasks/{id}', [GsoTaskController::class, 'show'])
+                ->whereUuid('id')
+                ->name('tasks.show');
+            Route::post('/tasks/{id}/status', [GsoTaskActionController::class, 'changeStatus'])
+                ->whereUuid('id')
+                ->name('tasks.status.update');
+            Route::post('/tasks/{id}/comment', [GsoTaskActionController::class, 'comment'])
+                ->whereUuid('id')
+                ->name('tasks.comment.store');
+            Route::post('/tasks/{id}/reassign', [GsoTaskActionController::class, 'reassign'])
+                ->whereUuid('id')
+                ->name('tasks.reassign');
+            Route::post('/tasks/{id}/claim', [GsoTaskActionController::class, 'claim'])
+                ->whereUuid('id')
+                ->name('tasks.claim');
+            Route::delete('/tasks/{id}', [GsoTaskActionController::class, 'destroy'])
+                ->whereUuid('id')
+                ->name('tasks.destroy');
+            Route::patch('/tasks/{id}/restore', [GsoTaskActionController::class, 'restore'])
+                ->whereUuid('id')
+                ->name('tasks.restore');
 
             Route::middleware('role:Administrator|admin')->group(function () {
                 Route::get('/users/data', [UserAccessController::class, 'data'])->name('access.users.data');

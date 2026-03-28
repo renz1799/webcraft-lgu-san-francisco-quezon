@@ -32,15 +32,19 @@ class TaskReadService implements TaskReadServiceInterface
         private readonly UserTaskReassignOptionBuilderInterface $userTaskReassignOptionBuilder,
     ) {}
 
-    public function indexData(?User $actor): array
+    public function indexData(?User $actor, array|string|null $ownerModuleIds = null): array
     {
         $ownerModules = $this->ownerModulesForActor($actor);
-        $ownerModuleIds = $ownerModules
+        $availableOwnerModuleIds = $ownerModules
             ->pluck('id')
             ->map(fn ($moduleId) => (string) $moduleId)
             ->filter()
             ->values()
             ->all();
+        $ownerModuleIds = $this->scopedOwnerModuleIds($availableOwnerModuleIds, $ownerModuleIds);
+        $ownerModules = $ownerModules
+            ->filter(fn (Module $module) => in_array((string) $module->id, $ownerModuleIds, true))
+            ->values();
         $isAdministrator = $actor?->hasAnyRole(['Administrator', 'admin']) ?? false;
 
         $adminTaskStats = null;
@@ -64,9 +68,12 @@ class TaskReadService implements TaskReadServiceInterface
         ];
     }
 
-    public function datatable(User $actor, array $params): array
+    public function datatable(User $actor, array $params, array|string|null $ownerModuleIds = null): array
     {
-        $availableModuleIds = $this->ownerModuleIdsForActor($actor);
+        $availableModuleIds = $this->scopedOwnerModuleIds(
+            $this->ownerModuleIdsForActor($actor),
+            $ownerModuleIds
+        );
         $moduleIds = $this->requestedOwnerModuleIds($params, $availableModuleIds);
 
         if ($moduleIds === []) {
@@ -119,9 +126,12 @@ class TaskReadService implements TaskReadServiceInterface
         ];
     }
 
-    public function sidebarCounts(User $actor): array
+    public function sidebarCounts(User $actor, array|string|null $ownerModuleIds = null): array
     {
-        $moduleIds = $this->ownerModuleIdsForActor($actor);
+        $moduleIds = $this->scopedOwnerModuleIds(
+            $this->ownerModuleIdsForActor($actor),
+            $ownerModuleIds
+        );
 
         if ($moduleIds === []) {
             return [
@@ -198,6 +208,26 @@ class TaskReadService implements TaskReadServiceInterface
             ->filter()
             ->values()
             ->all();
+    }
+
+    private function scopedOwnerModuleIds(array $availableModuleIds, array|string|null $requestedModuleIds): array
+    {
+        if ($requestedModuleIds === null) {
+            return $availableModuleIds;
+        }
+
+        $requestedIds = collect(is_array($requestedModuleIds) ? $requestedModuleIds : [$requestedModuleIds])
+            ->map(fn ($moduleId) => trim((string) $moduleId))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($requestedIds === []) {
+            return [];
+        }
+
+        return array_values(array_intersect($availableModuleIds, $requestedIds));
     }
 
     private function requestedOwnerModuleIds(array $params, array $availableModuleIds): array

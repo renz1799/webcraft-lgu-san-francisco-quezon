@@ -46,8 +46,6 @@
       'currentModule' => $currentModule,
   ])
 
-  @include('layouts.components.sidebar.sections.shared')
-
   @if($moduleSidebarView)
     @include($moduleSidebarView)
   @endif

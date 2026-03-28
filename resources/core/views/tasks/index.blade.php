@@ -167,22 +167,43 @@
 @endsection
 
 @section('content')
+@php
+  $taskRouteNames = array_merge([
+    'index' => 'tasks.index',
+    'data' => 'tasks.data',
+    'show' => 'tasks.show',
+    'claim' => 'tasks.claim',
+    'destroy' => 'tasks.destroy',
+    'restore' => 'tasks.restore',
+  ], is_array($taskRouteNames ?? null) ? $taskRouteNames : []);
+  $tasksPageTitle = trim((string) ($tasksPageTitle ?? 'Work Queue')) ?: 'Work Queue';
+  $tasksPageDescription = trim((string) ($tasksPageDescription ?? 'Track assigned work, claimable tasks, and archived records from every accessible module in one shared queue.'))
+    ?: 'Track assigned work, claimable tasks, and archived records from every accessible module in one shared queue.';
+  $tasksBreadcrumbRootLabel = trim((string) ($tasksBreadcrumbRootLabel ?? 'Shared Workspace')) ?: 'Shared Workspace';
+  $tasksBreadcrumbRootUrl = trim((string) ($tasksBreadcrumbRootUrl ?? '')) ?: 'javascript:void(0);';
+  $tasksBreadcrumbLabel = trim((string) ($tasksBreadcrumbLabel ?? 'My Tasks')) ?: 'My Tasks';
+  $tasksQueueTitle = trim((string) ($tasksQueueTitle ?? 'Task Queue')) ?: 'Task Queue';
+  $tasksQueueDescription = trim((string) ($tasksQueueDescription ?? 'Tasks remain owned by their origin modules, but the inbox itself is shared across your accessible workflows.'))
+    ?: 'Tasks remain owned by their origin modules, but the inbox itself is shared across your accessible workflows.';
+  $tasksLockedModuleId = trim((string) ($tasksLockedModuleId ?? ''));
+  $tasksShowModuleFilter = isset($tasksShowModuleFilter) ? (bool) $tasksShowModuleFilter : $tasksLockedModuleId === '';
+@endphp
 <div class="block justify-between page-header md:flex">
   <div>
     <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
-      Work Queue
+      {{ $tasksPageTitle }}
     </h3>
-    <p class="text-[#8c9097] text-sm mt-1">Track assigned work, claimable tasks, and archived records from every accessible module in one shared queue.</p>
+    <p class="text-[#8c9097] text-sm mt-1">{{ $tasksPageDescription }}</p>
   </div>
   <ol class="flex items-center whitespace-nowrap min-w-0 mt-2 md:mt-0">
     <li class="text-[0.813rem] ps-[0.5rem]">
-      <a class="flex items-center text-primary hover:text-primary truncate" href="javascript:void(0);">
-        Shared Workspace
+      <a class="flex items-center text-primary hover:text-primary truncate" href="{{ $tasksBreadcrumbRootUrl }}">
+        {{ $tasksBreadcrumbRootLabel }}
         <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] px-[0.5rem] overflow-visible rtl:rotate-180"></i>
       </a>
     </li>
     <li class="text-[0.813rem] text-defaulttextcolor font-semibold" aria-current="page">
-      My Tasks
+      {{ $tasksBreadcrumbLabel }}
     </li>
   </ol>
 </div>
@@ -199,7 +220,7 @@
 @php($initialAssignedTo = request('assigned_to', ''))
 @php($initialDateFrom = request('date_from', ''))
 @php($initialDateTo = request('date_to', ''))
-@php($initialModuleId = request('module_id', ''))
+@php($initialModuleId = $tasksLockedModuleId !== '' ? $tasksLockedModuleId : request('module_id', ''))
 @php($taskOwnerModules = collect($ownerModules ?? []))
 @php($sidebarTaskCounts = is_array($taskCounts ?? null) ? $taskCounts : ['my' => 0, 'claimable' => 0])
 @php($adminTaskCards = is_array(data_get($adminTaskStats ?? null, 'cards')) ? data_get($adminTaskStats, 'cards') : [])
@@ -237,8 +258,8 @@
       <div class="box-header">
         <div class="tasks-header">
           <div>
-            <h5 class="box-title">Task Queue</h5>
-            <p class="text-[#8c9097] text-xs mt-1">Tasks remain owned by their origin modules, but the inbox itself is shared across your accessible workflows.</p>
+            <h5 class="box-title">{{ $tasksQueueTitle }}</h5>
+            <p class="text-[#8c9097] text-xs mt-1">{{ $tasksQueueDescription }}</p>
           </div>
 
           <div class="tasks-actions">
@@ -292,21 +313,25 @@
                     </select>
                   </div>
 
-                  <div>
-                    <label class="ti-form-label">Origin Module</label>
-                    <select id="tasks-module" class="ti-form-input w-full">
-                      <option value="" @selected($initialModuleId === '')>All accessible modules</option>
-                      @foreach($taskOwnerModules as $ownerModule)
-                        <option
-                          value="{{ (string) data_get($ownerModule, 'id') }}"
-                          @selected($initialModuleId === (string) data_get($ownerModule, 'id'))
-                        >
-                          {{ (string) data_get($ownerModule, 'name') }}
-                        </option>
-                      @endforeach
-                    </select>
-                    <div class="text-xs text-[#8c9097] mt-1">Tasks keep their owner module even though this queue is shared.</div>
-                  </div>
+                  @if($tasksShowModuleFilter)
+                    <div>
+                      <label class="ti-form-label">Origin Module</label>
+                      <select id="tasks-module" class="ti-form-input w-full">
+                        <option value="" @selected($initialModuleId === '')>All accessible modules</option>
+                        @foreach($taskOwnerModules as $ownerModule)
+                          <option
+                            value="{{ (string) data_get($ownerModule, 'id') }}"
+                            @selected($initialModuleId === (string) data_get($ownerModule, 'id'))
+                          >
+                            {{ (string) data_get($ownerModule, 'name') }}
+                          </option>
+                        @endforeach
+                      </select>
+                      <div class="text-xs text-[#8c9097] mt-1">Tasks keep their owner module even though this queue is shared.</div>
+                    </div>
+                  @else
+                    <input id="tasks-module" type="hidden" value="{{ $initialModuleId }}">
+                  @endif
 
                   <div>
                     <label class="ti-form-label">Status</label>
@@ -498,11 +523,11 @@
 
   <script>
     window.__tasks = {
-      ajaxUrl: @json(route('tasks.data')),
-      showUrlTemplate: @json(route('tasks.show', ['id' => '__ID__'])),
-      claimUrlTemplate: @json(route('tasks.claim', ['id' => '__ID__'])),
-      archiveUrlTemplate: @json(route('tasks.destroy', ['id' => '__ID__'])),
-      restoreUrlTemplate: @json(route('tasks.restore', ['id' => '__ID__'])),
+      ajaxUrl: @json(route($taskRouteNames['data'])),
+      showUrlTemplate: @json(route($taskRouteNames['show'], ['id' => '__ID__'])),
+      claimUrlTemplate: @json(route($taskRouteNames['claim'], ['id' => '__ID__'])),
+      archiveUrlTemplate: @json(route($taskRouteNames['destroy'], ['id' => '__ID__'])),
+      restoreUrlTemplate: @json(route($taskRouteNames['restore'], ['id' => '__ID__'])),
       csrf: @json(csrf_token()),
       canViewAll: @json((bool) $canViewAll),
       canArchive: @json((bool) $canArchive),

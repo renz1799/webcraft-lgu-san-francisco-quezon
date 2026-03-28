@@ -67,6 +67,8 @@ UI standards:
 - Frontend entry coordination through a thin global bootstrap plus module-owned JS entry registries
 - Module-owned reusable form helpers such as autocomplete plus modal-based resolve flows for document signatories
 - Module-owned document workflows such as AIR, RIS, PAR, ICS, PTR, ITR, and WMR staying inside the owning module while reusing shared Core standards
+- Module-owned public landings such as `/gso` and authenticated dashboards such as `/gso/dashboard` staying inside the owning module while still rendering through shared platform layouts when needed
+- Shared Core capabilities such as Tasks being surfaced through module-scoped routes/controllers when a module needs to preserve its own shell context while still reusing the Core backend
 
 Platform governance:
 - Core service rules

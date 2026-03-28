@@ -7,6 +7,10 @@
   $adminAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
   $canManageGsoAccess = $adminAuthorizer->canManageCurrentContextAccess($sidebarUser);
   $canViewGsoAuditLogs = $adminAuthorizer->canViewCurrentContextAuditLogs($sidebarUser);
+  $gsoSidebarTaskCounts = is_array($gsoTaskCounts ?? null) ? $gsoTaskCounts : [];
+  $canTasksMenu = $sidebarUser && $sidebarUser->hasAnyRole(['Administrator', 'admin', 'Staff']);
+  $canAllTasks = $sidebarUser
+      && ($sidebarUser->hasAnyRole(['Administrator', 'admin']) || $sidebarUser->can('view All Tasks'));
 @endphp
 
 <li class="slide has-sub">
@@ -20,11 +24,54 @@
     <li class="slide">
       <a href="{{ route('gso.dashboard') }}" class="side-menu__item">Dashboard</a>
     </li>
-    <li class="slide">
-      <a href="{{ route('gso.inspections.index') }}" class="side-menu__item">Inspections</a>
-    </li>
   </ul>
 </li>
+
+@if($canTasksMenu)
+  <li class="slide__category">
+    <span class="category-name">Tasks</span>
+  </li>
+
+  <li class="slide has-sub">
+    <a href="javascript:void(0);" class="side-menu__item">
+      <i class="bx bx-task side-menu__icon"></i>
+      <span class="side-menu__label">Tasks</span>
+      <i class="fe fe-chevron-right side-menu__angle"></i>
+    </a>
+
+    <ul class="slide-menu child1">
+      <li class="slide">
+        <a href="{{ route('gso.tasks.my') }}" class="side-menu__item">
+          My Tasks
+          @if(($gsoSidebarTaskCounts['my'] ?? 0) > 0)
+            <span class="text-success text-[0.75em] badge !py-[0.25rem] !px-[0.45rem] rounded-sm bg-success/10 ms-2">
+              {{ $gsoSidebarTaskCounts['my'] }}
+            </span>
+          @endif
+        </a>
+      </li>
+
+      <li class="slide">
+        <a href="{{ route('gso.tasks.available') }}" class="side-menu__item">
+          Available to Claim
+          @if(($gsoSidebarTaskCounts['claimable'] ?? 0) > 0)
+            <span class="text-success text-[0.75em] badge !py-[0.25rem] !px-[0.45rem] rounded-sm bg-success/10 ms-2">
+              {{ $gsoSidebarTaskCounts['claimable'] }}
+            </span>
+          @endif
+        </a>
+      </li>
+
+      @if($canAllTasks)
+        <li class="slide">
+          <a href="{{ route('gso.tasks.index', ['scope' => 'all', 'archived' => 'active']) }}" class="side-menu__item">
+            All Tasks
+          </a>
+        </li>
+      @endif
+    </ul>
+  </li>
+@endif
 
 <li class="slide__category">
   <span class="category-name">Documents</span>
