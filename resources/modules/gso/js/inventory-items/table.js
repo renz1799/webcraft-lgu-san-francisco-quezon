@@ -13,15 +13,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
     fn();
   }
 
-  function debounce(fn, wait = 350) {
-    let timer = null;
-
-    return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn(...args), wait);
-    };
-  }
-
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -39,6 +30,21 @@ import "sweetalert2/dist/sweetalert2.min.css";
     );
   }
 
+  function getFilters() {
+    if (typeof window.__gsoInventoryItemsGetParams === "function") {
+      return window.__gsoInventoryItemsGetParams() || {};
+    }
+
+    return {
+      search: "",
+      department_id: "",
+      classification: "",
+      custody_state: "",
+      inventory_status: "",
+      archived: "active",
+    };
+  }
+
   async function parseErrorResponse(response) {
     const contentType = response.headers.get("content-type") || "";
     const data = contentType.includes("application/json")
@@ -51,12 +57,12 @@ import "sweetalert2/dist/sweetalert2.min.css";
       (response.status === 401
         ? "Your session has expired. Please sign in again."
         : response.status === 403
-        ? "You do not have permission to manage inventory items."
-        : response.status === 419
-        ? "Your security token expired. Refresh the page and try again."
-        : response.status === 404
-        ? "The inventory item could not be found."
-        : "The request could not be completed.")
+          ? "You do not have permission to manage inventory items."
+          : response.status === 419
+            ? "Your security token expired. Refresh the page and try again."
+            : response.status === 404
+              ? "The inventory item could not be found."
+              : "The request could not be completed.")
     );
   }
 
@@ -72,23 +78,24 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
     const config = window.__gsoInventoryItems || {};
     const infoElement = document.getElementById("gso-inventory-items-info");
-    const searchInput = document.getElementById("gso-inventory-items-search");
-    const departmentFilter = document.getElementById("gso-inventory-items-department-filter");
-    const classificationFilter = document.getElementById("gso-inventory-items-classification-filter");
-    const custodyFilter = document.getElementById("gso-inventory-items-custody-filter");
-    const inventoryStatusFilter = document.getElementById("gso-inventory-items-status-filter");
-    const recordStatusFilter = document.getElementById("gso-inventory-items-record-status");
-    const clearButton = document.getElementById("gso-inventory-items-clear");
-    const batchPrintButton = document.getElementById("gso-inventory-items-batch-print");
 
-    let filters = {
-      search: "",
-      department_id: departmentFilter?.value || "",
-      classification: classificationFilter?.value || "",
-      custody_state: custodyFilter?.value || "",
-      inventory_status: inventoryStatusFilter?.value || "",
-      archived: recordStatusFilter?.value || "active",
-    };
+    if (!config.ajaxUrl) {
+      if (infoElement) {
+        infoElement.textContent = "Missing ajaxUrl.";
+      }
+      return;
+    }
+
+    if (
+      window.__gsoInventoryItemsTable &&
+      typeof window.__gsoInventoryItemsTable.destroy === "function"
+    ) {
+      try {
+        window.__gsoInventoryItemsTable.destroy();
+      } catch (_error) {}
+      window.__gsoInventoryItemsTable = null;
+    }
+
     let lastTotal = 0;
 
     function setInfo(text) {
@@ -99,7 +106,8 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
     function updateInfo(table) {
       if (lastTotal <= 0) {
-        setInfo("No records found");
+        const rowsCount = table.getDataCount ? table.getDataCount("active") : 0;
+        setInfo(rowsCount ? `Showing 1-${rowsCount} record(s)` : "No records found");
         return;
       }
 
@@ -108,16 +116,39 @@ import "sweetalert2/dist/sweetalert2.min.css";
       const start = (page - 1) * size + 1;
       const end = Math.min(start + size - 1, lastTotal);
 
+      if (start > lastTotal) {
+        setInfo(`Showing 0 of ${lastTotal} record(s)`);
+        return;
+      }
+
       setInfo(`Showing ${start}-${end} of ${lastTotal} record(s)`);
     }
 
-    function reload(table) {
-      if ((table.getPage?.() || 1) !== 1) {
+    function hardRefresh(table) {
+      if (typeof table.replaceData === "function") {
+        table.replaceData();
+        return;
+      }
+
+      table.setData(config.ajaxUrl, {
+        ...getFilters(),
+        page: table.getPage() || 1,
+        size: table.getPageSize ? table.getPageSize() || 15 : 15,
+      });
+    }
+
+    function reload(table, { resetPage = true } = {}) {
+      tableElement.classList.add("is-loading");
+      setInfo("Updating...");
+
+      const page = table.getPage() || 1;
+
+      if (resetPage && page !== 1) {
         table.setPage(1);
         return;
       }
 
-      table.setData();
+      hardRefresh(table);
     }
 
     const table = new Tabulator(tableElement, {
@@ -129,14 +160,15 @@ import "sweetalert2/dist/sweetalert2.min.css";
       paginationSizeSelector: [10, 20, 50, 100],
       ajaxURL: config.ajaxUrl,
       ajaxConfig: "GET",
+      ajaxLoader: false,
       paginationDataSent: { page: "page", size: "size" },
       paginationDataReceived: {
         last_page: "last_page",
         data: "data",
         total: "total",
       },
-      ajaxParams: () => ({ ...filters }),
-      ajaxResponse: (_, __, response) => {
+      ajaxParams: () => ({ ...getFilters() }),
+      ajaxResponse: (_url, _params, response) => {
         lastTotal = Number(response?.total ?? 0);
         return response?.data ?? [];
       },
@@ -194,10 +226,10 @@ import "sweetalert2/dist/sweetalert2.min.css";
               value === "serviceable"
                 ? "success"
                 : value === "unserviceable" || value === "disposed" || value === "lost"
-                ? "danger"
-                : value === "for_repair" || value === "under_repair"
-                ? "warning"
-                : "secondary";
+                  ? "danger"
+                  : value === "for_repair" || value === "under_repair"
+                    ? "warning"
+                    : "secondary";
 
             return pill(cell.getValue(), tone);
           },
@@ -324,62 +356,23 @@ import "sweetalert2/dist/sweetalert2.min.css";
       ],
     });
 
-    table.on("dataLoaded", () => updateInfo(table));
-    table.on("pageLoaded", () => updateInfo(table));
-
-    window.__gsoInventoryItemsReload = () => reload(table);
-
-    const applyFilters = debounce(() => {
-      filters.search = (searchInput?.value || "").trim();
-      filters.department_id = (departmentFilter?.value || "").trim();
-      filters.classification = (classificationFilter?.value || "").trim();
-      filters.custody_state = (custodyFilter?.value || "").trim();
-      filters.inventory_status = (inventoryStatusFilter?.value || "").trim();
-      filters.archived = (recordStatusFilter?.value || "active").trim();
-      reload(table);
+    window.__gsoInventoryItemsTable = table;
+    window.__gsoInventoryItemsReload = (options = {}) => reload(table, options);
+    window.__gsoInventoryItemsGetTableState = () => ({
+      page: table.getPage ? table.getPage() || 1 : 1,
+      size: table.getPageSize ? table.getPageSize() || 15 : 15,
     });
 
-    searchInput?.addEventListener("input", applyFilters);
-    departmentFilter?.addEventListener("change", applyFilters);
-    classificationFilter?.addEventListener("change", applyFilters);
-    custodyFilter?.addEventListener("change", applyFilters);
-    inventoryStatusFilter?.addEventListener("change", applyFilters);
-    recordStatusFilter?.addEventListener("change", applyFilters);
-    clearButton?.addEventListener("click", () => {
-      if (searchInput) searchInput.value = "";
-      if (departmentFilter) departmentFilter.value = "";
-      if (classificationFilter) classificationFilter.value = "";
-      if (custodyFilter) custodyFilter.value = "";
-      if (inventoryStatusFilter) inventoryStatusFilter.value = "";
-      if (recordStatusFilter) recordStatusFilter.value = "active";
-
-      filters = {
-        search: "",
-        department_id: "",
-        classification: "",
-        custody_state: "",
-        inventory_status: "",
-        archived: "active",
-      };
-      reload(table);
+    table.on("dataLoaded", function () {
+      tableElement.classList.remove("is-loading");
+      updateInfo(table);
     });
 
-    batchPrintButton?.addEventListener("click", () => {
-      if (!config.batchPropertyCardsUrl) return;
-
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== null && value !== undefined && String(value).trim() !== "") {
-          params.set(key, String(value));
-        }
-      });
-
-      params.set("page", String(table.getPage?.() || 1));
-      params.set("size", String(table.getPageSize?.() || 15));
-      params.set("preview", "1");
-
-      window.open(`${config.batchPropertyCardsUrl}?${params.toString()}`, "_blank", "noopener");
+    table.on("pageLoaded", function () {
+      updateInfo(table);
     });
+
+    setInfo("Loading...");
 
     document.addEventListener("click", async (event) => {
       const actionButton = event.target.closest('[data-action="delete"], [data-action="restore"]');

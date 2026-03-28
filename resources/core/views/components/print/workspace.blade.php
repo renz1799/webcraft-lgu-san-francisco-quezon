@@ -9,7 +9,7 @@
   data-print-workspace="1"
   style="--print-workspace-sidebar-width: {{ $sidebarWidth }}; --print-workspace-preview-width: {{ $previewWidth }}; --print-workspace-gap: {{ $gap }};"
 >
-  <aside class="print-workspace-sidebar">
+  <aside class="print-workspace-sidebar" data-print-workspace-sidebar="1">
     {{ $sidebar ?? '' }}
   </aside>
 

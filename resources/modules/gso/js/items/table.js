@@ -13,15 +13,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
     fn();
   }
 
-  function debounce(fn, wait = 350) {
-    let timer = null;
-
-    return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn(...args), wait);
-    };
-  }
-
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -37,6 +28,21 @@ import "sweetalert2/dist/sweetalert2.min.css";
       window.__gsoItems?.csrf ||
       ""
     );
+  }
+
+  function getFilters() {
+    if (typeof window.__gsoItemsGetParams === "function") {
+      return window.__gsoItemsGetParams() || {};
+    }
+
+    return {
+      search: "",
+      archived: "active",
+      asset_id: "",
+      tracking_type: "",
+      requires_serial: "",
+      is_semi_expendable: "",
+    };
   }
 
   async function parseErrorResponse(response) {
@@ -87,22 +93,21 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
     const config = window.__gsoItems || {};
     const infoElement = document.getElementById("gso-items-info");
-    const searchInput = document.getElementById("gso-items-search");
-    const statusSelect = document.getElementById("gso-items-status");
-    const assetFilterSelect = document.getElementById("gso-items-asset-filter");
-    const trackingFilterSelect = document.getElementById("gso-items-tracking-filter");
-    const serialFilterSelect = document.getElementById("gso-items-serial-filter");
-    const semiFilterSelect = document.getElementById("gso-items-semi-filter");
-    const clearButton = document.getElementById("gso-items-clear");
 
-    let filters = {
-      search: "",
-      archived: statusSelect?.value || "active",
-      asset_id: assetFilterSelect?.value || "",
-      tracking_type: trackingFilterSelect?.value || "",
-      requires_serial: serialFilterSelect?.value || "",
-      is_semi_expendable: semiFilterSelect?.value || "",
-    };
+    if (!config.ajaxUrl) {
+      if (infoElement) {
+        infoElement.textContent = "Missing ajaxUrl.";
+      }
+      return;
+    }
+
+    if (window.__gsoItemsTable && typeof window.__gsoItemsTable.destroy === "function") {
+      try {
+        window.__gsoItemsTable.destroy();
+      } catch (_error) {}
+      window.__gsoItemsTable = null;
+    }
+
     let lastTotal = 0;
 
     function setInfo(text) {
@@ -113,7 +118,8 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
     function updateInfo(table) {
       if (lastTotal <= 0) {
-        setInfo("No records found");
+        const rowsCount = table.getDataCount ? table.getDataCount("active") : 0;
+        setInfo(rowsCount ? `Showing 1-${rowsCount} record(s)` : "No records found");
         return;
       }
 
@@ -122,16 +128,39 @@ import "sweetalert2/dist/sweetalert2.min.css";
       const start = (page - 1) * size + 1;
       const end = Math.min(start + size - 1, lastTotal);
 
+      if (start > lastTotal) {
+        setInfo(`Showing 0 of ${lastTotal} record(s)`);
+        return;
+      }
+
       setInfo(`Showing ${start}-${end} of ${lastTotal} record(s)`);
     }
 
-    function reload(table) {
-      if ((table.getPage?.() || 1) !== 1) {
+    function hardRefresh(table) {
+      if (typeof table.replaceData === "function") {
+        table.replaceData();
+        return;
+      }
+
+      table.setData(config.ajaxUrl, {
+        ...getFilters(),
+        page: table.getPage() || 1,
+        size: table.getPageSize ? table.getPageSize() || 15 : 15,
+      });
+    }
+
+    function reload(table, { resetPage = true } = {}) {
+      tableElement.classList.add("is-loading");
+      setInfo("Updating...");
+
+      const page = table.getPage() || 1;
+
+      if (resetPage && page !== 1) {
         table.setPage(1);
         return;
       }
 
-      table.setData();
+      hardRefresh(table);
     }
 
     const table = new Tabulator(tableElement, {
@@ -143,14 +172,15 @@ import "sweetalert2/dist/sweetalert2.min.css";
       paginationSizeSelector: [10, 20, 50, 100],
       ajaxURL: config.ajaxUrl,
       ajaxConfig: "GET",
+      ajaxLoader: false,
       paginationDataSent: { page: "page", size: "size" },
       paginationDataReceived: {
         last_page: "last_page",
         data: "data",
         total: "total",
       },
-      ajaxParams: () => ({ ...filters }),
-      ajaxResponse: (_, __, response) => {
+      ajaxParams: () => ({ ...getFilters() }),
+      ajaxResponse: (_url, _params, response) => {
         lastTotal = Number(response?.total ?? 0);
         return response?.data ?? [];
       },
@@ -248,45 +278,19 @@ import "sweetalert2/dist/sweetalert2.min.css";
       ],
     });
 
-    table.on("dataLoaded", () => updateInfo(table));
-    table.on("pageLoaded", () => updateInfo(table));
+    window.__gsoItemsTable = table;
+    window.__gsoItemsReload = (options = {}) => reload(table, options);
 
-    window.__gsoItemsReload = () => reload(table);
-
-    const applyFilters = debounce(() => {
-      filters.search = (searchInput?.value || "").trim();
-      filters.archived = (statusSelect?.value || "active").trim();
-      filters.asset_id = (assetFilterSelect?.value || "").trim();
-      filters.tracking_type = (trackingFilterSelect?.value || "").trim();
-      filters.requires_serial = (serialFilterSelect?.value || "").trim();
-      filters.is_semi_expendable = (semiFilterSelect?.value || "").trim();
-      reload(table);
+    table.on("dataLoaded", function () {
+      tableElement.classList.remove("is-loading");
+      updateInfo(table);
     });
 
-    searchInput?.addEventListener("input", applyFilters);
-    statusSelect?.addEventListener("change", applyFilters);
-    assetFilterSelect?.addEventListener("change", applyFilters);
-    trackingFilterSelect?.addEventListener("change", applyFilters);
-    serialFilterSelect?.addEventListener("change", applyFilters);
-    semiFilterSelect?.addEventListener("change", applyFilters);
-    clearButton?.addEventListener("click", () => {
-      if (searchInput) searchInput.value = "";
-      if (statusSelect) statusSelect.value = "active";
-      if (assetFilterSelect) assetFilterSelect.value = "";
-      if (trackingFilterSelect) trackingFilterSelect.value = "";
-      if (serialFilterSelect) serialFilterSelect.value = "";
-      if (semiFilterSelect) semiFilterSelect.value = "";
-
-      filters = {
-        search: "",
-        archived: "active",
-        asset_id: "",
-        tracking_type: "",
-        requires_serial: "",
-        is_semi_expendable: "",
-      };
-      reload(table);
+    table.on("pageLoaded", function () {
+      updateInfo(table);
     });
+
+    setInfo("Loading...");
 
     document.addEventListener("click", async (event) => {
       const actionButton = event.target.closest('[data-action="delete"], [data-action="restore"]');
@@ -300,9 +304,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
       const confirmation = await Swal.fire({
         icon: isRestore ? "question" : "warning",
         title: isRestore ? "Restore item?" : "Archive item?",
-        text: isRestore
-          ? "This will restore the item."
-          : "This will archive the item.",
+        text: isRestore ? "This will restore the item." : "This will archive the item.",
         showCancelButton: true,
         confirmButtonText: isRestore ? "Restore" : "Archive",
         cancelButtonText: "Cancel",

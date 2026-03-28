@@ -160,6 +160,13 @@ async function downloadPdf(url, messages, fallbackFilename) {
 async function refreshPreview(form, config) {
   const workspace = form.closest("[data-print-workspace]");
   const submitButton = form.querySelector('button[type="submit"]');
+  const currentPreview = workspace?.querySelector("[data-print-workspace-preview]");
+  const currentSidebarScroller =
+    workspace?.querySelector(".core-print-sidebar__form") ||
+    workspace?.querySelector("[data-print-workspace-sidebar]");
+  const previewScrollTop = currentPreview?.scrollTop ?? 0;
+  const previewScrollLeft = currentPreview?.scrollLeft ?? 0;
+  const sidebarScrollTop = currentSidebarScroller?.scrollTop ?? 0;
   const restoreState = setBusyState(
     workspace,
     submitButton,
@@ -193,10 +200,22 @@ async function refreshPreview(form, config) {
     currentWorkspace.replaceWith(nextWorkspace);
     window.history.replaceState({}, "", url);
 
+    const nextPreview = nextWorkspace.querySelector("[data-print-workspace-preview]");
+    const nextSidebarScroller =
+      nextWorkspace.querySelector(".core-print-sidebar__form") ||
+      nextWorkspace.querySelector("[data-print-workspace-sidebar]");
+
+    if (nextPreview) {
+      nextPreview.scrollTop = previewScrollTop;
+      nextPreview.scrollLeft = previewScrollLeft;
+    }
+
+    if (nextSidebarScroller) {
+      nextSidebarScroller.scrollTop = sidebarScrollTop;
+    }
+
     if (window.matchMedia("(max-width: 1180px)").matches) {
-      nextWorkspace
-        .querySelector("[data-print-workspace-preview]")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      nextPreview?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
     initPrintWorkspaceController(config);

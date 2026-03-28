@@ -2,16 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Modules\GSO\Models\InventoryItem;
-use App\Modules\GSO\Repositories\Contracts\InventoryItemRepositoryInterface;
-use App\Modules\GSO\Services\Contracts\InventoryItemCardPrintServiceInterface;
+use App\Modules\GSO\Services\Contracts\PropertyCardsReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RegspiReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RspiReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RrspReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RpcppeReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RpcspReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\StockServiceInterface;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Mockery;
 use Tests\TestCase;
 
@@ -835,49 +832,94 @@ class GsoInventoryReportRouteTest extends TestCase
         $response->assertSee('open its Appendix 58 stock card preview');
     }
 
-    public function test_batch_property_card_route_renders_cards_for_the_current_page(): void
+    public function test_legacy_property_cards_route_redirects_to_canonical_gso_path(): void
     {
         $this->withoutMiddleware();
 
-        $inventoryItem = new InventoryItem();
-        $inventoryItem->id = 'inventory-1';
+        $response = $this->get('/inventory-items/property-cards/print?preview=1&page=2&size=8');
 
-        $repository = Mockery::mock(InventoryItemRepositoryInterface::class);
-        $repository->shouldReceive('paginateForTable')
-            ->once()
-            ->andReturn(new LengthAwarePaginator(
-                collect([$inventoryItem]),
-                1,
-                15,
-                1,
-                ['path' => route('gso.inventory-items.property-cards.print-batch')]
-            ));
+        $response->assertRedirect(route('gso.reports.property-cards.print', [
+            'preview' => 1,
+            'page' => 2,
+            'size' => 8,
+        ]));
+    }
 
-        $printer = Mockery::mock(InventoryItemCardPrintServiceInterface::class);
-        $printer->shouldReceive('getPropertyCardPrintPayload')
+    public function test_canonical_property_cards_route_renders_the_new_report_view(): void
+    {
+        $this->withoutMiddleware();
+
+        $service = Mockery::mock(PropertyCardsReportServiceInterface::class);
+        $service->shouldReceive('getPrintViewData')
             ->once()
             ->andReturn([
-                'view' => 'gso::property-cards.pc-print',
-                'data' => [
-                    'card' => [
-                        'reference' => 'PROP-001',
-                        'property_name' => 'Laptop Computer',
-                        'fund' => 'General Fund',
-                        'description' => 'Dell Latitude',
-                        'starting_balance_qty' => 0,
+                'report' => [
+                    'title' => 'Property Cards',
+                    'document' => [
+                        'filters' => [
+                            'department' => 'GSO - General Services Office',
+                            'fund_source' => 'GF-001 - General Appropriation',
+                        ],
+                        'summary' => [
+                            'total_matching' => 1,
+                            'cards_in_batch' => 1,
+                            'source_page' => 1,
+                            'source_page_size' => 12,
+                            'ppe_cards' => 1,
+                            'ics_cards' => 0,
+                        ],
                     ],
-                    'entries' => [],
-                    'maxGridRows' => 18,
+                    'cards' => [[
+                        'type' => 'pc',
+                        'inventory_item_id' => 'inventory-1',
+                        'card' => [
+                            'reference' => 'PROP-001',
+                            'property_name' => 'Laptop Computer',
+                            'fund' => 'General Fund',
+                            'description' => 'Dell Latitude',
+                            'starting_balance_qty' => 0,
+                        ],
+                        'entries' => [],
+                        'maxGridRows' => 18,
+                    ]],
+                ],
+                'paperProfile' => [
+                    'code' => 'a4-landscape',
+                    'width' => '297mm',
+                    'height' => '210mm',
+                    'preview_width' => '297mm',
+                    'pages_view' => 'gso::reports.property-cards.print.paper.a4-landscape.pages',
+                    'styles_view' => 'gso::reports.property-cards.print.paper.a4-landscape.styles',
+                    'pdf_styles_view' => 'gso::reports.property-cards.print.paper.a4-landscape.pdf-styles',
+                ],
+                'available_funds' => [
+                    ['id' => 'fund-1', 'label' => 'GF-001 - General Appropriation'],
+                ],
+                'available_departments' => [
+                    ['id' => 'dept-1', 'label' => 'GSO - General Services Office'],
+                ],
+                'available_items' => [
+                    ['id' => 'item-1', 'label' => 'Laptop Computer'],
+                ],
+                'classification_options' => [
+                    'ppe' => 'PPE',
+                    'ics' => 'ICS',
+                ],
+                'custody_options' => [],
+                'inventory_status_options' => [],
+                'record_status_options' => [
+                    'active' => 'Active',
+                    'archived' => 'Archived',
+                    'all' => 'All',
                 ],
             ]);
 
-        $this->app->instance(InventoryItemRepositoryInterface::class, $repository);
-        $this->app->instance(InventoryItemCardPrintServiceInterface::class, $printer);
+        $this->app->instance(PropertyCardsReportServiceInterface::class, $service);
 
-        $response = $this->get(route('gso.inventory-items.property-cards.print-batch', ['preview' => 1]));
+        $response = $this->get(route('gso.reports.property-cards.print', ['preview' => 1]));
 
         $response->assertOk();
-        $response->assertSee('Property Cards Batch Print');
+        $response->assertSee('Property Cards');
         $response->assertSee('Laptop Computer');
         $response->assertSee('General Fund');
     }

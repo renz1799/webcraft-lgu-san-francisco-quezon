@@ -8,20 +8,8 @@
 @section('styles')
     <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
     <style>
-        .gso-reference-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            width: 100%;
-        }
-
-        .gso-reference-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
+        .box-header {
+            overflow: visible !important;
         }
 
         .gso-item-modal-grid {
@@ -89,6 +77,12 @@
                 <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
             </a>
         </li>
+        <li class="text-[0.813rem] ps-[0.5rem]">
+            <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('gso.inventory.index') }}">
+                Inventory
+                <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
+            </a>
+        </li>
         <li class="text-[0.813rem] text-defaulttextcolor font-semibold dark:text-white/50" aria-current="page">
             Items
         </li>
@@ -97,47 +91,91 @@
 
 <div class="box">
     <div class="box-header">
-        <div class="gso-reference-toolbar">
+        <div class="datatable-toolbar">
             <h5 class="box-title">Item Catalog</h5>
 
-            <div class="gso-reference-actions">
-                <input
-                    id="gso-items-search"
-                    type="text"
-                    class="form-control w-[260px] !rounded-md"
-                    placeholder="Search item, asset, or identification..."
-                />
+            <div class="datatable-toolbar-actions">
+                <input id="gso-items-search" type="text" class="form-control !w-[320px] !rounded-md" placeholder="Search item, asset, or identification...">
 
-                <select id="gso-items-asset-filter" class="form-control w-[240px] !rounded-md">
-                    <option value="">All Asset Categories</option>
-                    @foreach($assetCategories as $assetCategory)
-                        <option value="{{ $assetCategory->id }}">{{ $assetCategory->asset_code }} - {{ $assetCategory->asset_name }}</option>
-                    @endforeach
-                </select>
+                <div class="relative shrink-0">
+                    <button id="gso-items-more-btn" type="button" class="ti-btn ti-btn-light">
+                        More Filters
+                        <span id="gso-items-adv-count"
+                            class="hidden ms-2 inline-flex items-center justify-center text-[10px] leading-none px-2 py-1 rounded-full bg-primary/10 text-primary">
+                            0
+                        </span>
+                        <i class="ri-arrow-down-s-line ms-1"></i>
+                    </button>
 
-                <select id="gso-items-tracking-filter" class="form-control w-[180px] !rounded-md">
-                    <option value="">All Tracking Types</option>
-                    <option value="property">Property</option>
-                    <option value="consumable">Consumable</option>
-                </select>
+                    <div id="gso-items-more-panel"
+                        class="hidden absolute right-0 mt-2 w-[380px] z-[9999] rounded-md border border-defaultborder bg-white dark:bg-bodybg shadow-lg">
 
-                <select id="gso-items-serial-filter" class="form-control w-[160px] !rounded-md">
-                    <option value="">All Serial Modes</option>
-                    <option value="1">Requires Serial</option>
-                    <option value="0">No Serial</option>
-                </select>
+                        <div class="p-3 border-b border-defaultborder flex items-center justify-between">
+                            <div class="text-sm font-semibold text-defaulttextcolor dark:text-white">Advanced Filters</div>
+                            <button id="gso-items-more-close" type="button" class="ti-btn ti-btn-sm ti-btn-light">
+                                <i class="ri-close-line"></i>
+                            </button>
+                        </div>
 
-                <select id="gso-items-semi-filter" class="form-control w-[180px] !rounded-md">
-                    <option value="">All Item Classes</option>
-                    <option value="1">Semi-Expendable</option>
-                    <option value="0">Not Semi-Expendable</option>
-                </select>
+                        <div class="p-3 space-y-3">
+                            <div>
+                                <label class="ti-form-label">Asset Category</label>
+                                <select id="gso-items-asset-filter" class="ti-form-input w-full">
+                                    <option value="">All Asset Categories</option>
+                                    @foreach($assetCategories as $assetCategory)
+                                        <option value="{{ $assetCategory->id }}">{{ $assetCategory->asset_code }} - {{ $assetCategory->asset_name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="text-xs text-[#8c9097] mt-1">Limit the table to one asset classification.</div>
+                            </div>
 
-                <select id="gso-items-status" class="form-control w-[160px] !rounded-md">
-                    <option value="active">Active</option>
-                    <option value="archived">Archived</option>
-                    <option value="all">All</option>
-                </select>
+                            <div>
+                                <label class="ti-form-label">Tracking Type</label>
+                                <select id="gso-items-tracking-filter" class="ti-form-input w-full">
+                                    <option value="">All Tracking Types</option>
+                                    <option value="property">Property</option>
+                                    <option value="consumable">Consumable</option>
+                                </select>
+                                <div class="text-xs text-[#8c9097] mt-1">Filter between property and consumable items.</div>
+                            </div>
+
+                            <div>
+                                <label class="ti-form-label">Serial Mode</label>
+                                <select id="gso-items-serial-filter" class="ti-form-input w-full">
+                                    <option value="">All Serial Modes</option>
+                                    <option value="1">Requires Serial</option>
+                                    <option value="0">No Serial</option>
+                                </select>
+                                <div class="text-xs text-[#8c9097] mt-1">Show only items that require serial numbers or items that do not.</div>
+                            </div>
+
+                            <div>
+                                <label class="ti-form-label">Item Class</label>
+                                <select id="gso-items-semi-filter" class="ti-form-input w-full">
+                                    <option value="">All Item Classes</option>
+                                    <option value="1">Semi-Expendable</option>
+                                    <option value="0">Not Semi-Expendable</option>
+                                </select>
+                                <div class="text-xs text-[#8c9097] mt-1">Filter semi-expendable items separately from the rest of the catalog.</div>
+                            </div>
+
+                            <div>
+                                <label class="ti-form-label">Status</label>
+                                <select id="gso-items-status" class="ti-form-input w-full">
+                                    <option value="active">Active</option>
+                                    <option value="archived">Archived</option>
+                                    <option value="all">All</option>
+                                </select>
+                                <div class="text-xs text-[#8c9097] mt-1">Switch between active, archived, and all records.</div>
+                            </div>
+                        </div>
+
+                        <div class="p-3 border-t border-defaultborder flex items-center justify-end gap-2">
+                            <button id="gso-items-adv-reset" type="button" class="ti-btn ti-btn-light">Reset</button>
+                            <button id="gso-items-adv-apply" type="button" class="ti-btn ti-btn-primary">Apply</button>
+                        </div>
+                    </div>
+                </div>
 
                 <button id="gso-items-clear" type="button" class="ti-btn ti-btn-light">
                     Clear
@@ -247,15 +285,9 @@
                                     <input id="gsoItemSemiExpendable" type="checkbox" class="form-check-input">
                                     <span>Semi-Expendable</span>
                                 </label>
-
-                                <label class="inline-flex items-center gap-2 text-sm text-defaulttextcolor">
-                                    <input id="gsoItemIsSelected" type="checkbox" class="form-check-input">
-                                    <span>Selected by Default</span>
-                                </label>
                             </div>
                             <div id="gsoItemRequiresSerialErr" class="text-xs text-danger mt-1 hidden"></div>
                             <div id="gsoItemSemiExpendableErr" class="text-xs text-danger mt-1 hidden"></div>
-                            <div id="gsoItemIsSelectedErr" class="text-xs text-danger mt-1 hidden"></div>
                         </div>
                     </div>
 

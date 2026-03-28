@@ -33,7 +33,6 @@ use App\Modules\GSO\Http\Controllers\Inspections\InspectionActionController;
 use App\Modules\GSO\Http\Controllers\Inspections\InspectionController;
 use App\Modules\GSO\Http\Controllers\Inspections\InspectionPhotoController;
 use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemActionController;
-use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemBatchPropertyCardController;
 use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemController;
 use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemEventController;
 use App\Modules\GSO\Http\Controllers\InventoryItems\InventoryItemFileController;
@@ -54,6 +53,7 @@ use App\Modules\GSO\Http\Controllers\PTR\PtrItemController;
 use App\Modules\GSO\Http\Controllers\PTR\PtrPrintController;
 use App\Modules\GSO\Http\Controllers\PTR\PtrWorkflowController;
 use App\Modules\GSO\Http\Controllers\Reports\RegspiReportController;
+use App\Modules\GSO\Http\Controllers\Reports\PropertyCardsReportController;
 use App\Modules\GSO\Http\Controllers\Reports\RspiReportController;
 use App\Modules\GSO\Http\Controllers\Reports\RrspReportController;
 use App\Modules\GSO\Http\Controllers\Reports\RpcppeReportController;
@@ -330,36 +330,80 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::put('/air/{air}/inspection/items/{airItem}/units/{unit}/files/{file}/primary', [AirInspectionUnitFileController::class, 'setPrimary'])
                 ->whereUuid(['air', 'airItem', 'unit', 'file'])
                 ->name('air.inspection.unit-files.set-primary');
-            Route::get('/items', [ItemController::class, 'index'])->name('items.index');
-            Route::get('/items/data', [ItemController::class, 'data'])->name('items.data');
-            Route::get('/items/{item}', [ItemActionController::class, 'show'])->whereUuid('item')->name('items.show');
-            Route::post('/items', [ItemActionController::class, 'store'])->name('items.store');
-            Route::put('/items/{item}', [ItemActionController::class, 'update'])->whereUuid('item')->name('items.update');
-            Route::delete('/items/{item}', [ItemActionController::class, 'destroy'])->whereUuid('item')->name('items.destroy');
-            Route::patch('/items/{item}/restore', [ItemActionController::class, 'restore'])->whereUuid('item')->name('items.restore');
-            Route::get('/inventory-items', [InventoryItemController::class, 'index'])->name('inventory-items.index');
-            Route::get('/inventory-items/data', [InventoryItemController::class, 'data'])->name('inventory-items.data');
-            Route::get('/inventory-items/{inventoryItem}', [InventoryItemActionController::class, 'show'])->whereUuid('inventoryItem')->name('inventory-items.show');
-            Route::post('/inventory-items', [InventoryItemActionController::class, 'store'])->name('inventory-items.store');
-            Route::put('/inventory-items/{inventoryItem}', [InventoryItemActionController::class, 'update'])->whereUuid('inventoryItem')->name('inventory-items.update');
-            Route::delete('/inventory-items/{inventoryItem}', [InventoryItemActionController::class, 'destroy'])->whereUuid('inventoryItem')->name('inventory-items.destroy');
-            Route::patch('/inventory-items/{inventoryItem}/restore', [InventoryItemActionController::class, 'restore'])->whereUuid('inventoryItem')->name('inventory-items.restore');
-            Route::get('/inventory-items/{inventoryItem}/files', [InventoryItemFileController::class, 'index'])->whereUuid('inventoryItem')->name('inventory-items.files.index');
-            Route::post('/inventory-items/{inventoryItem}/files', [InventoryItemFileController::class, 'store'])->whereUuid('inventoryItem')->name('inventory-items.files.store');
-            Route::post('/inventory-items/{inventoryItem}/files/import-inspection', [InventoryItemFileController::class, 'importInspection'])->whereUuid('inventoryItem')->name('inventory-items.files.import-inspection');
+            Route::prefix('inventory/items')
+                ->as('items.')
+                ->group(function () {
+                    Route::get('/', [ItemController::class, 'index'])->name('index');
+                    Route::get('/data', [ItemController::class, 'data'])->name('data');
+                    Route::get('/{item}', [ItemActionController::class, 'show'])->whereUuid('item')->name('show');
+                    Route::post('/', [ItemActionController::class, 'store'])->name('store');
+                    Route::put('/{item}', [ItemActionController::class, 'update'])->whereUuid('item')->name('update');
+                    Route::delete('/{item}', [ItemActionController::class, 'destroy'])->whereUuid('item')->name('destroy');
+                    Route::patch('/{item}/restore', [ItemActionController::class, 'restore'])->whereUuid('item')->name('restore');
+                });
+            Route::get('/items', fn () => redirect()->route('gso.items.index', request()->query()))
+                ->name('legacy.items.index');
+            Route::get('/items/data', [ItemController::class, 'data']);
+            Route::get('/items/{item}', [ItemActionController::class, 'show'])->whereUuid('item');
+            Route::post('/items', [ItemActionController::class, 'store']);
+            Route::put('/items/{item}', [ItemActionController::class, 'update'])->whereUuid('item');
+            Route::delete('/items/{item}', [ItemActionController::class, 'destroy'])->whereUuid('item');
+            Route::patch('/items/{item}/restore', [ItemActionController::class, 'restore'])->whereUuid('item');
+            Route::prefix('inventory/inventory-items')
+                ->as('inventory-items.')
+                ->group(function () {
+                    Route::get('/', [InventoryItemController::class, 'index'])->name('index');
+                    Route::get('/data', [InventoryItemController::class, 'data'])->name('data');
+                    Route::get('/{inventoryItem}', [InventoryItemActionController::class, 'show'])->whereUuid('inventoryItem')->name('show');
+                    Route::post('/', [InventoryItemActionController::class, 'store'])->name('store');
+                    Route::put('/{inventoryItem}', [InventoryItemActionController::class, 'update'])->whereUuid('inventoryItem')->name('update');
+                    Route::delete('/{inventoryItem}', [InventoryItemActionController::class, 'destroy'])->whereUuid('inventoryItem')->name('destroy');
+                    Route::patch('/{inventoryItem}/restore', [InventoryItemActionController::class, 'restore'])->whereUuid('inventoryItem')->name('restore');
+                    Route::get('/{inventoryItem}/files', [InventoryItemFileController::class, 'index'])->whereUuid('inventoryItem')->name('files.index');
+                    Route::post('/{inventoryItem}/files', [InventoryItemFileController::class, 'store'])->whereUuid('inventoryItem')->name('files.store');
+                    Route::post('/{inventoryItem}/files/import-inspection', [InventoryItemFileController::class, 'importInspection'])->whereUuid('inventoryItem')->name('files.import-inspection');
+                    Route::get('/{inventoryItem}/files/{file}/preview', [InventoryItemFileController::class, 'preview'])
+                        ->whereUuid(['inventoryItem', 'file'])
+                        ->name('files.preview');
+                    Route::delete('/{inventoryItem}/files/{file}', [InventoryItemFileController::class, 'destroy'])
+                        ->whereUuid(['inventoryItem', 'file'])
+                        ->name('files.destroy');
+                    Route::get('/{inventoryItem}/events', [InventoryItemEventController::class, 'index'])->whereUuid('inventoryItem')->name('events.index');
+                    Route::post('/{inventoryItem}/events', [InventoryItemEventController::class, 'store'])->whereUuid('inventoryItem')->name('events.store');
+                    Route::get('/{inventoryItem}/property-card/print', [InventoryItemPropertyCardController::class, 'print'])
+                        ->whereUuid('inventoryItem')
+                        ->name('property-card.print');
+                    Route::get('/property-cards/print', function () {
+                        return redirect()->route('gso.reports.property-cards.print', request()->query());
+                    })
+                        ->name('property-cards.print-batch');
+                });
+            Route::get('/inventory-items', fn () => redirect()->route('gso.inventory-items.index', request()->query()))
+                ->name('legacy.inventory-items.index');
+            Route::get('/inventory-items/data', [InventoryItemController::class, 'data']);
+            Route::get('/inventory-items/{inventoryItem}', [InventoryItemActionController::class, 'show'])->whereUuid('inventoryItem');
+            Route::post('/inventory-items', [InventoryItemActionController::class, 'store']);
+            Route::put('/inventory-items/{inventoryItem}', [InventoryItemActionController::class, 'update'])->whereUuid('inventoryItem');
+            Route::delete('/inventory-items/{inventoryItem}', [InventoryItemActionController::class, 'destroy'])->whereUuid('inventoryItem');
+            Route::patch('/inventory-items/{inventoryItem}/restore', [InventoryItemActionController::class, 'restore'])->whereUuid('inventoryItem');
+            Route::get('/inventory-items/{inventoryItem}/files', [InventoryItemFileController::class, 'index'])->whereUuid('inventoryItem');
+            Route::post('/inventory-items/{inventoryItem}/files', [InventoryItemFileController::class, 'store'])->whereUuid('inventoryItem');
+            Route::post('/inventory-items/{inventoryItem}/files/import-inspection', [InventoryItemFileController::class, 'importInspection'])->whereUuid('inventoryItem');
             Route::get('/inventory-items/{inventoryItem}/files/{file}/preview', [InventoryItemFileController::class, 'preview'])
-                ->whereUuid(['inventoryItem', 'file'])
-                ->name('inventory-items.files.preview');
+                ->whereUuid(['inventoryItem', 'file']);
             Route::delete('/inventory-items/{inventoryItem}/files/{file}', [InventoryItemFileController::class, 'destroy'])
-                ->whereUuid(['inventoryItem', 'file'])
-                ->name('inventory-items.files.destroy');
-            Route::get('/inventory-items/{inventoryItem}/events', [InventoryItemEventController::class, 'index'])->whereUuid('inventoryItem')->name('inventory-items.events.index');
-            Route::post('/inventory-items/{inventoryItem}/events', [InventoryItemEventController::class, 'store'])->whereUuid('inventoryItem')->name('inventory-items.events.store');
+                ->whereUuid(['inventoryItem', 'file']);
+            Route::get('/inventory-items/{inventoryItem}/events', [InventoryItemEventController::class, 'index'])->whereUuid('inventoryItem');
+            Route::post('/inventory-items/{inventoryItem}/events', [InventoryItemEventController::class, 'store'])->whereUuid('inventoryItem');
             Route::get('/inventory-items/{inventoryItem}/property-card/print', [InventoryItemPropertyCardController::class, 'print'])
-                ->whereUuid('inventoryItem')
-                ->name('inventory-items.property-card.print');
-            Route::get('/inventory-items/property-cards/print', [InventoryItemBatchPropertyCardController::class, 'print'])
-                ->name('inventory-items.property-cards.print-batch');
+                ->whereUuid('inventoryItem');
+            Route::get('/inventory-items/property-cards/print', function () {
+                return redirect()->route('gso.reports.property-cards.print', request()->query());
+            });
+            Route::get('/reports/property-cards/print', [PropertyCardsReportController::class, 'print'])
+                ->name('reports.property-cards.print');
+            Route::get('/reports/property-cards/print/pdf', [PropertyCardsReportController::class, 'downloadPdf'])
+                ->name('reports.property-cards.print.pdf');
             Route::get('/reports/regspi/print', [RegspiReportController::class, 'print'])
                 ->name('reports.regspi.print');
             Route::get('/reports/regspi/print/pdf', [RegspiReportController::class, 'downloadPdf'])
@@ -406,13 +450,25 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::get('/reports', fn () => app(GsoWorkspaceController::class)->show('reports'))
                 ->name('reports.index');
             Route::get('/reports/{page}', function (string $page) {
+                if ($page === 'property-cards') {
+                    return redirect()->route('gso.reports.property-cards.print', ['preview' => 1] + request()->query());
+                }
+
                 if ($page === 'stock-card') {
                     return redirect()->route('gso.stocks.index', ['view' => 'stock-cards'] + request()->query());
                 }
 
                 return app(GsoWorkspaceController::class)->show('reports-'.$page);
-            })->whereIn('page', ['rpci', 'rpcppe', 'rpcsp', 'regspi', 'rspi', 'rrsp', 'ssmi', 'stock-card'])
+            })->whereIn('page', ['rpci', 'rpcppe', 'rpcsp', 'regspi', 'rspi', 'rrsp', 'ssmi', 'property-cards', 'stock-card'])
                 ->name('reports.show');
+            Route::get('/inventory', fn () => app(GsoWorkspaceController::class)->show('inventory'))
+                ->name('inventory.index');
+            Route::get('/inventory/{page}', function (string $page) {
+                return match ($page) {
+                    'stocks-ledger' => app(GsoWorkspaceController::class)->show('stocks'),
+                };
+            })->whereIn('page', ['stocks-ledger'])
+                ->name('inventory.show');
             Route::get('/inspections', [InspectionController::class, 'index'])->name('inspections.index');
             Route::get('/inspections/data', [InspectionController::class, 'data'])->name('inspections.data');
             Route::get('/inspections/{inspection}', [InspectionActionController::class, 'show'])->whereUuid('inspection')->name('inspections.show');
@@ -536,7 +592,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         return redirect()->route('gso.air.print.pdf', ['air' => $air] + request()->query());
     })->whereUuid('air')->name('gso.air.legacy.print.pdf');
     Route::redirect('/items', '/gso/items');
-    Route::redirect('/inventory-items', '/gso/inventory-items');
+    Route::redirect('/inventory-items', '/gso/inventory/inventory-items');
     Route::redirect('/reports', '/gso/reports');
     Route::get('/inventory-items/{inventoryItem}/property-card/print', function (string $inventoryItem) {
         return redirect()->route('gso.inventory-items.property-card.print', [
@@ -545,7 +601,10 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ]);
     })->whereUuid('inventoryItem');
     Route::get('/inventory-items/property-cards/print', function () {
-        return redirect()->route('gso.inventory-items.property-cards.print-batch', request()->query());
+        return redirect()->route('gso.reports.property-cards.print', request()->query());
+    });
+    Route::get('/reports/property-cards/print', function () {
+        return redirect()->route('gso.reports.property-cards.print', request()->query());
     });
     Route::get('/reports/regspi/print', function () {
         return redirect()->route('gso.reports.regspi.print', request()->query());

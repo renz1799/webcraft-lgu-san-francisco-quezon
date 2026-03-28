@@ -380,6 +380,32 @@ return [
                 ],
             ],
         ],
+        'gso_property_cards' => [
+            'module' => 'GSO',
+            'default_paper' => 'a4-landscape',
+            'allowed_papers' => [
+                'a4-landscape',
+                'letter-landscape',
+                'legal-landscape',
+            ],
+            'profiles' => [
+                'a4-landscape' => [
+                    'pages_view' => 'gso::reports.property-cards.print.paper.a4-landscape.pages',
+                    'styles_view' => 'gso::reports.property-cards.print.paper.a4-landscape.styles',
+                    'pdf_styles_view' => 'gso::reports.property-cards.print.paper.a4-landscape.pdf-styles',
+                ],
+                'letter-landscape' => [
+                    'pages_view' => 'gso::reports.property-cards.print.paper.letter-landscape.pages',
+                    'styles_view' => 'gso::reports.property-cards.print.paper.letter-landscape.styles',
+                    'pdf_styles_view' => 'gso::reports.property-cards.print.paper.letter-landscape.pdf-styles',
+                ],
+                'legal-landscape' => [
+                    'pages_view' => 'gso::reports.property-cards.print.paper.legal-landscape.pages',
+                    'styles_view' => 'gso::reports.property-cards.print.paper.legal-landscape.styles',
+                    'pdf_styles_view' => 'gso::reports.property-cards.print.paper.legal-landscape.pdf-styles',
+                ],
+            ],
+        ],
         'gso_rpcsp' => [
             'module' => 'GSO',
             'default_paper' => 'a4-landscape',

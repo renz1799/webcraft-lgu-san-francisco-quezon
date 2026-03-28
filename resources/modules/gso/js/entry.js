@@ -50,7 +50,8 @@ const gsoPageLoaders = [
     id: "gso-items-table",
     load: () =>
       Promise.all([
-        import("./items/index.js"),
+        import("./items/table.js"),
+        import("./items/filters.js"),
         import("./items/modal.js"),
       ]),
     errorMessage: "Failed to load GSO items modules",
@@ -202,7 +203,8 @@ const gsoPageLoaders = [
     id: "gso-inventory-items-table",
     load: () =>
       Promise.all([
-        import("./inventory-items/index.js"),
+        import("./inventory-items/table.js"),
+        import("./inventory-items/filters.js"),
         import("./inventory-items/modal.js"),
         import("./inventory-items/files.js"),
         import("./inventory-items/events.js"),

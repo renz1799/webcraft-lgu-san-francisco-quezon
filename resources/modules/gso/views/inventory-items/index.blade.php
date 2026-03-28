@@ -8,20 +8,8 @@
 @section('styles')
     <link rel="stylesheet" href="{{ asset('build/assets/libs/tabulator-tables/css/tabulator.min.css') }}">
     <style>
-        .gso-reference-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            width: 100%;
-        }
-
-        .gso-reference-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
+        .box-header {
+            overflow: visible !important;
         }
 
         .gso-inventory-modal-grid {
@@ -114,6 +102,12 @@
                 <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
             </a>
         </li>
+        <li class="text-[0.813rem] ps-[0.5rem]">
+            <a class="flex items-center text-primary hover:text-primary dark:text-primary truncate" href="{{ route('gso.inventory.index') }}">
+                Inventory
+                <i class="ti ti-chevrons-right flex-shrink-0 text-[#8c9097] dark:text-white/50 px-[0.5rem] overflow-visible rtl:rotate-180"></i>
+            </a>
+        </li>
         <li class="text-[0.813rem] text-defaulttextcolor font-semibold dark:text-white/50" aria-current="page">
             Inventory Items
         </li>
@@ -122,84 +116,105 @@
 
 <div class="box">
     <div class="box-header">
-        <div class="gso-reference-toolbar">
+        <div class="datatable-toolbar">
             <h5 class="box-title">Inventory Register</h5>
 
-            <div class="gso-reference-actions">
+            <div class="datatable-toolbar-actions">
                 <input
                     id="gso-inventory-items-search"
                     type="text"
-                    class="form-control w-[260px] !rounded-md"
+                    class="form-control !w-[320px] !rounded-md"
                     placeholder="Search property no., item, PO, serial..."
                 />
 
-                <select id="gso-inventory-items-department-filter" class="form-control w-[220px] !rounded-md">
-                    <option value="">All Departments</option>
-                    @foreach($departments as $department)
-                        <option value="{{ $department->id }}">{{ $department->code }} - {{ $department->name }}</option>
-                    @endforeach
-                </select>
+                <div class="relative shrink-0">
+                    <button id="gso-inventory-items-more-btn" type="button" class="ti-btn ti-btn-light">
+                        More Filters
+                        <span id="gso-inventory-items-adv-count"
+                            class="hidden ms-2 inline-flex items-center justify-center text-[10px] leading-none px-2 py-1 rounded-full bg-primary/10 text-primary">
+                            0
+                        </span>
+                        <i class="ri-arrow-down-s-line ms-1"></i>
+                    </button>
 
-                <select id="gso-inventory-items-classification-filter" class="form-control w-[150px] !rounded-md">
-                    <option value="">All Classes</option>
-                    <option value="ppe">PPE</option>
-                    <option value="ics">ICS</option>
-                </select>
+                    <div id="gso-inventory-items-more-panel"
+                        class="hidden absolute right-0 mt-2 w-[420px] z-[9999] rounded-md border border-defaultborder bg-white dark:bg-bodybg shadow-lg">
 
-                <select id="gso-inventory-items-custody-filter" class="form-control w-[170px] !rounded-md">
-                    <option value="">All Custody</option>
-                    @foreach($inventoryCustodyStates as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
+                        <div class="p-3 border-b border-defaultborder flex items-center justify-between">
+                            <div class="text-sm font-semibold text-defaulttextcolor dark:text-white">Advanced Filters</div>
+                            <button id="gso-inventory-items-more-close" type="button" class="ti-btn ti-btn-sm ti-btn-light">
+                                <i class="ri-close-line"></i>
+                            </button>
+                        </div>
 
-                <select id="gso-inventory-items-status-filter" class="form-control w-[180px] !rounded-md">
-                    <option value="">All Statuses</option>
-                    @foreach($inventoryStatuses as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
+                        <div class="p-3 space-y-4">
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="ti-form-label">Department</label>
+                                    <select id="gso-inventory-items-department-filter" class="ti-form-input w-full">
+                                        <option value="">All Departments</option>
+                                        @foreach($departments as $department)
+                                            <option value="{{ $department->id }}">{{ $department->code }} - {{ $department->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="text-xs text-[#8c9097] mt-1">Limit the register to one custodial department.</div>
+                                </div>
 
-                <select id="gso-inventory-items-record-status" class="form-control w-[160px] !rounded-md">
-                    <option value="active">Active</option>
-                    <option value="archived">Archived</option>
-                    <option value="all">All</option>
-                </select>
+                                <div>
+                                    <label class="ti-form-label">Item Class</label>
+                                    <select id="gso-inventory-items-classification-filter" class="ti-form-input w-full">
+                                        <option value="">All Classes</option>
+                                        <option value="ppe">PPE</option>
+                                        <option value="ics">ICS</option>
+                                    </select>
+                                    <div class="text-xs text-[#8c9097] mt-1">Separate PPE records from ICS records.</div>
+                                </div>
+
+                                <div>
+                                    <label class="ti-form-label">Custody</label>
+                                    <select id="gso-inventory-items-custody-filter" class="ti-form-input w-full">
+                                        <option value="">All Custody</option>
+                                        @foreach($inventoryCustodyStates as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="text-xs text-[#8c9097] mt-1">Filter pool, issued, transferred, and other custody states.</div>
+                                </div>
+
+                                <div>
+                                    <label class="ti-form-label">Inventory Status</label>
+                                    <select id="gso-inventory-items-status-filter" class="ti-form-input w-full">
+                                        <option value="">All Statuses</option>
+                                        @foreach($inventoryStatuses as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="text-xs text-[#8c9097] mt-1">Focus on serviceable, repair, disposed, and similar states.</div>
+                                </div>
+
+                                <div>
+                                    <label class="ti-form-label">Record Status</label>
+                                    <select id="gso-inventory-items-record-status" class="ti-form-input w-full">
+                                        <option value="active">Active</option>
+                                        <option value="archived">Archived</option>
+                                        <option value="all">All</option>
+                                    </select>
+                                    <div class="text-xs text-[#8c9097] mt-1">Switch between active, archived, and all records.</div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="p-3 border-t border-defaultborder flex items-center justify-end gap-2">
+                            <button id="gso-inventory-items-adv-reset" type="button" class="ti-btn ti-btn-light">Reset</button>
+                            <button id="gso-inventory-items-adv-apply" type="button" class="ti-btn ti-btn-primary">Apply</button>
+                        </div>
+                    </div>
+                </div>
 
                 <button id="gso-inventory-items-clear" type="button" class="ti-btn ti-btn-light">
                     Clear
                 </button>
-
-                <button id="gso-inventory-items-batch-print" type="button" class="ti-btn ti-btn-secondary-full">
-                    Batch Cards
-                </button>
-
-                <a
-                    href="{{ route('gso.reports.regspi.print', ['preview' => 1]) }}"
-                    target="_blank"
-                    rel="noopener"
-                    class="ti-btn ti-btn-light"
-                >
-                    RegSPI
-                </a>
-
-                <a
-                    href="{{ route('gso.reports.rpcppe.print', ['preview' => 1]) }}"
-                    target="_blank"
-                    rel="noopener"
-                    class="ti-btn ti-btn-light"
-                >
-                    RPCPPE
-                </a>
-
-                <a
-                    href="{{ route('gso.reports.rpcsp.print', ['preview' => 1]) }}"
-                    target="_blank"
-                    rel="noopener"
-                    class="ti-btn ti-btn-light"
-                >
-                    RPCSP
-                </a>
 
                 @if($canManageInventoryItems)
                     <button
@@ -661,7 +676,6 @@
             fileImportInspectionUrlTemplate: @json(route('gso.inventory-items.files.import-inspection', ['inventoryItem' => '__ID__'])),
             eventIndexUrlTemplate: @json(route('gso.inventory-items.events.index', ['inventoryItem' => '__ID__'])),
             eventStoreUrlTemplate: @json(route('gso.inventory-items.events.store', ['inventoryItem' => '__ID__'])),
-            batchPropertyCardsUrl: @json(route('gso.inventory-items.property-cards.print-batch')),
             csrf: @json(csrf_token()),
             canManage: @json($canManageInventoryItems),
         };

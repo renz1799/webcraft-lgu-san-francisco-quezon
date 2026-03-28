@@ -40,6 +40,7 @@ export default defineConfig({
                 'resources/modules/gso/js/pars/print.js',
                 'resources/modules/gso/js/ptrs/print.js',
                 'resources/modules/gso/js/reports/rpci-print.js',
+                'resources/modules/gso/js/reports/property-cards-print.js',
                 'resources/modules/gso/js/reports/rpcppe-print.js',
                 'resources/modules/gso/js/reports/regspi-print.js',
                 'resources/modules/gso/js/reports/rpcsp-print.js',

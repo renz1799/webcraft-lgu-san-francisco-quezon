@@ -151,6 +151,14 @@ Preview reflects the resolved paper profile.
 
 Report-specific controls may stay in the sidebar when they are required to produce a valid printable output.
 
+On desktop-sized layouts, the workspace should behave as a split-scroll surface:
+
+* the preview pane scrolls independently from the rest of the page
+* the control panel stays visible within the viewport
+* the main page should not force the user to scroll to the bottom just to reach print actions
+
+This keeps long multi-page previews usable without losing access to the panel.
+
 Examples:
 
 * signatory inputs
@@ -510,6 +518,14 @@ Layout settings must:
 
 Preview stats should prefer compact text rows instead of readonly input boxes when the sidebar already contains multiple tuning fields.
 
+When the sidebar is tall, the action section should stay reachable without requiring the user to scroll to the end of the preview pages.
+
+Recommended behavior:
+
+* make the sidebar form independently scrollable on desktop
+* keep the actions section pinned or sticky at the bottom of the panel
+* let the preview pane handle the multi-page scrolling workload
+
 When JavaScript is available, `Update Preview` should refresh the print workspace in place instead of doing a full page reload.
 
 In-place preview refresh must:
@@ -517,6 +533,7 @@ In-place preview refresh must:
 * update the rendered preview pages
 * update dependent sidebar stats and control defaults returned by the server
 * keep the current scroll context stable so the user does not lose the preview position
+* preserve sidebar and preview pane scroll positions when those areas scroll independently
 * keep the URL query string in sync with the active preview state
 * replace paper-specific head styles when a different paper profile changes the preview CSS
 

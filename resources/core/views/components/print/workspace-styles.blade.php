@@ -4,10 +4,16 @@
     background: linear-gradient(180deg, #edf2f8 0%, #e6edf5 100%);
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     color: #0f172a;
+    --print-workspace-viewport-offset: 48px;
+    --print-workspace-sidebar-top: 24px;
+    --print-workspace-pane-height: calc(100dvh - var(--print-workspace-viewport-offset, 48px));
   }
 
   .print-workspace-body--embedded {
     background: transparent;
+    --print-workspace-viewport-offset: clamp(150px, 18vh, 210px);
+    --print-workspace-sidebar-top: 0px;
+    min-height: var(--print-workspace-pane-height);
   }
 
   .print-workspace-body--embedded .print-workspace {
@@ -38,7 +44,7 @@
   .print-workspace-sidebar {
     width: var(--print-workspace-sidebar-width, clamp(320px, calc(210mm * 0.44), 390px));
     position: sticky;
-    top: 24px;
+    top: var(--print-workspace-sidebar-top, 24px);
     z-index: 3;
   }
 
@@ -50,6 +56,10 @@
     gap: 24px;
     position: relative;
     z-index: 1;
+  }
+
+  .print-workspace-preview > * {
+    flex: 0 0 auto;
   }
 
   .print-workspace.is-preview-loading .print-workspace-preview {
@@ -103,6 +113,33 @@
 
     .print-workspace-body--embedded {
       min-width: 0;
+    }
+
+    .print-workspace {
+      min-height: 0;
+      max-height: none;
+      align-items: start;
+      overflow: visible;
+    }
+
+    .print-workspace-sidebar,
+    .print-workspace-preview {
+      min-height: 0;
+      height: var(--print-workspace-pane-height);
+      max-height: var(--print-workspace-pane-height);
+    }
+
+    .print-workspace-preview {
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 6px;
+      scrollbar-gutter: stable both-edges;
+      overscroll-behavior: contain;
+    }
+
+    .print-workspace-preview > * {
+      border: 1px solid rgba(148, 163, 184, 0.42);
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
     }
 
     .print-workspace-preview .print-page {
@@ -164,17 +201,25 @@
 
     .print-workspace {
       width: auto;
+      min-height: 0;
+      max-height: none;
       grid-template-columns: 1fr;
       align-items: center;
+      overflow: visible;
     }
 
     .print-workspace-sidebar {
       position: static;
       width: min(100%, 720px);
+      max-height: none;
     }
 
     .print-workspace-preview {
       width: 100%;
+      max-height: none;
+      overflow: visible;
+      padding-right: 0;
+      scrollbar-gutter: auto;
     }
   }
 </style>

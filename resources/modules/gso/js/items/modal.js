@@ -174,7 +174,9 @@ import "sweetalert2/dist/sweetalert2.min.css";
     qs("gsoItemTrackingType").value = "property";
     qs("gsoItemRequiresSerial").checked = false;
     qs("gsoItemSemiExpendable").checked = false;
-    qs("gsoItemIsSelected").checked = false;
+    if (qs("gsoItemIsSelected")) {
+      qs("gsoItemIsSelected").checked = false;
+    }
     renderConversionRows([]);
     syncTrackingControls();
   }
@@ -192,7 +194,9 @@ import "sweetalert2/dist/sweetalert2.min.css";
     qs("gsoItemTrackingType").value = item?.tracking_type || "property";
     qs("gsoItemRequiresSerial").checked = Boolean(item?.requires_serial);
     qs("gsoItemSemiExpendable").checked = Boolean(item?.is_semi_expendable);
-    qs("gsoItemIsSelected").checked = Boolean(item?.is_selected);
+    if (qs("gsoItemIsSelected")) {
+      qs("gsoItemIsSelected").checked = Boolean(item?.is_selected);
+    }
     renderConversionRows(item?.unit_conversions || []);
     syncTrackingControls();
   }

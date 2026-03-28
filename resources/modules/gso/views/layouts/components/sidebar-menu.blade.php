@@ -21,16 +21,7 @@
       <a href="{{ route('gso.dashboard') }}" class="side-menu__item">Dashboard</a>
     </li>
     <li class="slide">
-      <a href="{{ route('gso.items.index') }}" class="side-menu__item">Items</a>
-    </li>
-    <li class="slide">
-      <a href="{{ route('gso.inventory-items.index') }}" class="side-menu__item">Inventory Items</a>
-    </li>
-    <li class="slide">
       <a href="{{ route('gso.inspections.index') }}" class="side-menu__item">Inspections</a>
-    </li>
-    <li class="slide">
-      <a href="{{ route('gso.stocks.index') }}" class="side-menu__item">Stocks</a>
     </li>
   </ul>
 </li>
@@ -67,6 +58,30 @@
     </li>
     <li class="slide">
       <a href="{{ route('gso.wmrs.index') }}" class="side-menu__item">WMR</a>
+    </li>
+  </ul>
+</li>
+
+<li class="slide__category">
+  <span class="category-name">Inventory</span>
+</li>
+
+<li class="slide has-sub">
+  <a href="javascript:void(0);" class="side-menu__item">
+    <i class="bi bi-box-seam side-menu__icon"></i>
+    <span class="side-menu__label">Inventory</span>
+    <i class="fe fe-chevron-right side-menu__angle"></i>
+  </a>
+
+  <ul class="slide-menu child1">
+    <li class="slide">
+      <a href="{{ route('gso.items.index') }}" class="side-menu__item">Items</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.inventory-items.index') }}" class="side-menu__item">Inventory Items</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.inventory.show', ['page' => 'stocks-ledger']) }}" class="side-menu__item">Stocks / Ledger</a>
     </li>
   </ul>
 </li>
@@ -136,6 +151,9 @@
     </li>
     <li class="slide">
       <a href="{{ route('gso.stocks.ssmi.print', ['preview' => 1]) }}" class="side-menu__item">SSMI</a>
+    </li>
+    <li class="slide">
+      <a href="{{ route('gso.reports.property-cards.print', ['preview' => 1]) }}" class="side-menu__item">Property Cards</a>
     </li>
     <li class="slide">
       <a href="{{ route('gso.stocks.index', ['view' => 'stock-cards']) }}" class="side-menu__item">Stock Card</a>

@@ -28,21 +28,17 @@ class GsoWorkspaceController extends Controller
             'title' => 'ITR',
             'description' => 'Inventory Transfer Report workflows are reserved here for the next GSO document migration wave.',
         ],
-        'items' => [
-            'title' => 'Items',
-            'description' => 'Legacy item master-data and catalog management are being migrated into the platform module.',
-        ],
-        'inventory-items' => [
-            'title' => 'Inventory Items',
-            'description' => 'Inventory item records, public asset pages, files, and reports will live here after wave 1.',
-        ],
         'inspections' => [
             'title' => 'Inspections',
             'description' => 'Inspection workflows and follow-up actions are being integrated as the first GSO workflow slice.',
         ],
         'stocks' => [
-            'title' => 'Stocks',
-            'description' => 'Stock ledgers, movement history, and report workspaces will be hosted under this module area.',
+            'title' => 'Stocks / Ledger',
+            'description' => 'Stock ledgers, balance history, and inventory movement workspaces are reserved under the GSO inventory area while the final module screens are being aligned.',
+        ],
+        'inventory' => [
+            'title' => 'Inventory',
+            'description' => 'The legacy inventory menu structure is now reserved inside the platform-owned GSO module so its pages can be migrated in one shared inventory area.',
         ],
         'reports' => [
             'title' => 'Reports',

@@ -3,6 +3,7 @@
         display: flex;
         flex-direction: column;
         gap: 1.125rem;
+        min-height: 0;
     }
 
     .core-print-sidebar__intro {
@@ -207,6 +208,40 @@
         background: rgba(148, 163, 184, 0.08);
         color: rgb(15, 23, 42);
         text-decoration: none;
+    }
+
+    @media (min-width: 1181px) {
+        .print-workspace-panel {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 100%;
+            min-height: 0;
+        }
+
+        .print-workspace-panel > .core-print-sidebar {
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+
+        .core-print-sidebar__form {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-gutter: stable;
+            padding-right: 0.35rem;
+        }
+
+        .core-print-sidebar__section--actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 2;
+            margin-top: auto;
+            padding-bottom: 0.35rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.9) 16px, #ffffff 42px);
+            backdrop-filter: blur(2px);
+        }
     }
 
     @media (max-width: 640px) {

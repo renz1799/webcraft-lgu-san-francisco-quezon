@@ -141,6 +141,7 @@ use App\Modules\GSO\Services\Contracts\PAR\ParItemServiceInterface;
 use App\Modules\GSO\Services\Contracts\PAR\ParPrintServiceInterface;
 use App\Modules\GSO\Services\Contracts\PAR\ParServiceInterface;
 use App\Modules\GSO\Services\Contracts\PAR\ParWorkflowServiceInterface;
+use App\Modules\GSO\Services\Contracts\PropertyCardsReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\PTR\PtrItemServiceInterface;
 use App\Modules\GSO\Services\Contracts\PTR\PtrPrintServiceInterface;
 use App\Modules\GSO\Services\Contracts\PTR\PtrServiceInterface;
@@ -196,6 +197,7 @@ use App\Modules\GSO\Services\ItemService;
 use App\Modules\GSO\Services\Numbers\IcsNumberService;
 use App\Modules\GSO\Services\Numbers\ItrNumberService;
 use App\Modules\GSO\Services\Numbers\WmrNumberService;
+use App\Modules\GSO\Services\PropertyCardsReportService;
 use App\Modules\GSO\Services\RegspiReportService;
 use App\Modules\GSO\Services\RspiReportService;
 use App\Modules\GSO\Services\RrspReportService;
@@ -395,6 +397,7 @@ class GsoServiceProvider extends ServiceProvider
             WmrNumberServiceInterface::class => WmrNumberService::class,
 
             /* Reports */
+            PropertyCardsReportServiceInterface::class => PropertyCardsReportService::class,
             RegspiReportServiceInterface::class => RegspiReportService::class,
             RspiReportServiceInterface::class => RspiReportService::class,
             RrspReportServiceInterface::class => RrspReportService::class,
