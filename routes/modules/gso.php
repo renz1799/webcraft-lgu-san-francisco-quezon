@@ -384,7 +384,8 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                 ->group(function () {
                     Route::get('/', [InventoryItemController::class, 'index'])->name('index');
                     Route::get('/data', [InventoryItemController::class, 'data'])->name('data');
-                    Route::get('/{inventoryItem}', [InventoryItemActionController::class, 'show'])->whereUuid('inventoryItem')->name('show');
+                    Route::get('/{inventoryItem}/edit-data', [InventoryItemActionController::class, 'show'])->whereUuid('inventoryItem')->name('edit-data');
+                    Route::get('/{inventoryItem}', [InventoryItemController::class, 'show'])->whereUuid('inventoryItem')->name('show');
                     Route::post('/', [InventoryItemActionController::class, 'store'])->name('store');
                     Route::put('/{inventoryItem}', [InventoryItemActionController::class, 'update'])->whereUuid('inventoryItem')->name('update');
                     Route::delete('/{inventoryItem}', [InventoryItemActionController::class, 'destroy'])->whereUuid('inventoryItem')->name('destroy');
@@ -411,7 +412,10 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::get('/inventory-items', fn () => redirect()->route('gso.inventory-items.index', request()->query()))
                 ->name('legacy.inventory-items.index');
             Route::get('/inventory-items/data', [InventoryItemController::class, 'data']);
-            Route::get('/inventory-items/{inventoryItem}', [InventoryItemActionController::class, 'show'])->whereUuid('inventoryItem');
+            Route::get('/inventory-items/{inventoryItem}/edit-data', [InventoryItemActionController::class, 'show'])->whereUuid('inventoryItem');
+            Route::get('/inventory-items/{inventoryItem}', function (string $inventoryItem) {
+                return redirect()->route('gso.inventory-items.show', ['inventoryItem' => $inventoryItem] + request()->query());
+            })->whereUuid('inventoryItem');
             Route::post('/inventory-items', [InventoryItemActionController::class, 'store']);
             Route::put('/inventory-items/{inventoryItem}', [InventoryItemActionController::class, 'update'])->whereUuid('inventoryItem');
             Route::delete('/inventory-items/{inventoryItem}', [InventoryItemActionController::class, 'destroy'])->whereUuid('inventoryItem');

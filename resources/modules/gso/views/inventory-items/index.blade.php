@@ -664,7 +664,8 @@
     <script>
         window.__gsoInventoryItems = {
             ajaxUrl: @json(route('gso.inventory-items.data')),
-            showUrlTemplate: @json(route('gso.inventory-items.show', ['inventoryItem' => '__ID__'])),
+            viewUrlTemplate: @json(route('gso.inventory-items.show', ['inventoryItem' => '__ID__'])),
+            editDataUrlTemplate: @json(route('gso.inventory-items.edit-data', ['inventoryItem' => '__ID__'])),
             storeUrl: @json(route('gso.inventory-items.store')),
             updateUrlTemplate: @json(route('gso.inventory-items.update', ['inventoryItem' => '__ID__'])),
             deleteUrlTemplate: @json(route('gso.inventory-items.destroy', ['inventoryItem' => '__ID__'])),

@@ -208,9 +208,9 @@ import "sweetalert2/dist/sweetalert2.min.css";
   }
 
   async function fetchInventoryItem(id) {
-    const template = window.__gsoInventoryItems?.showUrlTemplate || "";
+    const template = window.__gsoInventoryItems?.editDataUrlTemplate || "";
     if (!id || !template) {
-      throw new Error("Missing show endpoint configuration.");
+      throw new Error("Missing edit-data endpoint configuration.");
     }
 
     const response = await fetch(template.replace("__ID__", encodeURIComponent(id)), {

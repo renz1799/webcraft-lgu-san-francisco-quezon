@@ -211,12 +211,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
             pill(cell.getValue(), cell.getValue() === "ICS" ? "info" : "primary"),
         },
         {
-          title: "Custody",
-          field: "custody_state_text",
-          width: 130,
-          formatter: (cell) => pill(cell.getValue(), "secondary"),
-        },
-        {
           title: "Status",
           field: "status_text",
           width: 150,
@@ -256,7 +250,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
         {
           title: "Created",
           field: "created_at_text",
-          width: 190,
+          width: 130,
           formatter: (cell) => escapeHtml(cell.getValue() || "-"),
         },
         {
@@ -271,55 +265,24 @@ import "sweetalert2/dist/sweetalert2.min.css";
               return "";
             }
 
-            const filesButton = `
-              <button class="ti-btn ti-btn-sm ti-btn-primary !rounded-full" type="button" data-action="inventory-item-files" data-id="${escapeHtml(
-                id
-              )}" title="Inventory Files">
-                <i class="ri-folder-image-line"></i>
-                <span class="ml-1">${escapeHtml(row?.file_count ?? 0)}</span>
-              </button>
-            `;
-
-            const eventsButton = `
-              <button class="ti-btn ti-btn-sm ti-btn-warning !rounded-full" type="button" data-action="inventory-item-events" data-id="${escapeHtml(
-                id
-              )}" title="Inventory Events">
-                <i class="ri-history-line"></i>
-                <span class="ml-1">${escapeHtml(row?.event_count ?? 0)}</span>
-              </button>
-            `;
-
-            const publicAssetButton = row?.public_asset_url
+            const viewButton = config.viewUrlTemplate
               ? `
-                <a class="ti-btn ti-btn-sm ti-btn-success !rounded-full" href="${escapeHtml(
-                  row.public_asset_url
-                )}" target="_blank" rel="noopener" title="Public Asset Page">
-                  <i class="ri-global-line"></i>
-                </a>
-              `
-              : "";
-
-            const propertyCardButton = row?.property_card_print_url
-              ? `
-                <a class="ti-btn ti-btn-sm ti-btn-secondary !rounded-full" href="${escapeHtml(
-                  row.property_card_print_url
-                )}" target="_blank" rel="noopener" title="Property Card">
-                  <i class="ri-file-print-line"></i>
+                <a class="ti-btn ti-btn-sm ti-btn-info !rounded-full" href="${escapeHtml(
+                  config.viewUrlTemplate.replace("__ID__", encodeURIComponent(id))
+                )}" title="View Inventory Item">
+                  <i class="ri-eye-line"></i>
                 </a>
               `
               : "";
 
             if (row?.is_archived) {
               if (!config.canManage) {
-                return `<div class="hstack flex gap-2 justify-end">${publicAssetButton}${propertyCardButton}${filesButton}${eventsButton}</div>`;
+                return `<div class="hstack flex gap-2 justify-end">${viewButton}</div>`;
               }
 
               return `
                 <div class="hstack flex gap-2 justify-end">
-                  ${publicAssetButton}
-                  ${propertyCardButton}
-                  ${filesButton}
-                  ${eventsButton}
+                  ${viewButton}
                   <button class="ti-btn ti-btn-sm ti-btn-success !rounded-full" type="button" data-action="restore" data-id="${escapeHtml(
                     id
                   )}">
@@ -330,20 +293,12 @@ import "sweetalert2/dist/sweetalert2.min.css";
             }
 
             if (!config.canManage) {
-              return `<div class="hstack flex gap-2 justify-end">${publicAssetButton}${propertyCardButton}${filesButton}${eventsButton}</div>`;
+              return `<div class="hstack flex gap-2 justify-end">${viewButton}</div>`;
             }
 
             return `
               <div class="hstack flex gap-2 justify-end">
-                ${publicAssetButton}
-                ${propertyCardButton}
-                ${filesButton}
-                ${eventsButton}
-                <button class="ti-btn ti-btn-sm ti-btn-info !rounded-full" type="button" data-action="edit-inventory-item" data-id="${escapeHtml(
-                  id
-                )}">
-                  <i class="ri-edit-line"></i>
-                </button>
+                ${viewButton}
                 <button class="ti-btn ti-btn-sm ti-btn-danger !rounded-full" type="button" data-action="delete" data-id="${escapeHtml(
                   id
                 )}">

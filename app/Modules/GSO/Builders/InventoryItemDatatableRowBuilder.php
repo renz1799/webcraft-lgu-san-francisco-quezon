@@ -87,7 +87,7 @@ class InventoryItemDatatableRowBuilder implements InventoryItemDatatableRowBuild
             'remarks' => $this->nullableString($inventoryItem->remarks),
             'air_item_unit_id' => $this->nullableString($inventoryItem->air_item_unit_id),
             'created_at' => $inventoryItem->created_at?->toDateTimeString(),
-            'created_at_text' => $inventoryItem->created_at?->format('M d, Y h:i A') ?? '-',
+            'created_at_text' => $inventoryItem->created_at?->format('M d, Y') ?? '-',
             'deleted_at' => $inventoryItem->deleted_at?->toDateTimeString(),
             'deleted_at_text' => $inventoryItem->deleted_at?->format('M d, Y h:i A'),
             'status_mode' => $isArchived ? 'archived' : 'active',
