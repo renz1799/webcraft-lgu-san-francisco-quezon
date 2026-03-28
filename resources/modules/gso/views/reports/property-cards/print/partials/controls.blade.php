@@ -11,6 +11,7 @@
         'page' => $filters['page'] ?? null,
         'size' => $filters['size'] ?? null,
         'search' => $filters['search'] ?? null,
+        'inventory_item_id' => $filters['inventory_item_id'] ?? null,
         'department_id' => $filters['department_id'] ?? null,
         'item_id' => $filters['item_id'] ?? null,
         'fund_source_id' => $filters['fund_source_id'] ?? null,
@@ -40,6 +41,9 @@
             data-property-cards-print-paper-defaults='{}'
         >
             <input type="hidden" name="preview" value="1">
+            @if(!empty($filters['inventory_item_id']))
+                <input type="hidden" name="inventory_item_id" value="{{ $filters['inventory_item_id'] }}">
+            @endif
 
             <div class="core-print-sidebar__section">
                 <div class="core-print-sidebar__section-title">Preview Settings</div>
@@ -55,6 +59,15 @@
 
             <div class="core-print-sidebar__section">
                 <div class="core-print-sidebar__section-title">Batch Scope</div>
+                @if(!empty($filters['inventory_item_id']))
+                    <div class="core-print-sidebar__field">
+                        <label class="form-label">Focused Inventory Item</label>
+                        <div class="core-print-sidebar__stat">
+                            <span class="core-print-sidebar__stat-label">Current Asset</span>
+                            <strong class="core-print-sidebar__stat-value">{{ $scope['inventory_item'] ?? 'Selected Inventory Item' }}</strong>
+                        </div>
+                    </div>
+                @endif
                 <div class="core-print-sidebar__field">
                     <label class="form-label" for="property-cards-search">Search</label>
                     <input
@@ -162,6 +175,9 @@
                     <div class="core-print-sidebar__stat"><span class="core-print-sidebar__stat-label">Cards / Preview</span><strong class="core-print-sidebar__stat-value">{{ number_format((int) ($summary['source_page_size'] ?? 12)) }}</strong></div>
                     <div class="core-print-sidebar__stat"><span class="core-print-sidebar__stat-label">PPE Cards</span><strong class="core-print-sidebar__stat-value">{{ number_format((int) ($summary['ppe_cards'] ?? 0)) }}</strong></div>
                     <div class="core-print-sidebar__stat"><span class="core-print-sidebar__stat-label">ICS Cards</span><strong class="core-print-sidebar__stat-value">{{ number_format((int) ($summary['ics_cards'] ?? 0)) }}</strong></div>
+                    @if(!empty($filters['inventory_item_id']))
+                        <div class="core-print-sidebar__stat"><span class="core-print-sidebar__stat-label">Focused Asset</span><strong class="core-print-sidebar__stat-value">{{ $scope['inventory_item'] ?? 'Selected Inventory Item' }}</strong></div>
+                    @endif
                     <div class="core-print-sidebar__stat"><span class="core-print-sidebar__stat-label">Department Scope</span><strong class="core-print-sidebar__stat-value">{{ $scope['department'] ?? 'All Departments' }}</strong></div>
                     <div class="core-print-sidebar__stat"><span class="core-print-sidebar__stat-label">Fund Scope</span><strong class="core-print-sidebar__stat-value">{{ $scope['fund_source'] ?? 'All Fund Sources' }}</strong></div>
                 </div>

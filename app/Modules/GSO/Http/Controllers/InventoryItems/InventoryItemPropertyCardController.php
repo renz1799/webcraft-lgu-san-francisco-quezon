@@ -4,25 +4,33 @@ namespace App\Modules\GSO\Http\Controllers\InventoryItems;
 
 use App\Http\Controllers\Controller;
 use App\Modules\GSO\Repositories\Contracts\InventoryItemRepositoryInterface;
-use App\Modules\GSO\Services\Contracts\InventoryItemCardPrintServiceInterface;
-use Illuminate\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class InventoryItemPropertyCardController extends Controller
 {
     public function __construct(
         private readonly InventoryItemRepositoryInterface $inventoryItems,
-        private readonly InventoryItemCardPrintServiceInterface $printer,
     ) {
         $this->middleware('role_or_permission:Administrator|admin|view Inventory Items|modify Inventory Items');
     }
 
-    public function print(string $inventoryItem): View
+    public function print(string $inventoryItem): RedirectResponse
     {
         $resolvedInventoryItem = $this->inventoryItems->findOrFail($inventoryItem, true);
-        $payload = $this->printer->getPropertyCardPrintPayload($resolvedInventoryItem, [
-            'preview' => request()->boolean('preview'),
-        ]);
 
-        return view($payload['view'], $payload['data']);
+        $params = array_filter([
+            'preview' => request()->boolean('preview'),
+            'inventory_item_id' => (string) $resolvedInventoryItem->id,
+            'department_id' => $resolvedInventoryItem->department_id ? (string) $resolvedInventoryItem->department_id : null,
+            'item_id' => $resolvedInventoryItem->item_id ? (string) $resolvedInventoryItem->item_id : null,
+            'fund_source_id' => $resolvedInventoryItem->fund_source_id ? (string) $resolvedInventoryItem->fund_source_id : null,
+            'classification' => $resolvedInventoryItem->is_ics ? 'ics' : 'ppe',
+            'custody_state' => $resolvedInventoryItem->custody_state ?: null,
+            'inventory_status' => $resolvedInventoryItem->status ?: null,
+            'page' => 1,
+            'size' => 1,
+        ], static fn ($value) => $value !== null && $value !== '');
+
+        return redirect()->route('gso.reports.property-cards.print', $params);
     }
 }

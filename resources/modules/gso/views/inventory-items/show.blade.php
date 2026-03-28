@@ -429,7 +429,7 @@
                                                         <i class="ri-edit-line me-1"></i> Edit Inventory Record
                                                     </button>
                                                 @endif
-                                                <a href="{{ route('gso.inventory-items.property-card.print', ['inventoryItem' => $inventoryItem->id, 'preview' => 1]) }}" target="_blank" rel="noopener" class="ti-btn ti-btn-light w-full !justify-start">
+                                                <a href="{{ $propertyCardUrl }}" target="_blank" rel="noopener" class="ti-btn ti-btn-light w-full !justify-start">
                                                     <i class="ri-file-list-3-line me-1"></i> View Property Card
                                                 </a>
                                             </div>

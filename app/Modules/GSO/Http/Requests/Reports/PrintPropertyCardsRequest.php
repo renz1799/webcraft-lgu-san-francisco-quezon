@@ -25,6 +25,7 @@ class PrintPropertyCardsRequest extends FormRequest
             'page' => ['nullable', 'integer', 'min:1'],
             'size' => ['nullable', 'integer', 'min:1', 'max:50'],
             'search' => ['nullable', 'string', 'max:255'],
+            'inventory_item_id' => ['nullable', 'uuid', 'exists:inventory_items,id'],
             'department_id' => ['nullable', 'uuid', 'exists:departments,id'],
             'item_id' => ['nullable', 'uuid', 'exists:items,id'],
             'fund_source_id' => ['nullable', 'uuid', 'exists:fund_sources,id'],
@@ -43,6 +44,7 @@ class PrintPropertyCardsRequest extends FormRequest
         foreach ([
             'paper_profile',
             'search',
+            'inventory_item_id',
             'department_id',
             'item_id',
             'fund_source_id',

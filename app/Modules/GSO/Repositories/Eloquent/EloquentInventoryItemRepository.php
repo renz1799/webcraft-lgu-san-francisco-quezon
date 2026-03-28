@@ -30,6 +30,7 @@ class EloquentInventoryItemRepository implements InventoryItemRepositoryInterfac
 
         $archived = $this->resolveArchivedMode($filters);
         $search = trim((string) ($filters['search'] ?? ''));
+        $inventoryItemId = trim((string) ($filters['inventory_item_id'] ?? ''));
         $departmentId = trim((string) ($filters['department_id'] ?? ''));
         $itemId = trim((string) ($filters['item_id'] ?? ''));
         $fundSourceId = trim((string) ($filters['fund_source_id'] ?? ''));
@@ -42,6 +43,10 @@ class EloquentInventoryItemRepository implements InventoryItemRepositoryInterfac
             $query->withTrashed();
         } elseif ($archived === 'archived') {
             $query->onlyTrashed();
+        }
+
+        if ($inventoryItemId !== '') {
+            $query->where('id', $inventoryItemId);
         }
 
         if ($departmentId !== '') {

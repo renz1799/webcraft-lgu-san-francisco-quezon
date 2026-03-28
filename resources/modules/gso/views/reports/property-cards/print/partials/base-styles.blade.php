@@ -126,6 +126,22 @@
         white-space: nowrap;
     }
 
+    .gso-property-cards-inline-meta {
+        display: grid;
+        grid-template-columns: 48mm minmax(0, 1fr);
+        align-items: baseline;
+        gap: 4px;
+    }
+
+    .gso-property-cards-inline-meta__label {
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .gso-property-cards-inline-meta__value {
+        min-width: 0;
+    }
+
     .gso-property-cards-grid-row--pc td {
         height: 4mm;
     }

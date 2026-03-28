@@ -20,6 +20,7 @@ class PropertyCardsReportService implements PropertyCardsReportServiceInterface
 {
     private const FILTER_KEYS = [
         'search',
+        'inventory_item_id',
         'department_id',
         'item_id',
         'fund_source_id',
@@ -59,6 +60,7 @@ class PropertyCardsReportService implements PropertyCardsReportServiceInterface
                 'document' => [
                     'filters' => [
                         'search' => $this->nullableTrim($filters['search'] ?? null),
+                        'inventory_item' => $this->selectedInventoryItemLabel($filters['inventory_item_id'] ?? null),
                         'department' => $this->selectedDepartmentLabel($filters['department_id'] ?? null),
                         'item' => $this->selectedItemLabel($filters['item_id'] ?? null),
                         'fund_source' => $this->selectedFundLabel($filters['fund_source_id'] ?? null),
@@ -226,6 +228,47 @@ class PropertyCardsReportService implements PropertyCardsReportServiceInterface
         }
 
         return trim(($department->code ? $department->code . ' - ' : '') . $department->name);
+    }
+
+    private function selectedInventoryItemLabel(?string $inventoryItemId): string
+    {
+        $inventoryItemId = $this->nullableTrim($inventoryItemId);
+        if ($inventoryItemId === null) {
+            return 'All Inventory Items';
+        }
+
+        $inventoryItem = InventoryItem::query()
+            ->withTrashed()
+            ->with([
+                'item' => fn ($query) => $query
+                    ->withTrashed()
+                    ->select(['id', 'item_name']),
+            ])
+            ->find($inventoryItemId, [
+                'id',
+                'item_id',
+                'property_number',
+                'stock_number',
+                'description',
+            ]);
+
+        if (! $inventoryItem) {
+            return 'Selected Inventory Item';
+        }
+
+        $primaryLabel = $inventoryItem->property_number
+            ?: $inventoryItem->stock_number
+            ?: $inventoryItem->item?->item_name
+            ?: $inventoryItem->description
+            ?: 'Selected Inventory Item';
+
+        $secondaryLabel = $inventoryItem->item?->item_name;
+
+        if ($secondaryLabel && $secondaryLabel !== $primaryLabel) {
+            return trim($primaryLabel . ' - ' . $secondaryLabel);
+        }
+
+        return $primaryLabel;
     }
 
     private function selectedItemLabel(?string $itemId): string

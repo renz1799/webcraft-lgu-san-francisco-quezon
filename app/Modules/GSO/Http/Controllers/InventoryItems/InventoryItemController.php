@@ -150,10 +150,7 @@ class InventoryItemController extends Controller
             'publicAssetUrl' => route('gso.public-assets.show', [
                 'code' => $this->publicAssetCode($inventoryItem),
             ]),
-            'propertyCardUrl' => route('gso.inventory-items.property-card.print', [
-                'inventoryItem' => $inventoryItem->id,
-                'preview' => 1,
-            ]),
+            'propertyCardUrl' => route('gso.reports.property-cards.print', $this->propertyCardReportParams($inventoryItem)),
         ]);
     }
 
@@ -222,6 +219,25 @@ class InventoryItemController extends Controller
             ?? $this->nullableString($inventoryItem->stock_number)
             ?? $inventoryItem->id
         );
+    }
+
+    /**
+     * @return array<string, int|string>
+     */
+    private function propertyCardReportParams(InventoryItem $inventoryItem): array
+    {
+        return array_filter([
+            'preview' => 1,
+            'inventory_item_id' => (string) $inventoryItem->id,
+            'department_id' => $inventoryItem->department_id ? (string) $inventoryItem->department_id : null,
+            'item_id' => $inventoryItem->item_id ? (string) $inventoryItem->item_id : null,
+            'fund_source_id' => $inventoryItem->fund_source_id ? (string) $inventoryItem->fund_source_id : null,
+            'classification' => $inventoryItem->is_ics ? 'ics' : 'ppe',
+            'custody_state' => $this->nullableString($inventoryItem->custody_state),
+            'inventory_status' => $this->nullableString($inventoryItem->status),
+            'page' => 1,
+            'size' => 1,
+        ], static fn ($value) => $value !== null && $value !== '');
     }
 
     private function nullableString(mixed $value): ?string

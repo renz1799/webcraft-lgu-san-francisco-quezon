@@ -67,12 +67,20 @@
             </colgroup>
 
             <tr>
-                <td class="gso-property-cards-left gso-property-cards-heading-label">Property, Plant and Equipment :</td>
-                <td class="gso-property-cards-left" colspan="8">{{ $card['property_name'] ?? '-' }}</td>
+                <td class="gso-property-cards-left" colspan="9">
+                    <div class="gso-property-cards-inline-meta">
+                        <span class="gso-property-cards-inline-meta__label">Property, Plant and Equipment :</span>
+                        <span class="gso-property-cards-inline-meta__value">{{ $card['property_name'] ?? '-' }}</span>
+                    </div>
+                </td>
             </tr>
             <tr>
-                <td class="gso-property-cards-left gso-property-cards-heading-label">Description :</td>
-                <td class="gso-property-cards-left gso-property-cards-wrap" colspan="8">{{ $card['description'] ?? '-' }}</td>
+                <td class="gso-property-cards-left gso-property-cards-wrap" colspan="9">
+                    <div class="gso-property-cards-inline-meta">
+                        <span class="gso-property-cards-inline-meta__label">Description :</span>
+                        <span class="gso-property-cards-inline-meta__value">{{ $card['description'] ?? '-' }}</span>
+                    </div>
+                </td>
             </tr>
 
             <tr>
