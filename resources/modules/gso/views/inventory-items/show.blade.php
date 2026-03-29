@@ -192,6 +192,43 @@
         .inventory-show-empty { min-height: 23rem; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2rem; color: #64748b; }
         .inventory-show-history { max-height: 42rem; overflow-y: auto; padding-right: .25rem; }
         .inventory-show-summary { display: grid; gap: 1rem; }
+        .inventory-edit-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 80;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            opacity: 1;
+            pointer-events: auto;
+            overflow-y: auto;
+        }
+        .inventory-edit-modal.hidden { display: none; }
+        .inventory-edit-modal__backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, .56);
+            backdrop-filter: blur(1px);
+        }
+        .inventory-edit-modal__dialog {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 72rem);
+            max-height: calc(100vh - 3rem);
+            border-radius: 1rem;
+            box-shadow: 0 30px 80px rgba(15, 23, 42, .28);
+            margin: auto;
+        }
+        .inventory-edit-modal .ti-modal-box {
+            max-width: none;
+            width: min(100%, 72rem);
+        }
+        .inventory-edit-modal .ti-modal-content {
+            max-height: calc(100vh - 3rem);
+            overflow: hidden;
+            border-radius: 1rem;
+        }
         .inventory-edit-photo-card {
             border: 1px solid rgba(148, 163, 184, .18);
             border-radius: 1rem;
@@ -236,7 +273,20 @@
             background: rgba(34, 197, 94, .12);
             color: #15803d;
         }
+        .inventory-edit-photo-notice-info,
+        .inventory-edit-form-notice-info {
+            background: rgba(59, 130, 246, .12);
+            color: #1d4ed8;
+        }
         .inventory-edit-photo-notice-error {
+            background: rgba(239, 68, 68, .12);
+            color: #b91c1c;
+        }
+        .inventory-edit-form-notice-success {
+            background: rgba(34, 197, 94, .12);
+            color: #15803d;
+        }
+        .inventory-edit-form-notice-error {
             background: rgba(239, 68, 68, .12);
             color: #b91c1c;
         }
@@ -295,8 +345,10 @@
                                         <div class="inventory-show-preview-image-wrap" id="inventoryShowPreviewWrap">
                                             <img
                                                 id="inventoryShowActiveImage"
-                                                src="{{ $activePhotoUrl }}"
+                                                src="data:image/gif;base64,R0lGODlhAQABAAAAACw="
+                                                data-photo-src="{{ $activePhotoUrl }}"
                                                 alt="{{ $activePhotoLabel }}"
+                                                decoding="async"
                                             >
                                         </div>
                                     </div>
@@ -316,7 +368,13 @@
                                                 data-photo-alt="{{ $photoLabel }}"
                                                 aria-pressed="{{ $index === 0 ? 'true' : 'false' }}"
                                             >
-                                                <img src="{{ $photoSrc }}" alt="{{ $photoLabel }}">
+                                                <img
+                                                    src="data:image/gif;base64,R0lGODlhAQABAAAAACw="
+                                                    data-photo-src="{{ $photoSrc }}"
+                                                    alt="{{ $photoLabel }}"
+                                                    loading="lazy"
+                                                    decoding="async"
+                                                >
                                             </button>
                                         @endforeach
                                     </div>
@@ -360,7 +418,7 @@
                                                     type="button"
                                                     id="btnOpenInventoryEditPrimary"
                                                     class="ti-btn ti-btn-light ti-btn-sm !px-2 !py-1"
-                                                    data-hs-overlay="#inventoryEditRecordModal"
+                                                    data-inventory-edit-open
                                                     aria-label="Edit {{ $itemName }}"
                                                 >
                                                     <i class="ri-edit-line"></i>
@@ -424,13 +482,16 @@
                                                     <button
                                                         type="button"
                                                         class="ti-btn ti-btn-primary w-full !justify-start"
-                                                        data-hs-overlay="#inventoryEditRecordModal"
+                                                        data-inventory-edit-open
                                                     >
                                                         <i class="ri-edit-line me-1"></i> Edit Inventory Record
                                                     </button>
                                                 @endif
                                                 <a href="{{ $propertyCardUrl }}" target="_blank" rel="noopener" class="ti-btn ti-btn-light w-full !justify-start">
                                                     <i class="ri-file-list-3-line me-1"></i> View Property Card
+                                                </a>
+                                                <a href="{{ $stickerPrintUrl }}" class="ti-btn ti-btn-light w-full !justify-start">
+                                                    <i class="ri-price-tag-3-line me-1"></i> Print Sticker
                                                 </a>
                                             </div>
                                             <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mb-4">Movement, accountability, and lifecycle notes for this asset.</p>
@@ -538,16 +599,49 @@
 
             const previewWrap = document.getElementById('inventoryShowPreviewWrap');
             const thumbStrip = document.getElementById('inventoryShowThumbStrip');
-            const activeImage = document.getElementById('inventoryShowActiveImage');
             const previousButton = document.querySelector('[data-gallery-nav="prev"]');
             const nextButton = document.querySelector('[data-gallery-nav="next"]');
             const photoNotice = document.getElementById('inventoryEditPhotoNotice');
             const photoInput = document.getElementById('inventoryEditPhotoFiles');
             const photoUploadButton = document.getElementById('inventoryEditPhotoUploadBtn');
             const photoGrid = document.getElementById('inventoryEditPhotoGrid');
+            const editModal = document.getElementById('inventoryEditRecordModal');
+            const editForm = document.getElementById('inventoryEditRecordForm');
+            const editFormNotice = document.getElementById('inventoryEditFormNotice');
+            const editSaveButton = document.getElementById('inventoryEditSaveBtn');
+            const editOpenButtons = Array.from(document.querySelectorAll('[data-inventory-edit-open]'));
+            const editCloseButtons = Array.from(document.querySelectorAll('[data-inventory-edit-close]'));
+            const accountableOfficerNameInput = editForm?.querySelector('input[name="accountable_officer"]');
+            const accountableOfficerIdInput = editForm?.querySelector('input[name="accountable_officer_id"]');
+            const originalAccountableOfficerName = accountableOfficerNameInput?.getAttribute('data-original-accountable-name') || '';
+            const originalAccountableOfficerId = accountableOfficerNameInput?.getAttribute('data-original-accountable-id') || '';
 
             let galleryFiles = @json($galleryPhotoFiles);
             let currentIndex = 0;
+            let previousBodyOverflow = '';
+            const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+            const photoUploadButtonLabel = photoUploadButton?.innerHTML || 'Upload Images';
+            const editSaveButtonLabel = editSaveButton?.innerHTML || 'Save Changes';
+            const imageObserver = 'IntersectionObserver' in window
+                ? new IntersectionObserver((entries, observer) => {
+                    entries.forEach((entry) => {
+                        if (!entry.isIntersecting) {
+                            return;
+                        }
+
+                        const image = entry.target;
+                        const source = image.getAttribute('data-photo-src');
+                        if (source) {
+                            image.setAttribute('src', source);
+                            image.removeAttribute('data-photo-src');
+                        }
+
+                        observer.unobserve(image);
+                    });
+                }, {
+                    rootMargin: '160px 0px',
+                })
+                : null;
 
             const escapeHtml = (value) => String(value ?? '')
                 .replace(/&/g, '&amp;')
@@ -555,6 +649,38 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+
+            const hydrateDeferredImages = (scope = document) => {
+                const images = Array.from(scope.querySelectorAll('img[data-photo-src]'));
+
+                images.forEach((image) => {
+                    if (imageObserver) {
+                        imageObserver.observe(image);
+                        return;
+                    }
+
+                    window.requestAnimationFrame(() => {
+                        const source = image.getAttribute('data-photo-src');
+                        if (!source) {
+                            return;
+                        }
+
+                        image.setAttribute('src', source);
+                        image.removeAttribute('data-photo-src');
+                    });
+                });
+            };
+
+            const setButtonBusyState = (button, isBusy, busyLabel, defaultLabel) => {
+                if (!button) {
+                    return;
+                }
+
+                button.disabled = isBusy;
+                button.innerHTML = isBusy
+                    ? `<span class="inline-flex items-center gap-2"><i class="ri-loader-4-line animate-spin"></i><span>${escapeHtml(busyLabel)}</span></span>`
+                    : defaultLabel;
+            };
 
             const showPhotoNotice = (message, tone = 'success') => {
                 if (!photoNotice) {
@@ -575,6 +701,67 @@
                 photoNotice.className = 'hidden mb-3 rounded-md px-3 py-2 text-sm';
             };
 
+            const showEditNotice = (message, tone = 'success') => {
+                if (!editFormNotice) {
+                    return;
+                }
+
+                editFormNotice.textContent = message;
+                editFormNotice.className = `mb-3 rounded-md px-3 py-2 text-sm inventory-edit-form-notice-${tone}`;
+                editFormNotice.classList.remove('hidden');
+            };
+
+            const clearEditNotice = () => {
+                if (!editFormNotice) {
+                    return;
+                }
+
+                editFormNotice.textContent = '';
+                editFormNotice.className = 'hidden mb-3 rounded-md px-3 py-2 text-sm';
+            };
+
+            const openEditModal = () => {
+                if (!editModal) {
+                    return;
+                }
+
+                clearPhotoNotice();
+                clearEditNotice();
+                resetEditActionState();
+                previousBodyOverflow = document.body.style.overflow;
+                document.body.style.overflow = 'hidden';
+                editModal.classList.remove('hidden');
+            };
+
+            const closeEditModal = () => {
+                if (!editModal) {
+                    return;
+                }
+
+                editModal.classList.add('hidden');
+                document.body.style.overflow = previousBodyOverflow;
+            };
+
+            const resetEditActionState = () => {
+                setButtonBusyState(photoUploadButton, false, '', photoUploadButtonLabel);
+                if (photoInput) {
+                    photoInput.disabled = false;
+                }
+                setButtonBusyState(editSaveButton, false, '', editSaveButtonLabel);
+            };
+
+            const parseValidationMessage = (payload, fallbackMessage) => {
+                const fieldErrors = Object.values(payload?.errors || {})
+                    .flat()
+                    .filter(Boolean);
+
+                if (fieldErrors.length > 0) {
+                    return fieldErrors.join(' ');
+                }
+
+                return payload?.message || fallbackMessage;
+            };
+
             const setGalleryIndex = (index) => {
                 if (!previewWrap || !thumbStrip || !Array.isArray(galleryFiles) || galleryFiles.length === 0) {
                     return;
@@ -586,10 +773,13 @@
                 previewWrap.innerHTML = `
                     <img
                         id="inventoryShowActiveImage"
-                        src="${escapeHtml(file.url)}"
+                        src="${transparentPixel}"
+                        data-photo-src="${escapeHtml(file.url)}"
                         alt="${escapeHtml(file.name)}"
+                        decoding="async"
                     >
                 `;
+                hydrateDeferredImages(previewWrap);
 
                 const thumbs = Array.from(thumbStrip.querySelectorAll('[data-gallery-thumb]'));
                 thumbs.forEach((thumb, thumbIndex) => {
@@ -630,7 +820,13 @@
                         data-photo-index="${index}"
                         aria-pressed="${index === currentIndex ? 'true' : 'false'}"
                     >
-                        <img src="${escapeHtml(file.url)}" alt="${escapeHtml(file.name)}">
+                        <img
+                            src="${transparentPixel}"
+                            data-photo-src="${escapeHtml(file.url)}"
+                            alt="${escapeHtml(file.name)}"
+                            loading="lazy"
+                            decoding="async"
+                        >
                     </button>
                 `).join('');
 
@@ -649,6 +845,7 @@
                     nextButton?.classList.add('hidden');
                 }
 
+                hydrateDeferredImages(thumbStrip);
                 setGalleryIndex(Math.min(currentIndex, galleryFiles.length - 1));
             };
 
@@ -670,7 +867,14 @@
 
                 photoGrid.innerHTML = photoFiles.map((file) => `
                     <div class="inventory-edit-photo-card">
-                        <img src="${escapeHtml(file.url)}" alt="${escapeHtml(file.name)}" class="inventory-edit-photo-card-image">
+                        <img
+                            src="${transparentPixel}"
+                            data-photo-src="${escapeHtml(file.url)}"
+                            alt="${escapeHtml(file.name)}"
+                            class="inventory-edit-photo-card-image"
+                            loading="lazy"
+                            decoding="async"
+                        >
                         <div class="inventory-edit-photo-card-body">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="inventory-edit-photo-card-name">${escapeHtml(file.name)}</div>
@@ -684,6 +888,8 @@
                         </div>
                     </div>
                 `).join('');
+
+                hydrateDeferredImages(photoGrid);
 
                 Array.from(photoGrid.querySelectorAll('[data-delete-photo-id]')).forEach((button) => {
                     button.addEventListener('click', async () => {
@@ -757,7 +963,19 @@
                 }
 
                 clearPhotoNotice();
-                photoUploadButton.disabled = true;
+                setButtonBusyState(
+                    photoUploadButton,
+                    true,
+                    files.length === 1 ? 'Uploading image...' : `Uploading ${files.length} images...`,
+                    photoUploadButtonLabel
+                );
+                if (photoInput) {
+                    photoInput.disabled = true;
+                }
+                showPhotoNotice(
+                    files.length === 1 ? 'Uploading image...' : `Uploading ${files.length} images...`,
+                    'info'
+                );
 
                 const formData = new FormData();
                 files.forEach((file) => formData.append('files[]', file));
@@ -797,19 +1015,92 @@
                 } catch (error) {
                     showPhotoNotice(error instanceof Error ? error.message : 'Unable to upload the images.', 'error');
                 } finally {
-                    photoUploadButton.disabled = false;
+                    setButtonBusyState(photoUploadButton, false, '', photoUploadButtonLabel);
+                    if (photoInput) {
+                        photoInput.disabled = false;
+                    }
+                }
+            });
+
+            accountableOfficerNameInput?.addEventListener('input', () => {
+                if (!accountableOfficerIdInput) {
+                    return;
+                }
+
+                const currentName = (accountableOfficerNameInput.value || '').trim();
+                if (currentName === originalAccountableOfficerName.trim()) {
+                    accountableOfficerIdInput.value = originalAccountableOfficerId;
+                    return;
+                }
+
+                accountableOfficerIdInput.value = '';
+            });
+
+            editForm?.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                clearEditNotice();
+
+                setButtonBusyState(editSaveButton, true, 'Saving changes...', editSaveButtonLabel);
+                const formData = new FormData(editForm);
+
+                try {
+                    const response = await fetch(editForm.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': fileConfig.csrf,
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: formData,
+                    });
+
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        throw new Error(parseValidationMessage(payload, 'Unable to save the inventory record.'));
+                    }
+
+                    showEditNotice('Inventory record updated. Refreshing details...', 'success');
+                    window.setTimeout(() => {
+                        window.location.reload();
+                    }, 700);
+                } catch (error) {
+                    showEditNotice(
+                        error instanceof Error ? error.message : 'Unable to save the inventory record.',
+                        'error'
+                    );
+                } finally {
+                    setButtonBusyState(editSaveButton, false, '', editSaveButtonLabel);
+                }
+            });
+
+            editOpenButtons.forEach((button) => {
+                button.addEventListener('click', openEditModal);
+            });
+
+            editCloseButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    clearPhotoNotice();
+                    clearEditNotice();
+                    resetEditActionState();
+                    closeEditModal();
+                });
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && editModal && !editModal.classList.contains('hidden')) {
+                    clearPhotoNotice();
+                    clearEditNotice();
+                    resetEditActionState();
+                    closeEditModal();
                 }
             });
 
             renderGallery(galleryFiles);
             renderModalPhotos(galleryFiles);
+
+            @if(isset($errors) && $errors->any())
+                openEditModal();
+            @endif
         });
     </script>
-    @if(isset($errors) && $errors->any())
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                document.querySelector('[data-hs-overlay="#inventoryEditRecordModal"]')?.click();
-            });
-        </script>
-    @endif
 @endpush

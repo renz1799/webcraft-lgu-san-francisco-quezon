@@ -201,6 +201,20 @@ The PDF generator must not:
 * choose a paper profile
 * contain report logic
 
+For large fixed-layout print batches, the service layer may prepare the document incrementally before handing the final HTML file to the PDF generator.
+
+Example use case:
+
+* sticker sheets
+* repeated labels
+* other page-stable layouts where each page can be built independently
+
+In those cases:
+
+* page preparation progress may be reported from the print service
+* the final PDF generator call may still remain a single render step
+* true page-by-page PDF merging is optional and should only be introduced when the platform has a supported merge implementation
+
 ---
 
 ## 6. View Layer

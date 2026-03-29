@@ -1,5 +1,8 @@
 <?php
 
+use App\Modules\GSO\Jobs\GenerateStickerPdfJob;
+use App\Modules\GSO\Models\StickerPrintJob;
+use App\Modules\GSO\Services\Contracts\StickerReportServiceInterface;
 use App\Modules\GSO\Support\LegacyGsoInspector;
 use App\Modules\GSO\Support\LegacyReferenceDataImporter;
 use Illuminate\Foundation\Inspiring;
@@ -124,3 +127,31 @@ Artisan::command('gso:legacy:import-reference {--only=*} {--dry-run} {--json}', 
 
     return 0;
 })->purpose('Import legacy GSO reference data into the platform tables while preserving source UUIDs.');
+
+Artisan::command('gso:stickers:process {jobId}', function (string $jobId, StickerReportServiceInterface $stickers) {
+    $printJob = StickerPrintJob::query()->find($jobId);
+
+    if (! $printJob) {
+        $this->warn('Sticker print job not found: ' . $jobId);
+
+        return 1;
+    }
+
+    if ($printJob->status === StickerPrintJob::STATUS_COMPLETED) {
+        $this->line('Sticker print job already completed: ' . $jobId);
+
+        return 0;
+    }
+
+    if ($printJob->status === StickerPrintJob::STATUS_FAILED) {
+        $this->warn('Sticker print job already failed: ' . $jobId);
+
+        return 1;
+    }
+
+    (new GenerateStickerPdfJob($jobId))->handle($stickers);
+
+    $this->info('Sticker print job processed: ' . $jobId);
+
+    return 0;
+})->purpose('Process one sticker PDF job in a detached local worker.');

@@ -151,6 +151,7 @@ class InventoryItemController extends Controller
                 'code' => $this->publicAssetCode($inventoryItem),
             ]),
             'propertyCardUrl' => route('gso.reports.property-cards.print', $this->propertyCardReportParams($inventoryItem)),
+            'stickerPrintUrl' => route('gso.reports.stickers.print', $this->stickerReportParams($inventoryItem)),
         ]);
     }
 
@@ -238,6 +239,18 @@ class InventoryItemController extends Controller
             'page' => 1,
             'size' => 1,
         ], static fn ($value) => $value !== null && $value !== '');
+    }
+
+    /**
+     * @return array<string, int|string|array<int, string>>
+     */
+    private function stickerReportParams(InventoryItem $inventoryItem): array
+    {
+        return [
+            'preview' => 1,
+            'inventory_item_id' => (string) $inventoryItem->id,
+            'inventory_item_ids' => [(string) $inventoryItem->id],
+        ];
     }
 
     private function nullableString(mixed $value): ?string

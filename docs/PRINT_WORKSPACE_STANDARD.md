@@ -499,6 +499,21 @@ Controls must include:
 * PDF button
 * reset button
 
+If a fixed-format print workspace only supports one physical sheet layout:
+
+* the paper selector may be omitted
+* the workspace must still keep the standard preview + PDF + reset action flow
+* do not fall back to `window.print()` as the primary action
+
+If a printable can generate very large fixed-layout batches such as sticker sheets:
+
+* the primary PDF action may start an async server job instead of downloading immediately
+* the workspace should poll job status and keep the user in the same preview screen
+* progress copy should reflect real server stages when available
+* fixed-layout page preparation progress is preferred over fake byte-free percentages when the backend can report prepared pages
+
+This pattern is especially useful for sticker batches and other repeatable sheet layouts where the document can be prepared page-by-page before the final PDF file is rendered.
+
 Controls may also expose printable layout settings when the report supports user-tunable pagination.
 
 Typical layout settings:

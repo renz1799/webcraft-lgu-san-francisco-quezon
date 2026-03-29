@@ -143,6 +143,7 @@ use App\Modules\GSO\Services\Contracts\PAR\ParPrintServiceInterface;
 use App\Modules\GSO\Services\Contracts\PAR\ParServiceInterface;
 use App\Modules\GSO\Services\Contracts\PAR\ParWorkflowServiceInterface;
 use App\Modules\GSO\Services\Contracts\PropertyCardsReportServiceInterface;
+use App\Modules\GSO\Services\Contracts\StickerReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\PTR\PtrItemServiceInterface;
 use App\Modules\GSO\Services\Contracts\PTR\PtrPrintServiceInterface;
 use App\Modules\GSO\Services\Contracts\PTR\PtrServiceInterface;
@@ -200,6 +201,7 @@ use App\Modules\GSO\Services\Numbers\IcsNumberService;
 use App\Modules\GSO\Services\Numbers\ItrNumberService;
 use App\Modules\GSO\Services\Numbers\WmrNumberService;
 use App\Modules\GSO\Services\PropertyCardsReportService;
+use App\Modules\GSO\Services\StickerReportService;
 use App\Modules\GSO\Services\RegspiReportService;
 use App\Modules\GSO\Services\RspiReportService;
 use App\Modules\GSO\Services\RrspReportService;
@@ -430,6 +432,7 @@ class GsoServiceProvider extends ServiceProvider
 
             /* Reports */
             PropertyCardsReportServiceInterface::class => PropertyCardsReportService::class,
+            StickerReportServiceInterface::class => StickerReportService::class,
             RegspiReportServiceInterface::class => RegspiReportService::class,
             RspiReportServiceInterface::class => RspiReportService::class,
             RrspReportServiceInterface::class => RrspReportService::class,

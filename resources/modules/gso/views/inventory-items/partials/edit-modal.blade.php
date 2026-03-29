@@ -4,23 +4,27 @@
 
     $currentStatus = old('status', $inventoryItem->status);
     $currentCondition = old('condition', $inventoryItem->condition);
+    $currentAccountableOfficerId = old('accountable_officer_id', $inventoryItem->accountable_officer_id);
+    $currentAccountableOfficerName = old('accountable_officer', $inventoryItem->accountable_officer);
 @endphp
 
 <div id="inventoryEditRecordModal"
-     class="hs-overlay hidden ti-modal [--overlay-backdrop:static]"
+     class="inventory-edit-modal ti-modal hidden"
      role="dialog"
-     tabindex="-1">
-    <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out !max-w-5xl">
+     aria-modal="true"
+     aria-labelledby="inventoryEditRecordModalTitle">
+    <div class="inventory-edit-modal__backdrop" data-inventory-edit-close></div>
+    <div class="inventory-edit-modal__dialog ti-modal-box">
         <div class="ti-modal-content">
             <div class="ti-modal-header">
                 <div>
-                    <h6 class="modal-title text-[1rem] font-semibold">Edit Inventory Record</h6>
+                    <h6 id="inventoryEditRecordModalTitle" class="modal-title text-[1rem] font-semibold">Edit Inventory Record</h6>
                     <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mt-1 mb-0">Update the stored details for {{ $itemName }} without leaving this page.</p>
                 </div>
 
                 <button type="button"
-                        class="hs-dropdown-toggle !text-[1rem] !font-semibold !text-defaulttextcolor"
-                        data-hs-overlay="#inventoryEditRecordModal">
+                        class="ti-modal-close-btn !text-[1rem] !font-semibold !text-defaulttextcolor"
+                        data-inventory-edit-close>
                     <span class="sr-only">Close</span>
                     <i class="ri-close-line"></i>
                 </button>
@@ -33,8 +37,23 @@
                 @csrf
                 @method('PUT')
 
+                <input type="hidden" name="item_id" value="{{ old('item_id', $inventoryItem->item_id) }}">
+                <input type="hidden" name="po_number" value="{{ old('po_number', $inventoryItem->po_number) }}">
+                <input type="hidden" name="custody_state" value="{{ old('custody_state', $inventoryItem->custody_state) }}">
+                <input type="hidden" name="accountable_officer_id" value="{{ $currentAccountableOfficerId }}">
+
                 <div class="ti-modal-body px-4">
                     <div class="space-y-5 max-h-[75vh] overflow-y-auto pe-1">
+                        <div
+                            id="inventoryEditFormNotice"
+                            class="{{ $errors->any() ? '' : 'hidden ' }}mb-3 rounded-md px-3 py-2 text-sm {{ $errors->any() ? 'inventory-edit-form-notice-error' : '' }}"
+                            role="alert"
+                        >
+                            @if($errors->any())
+                                {{ collect($errors->all())->implode(' ') }}
+                            @endif
+                        </div>
+
                         <div class="grid grid-cols-12 gap-4">
                         <div class="md:col-span-6 col-span-12">
                             <label class="text-sm text-[#8c9097] dark:text-white/50">Item</label>
@@ -146,7 +165,14 @@
 
                         <div class="md:col-span-12 col-span-12">
                             <label class="text-sm text-[#8c9097] dark:text-white/50">Accountable Officer</label>
-                            <input type="text" name="accountable_officer" class="ti-form-input w-full" value="{{ old('accountable_officer', $inventoryItem->accountable_officer) }}">
+                            <input
+                                type="text"
+                                name="accountable_officer"
+                                class="ti-form-input w-full"
+                                value="{{ $currentAccountableOfficerName }}"
+                                data-original-accountable-name="{{ $currentAccountableOfficerName }}"
+                                data-original-accountable-id="{{ $currentAccountableOfficerId }}"
+                            >
                             @error('accountable_officer')<div class="text-xs text-danger mt-1">{{ $message }}</div>@enderror
                         </div>
 
@@ -208,8 +234,14 @@
                 </div>
 
                 <div class="ti-modal-footer">
-                    <button type="button" class="hs-dropdown-toggle ti-btn btn-wave ti-btn-secondary-full align-middle" data-hs-overlay="#inventoryEditRecordModal">Cancel</button>
-                    <button type="submit" class="ti-btn btn-wave bg-primary text-white !font-medium">Save Changes</button>
+                    <button type="button" class="ti-btn btn-wave ti-btn-secondary-full align-middle" data-inventory-edit-close>Cancel</button>
+                    <button
+                        type="submit"
+                        id="inventoryEditSaveBtn"
+                        class="ti-btn btn-wave bg-primary text-white !font-medium"
+                    >
+                        Save Changes
+                    </button>
                 </div>
             </form>
         </div>

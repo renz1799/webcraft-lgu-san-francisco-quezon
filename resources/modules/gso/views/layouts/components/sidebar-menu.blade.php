@@ -203,6 +203,9 @@
       <a href="{{ route('gso.reports.property-cards.print', ['preview' => 1]) }}" class="side-menu__item">Property Cards</a>
     </li>
     <li class="slide">
+      <a href="{{ route('gso.reports.stickers.print', ['preview' => 1]) }}" class="side-menu__item">Sticker Printing</a>
+    </li>
+    <li class="slide">
       <a href="{{ route('gso.stocks.index', ['view' => 'stock-cards']) }}" class="side-menu__item">Stock Card</a>
     </li>
   </ul>

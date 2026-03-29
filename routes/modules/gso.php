@@ -58,6 +58,7 @@ use App\Modules\GSO\Http\Controllers\Reports\RspiReportController;
 use App\Modules\GSO\Http\Controllers\Reports\RrspReportController;
 use App\Modules\GSO\Http\Controllers\Reports\RpcppeReportController;
 use App\Modules\GSO\Http\Controllers\Reports\RpcspReportController;
+use App\Modules\GSO\Http\Controllers\Reports\StickerReportController;
 use App\Modules\GSO\Http\Controllers\RIS\RisController;
 use App\Modules\GSO\Http\Controllers\RIS\RisItemController;
 use App\Modules\GSO\Http\Controllers\RIS\RisPrintController;
@@ -404,6 +405,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                     Route::get('/{inventoryItem}/property-card/print', [InventoryItemPropertyCardController::class, 'print'])
                         ->whereUuid('inventoryItem')
                         ->name('property-card.print');
+                    Route::get('/{inventoryItem}/sticker/print', [StickerReportController::class, 'fromInventoryItem'])
+                        ->whereUuid('inventoryItem')
+                        ->name('sticker.print');
                     Route::get('/property-cards/print', function () {
                         return redirect()->route('gso.reports.property-cards.print', request()->query());
                     })
@@ -431,6 +435,8 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::post('/inventory-items/{inventoryItem}/events', [InventoryItemEventController::class, 'store'])->whereUuid('inventoryItem');
             Route::get('/inventory-items/{inventoryItem}/property-card/print', [InventoryItemPropertyCardController::class, 'print'])
                 ->whereUuid('inventoryItem');
+            Route::get('/inventory-items/{inventoryItem}/sticker/print', [StickerReportController::class, 'fromInventoryItem'])
+                ->whereUuid('inventoryItem');
             Route::get('/inventory-items/property-cards/print', function () {
                 return redirect()->route('gso.reports.property-cards.print', request()->query());
             });
@@ -438,6 +444,18 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                 ->name('reports.property-cards.print');
             Route::get('/reports/property-cards/print/pdf', [PropertyCardsReportController::class, 'downloadPdf'])
                 ->name('reports.property-cards.print.pdf');
+            Route::get('/reports/stickers/print', [StickerReportController::class, 'print'])
+                ->name('reports.stickers.print');
+            Route::get('/reports/stickers/print/pdf', [StickerReportController::class, 'downloadPdf'])
+                ->name('reports.stickers.print.pdf');
+            Route::post('/reports/stickers/print/jobs', [StickerReportController::class, 'startPdfJob'])
+                ->name('reports.stickers.jobs.store');
+            Route::get('/reports/stickers/print/jobs/{stickerPrintJob}', [StickerReportController::class, 'pdfJobStatus'])
+                ->whereUuid('stickerPrintJob')
+                ->name('reports.stickers.jobs.show');
+            Route::get('/reports/stickers/print/jobs/{stickerPrintJob}/download', [StickerReportController::class, 'downloadGeneratedPdf'])
+                ->whereUuid('stickerPrintJob')
+                ->name('reports.stickers.jobs.download');
             Route::get('/reports/regspi/print', [RegspiReportController::class, 'print'])
                 ->name('reports.regspi.print');
             Route::get('/reports/regspi/print/pdf', [RegspiReportController::class, 'downloadPdf'])
@@ -488,12 +506,16 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                     return redirect()->route('gso.reports.property-cards.print', ['preview' => 1] + request()->query());
                 }
 
+                if ($page === 'stickers') {
+                    return redirect()->route('gso.reports.stickers.print', ['preview' => 1] + request()->query());
+                }
+
                 if ($page === 'stock-card') {
                     return redirect()->route('gso.stocks.index', ['view' => 'stock-cards'] + request()->query());
                 }
 
                 return app(GsoWorkspaceController::class)->show('reports-'.$page);
-            })->whereIn('page', ['rpci', 'rpcppe', 'rpcsp', 'regspi', 'rspi', 'rrsp', 'ssmi', 'property-cards', 'stock-card'])
+            })->whereIn('page', ['rpci', 'rpcppe', 'rpcsp', 'regspi', 'rspi', 'rrsp', 'ssmi', 'property-cards', 'stickers', 'stock-card'])
                 ->name('reports.show');
             Route::get('/inventory', fn () => app(GsoWorkspaceController::class)->show('inventory'))
                 ->name('inventory.index');
@@ -634,11 +656,22 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             'preview' => request()->query('preview'),
         ]);
     })->whereUuid('inventoryItem');
+    Route::get('/inventory-items/{inventoryItem}/sticker/print', function (string $inventoryItem) {
+        return redirect()->route('gso.inventory-items.sticker.print', [
+            'inventoryItem' => $inventoryItem,
+        ] + request()->query());
+    })->whereUuid('inventoryItem');
     Route::get('/inventory-items/property-cards/print', function () {
         return redirect()->route('gso.reports.property-cards.print', request()->query());
     });
     Route::get('/reports/property-cards/print', function () {
         return redirect()->route('gso.reports.property-cards.print', request()->query());
+    });
+    Route::get('/reports/stickers/print', function () {
+        return redirect()->route('gso.reports.stickers.print', request()->query());
+    });
+    Route::get('/reports/stickers/print/pdf', function () {
+        return redirect()->route('gso.reports.stickers.print.pdf', request()->query());
     });
     Route::get('/reports/regspi/print', function () {
         return redirect()->route('gso.reports.regspi.print', request()->query());

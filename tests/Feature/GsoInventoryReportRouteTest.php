@@ -8,6 +8,7 @@ use App\Modules\GSO\Services\Contracts\RspiReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RrspReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RpcppeReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\RpcspReportServiceInterface;
+use App\Modules\GSO\Services\Contracts\StickerReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\StockServiceInterface;
 use Mockery;
 use Tests\TestCase;
@@ -922,6 +923,124 @@ class GsoInventoryReportRouteTest extends TestCase
         $response->assertSee('Property Cards');
         $response->assertSee('Laptop Computer');
         $response->assertSee('General Fund');
+    }
+
+    public function test_legacy_sticker_route_redirects_to_canonical_gso_path(): void
+    {
+        $this->withoutMiddleware();
+
+        $inventoryItemId = '11111111-1111-1111-1111-111111111111';
+
+        $response = $this->get("/inventory-items/{$inventoryItemId}/sticker/print?preview=1&copies=3&show_cut_guides=1");
+
+        $response->assertRedirect(route('gso.inventory-items.sticker.print', [
+            'inventoryItem' => $inventoryItemId,
+            'preview' => 1,
+            'copies' => 3,
+            'show_cut_guides' => 1,
+        ]));
+    }
+
+    public function test_canonical_sticker_route_renders_the_new_report_view(): void
+    {
+        $this->withoutMiddleware();
+
+        $service = Mockery::mock(StickerReportServiceInterface::class);
+        $service->shouldReceive('getPrintViewData')
+            ->once()
+            ->andReturn([
+                'report' => [
+                    'title' => 'Sticker Printing',
+                    'summary' => [
+                        'selected_asset' => 'PROP-001 - Laptop Computer',
+                        'classification' => 'PPE',
+                        'copies' => 2,
+                        'page_count' => 1,
+                        'stickers_per_page' => 8,
+                    ],
+                ],
+                'selectedInventoryItem' => null,
+                'availableInventoryItems' => [
+                    ['id' => 'inventory-1', 'label' => 'PROP-001 - Laptop Computer'],
+                ],
+                'sticker' => [
+                    'reference' => 'PROP-001',
+                    'description' => 'LAPTOP COMPUTER',
+                    'type_label' => 'PPE',
+                    'model_number' => 'LATITUDE',
+                    'serial_number' => 'ABC123',
+                    'acquisition_date' => '03-28-2026',
+                    'acquisition_cost' => 'PHP 1,200.00',
+                    'person_accountable' => 'JUAN DELA CRUZ',
+                    'office_label' => 'GSO - General Services Office',
+                    'indicator_color' => '#2563eb',
+                    'template_url' => asset('print/sticker.jpg'),
+                    'public_asset_url' => '#',
+                    'inventory_item_url' => '#',
+                    'qr_code_url' => '#',
+                ],
+                'stickers' => [
+                    [
+                        'reference' => 'PROP-001',
+                        'description' => 'LAPTOP COMPUTER',
+                        'type_label' => 'PPE',
+                        'model_number' => 'LATITUDE',
+                        'serial_number' => 'ABC123',
+                        'acquisition_date' => '03-28-2026',
+                        'acquisition_cost' => 'PHP 1,200.00',
+                        'person_accountable' => 'JUAN DELA CRUZ',
+                        'office_label' => 'GSO - General Services Office',
+                        'indicator_color' => '#2563eb',
+                        'template_url' => asset('print/sticker.jpg'),
+                        'public_asset_url' => '#',
+                        'inventory_item_url' => '#',
+                        'qr_code_url' => '#',
+                    ],
+                ],
+                'controls' => [
+                    'copies' => 2,
+                    'show_cut_guides' => true,
+                ],
+                'sheet' => [
+                    'stickers_per_row' => 2,
+                    'stickers_per_page' => 8,
+                    'page_count' => 1,
+                ],
+            ]);
+
+        $this->app->instance(StickerReportServiceInterface::class, $service);
+
+        $response = $this->get(route('gso.reports.stickers.print', ['preview' => 1]));
+
+        $response->assertOk();
+        $response->assertSee('Sticker Printing');
+        $response->assertSee('LAPTOP COMPUTER');
+        $response->assertSee('PROP-001');
+    }
+
+    public function test_canonical_sticker_pdf_route_downloads_a_pdf_file(): void
+    {
+        $this->withoutMiddleware();
+
+        $pdfPath = storage_path('framework/testing/sticker-route-test.pdf');
+        @mkdir(dirname($pdfPath), 0777, true);
+        file_put_contents($pdfPath, 'sticker-pdf');
+
+        $service = Mockery::mock(StickerReportServiceInterface::class);
+        $service->shouldReceive('generatePdf')
+            ->once()
+            ->andReturn($pdfPath);
+
+        $this->app->instance(StickerReportServiceInterface::class, $service);
+
+        $response = $this->get(route('gso.reports.stickers.print.pdf', ['preview' => 1]));
+
+        $response->assertOk();
+        $response->assertDownload('sticker-route-test.pdf');
+
+        if (file_exists($pdfPath)) {
+            unlink($pdfPath);
+        }
     }
 
     /**

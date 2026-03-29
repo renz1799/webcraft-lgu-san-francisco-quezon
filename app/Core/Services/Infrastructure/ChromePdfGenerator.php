@@ -13,27 +13,59 @@ class ChromePdfGenerator implements PdfGeneratorInterface
 {
     public function generateFromView(string $view, array $data, string $outputPath): string
     {
+        return $this->generateFromHtml(
+            View::make($view, $data)->render(),
+            $outputPath,
+        );
+    }
+
+    public function generateFromHtml(string $html, string $outputPath): string
+    {
+        $tempRoot = storage_path('app/tmp/pdf-generator');
+        $token = (string) Str::uuid();
+        $workingDir = $tempRoot . DIRECTORY_SEPARATOR . $token;
+        $htmlPath = $workingDir . DIRECTORY_SEPARATOR . 'document.html';
+
+        try {
+            File::ensureDirectoryExists($workingDir);
+            File::put($htmlPath, $html);
+
+            return $this->generateFromHtmlFile($htmlPath, $outputPath);
+        } finally {
+            File::deleteDirectory($workingDir);
+        }
+    }
+
+    public function generateFromHtmlFile(string $htmlPath, string $outputPath): string
+    {
         $tempRoot = storage_path('app/tmp/pdf-generator');
         $token = (string) Str::uuid();
         $workingDir = $tempRoot . DIRECTORY_SEPARATOR . $token;
         $profileDir = $workingDir . DIRECTORY_SEPARATOR . 'chrome-profile';
-        $htmlPath = $workingDir . DIRECTORY_SEPARATOR . 'document.html';
+        $tempDir = $workingDir . DIRECTORY_SEPARATOR . 'chrome-temp';
 
         File::ensureDirectoryExists($profileDir);
+        File::ensureDirectoryExists($tempDir);
         File::ensureDirectoryExists(dirname($outputPath));
 
         try {
-            File::put($htmlPath, View::make($view, $data)->render());
-
             $process = new Process([
                 $this->resolveChromeBinary(),
                 '--user-data-dir=' . $profileDir,
                 '--headless=new',
                 '--disable-gpu',
+                '--disable-crash-reporter',
+                '--disable-crashpad-for-testing',
+                '--no-first-run',
+                '--no-default-browser-check',
+                '--disable-background-networking',
+                '--disable-component-update',
+                '--disable-sync',
+                '--metrics-recording-only',
                 '--no-pdf-header-footer',
                 '--print-to-pdf=' . $outputPath,
                 $this->toFileUrl($htmlPath),
-            ]);
+            ], null, $this->chromeEnvironmentOverrides($workingDir, $tempDir));
 
             $process->setTimeout(120);
             $process->run();
@@ -101,5 +133,20 @@ class ChromePdfGenerator implements PdfGeneratorInterface
         }
 
         return 'file:///' . ltrim($normalized, '/');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function chromeEnvironmentOverrides(string $workingDir, string $tempDir): array
+    {
+        return [
+            'APPDATA' => $workingDir,
+            'HOME' => $workingDir,
+            'LOCALAPPDATA' => $workingDir,
+            'TEMP' => $tempDir,
+            'TMP' => $tempDir,
+            'USERPROFILE' => $workingDir,
+        ];
     }
 }

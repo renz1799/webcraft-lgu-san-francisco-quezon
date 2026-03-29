@@ -17,6 +17,10 @@
         <!-- SWITCH JS -->
         <script src="{{asset('build/assets/switch.js')}}"></script>
 
+        <script>
+            window.$hsOverlayCollection = window.$hsOverlayCollection || [];
+        </script>
+
         <!-- PRELINE JS -->
         <script src="{{asset('build/assets/libs/preline/preline.js')}}"></script>
 
