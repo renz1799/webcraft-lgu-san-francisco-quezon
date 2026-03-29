@@ -2,7 +2,9 @@
 
 namespace App\Core\Services\Access;
 
+use App\Core\Builders\Contracts\User\UserPlatformAccessOverviewBuilderInterface;
 use App\Core\Models\ModelHasPermission;
+use App\Core\Models\Module;
 use App\Core\Models\Permission;
 use App\Core\Models\Role;
 use App\Core\Models\User;
@@ -27,9 +29,41 @@ class UserAccessService implements UserAccessServiceInterface
         private readonly AuditLogServiceInterface $audit,
         private readonly CurrentContext $context,
         private readonly ModuleRoleAssignmentServiceInterface $roleAssignments,
+        private readonly UserPlatformAccessOverviewBuilderInterface $platformAccessOverviewBuilder,
     ) {}
 
     /* ----------------------------- Queries ------------------------------ */
+
+    public function getIndexViewData(): array
+    {
+        if (app(AdminRouteResolver::class)->isModuleScoped()) {
+            return [
+                'platformAccessModules' => [],
+            ];
+        }
+
+        $modules = Module::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name'])
+            ->map(function (Module $module): array {
+                $code = strtoupper(trim((string) ($module->code ?? '')));
+                $name = trim((string) ($module->name ?? ''));
+
+                return [
+                    'id' => (string) $module->getKey(),
+                    'code' => $code,
+                    'name' => $name,
+                    'label' => trim(($code !== '' ? $code . ' - ' : '') . $name),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'platformAccessModules' => $modules,
+        ];
+    }
 
     public function datatable(array $params): array
     {
@@ -40,6 +74,17 @@ class UserAccessService implements UserAccessServiceInterface
         unset($filters['page'], $filters['size']);
 
         return $this->users->datatable($filters, $page, $size);
+    }
+
+    public function getPlatformAccessOverview(User $user): array
+    {
+        $platformUser = $this->users->findForPlatformAccessOverview((string) $user->getKey());
+
+        if (! $platformUser) {
+            throw (new ModelNotFoundException())->setModel(User::class, [$user->getKey()]);
+        }
+
+        return $this->platformAccessOverviewBuilder->build($platformUser);
     }
 
     public function getUserPermissions(User $user): array

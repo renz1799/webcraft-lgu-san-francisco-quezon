@@ -120,6 +120,47 @@ class EloquentUserRepository implements UserRepositoryInterface
         ];
     }
 
+    public function findForPlatformAccessOverview(string $id): ?User
+    {
+        return User::query()
+            ->withTrashed()
+            ->select([
+                'users.id',
+                'users.username',
+                'users.email',
+                'users.is_active',
+                'users.primary_department_id',
+                'users.created_at',
+                'users.deleted_at',
+                'users.user_type',
+            ])
+            ->selectSub(function ($query) {
+                $query->from('login_details')
+                    ->select('created_at')
+                    ->whereColumn('login_details.user_id', 'users.id')
+                    ->where('success', true)
+                    ->orderByDesc('created_at')
+                    ->limit(1);
+            }, 'last_login_at')
+            ->with([
+                'profile:id,user_id,first_name,middle_name,last_name,name_extension',
+                'primaryDepartment:id,code,name,short_name',
+                'userModules' => function ($query) {
+                    $query->with([
+                        'module:id,code,name,type,is_active',
+                        'department:id,code,name,short_name',
+                    ]);
+                },
+                'moduleRoleAssignments' => function ($query) {
+                    $query->with([
+                        'role:id,name,module_id',
+                        'module:id,code,name,type,is_active',
+                    ]);
+                },
+            ])
+            ->find($id);
+    }
+
     public function findInModule(string $id, string $moduleId): ?User
     {
         return $this->buildModuleUserQuery($moduleId)
@@ -236,26 +277,37 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     private function buildBaseDatatableQuery(string $archivedMode = 'active'): Builder
     {
-        $moduleId = $this->requireModuleId();
         $moduleScoped = $this->isModuleScoped();
 
         $q = User::query()
-            ->with(['moduleRoleAssignments' => function ($query) use ($moduleId) {
-                $query->where('module_id', $moduleId)
-                    ->with(['role:id,name,module_id']);
-            }])
             ->select([
                 'users.id',
                 'users.username',
                 'users.email',
                 'users.is_active',
+                'users.primary_department_id',
                 'users.created_at',
                 'users.deleted_at',
                 'users.user_type',
             ])
-            ->where('users.user_type', '!=', 'Administrator');
+            ->selectSub(function ($query) {
+                $query->from('login_details')
+                    ->select('created_at')
+                    ->whereColumn('login_details.user_id', 'users.id')
+                    ->where('success', true)
+                    ->orderByDesc('created_at')
+                    ->limit(1);
+            }, 'last_login_at');
 
         if ($moduleScoped) {
+            $moduleId = $this->requireModuleId();
+
+            $q->with(['moduleRoleAssignments' => function ($query) use ($moduleId) {
+                $query->where('module_id', $moduleId)
+                    ->with(['role:id,name,module_id']);
+            }]);
+
+            $q->where('users.user_type', '!=', 'Administrator');
             $q->selectSub(function ($query) use ($moduleId) {
                 $query->from('user_modules')
                     ->selectRaw('CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END')
@@ -268,6 +320,24 @@ class EloquentUserRepository implements UserRepositoryInterface
                 $query->where('module_id', $moduleId)
                     ->whereNotNull('user_modules.id');
             });
+        } else {
+            $q->with([
+                'profile:id,user_id,first_name,middle_name,last_name,name_extension',
+                'primaryDepartment:id,code,name,short_name',
+                'userModules' => function ($query) {
+                    $query->where('is_active', true)
+                        ->with([
+                            'module:id,code,name,type,is_active',
+                            'department:id,code,name,short_name',
+                        ]);
+                },
+                'moduleRoleAssignments' => function ($query) {
+                    $query->with([
+                        'role:id,name,module_id',
+                        'module:id,code,name,type,is_active',
+                    ]);
+                },
+            ]);
         }
 
         if ($archivedMode === 'all') {
@@ -281,19 +351,63 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     private function buildFilteredDatatableQuery(array $filters): Builder
     {
-        $moduleId = $this->requireModuleId();
         $moduleScoped = $this->isModuleScoped();
+        $moduleId = $moduleScoped ? $this->requireModuleId() : null;
         $q = $this->buildBaseDatatableQuery($this->resolveArchivedMode($filters));
 
         $search = trim((string) ($filters['search'] ?? $filters['q'] ?? ''));
         if ($search !== '') {
-            $q->where(function (Builder $sub) use ($search, $moduleId) {
+            $q->where(function (Builder $sub) use ($search, $moduleScoped, $moduleId) {
                 $sub->where('username', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhereHas('moduleRoleAssignments.role', function (Builder $rq) use ($search, $moduleId) {
+                    ->orWhere('email', 'like', "%{$search}%");
+
+                if ($moduleScoped) {
+                    $sub->orWhereHas('moduleRoleAssignments.role', function (Builder $rq) use ($search, $moduleId) {
                         $rq->where('roles.module_id', $moduleId)
                             ->where('name', 'like', "%{$search}%");
                     });
+
+                    return;
+                }
+
+                $sub->orWhereHas('profile', function (Builder $profileQuery) use ($search) {
+                    $profileQuery
+                        ->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('middle_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('name_extension', 'like', "%{$search}%");
+                })->orWhereHas('primaryDepartment', function (Builder $departmentQuery) use ($search) {
+                    $departmentQuery
+                        ->where('code', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%")
+                        ->orWhere('short_name', 'like', "%{$search}%");
+                })->orWhereHas('userModules', function (Builder $membershipQuery) use ($search) {
+                    $membershipQuery->where('is_active', true)
+                        ->where(function (Builder $activeMembershipQuery) use ($search) {
+                            $activeMembershipQuery
+                                ->whereHas('module', function (Builder $moduleQuery) use ($search) {
+                                    $moduleQuery
+                                        ->where('code', 'like', "%{$search}%")
+                                        ->orWhere('name', 'like', "%{$search}%");
+                                })
+                                ->orWhereHas('department', function (Builder $departmentQuery) use ($search) {
+                                    $departmentQuery
+                                        ->where('code', 'like', "%{$search}%")
+                                        ->orWhere('name', 'like', "%{$search}%")
+                                        ->orWhere('short_name', 'like', "%{$search}%");
+                                });
+                        });
+                })->orWhereHas('moduleRoleAssignments', function (Builder $assignmentQuery) use ($search) {
+                    $assignmentQuery
+                        ->whereHas('role', function (Builder $roleQuery) use ($search) {
+                            $roleQuery->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('module', function (Builder $moduleQuery) use ($search) {
+                            $moduleQuery
+                                ->where('code', 'like', "%{$search}%")
+                                ->orWhere('name', 'like', "%{$search}%");
+                        });
+                });
             });
         }
 
@@ -307,33 +421,61 @@ class EloquentUserRepository implements UserRepositoryInterface
             $q->where('email', 'like', "%{$email}%");
         }
 
-        $role = trim((string) ($filters['role'] ?? ''));
-        if ($role !== '') {
-            $q->whereHas('moduleRoleAssignments.role', function (Builder $rq) use ($role, $moduleId) {
-                $rq->where('roles.module_id', $moduleId)
-                    ->where('name', 'like', "%{$role}%");
-            });
-        }
+        if ($moduleScoped) {
+            $role = trim((string) ($filters['role'] ?? ''));
+            if ($role !== '') {
+                $q->whereHas('moduleRoleAssignments.role', function (Builder $rq) use ($role, $moduleId) {
+                    $rq->where('roles.module_id', $moduleId)
+                        ->where('name', 'like', "%{$role}%");
+                });
+            }
 
-        $status = trim((string) ($filters['status'] ?? ''));
-        if ($status === 'active') {
-            if ($moduleScoped) {
+            $status = trim((string) ($filters['status'] ?? ''));
+            if ($status === 'active') {
                 $q->whereHas('userModules', function (Builder $query) use ($moduleId) {
                     $query->where('module_id', $moduleId)
                         ->where('is_active', true);
                 });
-            } else {
-                $q->where('users.is_active', true);
-            }
-        } elseif ($status === 'inactive') {
-            if ($moduleScoped) {
+            } elseif ($status === 'inactive') {
                 $q->whereHas('userModules', function (Builder $query) use ($moduleId) {
                     $query->where('module_id', $moduleId);
                 })->whereDoesntHave('userModules', function (Builder $query) use ($moduleId) {
                     $query->where('module_id', $moduleId)
                         ->where('is_active', true);
                 });
-            } else {
+            }
+        } else {
+            $moduleRole = trim((string) ($filters['module_role'] ?? ''));
+            if ($moduleRole !== '') {
+                $q->whereHas('moduleRoleAssignments.role', function (Builder $roleQuery) use ($moduleRole) {
+                    $roleQuery->where('name', 'like', "%{$moduleRole}%");
+                });
+            }
+
+            $moduleAccess = trim((string) ($filters['module_access'] ?? ''));
+            if ($moduleAccess !== '') {
+                $q->whereHas('userModules', function (Builder $membershipQuery) use ($moduleAccess) {
+                    $membershipQuery->where('module_id', $moduleAccess)
+                        ->where('is_active', true);
+                });
+            }
+
+            if ((bool) ($filters['no_module_access'] ?? false)) {
+                $q->whereDoesntHave('userModules', function (Builder $membershipQuery) {
+                    $membershipQuery->where('is_active', true);
+                });
+            }
+
+            if ((bool) ($filters['multi_module_only'] ?? false)) {
+                $q->whereHas('userModules', function (Builder $membershipQuery) {
+                    $membershipQuery->where('is_active', true);
+                }, '>=', 2);
+            }
+
+            $platformStatus = trim((string) ($filters['platform_status'] ?? ''));
+            if ($platformStatus === 'active') {
+                $q->where('users.is_active', true);
+            } elseif ($platformStatus === 'inactive') {
                 $q->where('users.is_active', false);
             }
         }
@@ -382,6 +524,7 @@ class EloquentUserRepository implements UserRepositoryInterface
             'username' => 'users.username',
             'email' => 'users.email',
             'is_active' => $moduleScoped ? 'current_module_membership_is_active' : 'users.is_active',
+            'last_login_at' => 'users.last_login_at',
             'created_at' => 'users.created_at',
         ];
 

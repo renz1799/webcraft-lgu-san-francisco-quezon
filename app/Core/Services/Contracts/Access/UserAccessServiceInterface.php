@@ -6,7 +6,9 @@ use App\Core\Models\User;
 
 interface UserAccessServiceInterface
 {
+    public function getIndexViewData(): array;
     public function datatable(array $params): array;
+    public function getPlatformAccessOverview(User $user): array;
     public function getUserPermissions(User $user): array;
     public function getEditData(User $user): array;
     public function updateUserRoleAndPermissions(User $user, ?string $roleName, array $permissionNames): void;

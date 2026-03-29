@@ -13,11 +13,18 @@
   }
 
   function onReady(fn) {
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
-    else fn();
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn);
+      return;
+    }
+
+    fn();
   }
 
   onReady(function () {
+    const cfg = window.__accessUsers || {};
+    const moduleScoped = !!cfg.moduleScoped;
+
     const search = document.getElementById("users-search");
     const clear = document.getElementById("users-clear");
 
@@ -28,6 +35,11 @@
     const archived = document.getElementById("users-archived");
     const status = document.getElementById("users-status");
     const role = document.getElementById("users-role");
+    const platformStatus = document.getElementById("users-platform-status");
+    const moduleAccess = document.getElementById("users-module-access");
+    const noModuleAccess = document.getElementById("users-no-module-access");
+    const multiModuleOnly = document.getElementById("users-multi-module-only");
+    const moduleRole = document.getElementById("users-module-role");
     const username = document.getElementById("users-username");
     const email = document.getElementById("users-email");
     const dateFrom = document.getElementById("users-date-from");
@@ -39,39 +51,73 @@
 
     if (!moreBtn || !morePanel) return;
 
-    const filters = {
-      search: "",
-      archived: "active",
-      status: "",
-      role: "",
-      username: "",
-      email: "",
-      date_from: "",
-      date_to: "",
-    };
+    const filters = moduleScoped
+      ? {
+          search: "",
+          archived: "active",
+          status: "",
+          role: "",
+          username: "",
+          email: "",
+          date_from: "",
+          date_to: "",
+        }
+      : {
+          search: "",
+          archived: "active",
+          platform_status: "",
+          module_access: "",
+          no_module_access: "",
+          multi_module_only: "",
+          module_role: "",
+          username: "",
+          email: "",
+          date_from: "",
+          date_to: "",
+        };
 
     window.__accessUsersGetParams = () => ({ ...filters });
 
     function syncFromUI() {
       filters.search = (search?.value || "").trim();
       filters.archived = (archived?.value || "active").trim() || "active";
-      filters.status = (status?.value || "").trim();
-      filters.role = (role?.value || "").trim();
       filters.username = (username?.value || "").trim();
       filters.email = (email?.value || "").trim();
       filters.date_from = (dateFrom?.value || "").trim();
       filters.date_to = (dateTo?.value || "").trim();
+
+      if (moduleScoped) {
+        filters.status = (status?.value || "").trim();
+        filters.role = (role?.value || "").trim();
+        return;
+      }
+
+      filters.platform_status = (platformStatus?.value || "").trim();
+      filters.module_access = (moduleAccess?.value || "").trim();
+      filters.no_module_access = (noModuleAccess?.value || "").trim() === "1" ? "1" : "";
+      filters.multi_module_only = (multiModuleOnly?.value || "").trim() === "1" ? "1" : "";
+      filters.module_role = (moduleRole?.value || "").trim();
     }
 
     function countAdvanced() {
       let n = 0;
+
       if ((archived?.value || "active").trim() !== "active") n++;
-      if ((status?.value || "").trim() !== "") n++;
-      if ((role?.value || "").trim() !== "") n++;
       if ((username?.value || "").trim() !== "") n++;
       if ((email?.value || "").trim() !== "") n++;
       if ((dateFrom?.value || "").trim() !== "") n++;
       if ((dateTo?.value || "").trim() !== "") n++;
+
+      if (moduleScoped) {
+        if ((status?.value || "").trim() !== "") n++;
+        if ((role?.value || "").trim() !== "") n++;
+      } else {
+        if ((platformStatus?.value || "").trim() !== "") n++;
+        if ((moduleAccess?.value || "").trim() !== "") n++;
+        if ((noModuleAccess?.value || "").trim() === "1") n++;
+        if ((multiModuleOnly?.value || "").trim() === "1") n++;
+        if ((moduleRole?.value || "").trim() !== "") n++;
+      }
 
       if (!advCount) return;
 
@@ -275,6 +321,11 @@
       if (archived) archived.value = "active";
       if (status) status.value = "";
       if (role) role.value = "";
+      if (platformStatus) platformStatus.value = "";
+      if (moduleAccess) moduleAccess.value = "";
+      if (noModuleAccess) noModuleAccess.value = "";
+      if (multiModuleOnly) multiModuleOnly.value = "";
+      if (moduleRole) moduleRole.value = "";
       if (username) username.value = "";
       if (email) email.value = "";
       if (dateFrom) dateFrom.value = "";
@@ -294,6 +345,11 @@
       if (archived) archived.value = "active";
       if (status) status.value = "";
       if (role) role.value = "";
+      if (platformStatus) platformStatus.value = "";
+      if (moduleAccess) moduleAccess.value = "";
+      if (noModuleAccess) noModuleAccess.value = "";
+      if (multiModuleOnly) multiModuleOnly.value = "";
+      if (moduleRole) moduleRole.value = "";
       if (username) username.value = "";
       if (email) email.value = "";
       if (dateFrom) dateFrom.value = "";

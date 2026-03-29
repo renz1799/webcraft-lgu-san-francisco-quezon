@@ -45,6 +45,9 @@ class InventoryItemPublicAssetService implements InventoryItemPublicAssetService
                     'type_label' => (bool) $inventoryItem->is_ics ? 'ICS' : 'PPE',
                     'reference_label' => $this->referenceLabel($inventoryItem),
                     'reference_value' => $publicCode,
+                    'item_name' => $this->nullableString($inventoryItem->item?->item_name)
+                        ?? $this->nullableString($inventoryItem->description)
+                        ?? 'Inventory Item',
                     'description' => $this->nullableString($inventoryItem->description)
                         ?? $this->nullableString($inventoryItem->item?->item_name)
                         ?? 'Inventory Item',
@@ -52,6 +55,9 @@ class InventoryItemPublicAssetService implements InventoryItemPublicAssetService
                     'model' => $this->nullableString($inventoryItem->model) ?? 'N/A',
                     'serial_number' => $this->nullableString($inventoryItem->serial_number) ?? 'N/A',
                     'acquisition_date' => $inventoryItem->acquisition_date?->format('F d, Y') ?? 'N/A',
+                    'acquisition_cost' => is_numeric($inventoryItem->acquisition_cost)
+                        ? 'P' . number_format((float) $inventoryItem->acquisition_cost, 2)
+                        : 'N/A',
                     'office' => $this->departmentLabel($inventoryItem->department),
                     'status' => InventoryStatuses::labels()[(string) ($inventoryItem->status ?? '')]
                         ?? $this->humanize((string) ($inventoryItem->status ?? 'unknown')),

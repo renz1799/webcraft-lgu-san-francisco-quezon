@@ -8,6 +8,7 @@ use App\Core\Http\Requests\Users\DeleteUserRequest;
 use App\Core\Http\Requests\Users\ResetUserPasswordRequest;
 use App\Core\Http\Requests\Users\UpdateUserModulePermissionsRequest;
 use App\Core\Http\Requests\Users\UpdateUserStatusRequest;
+use App\Core\Http\Requests\Users\ViewPlatformUserAccessRequest;
 use App\Core\Http\Requests\Users\ViewUserPermissionsRequest;
 use App\Core\Models\User;
 use App\Core\Services\Contracts\Access\UserAccessServiceInterface;
@@ -21,7 +22,7 @@ class UserAccessController extends Controller
 
     public function index(): View
     {
-        return view('access.users.index');
+        return view('access.users.index', $this->svc->getIndexViewData());
     }
 
     public function data(AccessUsersDataRequest $request): JsonResponse
@@ -39,6 +40,11 @@ class UserAccessController extends Controller
     public function show(ViewUserPermissionsRequest $request, User $user): JsonResponse
     {
         return response()->json($this->svc->getUserPermissions($user));
+    }
+
+    public function accessOverview(ViewPlatformUserAccessRequest $request, User $user): JsonResponse
+    {
+        return response()->json($this->svc->getPlatformAccessOverview($user));
     }
 
     /** JSON: toggle active status */
@@ -109,4 +115,3 @@ class UserAccessController extends Controller
             ->header('Pragma', 'no-cache');
     }
 }
-

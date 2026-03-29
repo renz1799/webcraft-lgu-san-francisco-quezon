@@ -295,7 +295,7 @@
                     <i class="bx bx-qr-scan"></i>
                     {{ $asset['type_label'] }} Asset Verification
                 </div>
-                <h1 class="asset-title">{{ $asset['description'] }}</h1>
+                <h1 class="asset-title">{{ $asset['item_name'] }}</h1>
                 <p class="asset-subtitle">
                     This public page is provided for inventory identification and verification.
                     For workflow actions, approvals, and internal records, please coordinate directly with the General Services Office.
@@ -319,7 +319,7 @@
                     <h2 class="asset-section-title">Asset Image</h2>
                     <div class="asset-image-frame">
                         @if($asset['primary_photo_url'])
-                            <img src="{{ $asset['primary_photo_url'] }}" alt="{{ $asset['description'] }}">
+                            <img src="{{ $asset['primary_photo_url'] }}" alt="{{ $asset['item_name'] }}">
                         @else
                             <div class="asset-image-empty">
                                 <i class="bx bx-image-alt"></i>
@@ -370,6 +370,10 @@
                     <div class="asset-detail">
                         <span class="asset-detail-label">Acquisition Date</span>
                         <div class="asset-detail-value">{{ $asset['acquisition_date'] }}</div>
+                    </div>
+                    <div class="asset-detail">
+                        <span class="asset-detail-label">Acquisition Cost</span>
+                        <div class="asset-detail-value">{{ $asset['acquisition_cost'] }}</div>
                     </div>
                     <div class="asset-detail">
                         <span class="asset-detail-label">Office / Department</span>

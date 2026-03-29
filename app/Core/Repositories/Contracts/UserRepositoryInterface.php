@@ -25,6 +25,8 @@ interface UserRepositoryInterface
 
     public function datatable(array $filters, int $page = 1, int $size = 15): array;
 
+    public function findForPlatformAccessOverview(string $id): ?User;
+
     public function findInModule(string $id, string $moduleId): ?User;
 
     public function findActiveInModule(string $id, string $moduleId): ?User;

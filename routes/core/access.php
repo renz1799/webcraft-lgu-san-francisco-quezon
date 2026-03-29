@@ -28,6 +28,7 @@ Route::middleware(['auth', 'password.changed', 'active_module'])->group(function
             ->whereUuid(['user'])
             ->group(function () {
                 Route::get('{user}/permissions', [UserAccessController::class, 'show'])->name('access.users.show');
+                Route::get('{user}/access-overview', [UserAccessController::class, 'accessOverview'])->name('access.users.access-overview');
                 Route::get('{user}/permissions/edit', [UserAccessController::class, 'edit'])->name('access.users.edit');
                 Route::patch('{user}/permissions', [UserAccessController::class, 'updateModulePermissions'])->name('access.users.update');
                 Route::patch('{user}/status', [UserAccessController::class, 'updateStatus'])->name('access.users.status.update');

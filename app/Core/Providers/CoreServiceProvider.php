@@ -21,12 +21,14 @@ use App\Core\Builders\AccountablePersons\AccountablePersonDatatableRowBuilder;
 use App\Core\Builders\Contracts\AccountablePersons\AccountablePersonDatatableRowBuilderInterface;
 use App\Core\Builders\Contracts\User\UserDatatableActionBuilderInterface;
 use App\Core\Builders\Contracts\User\UserDatatableRowBuilderInterface;
+use App\Core\Builders\Contracts\User\UserPlatformAccessOverviewBuilderInterface;
 use App\Core\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
 use App\Core\Builders\Contracts\Access\RoleAuditDisplayBuilderInterface;
 use App\Core\Builders\Contracts\GoogleDrive\GoogleDriveFileMetadataBuilderInterface;
 use App\Core\Builders\Contracts\GoogleDrive\GoogleDriveFolderNameSanitizerInterface;
 use App\Core\Builders\User\UserDatatableActionBuilder;
 use App\Core\Builders\User\UserDatatableRowBuilder;
+use App\Core\Builders\User\UserPlatformAccessOverviewBuilder;
 use App\Core\Builders\Access\PermissionAuditDisplayBuilder;
 use App\Core\Builders\Access\RoleAuditDisplayBuilder;
 use App\Core\Builders\GoogleDrive\GoogleDriveFileMetadataBuilder;
@@ -252,6 +254,7 @@ class CoreServiceProvider extends ServiceProvider
             // Users
             UserDatatableRowBuilderInterface::class => UserDatatableRowBuilder::class,
             UserDatatableActionBuilderInterface::class => UserDatatableActionBuilder::class,
+            UserPlatformAccessOverviewBuilderInterface::class => UserPlatformAccessOverviewBuilder::class,
 
             // Google Drive
             GoogleDriveFileMetadataBuilderInterface::class => GoogleDriveFileMetadataBuilder::class,
