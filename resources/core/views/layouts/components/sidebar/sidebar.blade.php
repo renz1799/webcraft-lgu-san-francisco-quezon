@@ -57,7 +57,6 @@
     ])
   @endif
 
-  @include('layouts.components.sidebar.sections.reports')
 </ul>
 
       <div class="slide-right" id="slide-right">

@@ -325,10 +325,6 @@ Current candidates:
 
 `app/Services/Infrastructure/ChromePdfGenerator.php`
 `app/Services/Contracts/Infrastructure/PdfGeneratorInterface.php`
-`app/Core/Http/Controllers/Reports/PrintWorkspaceSampleController.php`
-
-`PrintWorkspaceSampleController` is treated as Core because it serves as a reusable print standard sample.
-
 ## Core Geocoding
 
 Move to:

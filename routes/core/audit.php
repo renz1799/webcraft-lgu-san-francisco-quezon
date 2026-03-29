@@ -4,7 +4,6 @@ use App\Core\Http\Controllers\AuditLogs\AuditLogController;
 use App\Core\Http\Controllers\AuditLogs\AuditLogPrintController;
 use App\Core\Http\Controllers\AuditLogs\AuditRestoreController;
 use App\Core\Http\Controllers\Logs\LoginLogController;
-use App\Core\Http\Controllers\Reports\PrintWorkspaceSampleController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'password.changed', 'active_module'])->group(function () {
@@ -23,10 +22,6 @@ Route::middleware(['auth', 'password.changed', 'active_module'])->group(function
             ->name('audit.restore');
     });
 
-    Route::get('/reports/samples/rpcppe-preview', [PrintWorkspaceSampleController::class, 'rpcppe'])
-        ->name('reports.samples.rpcppe');
-    Route::get('/reports/samples/rpcppe-preview/pdf', [PrintWorkspaceSampleController::class, 'rpcppePdf'])
-        ->name('reports.samples.rpcppe.pdf');
     Route::get('/audit-logs/print', [AuditLogPrintController::class, 'preview'])
         ->name('audit-logs.print.index')
         ->middleware('role_or_permission:Administrator|admin|view Audit Logs');
