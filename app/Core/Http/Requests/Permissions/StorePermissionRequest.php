@@ -25,8 +25,7 @@ class StorePermissionRequest extends BaseFormRequest
                 'regex:/^(view|modify|delete)\s+.+$/i',
                 Rule::unique('permissions', 'name')
                     ->where('module_id', $moduleId)
-                    ->where('guard_name', $this->input('guard_name', 'web'))
-                    ->whereNull('deleted_at'),
+                    ->where('guard_name', $this->input('guard_name', 'web')),
             ],
             'page' => ['bail', 'required', 'string', 'max:255'],
             'guard_name' => ['bail', 'sometimes', 'in:web,api'],

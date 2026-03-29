@@ -57,7 +57,7 @@ class EloquentPermissionRepository implements PermissionRepositoryInterface
 
     public function create(string $moduleId, array $data): Permission
     {
-        return Permission::create([
+        return Permission::query()->create([
             ...$data,
             'module_id' => $moduleId,
         ]);

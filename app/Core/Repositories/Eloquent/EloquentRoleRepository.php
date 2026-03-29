@@ -51,7 +51,7 @@ class EloquentRoleRepository implements RoleRepositoryInterface
 
     public function create(string $moduleId, array $data): Role
     {
-        $role = Role::create([
+        $role = Role::query()->create([
             'module_id' => $moduleId,
             'name' => trim((string) $data['name']),
             'guard_name' => $data['guard_name'] ?? 'web',

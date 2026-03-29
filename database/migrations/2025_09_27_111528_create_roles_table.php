@@ -25,8 +25,8 @@ return new class extends Migration {
                 ->onDelete('cascade');
 
             $table->unique(
-                ['module_id', 'name', 'guard_name', 'deleted_at'],
-                'roles_module_name_guard_deleted_unique'
+                ['module_id', 'name', 'guard_name'],
+                'roles_module_name_guard_unique'
             );
 
             $table->index('module_id', 'roles_module_id_index');

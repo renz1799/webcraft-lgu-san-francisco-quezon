@@ -30,8 +30,7 @@ class UpdatePermissionRequest extends BaseFormRequest
                 Rule::unique('permissions', 'name')
                     ->ignore($permissionId, 'id')
                     ->where('module_id', $moduleId)
-                    ->where('guard_name', $guard)
-                    ->whereNull('deleted_at'),
+                    ->where('guard_name', $guard),
             ],
             'page' => ['bail', 'required', 'string', 'max:255'],
             'guard_name' => ['bail', 'sometimes', 'in:web,api'],

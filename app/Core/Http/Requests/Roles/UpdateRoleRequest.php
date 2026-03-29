@@ -28,8 +28,7 @@ class UpdateRoleRequest extends FormRequest
                 Rule::unique('roles', 'name')
                     ->ignore($role->id, 'id')
                     ->where('module_id', $moduleId)
-                    ->where('guard_name', 'web')
-                    ->whereNull('deleted_at'),
+                    ->where('guard_name', 'web'),
             ],
             'permissions'   => ['array'],
             'permissions.*' => [

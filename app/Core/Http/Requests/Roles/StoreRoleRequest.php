@@ -26,8 +26,7 @@ class StoreRoleRequest extends FormRequest
                 'max:255',
                 Rule::unique('roles', 'name')
                     ->where('module_id', $moduleId)
-                    ->where('guard_name', 'web')
-                    ->whereNull('deleted_at'),
+                    ->where('guard_name', 'web'),
             ],
             'permissions'           => ['array'],
             'permissions.*'         => [

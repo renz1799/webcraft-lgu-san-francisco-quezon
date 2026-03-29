@@ -70,7 +70,7 @@ class UserSeeder extends Seeder
 
             $admin = User::query()->updateOrCreate(
                 [
-                    'email' => 'admin@webcraft.ph',
+                    'email' => 'webcraftdev.ph@gmail.com',
                 ],
                 [
                     'username' => 'admin',

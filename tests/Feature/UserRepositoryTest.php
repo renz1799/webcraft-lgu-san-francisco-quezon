@@ -209,7 +209,7 @@ class UserRepositoryTest extends TestCase
             $table->string('guard_name');
             $table->timestamps();
             $table->softDeletes();
-            $table->unique(['module_id', 'name', 'guard_name', 'deleted_at'], 'roles_module_name_guard_deleted_unique');
+            $table->unique(['module_id', 'name', 'guard_name'], 'roles_module_name_guard_unique');
         });
 
         Schema::create('model_has_roles', function (Blueprint $table) {
