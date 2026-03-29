@@ -26,7 +26,7 @@ class TaskSeeder extends Seeder
         }
 
         $admin = User::query()
-            ->where('email', 'admin@webcraft.ph')
+            ->where('email', 'webcraftdev.ph@gmail.com')
             ->first();
 
         if (! $admin) {
@@ -34,7 +34,7 @@ class TaskSeeder extends Seeder
         }
 
         $sampleStaff = User::query()
-            ->where('email', '!=', 'admin@webcraft.ph')
+            ->where('email', '!=', 'ebcraftdev.ph@gmail.com')
             ->orderBy('created_at')
             ->first();
 

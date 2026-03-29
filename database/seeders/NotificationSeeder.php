@@ -26,11 +26,11 @@ class NotificationSeeder extends Seeder
         }
 
         $actor = User::query()
-            ->where('email', 'admin@webcraft.ph')
+            ->where('email', 'webcraftdev.ph@gmail.com')
             ->first();
 
         $recipient = User::query()
-            ->where('email', '!=', 'admin@webcraft.ph')
+            ->where('email', '!=', 'webcraftdev.ph@gmail.com')
             ->orderBy('created_at')
             ->first();
 
