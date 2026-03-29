@@ -4,6 +4,7 @@ namespace App\Core\Services\Access;
 
 use App\Core\Models\User;
 use App\Core\Services\Contracts\Access\LoginLogServiceInterface;
+use App\Core\Services\Contracts\Access\UserIdentityChangeRequestServiceInterface;
 use App\Core\Services\Contracts\Access\UserProfileServiceInterface;
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use Illuminate\Http\UploadedFile;
@@ -16,28 +17,26 @@ class UserProfileService implements UserProfileServiceInterface
     public function __construct(
         private readonly AuditLogServiceInterface $audit,
         private readonly LoginLogServiceInterface $loginLogs,
+        private readonly UserIdentityChangeRequestServiceInterface $identityChangeRequests,
     ) {}
 
     public function getProfileData(User $user): array
     {
         $loginDetails = $this->loginLogs->recentForUser($user, 4);
+        $latestIdentityChangeRequest = $this->identityChangeRequests->latestForUser($user);
 
-        return compact('user', 'loginDetails');
+        return compact('user', 'loginDetails', 'latestIdentityChangeRequest');
     }
 
-    public function updateProfile(User $user, array $data): void
+    public function updateProfile(User $user, array $data): array
     {
-        DB::transaction(function () use ($user, $data) {
+        return DB::transaction(function () use ($user, $data) {
             $beforeUser = $user->only(['email', 'username']);
             $beforeProfile = $user->profile?->only([
                 'first_name','middle_name','last_name','name_extension','address','contact_details','profile_photo_path'
             ]) ?? [];
 
             $profileData = [
-                'first_name'      => $data['first_name'],
-                'middle_name'     => $data['middle_name'] ?? null,
-                'last_name'       => $data['last_name'],
-                'name_extension'  => $data['name_extension'] ?? null,
                 'address'         => $data['address'] ?? null,
                 'contact_details' => $data['contact_details'] ?? null,
             ];
@@ -54,20 +53,42 @@ class UserProfileService implements UserProfileServiceInterface
 
             $user->profile()->updateOrCreate([], $profileData);
 
-            $afterUser = $user->fresh()->only(['email', 'username']);
-            $afterProfile = $user->fresh()->profile?->only([
+            $freshUser = $user->fresh(['profile']);
+            $afterUser = $freshUser->only(['email', 'username']);
+            $afterProfile = $freshUser->profile?->only([
                 'first_name','middle_name','last_name','name_extension','address','contact_details','profile_photo_path'
             ]) ?? [];
 
-            $this->audit->record(
-                'user.profile.updated',
-                $user,
-                ['user' => $beforeUser, 'profile' => $beforeProfile],
-                ['user' => $afterUser, 'profile' => $afterProfile],
-                $this->meta(),
-                null,
-                $this->buildProfileUpdatedDisplay($user->fresh(), $beforeUser, $beforeProfile, $afterUser, $afterProfile)
+            $directChangesSaved = ['user' => $beforeUser, 'profile' => $beforeProfile] !== ['user' => $afterUser, 'profile' => $afterProfile];
+
+            if ($directChangesSaved) {
+                $this->audit->record(
+                    'user.profile.updated',
+                    $freshUser,
+                    ['user' => $beforeUser, 'profile' => $beforeProfile],
+                    ['user' => $afterUser, 'profile' => $afterProfile],
+                    $this->meta(),
+                    null,
+                    $this->buildProfileUpdatedDisplay($freshUser, $beforeUser, $beforeProfile, $afterUser, $afterProfile)
+                );
+            }
+
+            $identityResult = $this->identityChangeRequests->submitFromProfileUpdate(
+                $freshUser,
+                [
+                    'first_name' => $data['first_name'],
+                    'middle_name' => $data['middle_name'] ?? null,
+                    'last_name' => $data['last_name'],
+                    'name_extension' => $data['name_extension'] ?? null,
+                ],
+                $data['identity_change_reason'] ?? null
             );
+
+            return [
+                'direct_changes_saved' => $directChangesSaved,
+                'identity_result' => $identityResult,
+                'message' => $this->buildProfileUpdateMessage($directChangesSaved, $identityResult),
+            ];
         });
     }
 
@@ -125,10 +146,6 @@ class UserProfileService implements UserProfileServiceInterface
         $fields = [
             'user.email' => 'Email',
             'user.username' => 'Username',
-            'profile.first_name' => 'First Name',
-            'profile.middle_name' => 'Middle Name',
-            'profile.last_name' => 'Last Name',
-            'profile.name_extension' => 'Name Extension',
             'profile.address' => 'Address',
             'profile.contact_details' => 'Contact Details',
             'profile.profile_photo_path' => 'Profile Photo',
@@ -212,5 +229,24 @@ class UserProfileService implements UserProfileServiceInterface
 
         return (string) ($user->username ?: $user->email ?: 'User');
     }
-}
 
+    private function buildProfileUpdateMessage(bool $directChangesSaved, array $identityResult): string
+    {
+        $identityStatus = (string) ($identityResult['status'] ?? 'unchanged');
+
+        return match (true) {
+            $directChangesSaved && $identityStatus === 'created' =>
+                'Profile details were saved, and your identity change request was submitted for approval.',
+            $directChangesSaved && $identityStatus === 'blocked' =>
+                'Profile details were saved. Your name-related request is still pending administrator approval, so no new identity request was created.',
+            $directChangesSaved =>
+                'Profile updated successfully.',
+            $identityStatus === 'created' =>
+                'Your identity change request was submitted for administrator approval.',
+            $identityStatus === 'blocked' =>
+                'Your existing identity change request is still pending administrator approval.',
+            default =>
+                'No profile changes were detected.',
+        };
+    }
+}

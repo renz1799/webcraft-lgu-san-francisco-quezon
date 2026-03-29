@@ -194,8 +194,7 @@ class TaskReadService implements TaskReadServiceInterface
 
         return $this->moduleAccess->accessibleModulesForUser($actor)
             ->reject(function (Module $module) use ($sharedCapabilityCodes): bool {
-                return $module->isPlatformContext()
-                    || in_array(strtoupper((string) $module->code), $sharedCapabilityCodes, true);
+                return in_array(strtoupper((string) $module->code), $sharedCapabilityCodes, true);
             })
             ->values();
     }

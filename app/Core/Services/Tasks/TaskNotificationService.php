@@ -61,6 +61,8 @@ class TaskNotificationService implements TaskNotificationServiceInterface
 
     private function notifyParticipants(Task $task, string $actorUserId, array $payload): void
     {
+        $excludeCreator = (string) ($task->type ?? '') === 'identity_change_review';
+
         $participantIds = $this->taskEvents
             ->getForTask((string) $task->id)
             ->pluck('actor_user_id')
@@ -73,7 +75,7 @@ class TaskNotificationService implements TaskNotificationServiceInterface
         $candidateIds = array_filter(array_unique(array_merge(
             $participantIds,
             [
-                (string) ($task->created_by_user_id ?? ''),
+                $excludeCreator ? '' : (string) ($task->created_by_user_id ?? ''),
                 (string) ($task->assigned_to_user_id ?? ''),
             ]
         )));
@@ -84,7 +86,10 @@ class TaskNotificationService implements TaskNotificationServiceInterface
 
         $recipients = array_values(array_diff(
             array_unique(array_merge($candidateIds, $adminIds)),
-            [(string) $actorUserId]
+            array_filter([
+                (string) $actorUserId,
+                $excludeCreator ? (string) ($task->created_by_user_id ?? '') : '',
+            ])
         ));
 
         $this->notifications->notifyUsers(

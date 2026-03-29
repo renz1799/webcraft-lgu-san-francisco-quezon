@@ -27,6 +27,17 @@ interface TaskServiceInterface
         array $data = []
     ): Task;
 
+    public function createUnassignedInModule(
+        string $ownerModuleId,
+        string $actorUserId,
+        string $title,
+        ?string $description = null,
+        ?string $type = null,
+        ?string $subjectType = null,
+        ?string $subjectId = null,
+        array $data = []
+    ): Task;
+
     public function findLatestBySubject(string $subjectType, string $subjectId): ?Task;
 
     public function updateTaskAssignmentAndData(

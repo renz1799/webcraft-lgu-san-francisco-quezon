@@ -318,12 +318,12 @@
     ], is_array($taskRouteNames ?? null) ? $taskRouteNames : []);
     $tasksShowPageDescription = trim((string) ($tasksShowPageDescription ?? 'Review task details, take action, and follow the complete activity timeline from one page.'))
         ?: 'Review task details, take action, and follow the complete activity timeline from one page.';
-    $tasksShowBreadcrumbRootLabel = trim((string) ($tasksShowBreadcrumbRootLabel ?? 'Shared Workspace')) ?: 'Shared Workspace';
+    $tasksShowBreadcrumbRootLabel = trim((string) ($tasksShowBreadcrumbRootLabel ?? 'Workflow')) ?: 'Workflow';
     $tasksShowBreadcrumbRootUrl = trim((string) ($tasksShowBreadcrumbRootUrl ?? route($taskRouteNames['index']))) ?: route($taskRouteNames['index']);
     $tasksShowBreadcrumbIndexLabel = trim((string) ($tasksShowBreadcrumbIndexLabel ?? 'Tasks')) ?: 'Tasks';
     $tasksShowBreadcrumbCurrentLabel = trim((string) ($tasksShowBreadcrumbCurrentLabel ?? 'Timeline')) ?: 'Timeline';
-    $tasksShowOverviewDescription = trim((string) ($tasksShowOverviewDescription ?? 'Summary, owner module, and available workflow actions stay on the left.'))
-        ?: 'Summary, owner module, and available workflow actions stay on the left.';
+    $tasksShowOverviewDescription = trim((string) ($tasksShowOverviewDescription ?? 'Summary, ownership, and available workflow actions stay on the left.'))
+        ?: 'Summary, ownership, and available workflow actions stay on the left.';
     $statusLabels = [
         'pending' => 'Pending',
         'in_progress' => 'In Progress',
@@ -416,8 +416,6 @@
     $currentStatusClasses = $statusBadgeClasses[$currentStatusKey] ?? 'bg-light text-defaulttextcolor dark:text-white/70';
     $assignedToName = trim((string) ($task->assignedTo?->profile?->full_name ?: ($task->assignedTo?->username ?: 'Unassigned')));
     $createdByName = trim((string) ($task->createdBy?->profile?->full_name ?? $task->createdBy?->username ?? 'System'));
-    $originModuleName = trim((string) ($task->module?->name ?? 'Unknown Module'));
-    $originModuleCode = trim((string) ($task->module?->code ?? ''));
     $typeLabel = $task->type
         ? \Illuminate\Support\Str::headline(str_replace(['-', '_'], ' ', (string) $task->type))
         : 'General';
@@ -530,15 +528,6 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 task-show-overview-grid">
-                        <div class="rounded-lg border border-defaultborder p-4 task-show-stat">
-                            <div class="text-xs uppercase tracking-wide text-[#8c9097] dark:text-white/50">Origin Module</div>
-                            <div class="mt-1 text-sm font-semibold text-defaulttextcolor dark:text-white">
-                                {{ $originModuleName }}
-                                @if($originModuleCode !== '')
-                                    <span class="text-xs text-[#8c9097] dark:text-white/50">({{ $originModuleCode }})</span>
-                                @endif
-                            </div>
-                        </div>
                         <div class="rounded-lg border border-defaultborder p-4 task-show-stat">
                             <div class="text-xs uppercase tracking-wide text-[#8c9097] dark:text-white/50">Assigned To</div>
                             <div class="mt-1 text-sm font-semibold text-defaulttextcolor dark:text-white">

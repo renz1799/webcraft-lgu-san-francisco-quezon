@@ -57,10 +57,22 @@
     return `${badge}${label}`;
   }
 
+  function routeFromTemplate(template, id, fallback = "") {
+    const value = String(template || "").trim();
+    const taskId = String(id || "").trim();
+
+    if (value !== "" && taskId !== "") {
+      return value.replace("__ID__", encodeURIComponent(taskId));
+    }
+
+    return String(fallback || "").trim();
+  }
+
   onReady(function () {
     const cfg = window.__tasks || {};
     const el = document.getElementById("tasks-table");
     if (!el) return;
+    const showModuleColumn = cfg.showModuleColumn !== false;
 
     if (window.__tasksTable && typeof window.__tasksTable.destroy === "function") {
       try {
@@ -110,6 +122,151 @@
       };
     }
 
+    const columns = [
+      {
+        title: "Title",
+        field: "title",
+        minWidth: 280,
+        formatter: function (cell) {
+          const row = cell.getRow().getData() || {};
+          const title = esc(row.title || "-");
+          const showUrl = esc(routeFromTemplate(cfg.showUrlTemplate, row.id, row.show_url));
+
+          if (!showUrl) {
+            return title;
+          }
+
+          return `<a class="text-primary hover:underline font-semibold" href="${showUrl}">${title}</a>`;
+        },
+      },
+      {
+        title: "Status",
+        field: "status",
+        minWidth: 160,
+        formatter: function (cell) {
+          const row = cell.getRow().getData() || {};
+          return statusBadge(row);
+        },
+      },
+      {
+        title: "Assigned To",
+        field: "assigned_to_name",
+        minWidth: 200,
+        formatter: function (cell) {
+          const value = String(cell.getValue() || "").trim();
+          return value !== "" && value !== "-"
+            ? esc(value)
+            : '<span class="text-[#8c9097]">-</span>';
+        },
+      },
+      {
+        title: "Created",
+        field: "created_at",
+        minWidth: 180,
+        formatter: function (cell) {
+          const row = cell.getRow().getData() || {};
+          return esc(row.created_at_text || cell.getValue() || "-");
+        },
+      },
+      {
+        title: "Actions",
+        field: "id",
+        width: 210,
+        hozAlign: "center",
+        headerSort: false,
+        formatter: function (cell) {
+          const row = cell.getRow().getData() || {};
+          const title = esc(row.title || "this task");
+
+          const showUrl = esc(routeFromTemplate(cfg.showUrlTemplate, row.id, row.show_url));
+          const claimUrl = row.claim_url
+            ? esc(routeFromTemplate(cfg.claimUrlTemplate, row.id, row.claim_url))
+            : "";
+          const archiveUrl = row.archive_url
+            ? esc(routeFromTemplate(cfg.archiveUrlTemplate, row.id, row.archive_url))
+            : "";
+          const restoreUrl = row.restore_url
+            ? esc(routeFromTemplate(cfg.restoreUrlTemplate, row.id, row.restore_url))
+            : "";
+
+          const buttons = [];
+
+          if (showUrl) {
+            buttons.push(`
+                <a href="${showUrl}" class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full" title="Open">
+                  <i class="ri-eye-line"></i>
+                </a>
+              `);
+          }
+
+          if (row.is_archived) {
+            if (restoreUrl) {
+              buttons.push(`
+                  <button
+                    type="button"
+                    class="ti-btn btn-wave ti-btn-sm ti-btn-success !rounded-full"
+                    data-action="restore-task"
+                    data-endpoint="${restoreUrl}"
+                    data-title="${title}"
+                    title="Restore"
+                  >
+                    <i class="ri-history-line"></i>
+                  </button>
+                `);
+            }
+          } else {
+            if (claimUrl) {
+              buttons.push(`
+                  <button
+                    type="button"
+                    class="ti-btn btn-wave ti-btn-sm ti-btn-primary !rounded-full"
+                    data-action="claim-task"
+                    data-endpoint="${claimUrl}"
+                    data-title="${title}"
+                    title="Claim"
+                  >
+                    <i class="ri-hand-heart-line"></i>
+                  </button>
+                `);
+            }
+
+            if (archiveUrl) {
+              buttons.push(`
+                  <button
+                    type="button"
+                    class="ti-btn btn-wave ti-btn-sm ti-btn-danger !rounded-full"
+                    data-action="archive-task"
+                    data-endpoint="${archiveUrl}"
+                    data-title="${title}"
+                    title="Archive"
+                  >
+                    <i class="ri-delete-bin-line"></i>
+                  </button>
+                `);
+            }
+          }
+
+          if (buttons.length === 0) {
+            return '<span class="text-xs text-[#8c9097]">N/A</span>';
+          }
+
+          return `<div class="hstack flex gap-2 text-[.9375rem] justify-center w-full">${buttons.join("")}</div>`;
+        },
+      },
+    ];
+
+    if (showModuleColumn) {
+      columns.unshift({
+        title: "Origin",
+        field: "owner_module_name",
+        minWidth: 180,
+        formatter: function (cell) {
+          const row = cell.getRow().getData() || {};
+          return moduleBadge(row);
+        },
+      });
+    }
+
     const table = new Tabulator(el, {
       layout: "fitColumns",
       responsiveLayout: "collapse",
@@ -155,146 +312,13 @@
         }
 
         const data = row.getData() || {};
-        if (!data.show_url) return;
+        const showUrl = routeFromTemplate(cfg.showUrlTemplate, data.id, data.show_url);
+        if (!showUrl) return;
 
-        window.location.href = data.show_url;
+        window.location.href = showUrl;
       },
 
-      columns: [
-        {
-          title: "Origin",
-          field: "owner_module_name",
-          minWidth: 180,
-          formatter: function (cell) {
-            const row = cell.getRow().getData() || {};
-            return moduleBadge(row);
-          },
-        },
-        {
-          title: "Title",
-          field: "title",
-          minWidth: 280,
-          formatter: function (cell) {
-            const row = cell.getRow().getData() || {};
-            const title = esc(row.title || "-");
-            const showUrl = esc(row.show_url || "");
-
-            if (!showUrl) {
-              return title;
-            }
-
-            return `<a class="text-primary hover:underline font-semibold" href="${showUrl}">${title}</a>`;
-          },
-        },
-        {
-          title: "Status",
-          field: "status",
-          minWidth: 160,
-          formatter: function (cell) {
-            const row = cell.getRow().getData() || {};
-            return statusBadge(row);
-          },
-        },
-        {
-          title: "Assigned To",
-          field: "assigned_to_name",
-          minWidth: 200,
-          formatter: function (cell) {
-            const value = String(cell.getValue() || "").trim();
-            return value !== "" && value !== "-"
-              ? esc(value)
-              : '<span class="text-[#8c9097]">-</span>';
-          },
-        },
-        {
-          title: "Created",
-          field: "created_at",
-          minWidth: 180,
-          formatter: function (cell) {
-            const row = cell.getRow().getData() || {};
-            return esc(row.created_at_text || cell.getValue() || "-");
-          },
-        },
-        {
-          title: "Actions",
-          field: "id",
-          width: 210,
-          hozAlign: "center",
-          headerSort: false,
-          formatter: function (cell) {
-            const row = cell.getRow().getData() || {};
-            const title = esc(row.title || "this task");
-
-            const showUrl = esc(row.show_url || "");
-            const claimUrl = esc(row.claim_url || "");
-            const archiveUrl = esc(row.archive_url || "");
-            const restoreUrl = esc(row.restore_url || "");
-
-            const buttons = [];
-
-            if (showUrl) {
-              buttons.push(`
-                <a href="${showUrl}" class="ti-btn btn-wave ti-btn-sm ti-btn-info !rounded-full" title="Open">
-                  <i class="ri-eye-line"></i>
-                </a>
-              `);
-            }
-
-            if (row.is_archived) {
-              if (restoreUrl) {
-                buttons.push(`
-                  <button
-                    type="button"
-                    class="ti-btn btn-wave ti-btn-sm ti-btn-success !rounded-full"
-                    data-action="restore-task"
-                    data-endpoint="${restoreUrl}"
-                    data-title="${title}"
-                    title="Restore"
-                  >
-                    <i class="ri-history-line"></i>
-                  </button>
-                `);
-              }
-            } else {
-              if (claimUrl) {
-                buttons.push(`
-                  <button
-                    type="button"
-                    class="ti-btn btn-wave ti-btn-sm ti-btn-primary !rounded-full"
-                    data-action="claim-task"
-                    data-endpoint="${claimUrl}"
-                    data-title="${title}"
-                    title="Claim"
-                  >
-                    <i class="ri-hand-heart-line"></i>
-                  </button>
-                `);
-              }
-
-              if (archiveUrl) {
-                buttons.push(`
-                  <button
-                    type="button"
-                    class="ti-btn btn-wave ti-btn-sm ti-btn-danger !rounded-full"
-                    data-action="archive-task"
-                    data-endpoint="${archiveUrl}"
-                    data-title="${title}"
-                    title="Archive"
-                  >
-                    <i class="ri-delete-bin-line"></i>
-                  </button>
-                `);
-              }
-            }
-
-            if (buttons.length === 0) {
-              return '<span class="text-xs text-[#8c9097]">N/A</span>';
-            }
-
-            return `<div class="hstack flex gap-2 text-[.9375rem] justify-center w-full">${buttons.join("")}</div>`;
-          },
-        },
-      ],
+      columns,
     });
 
     window.__tasksTable = table;

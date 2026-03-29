@@ -12,8 +12,10 @@ use Illuminate\Support\ServiceProvider;
 
 // Repositories
 use App\Core\Repositories\Contracts\AccountablePersonRepositoryInterface;
+use App\Core\Repositories\Contracts\UserIdentityChangeRequestRepositoryInterface;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
 use App\Core\Repositories\Eloquent\EloquentAccountablePersonRepository;
+use App\Core\Repositories\Eloquent\EloquentUserIdentityChangeRequestRepository;
 use App\Core\Repositories\Eloquent\EloquentUserRepository;
 
 // Builders
@@ -24,6 +26,7 @@ use App\Core\Builders\Contracts\User\UserDatatableRowBuilderInterface;
 use App\Core\Builders\Contracts\User\UserPlatformAccessOverviewBuilderInterface;
 use App\Core\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
 use App\Core\Builders\Contracts\Access\RoleAuditDisplayBuilderInterface;
+use App\Core\Builders\Contracts\Access\UserIdentityChangeRequestAuditDisplayBuilderInterface;
 use App\Core\Builders\Contracts\GoogleDrive\GoogleDriveFileMetadataBuilderInterface;
 use App\Core\Builders\Contracts\GoogleDrive\GoogleDriveFolderNameSanitizerInterface;
 use App\Core\Builders\User\UserDatatableActionBuilder;
@@ -31,6 +34,7 @@ use App\Core\Builders\User\UserDatatableRowBuilder;
 use App\Core\Builders\User\UserPlatformAccessOverviewBuilder;
 use App\Core\Builders\Access\PermissionAuditDisplayBuilder;
 use App\Core\Builders\Access\RoleAuditDisplayBuilder;
+use App\Core\Builders\Access\UserIdentityChangeRequestAuditDisplayBuilder;
 use App\Core\Builders\GoogleDrive\GoogleDriveFileMetadataBuilder;
 use App\Core\Builders\GoogleDrive\GoogleDriveFolderNameSanitizer;
 
@@ -118,6 +122,7 @@ use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServi
 use App\Core\Services\Contracts\Access\RoleServiceInterface;
 use App\Core\Services\Contracts\Access\UserModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\Access\UserAccessServiceInterface;
+use App\Core\Services\Contracts\Access\UserIdentityChangeRequestServiceInterface;
 use App\Core\Services\Contracts\Access\UserProfileServiceInterface;
 use App\Core\Services\Access\LoginLogService;
 use App\Core\Services\Access\CoreUserOnboardingService;
@@ -130,6 +135,7 @@ use App\Core\Services\Access\RoleAssignments\ModuleRoleAssignmentService;
 use App\Core\Services\Access\RoleService;
 use App\Core\Services\Access\UserModuleDepartmentResolver;
 use App\Core\Services\Access\UserAccessService;
+use App\Core\Services\Access\UserIdentityChangeRequestService;
 use App\Core\Services\Access\UserProfileService;
 
 /*
@@ -207,6 +213,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->bindMany([
             // Accountable Persons
             AccountablePersonRepositoryInterface::class => EloquentAccountablePersonRepository::class,
+            UserIdentityChangeRequestRepositoryInterface::class => EloquentUserIdentityChangeRequestRepository::class,
 
             // Audit Logs
             AuditLogRepositoryInterface::class => EloquentAuditLogRepository::class,
@@ -250,6 +257,7 @@ class CoreServiceProvider extends ServiceProvider
             // Access Control
             RoleAuditDisplayBuilderInterface::class => RoleAuditDisplayBuilder::class,
             PermissionAuditDisplayBuilderInterface::class => PermissionAuditDisplayBuilder::class,
+            UserIdentityChangeRequestAuditDisplayBuilderInterface::class => UserIdentityChangeRequestAuditDisplayBuilder::class,
 
             // Users
             UserDatatableRowBuilderInterface::class => UserDatatableRowBuilder::class,
@@ -289,6 +297,7 @@ class CoreServiceProvider extends ServiceProvider
             ModuleUserOnboardingServiceInterface::class => ModuleUserOnboardingService::class,
             OnboardingCredentialNotificationServiceInterface::class => OnboardingCredentialNotificationService::class,
             UserProfileServiceInterface::class => UserProfileService::class,
+            UserIdentityChangeRequestServiceInterface::class => UserIdentityChangeRequestService::class,
             ModuleAccessServiceInterface::class => ModuleAccessService::class,
             ModuleDepartmentResolverInterface::class => ModuleDepartmentResolver::class,
             UserModuleDepartmentResolverInterface::class => UserModuleDepartmentResolver::class,

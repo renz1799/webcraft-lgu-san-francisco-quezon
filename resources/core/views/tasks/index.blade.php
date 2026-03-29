@@ -532,6 +532,7 @@
       canViewAll: @json((bool) $canViewAll),
       canArchive: @json((bool) $canArchive),
       isAdminStatsUser: @json((bool) $isAdminStatsUser),
+      showModuleColumn: @json((bool) $tasksShowModuleFilter),
       ownerModules: @json($taskOwnerModules->values()->all()),
       sidebarCounts: @json([
         'my' => (int) ($sidebarTaskCounts['my'] ?? 0),

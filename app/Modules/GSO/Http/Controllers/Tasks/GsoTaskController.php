@@ -85,7 +85,7 @@ class GsoTaskController extends Controller
             'tasksShowBreadcrumbRootUrl' => route('gso.dashboard'),
             'tasksShowBreadcrumbIndexLabel' => 'Tasks',
             'tasksShowBreadcrumbCurrentLabel' => 'Timeline',
-            'tasksShowOverviewDescription' => 'Summary, GSO workflow ownership, and available task actions stay on the left.',
+            'tasksShowOverviewDescription' => 'Summary, ownership, and available task actions stay on the left.',
         ];
     }
 

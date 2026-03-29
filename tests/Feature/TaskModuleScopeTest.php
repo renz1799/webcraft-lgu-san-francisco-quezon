@@ -201,6 +201,76 @@ class TaskModuleScopeTest extends TestCase
         $readService->findAccessibleOrFail($actorWithPermissions, (string) $otherTask->id);
     }
 
+    public function test_platform_owner_modules_are_included_in_shared_tasks_when_accessible(): void
+    {
+        \DB::table('modules')->insert([
+            [
+                'id' => 'module-core',
+                'code' => 'CORE',
+                'name' => 'Core Platform',
+                'type' => 'platform',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $actor = $this->createUserWithModule('user-platform-actor', 'module-core', 'department-1', 'Platform Actor');
+
+        Task::query()->create([
+            'module_id' => 'module-core',
+            'department_id' => 'department-1',
+            'title' => 'Core Review Task',
+            'status' => Task::STATUS_PENDING,
+            'created_by_user_id' => $actor->id,
+            'assigned_to_user_id' => $actor->id,
+            'data' => [],
+        ]);
+
+        $moduleAccess = Mockery::mock(ModuleAccessServiceInterface::class);
+        $accessibleModule = new Module([
+            'code' => 'CORE',
+            'name' => 'Core Platform',
+            'type' => 'platform',
+            'is_active' => true,
+        ]);
+        $accessibleModule->id = 'module-core';
+        $moduleAccess->shouldReceive('accessibleModulesForUser')
+            ->andReturn(collect([$accessibleModule]));
+
+        $users = Mockery::mock(\App\Core\Repositories\Contracts\UserRepositoryInterface::class);
+        $users->shouldReceive('getRoleNamesInModule')
+            ->withArgs(function (User $actor, string $moduleId): bool {
+                return (string) $actor->id !== '' && $moduleId === 'module-core';
+            })
+            ->andReturn([]);
+        app()->instance(\App\Core\Repositories\Contracts\UserRepositoryInterface::class, $users);
+
+        $readService = new TaskReadService(
+            app(\App\Core\Repositories\Tasks\Contracts\TaskRepositoryInterface::class),
+            app(\App\Core\Repositories\Tasks\Contracts\TaskEventRepositoryInterface::class),
+            $users,
+            $moduleAccess,
+            new TaskPolicy(),
+            new TaskDatatableRowBuilder(),
+            new TaskAdminStatsBuilder(),
+            new TaskShowActionProvider(),
+            new UserTaskReassignOptionBuilder(),
+        );
+
+        $actorWithPermissions = $this->mockActor($actor, roles: ['Administrator'], permissions: ['view All Tasks']);
+
+        $payload = $readService->datatable($actorWithPermissions, [
+            'scope' => 'all',
+            'page' => 1,
+            'size' => 15,
+        ]);
+
+        $this->assertSame(1, $payload['total']);
+        $this->assertCount(1, $payload['data']);
+        $this->assertSame('CORE', $payload['data'][0]['owner_module_code']);
+    }
+
     private function setUpSchema(): void
     {
         Schema::dropAllTables();

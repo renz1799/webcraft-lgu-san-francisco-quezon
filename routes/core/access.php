@@ -3,6 +3,7 @@
 use App\Core\Http\Controllers\Access\PermissionController;
 use App\Core\Http\Controllers\Access\RolesController;
 use App\Core\Http\Controllers\Access\CoreUserOnboardingController;
+use App\Core\Http\Controllers\Access\UserIdentityChangeRequestController;
 use App\Core\Http\Controllers\Access\UserAccessController;
 use App\Core\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,19 @@ Route::middleware(['auth', 'password.changed', 'active_module'])->group(function
     });
 
     Route::middleware('role:Administrator|admin')->group(function () {
+        Route::get('/identity-change-requests', [UserIdentityChangeRequestController::class, 'index'])
+            ->name('identity-change-requests.index');
+        Route::prefix('identity-change-requests')
+            ->whereUuid(['identityChangeRequest'])
+            ->group(function () {
+                Route::get('{identityChangeRequest}', [UserIdentityChangeRequestController::class, 'show'])
+                    ->name('identity-change-requests.show');
+                Route::post('{identityChangeRequest}/approve', [UserIdentityChangeRequestController::class, 'approve'])
+                    ->name('identity-change-requests.approve');
+                Route::post('{identityChangeRequest}/reject', [UserIdentityChangeRequestController::class, 'reject'])
+                    ->name('identity-change-requests.reject');
+            });
+
         Route::get('/users/data', [UserAccessController::class, 'data'])->name('access.users.data');
         Route::get('/users', [UserAccessController::class, 'index'])->name('access.users.index');
         Route::get('/users/create', [CoreUserOnboardingController::class, 'create'])->name('access.users.create');

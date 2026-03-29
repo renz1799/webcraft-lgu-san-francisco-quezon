@@ -23,6 +23,7 @@
   }
 
   function buildScopeLabel(filters = {}) {
+    const showModuleColumn = window.__tasks?.showModuleColumn !== false;
     const ownerModules = Array.isArray(window.__tasks?.ownerModules) ? window.__tasks.ownerModules : [];
     const selectedModuleId = String(filters.module_id || "").trim();
     const selectedModule = ownerModules.find((module) => String(module?.id || "").trim() === selectedModuleId);
@@ -43,7 +44,7 @@
       parts.push(`status: ${status.replace(/_/g, " ")}`);
     }
 
-    if (selectedModule) {
+    if (showModuleColumn && selectedModule) {
       parts.push(`origin: ${selectedModule.name}`);
     }
 
@@ -51,12 +52,13 @@
   }
 
   function countActiveFilters(filters = {}) {
+    const showModuleColumn = window.__tasks?.showModuleColumn !== false;
     let count = 0;
 
     if (String(filters.search || "").trim() !== "") count++;
     if (String(filters.archived || "active").trim() !== "active") count++;
     if (String(filters.scope || "mine").trim() !== "mine") count++;
-    if (String(filters.module_id || "").trim() !== "") count++;
+    if (showModuleColumn && String(filters.module_id || "").trim() !== "") count++;
     if (String(filters.status || "").trim() !== "") count++;
     if (String(filters.assigned_to || "").trim() !== "") count++;
     if (String(filters.date_from || "").trim() !== "") count++;

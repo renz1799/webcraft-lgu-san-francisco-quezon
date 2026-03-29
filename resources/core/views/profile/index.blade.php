@@ -13,6 +13,13 @@
 @section('content')
 @php($activeTab = request('tab', 'personal-info'))
 @php($isAccountTab = $activeTab === 'account-settings')
+@php($latestIdentityStatus = $latestIdentityChangeRequest?->status ?? 'none')
+@php($identityStatusClasses = [
+    'none' => 'bg-light text-defaulttextcolor',
+    'pending' => 'bg-warning/10 text-warning',
+    'approved' => 'bg-success/10 text-success',
+    'rejected' => 'bg-danger/10 text-danger',
+])
 
                   <div class="container">
 
@@ -92,6 +99,19 @@
                 </div>
                 </div>
                 <h6 class="font-semibold mb-4 text-[1rem]">Profile:</h6>
+                <div class="mb-6 p-4 rounded-md border border-primary/20 bg-primary/5 dark:border-primary/20 dark:bg-primary/10">
+                    <div class="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                            <p class="font-semibold mb-1">Identity fields require approval</p>
+                            <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mb-0">
+                                Changes to first name, last name, middle name, and name extension will be submitted to an administrator for review before your official profile record is updated.
+                            </p>
+                        </div>
+                        <span class="badge {{ $identityStatusClasses[$latestIdentityStatus] ?? 'bg-light text-defaulttextcolor' }}">
+                            {{ $latestIdentityStatus === 'none' ? 'No Pending Request' : str($latestIdentityStatus)->replace('_', ' ')->title() }}
+                        </span>
+                    </div>
+                </div>
                 <div class="sm:grid grid-cols-12 gap-6 mb-6">
                     <div class="xl:col-span-6 col-span-12">
                         <label for="first-name" class="form-label">First Name</label>
@@ -112,6 +132,72 @@
                         <label for="name-extension" class="form-label">Name Extension</label>
                         <input type="text" name="name_extension" class="form-control w-full !rounded-md" id="name-extension" 
                             placeholder="Name Extension" value="{{ old('name_extension', $user->profile->name_extension ?? '') }}">
+                    </div>
+                    <div class="xl:col-span-12 col-span-12">
+                        <label for="identity-change-reason" class="form-label">Reason for Identity Change Request</label>
+                        <textarea
+                            name="identity_change_reason"
+                            class="form-control w-full !rounded-md"
+                            id="identity-change-reason"
+                            rows="3"
+                            placeholder="Optional reason for the name update request">{{ old('identity_change_reason', $latestIdentityChangeRequest?->isPending() ? $latestIdentityChangeRequest->reason : '') }}</textarea>
+                        <p class="mt-2 text-[0.75rem] text-[#8c9097] dark:text-white/50 mb-0">
+                            This note is sent to the administrators who can review your identity change request.
+                        </p>
+                    </div>
+                    <div class="xl:col-span-12 col-span-12">
+                        <div class="p-4 rounded-md border border-defaultborder dark:border-defaultborder/10 bg-light/30 dark:bg-bodybg/30">
+                            <div class="flex items-start justify-between gap-3 flex-wrap mb-3">
+                                <div>
+                                    <p class="font-semibold mb-1">Latest Identity Request Status</p>
+                                    <p class="text-[0.75rem] text-[#8c9097] dark:text-white/50 mb-0">
+                                        {{ $latestIdentityStatus === 'none'
+                                            ? 'You do not have any submitted identity change requests.'
+                                            : 'Review progress for your latest submitted identity change request.' }}
+                                    </p>
+                                </div>
+                                <span class="badge {{ $identityStatusClasses[$latestIdentityStatus] ?? 'bg-light text-defaulttextcolor' }}">
+                                    {{ $latestIdentityStatus === 'none' ? 'No Pending Request' : str($latestIdentityStatus)->replace('_', ' ')->title() }}
+                                </span>
+                            </div>
+
+                            @if ($latestIdentityChangeRequest)
+                                <div class="grid grid-cols-12 gap-4">
+                                    <div class="xl:col-span-6 col-span-12">
+                                        <p class="text-[0.75rem] uppercase tracking-wide text-[#8c9097] dark:text-white/50 mb-2">Official Name At Submission</p>
+                                        <p class="mb-0">{{ $latestIdentityChangeRequest->currentFullName() ?: 'No official name recorded.' }}</p>
+                                    </div>
+                                    <div class="xl:col-span-6 col-span-12">
+                                        <p class="text-[0.75rem] uppercase tracking-wide text-[#8c9097] dark:text-white/50 mb-2">Requested Name</p>
+                                        <p class="mb-0">{{ $latestIdentityChangeRequest->requestedFullName() ?: 'No requested name recorded.' }}</p>
+                                    </div>
+                                    <div class="xl:col-span-6 col-span-12">
+                                        <p class="text-[0.75rem] uppercase tracking-wide text-[#8c9097] dark:text-white/50 mb-2">Submitted</p>
+                                        <p class="mb-0">{{ optional($latestIdentityChangeRequest->created_at)->format('M d, Y h:i A') ?: 'Not available' }}</p>
+                                    </div>
+                                    <div class="xl:col-span-6 col-span-12">
+                                        <p class="text-[0.75rem] uppercase tracking-wide text-[#8c9097] dark:text-white/50 mb-2">Reviewed</p>
+                                        <p class="mb-0">{{ optional($latestIdentityChangeRequest->reviewed_at)->format('M d, Y h:i A') ?: 'Pending review' }}</p>
+                                    </div>
+                                    @if ($latestIdentityChangeRequest->reason)
+                                        <div class="xl:col-span-12 col-span-12">
+                                            <p class="text-[0.75rem] uppercase tracking-wide text-[#8c9097] dark:text-white/50 mb-2">Submitted Reason</p>
+                                            <p class="mb-0">{{ $latestIdentityChangeRequest->reason }}</p>
+                                        </div>
+                                    @endif
+                                    @if ($latestIdentityChangeRequest->review_notes)
+                                        <div class="xl:col-span-12 col-span-12">
+                                            <p class="text-[0.75rem] uppercase tracking-wide text-[#8c9097] dark:text-white/50 mb-2">Review Notes</p>
+                                            <p class="mb-0">{{ $latestIdentityChangeRequest->review_notes }}</p>
+                                        </div>
+                                    @endif
+                                </div>
+                            @else
+                                <p class="mb-0 text-[0.875rem] text-[#8c9097] dark:text-white/50">
+                                    Your official identity fields currently match the profile record shown above.
+                                </p>
+                            @endif
+                        </div>
                     </div>
                     <div class="xl:col-span-12 col-span-12">
                         <label for="address" class="form-label">Address</label>
@@ -292,5 +378,3 @@
 @endpush
 
 @endsection
-
-

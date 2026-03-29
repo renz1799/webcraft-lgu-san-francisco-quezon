@@ -88,6 +88,11 @@ class User extends Authenticatable
             ->where('model_type', self::class);
     }
 
+    public function identityChangeRequests(): HasMany
+    {
+        return $this->hasMany(UserIdentityChangeRequest::class, 'user_id', 'id');
+    }
+
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new CorePasswordResetNotification($token));

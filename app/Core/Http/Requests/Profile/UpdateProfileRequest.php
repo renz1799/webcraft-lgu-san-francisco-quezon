@@ -26,6 +26,7 @@ class UpdateProfileRequest extends BaseFormRequest
 
             'address'          => ['nullable','string','max:255'],
             'contact_details'  => ['nullable','string','max:255'],
+            'identity_change_reason' => ['nullable','string','max:1000'],
 
             'profile_photo'    => ['nullable','image','mimes:jpg,jpeg,png','max:2048'],
         ];

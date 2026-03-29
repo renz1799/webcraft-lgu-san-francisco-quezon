@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Core\Models\User;
+use App\Core\Models\UserIdentityChangeRequest;
 use App\Core\Services\Access\UserProfileService;
 use App\Core\Services\Contracts\Access\LoginLogServiceInterface;
+use App\Core\Services\Contracts\Access\UserIdentityChangeRequestServiceInterface;
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use Mockery;
 use Tests\TestCase;
@@ -22,6 +24,7 @@ class UserProfileServiceLoginDetailsTest extends TestCase
     {
         $audit = Mockery::mock(AuditLogServiceInterface::class);
         $loginLogs = Mockery::mock(LoginLogServiceInterface::class);
+        $identityRequests = Mockery::mock(UserIdentityChangeRequestServiceInterface::class);
 
         $user = new User([
             'id' => 'user-1',
@@ -39,11 +42,19 @@ class UserProfileServiceLoginDetailsTest extends TestCase
             ->with($user, 4)
             ->andReturn($recentLogs);
 
-        $service = new UserProfileService($audit, $loginLogs);
+        $latestRequest = new UserIdentityChangeRequest(['id' => 'request-1']);
+
+        $identityRequests->shouldReceive('latestForUser')
+            ->once()
+            ->with($user)
+            ->andReturn($latestRequest);
+
+        $service = new UserProfileService($audit, $loginLogs, $identityRequests);
 
         $result = $service->getProfileData($user);
 
         $this->assertSame($user, $result['user']);
         $this->assertSame($recentLogs, $result['loginDetails']);
+        $this->assertSame($latestRequest, $result['latestIdentityChangeRequest']);
     }
 }

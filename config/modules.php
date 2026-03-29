@@ -21,6 +21,7 @@ return [
     'platform_context_route_names' => [
         'access.*',
         'legacy.access.*',
+        'profile.*',
         'audit-logs.*',
         'logs.*',
         'audit.restore',

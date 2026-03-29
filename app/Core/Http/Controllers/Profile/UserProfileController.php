@@ -22,11 +22,11 @@ class UserProfileController extends Controller
 
     public function update(UpdateProfileRequest $request)
     {
-        $this->svc->updateProfile($request->user(), $request->validated());
+        $result = $this->svc->updateProfile($request->user(), $request->validated());
 
         return redirect()
-            ->route('profile.index')
-            ->with('success', 'Profile updated successfully.');
+            ->route('profile.index', ['tab' => 'personal-info'])
+            ->with('success', $result['message'] ?? 'Profile updated successfully.');
     }
 
     public function updatePassword(UpdatePasswordRequest $request)
@@ -38,6 +38,5 @@ class UserProfileController extends Controller
             ->with('success', 'Password updated successfully.');
     }
 }
-
 
 

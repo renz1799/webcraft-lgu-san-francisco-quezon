@@ -111,30 +111,49 @@ class TaskService implements TaskServiceInterface
             $subjectId,
             $data
         ) {
-            $moduleId = $this->requireModuleId();
-
-            $task = $this->tasks->create([
-                'module_id' => $moduleId,
-                'department_id' => $this->moduleDepartments->resolveForModule($moduleId),
-                'title' => $title,
-                'description' => $description,
-                'type' => $type,
-                'status' => Task::STATUS_PENDING,
-                'created_by_user_id' => $actorUserId,
-                'assigned_to_user_id' => null,
-                'subject_type' => $subjectType,
-                'subject_id' => $subjectId,
-                'data' => $data,
-            ]);
-
-            $this->recordEvent(
+            return $this->createUnassignedForModule(
+                ownerModuleId: $this->requireModuleId(),
                 actorUserId: $actorUserId,
-                taskId: (string) $task->id,
-                eventType: 'created',
-                note: 'Task created.'
+                title: $title,
+                description: $description,
+                type: $type,
+                subjectType: $subjectType,
+                subjectId: $subjectId,
+                data: $data,
             );
+        });
+    }
 
-            return $task;
+    public function createUnassignedInModule(
+        string $ownerModuleId,
+        string $actorUserId,
+        string $title,
+        ?string $description = null,
+        ?string $type = null,
+        ?string $subjectType = null,
+        ?string $subjectId = null,
+        array $data = []
+    ): Task {
+        return DB::transaction(function () use (
+            $ownerModuleId,
+            $actorUserId,
+            $title,
+            $description,
+            $type,
+            $subjectType,
+            $subjectId,
+            $data
+        ) {
+            return $this->createUnassignedForModule(
+                ownerModuleId: $ownerModuleId,
+                actorUserId: $actorUserId,
+                title: $title,
+                description: $description,
+                type: $type,
+                subjectType: $subjectType,
+                subjectId: $subjectId,
+                data: $data,
+            );
         });
     }
 
@@ -451,6 +470,46 @@ class TaskService implements TaskServiceInterface
     private function findTaskOrFail(string $taskId): Task
     {
         return $this->tasks->findOrFail($taskId, $this->requireModuleId());
+    }
+
+    private function createUnassignedForModule(
+        string $ownerModuleId,
+        string $actorUserId,
+        string $title,
+        ?string $description,
+        ?string $type,
+        ?string $subjectType,
+        ?string $subjectId,
+        array $data
+    ): Task {
+        $ownerModuleId = trim($ownerModuleId);
+
+        if ($ownerModuleId === '') {
+            throw new InvalidArgumentException('Owner module is required.');
+        }
+
+        $task = $this->tasks->create([
+            'module_id' => $ownerModuleId,
+            'department_id' => $this->moduleDepartments->resolveForModule($ownerModuleId),
+            'title' => $title,
+            'description' => $description,
+            'type' => $type,
+            'status' => Task::STATUS_PENDING,
+            'created_by_user_id' => $actorUserId,
+            'assigned_to_user_id' => null,
+            'subject_type' => $subjectType,
+            'subject_id' => $subjectId,
+            'data' => $data,
+        ]);
+
+        $this->recordEvent(
+            actorUserId: $actorUserId,
+            taskId: (string) $task->id,
+            eventType: 'created',
+            note: 'Task created.'
+        );
+
+        return $task;
     }
 
     private function findAnyTaskOrFail(string $taskId): Task
