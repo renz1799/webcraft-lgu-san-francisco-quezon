@@ -196,6 +196,7 @@ use App\Core\Services\Contracts\Infrastructure\PdfGeneratorInterface;
 use App\Core\Services\Contracts\Print\PrintConfigLoaderInterface;
 use App\Core\Services\Geocoding\PositionstackGeocodingService;
 use App\Core\Services\Infrastructure\ChromePdfGenerator;
+use App\Core\Services\Infrastructure\HybridPdfGenerator;
 use App\Core\Services\Print\PrintConfigLoaderService;
 
 class CoreServiceProvider extends ServiceProvider
@@ -322,7 +323,7 @@ class CoreServiceProvider extends ServiceProvider
     {
         $this->bindMany([
             GeocodingServiceInterface::class => PositionstackGeocodingService::class,
-            PdfGeneratorInterface::class => ChromePdfGenerator::class,
+            PdfGeneratorInterface::class => HybridPdfGenerator::class,
         ], true);
     }
 

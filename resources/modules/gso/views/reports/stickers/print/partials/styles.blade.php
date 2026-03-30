@@ -30,15 +30,18 @@
     }
 
     .sticker-sheet-grid {
-        display: grid;
-        gap: 8mm;
+        display: block;
     }
 
     .sticker-sheet-row {
-        display: grid;
-        grid-template-columns: repeat(2, 92mm);
-        justify-content: space-between;
-        column-gap: 6mm;
+        display: block;
+        margin-bottom: 8mm;
+        white-space: nowrap;
+        font-size: 0;
+    }
+
+    .sticker-sheet-row:last-child {
+        margin-bottom: 0;
     }
 
     .sticker-sheet-page-number {
@@ -52,14 +55,20 @@
 
     .sticker-card {
         position: relative;
+        display: inline-block;
+        vertical-align: top;
         width: 92mm;
-        aspect-ratio: 7475 / 3923;
-        container-type: inline-size;
+        height: 48.25mm;
+        margin-right: 6mm;
         background-image: url('{{ $stickerBackgroundUrl }}');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
         overflow: visible;
+    }
+
+    .sticker-sheet-row .sticker-card:last-child {
+        margin-right: 0;
     }
 
     .sticker-card--ghost {
@@ -132,19 +141,16 @@
     }
 
     .qr-fallback {
-        display: none;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
+        position: absolute;
+        inset: 0;
         background: #fff;
         color: #111827;
-        font-size: 1.1cqw;
+        font-size: 2mm;
         font-weight: 700;
         letter-spacing: 0.1em;
         text-transform: uppercase;
         text-align: center;
-        padding: 0.5rem;
+        line-height: 16.1mm;
     }
 
     .barcode {

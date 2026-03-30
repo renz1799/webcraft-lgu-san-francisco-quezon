@@ -11,6 +11,11 @@ use Symfony\Component\Process\Process;
 
 class ChromePdfGenerator implements PdfGeneratorInterface
 {
+    public function isAvailable(): bool
+    {
+        return $this->detectChromeBinary() !== null;
+    }
+
     public function generateFromView(string $view, array $data, string $outputPath): string
     {
         return $this->generateFromHtml(
@@ -88,6 +93,19 @@ class ChromePdfGenerator implements PdfGeneratorInterface
 
     private function resolveChromeBinary(): string
     {
+        $binary = $this->detectChromeBinary();
+
+        if ($binary !== null) {
+            return $binary;
+        }
+
+        throw new RuntimeException(
+            'Chrome/Chromium binary not found. Set CHROME_BIN or services.chrome.binary.'
+        );
+    }
+
+    private function detectChromeBinary(): ?string
+    {
         $configured = config('services.chrome.binary');
 
         $candidates = array_filter([
@@ -120,9 +138,7 @@ class ChromePdfGenerator implements PdfGeneratorInterface
             }
         }
 
-        throw new RuntimeException(
-            'Chrome/Chromium binary not found. Set CHROME_BIN or services.chrome.binary.'
-        );
+        return null;
     }
 
     private function toFileUrl(string $path): string

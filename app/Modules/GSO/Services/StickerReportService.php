@@ -100,7 +100,7 @@ class StickerReportService implements StickerReportServiceInterface
             $pages->count(),
             (int) ($payload['sheet']['page_count'] ?? 0),
         );
-        $stickerBackgroundUrl = $this->localFileUrl(public_path('print/sticker.jpg'));
+        $stickerBackgroundUrl = $this->localFileUrl($this->pdfStickerBackgroundPath());
 
         File::ensureDirectoryExists($buildDirectory);
 
@@ -438,6 +438,17 @@ class StickerReportService implements StickerReportServiceInterface
         }
 
         return 'file:///' . ltrim($normalized, '/');
+    }
+
+    private function pdfStickerBackgroundPath(): string
+    {
+        $pdfOptimizedPath = public_path('print/sticker-pdf.jpg');
+
+        if (is_file($pdfOptimizedPath)) {
+            return $pdfOptimizedPath;
+        }
+
+        return public_path('print/sticker.jpg');
     }
 
     private function renderPdfDocumentStart(array $report, ?array $sticker, string $stickerBackgroundUrl): string
