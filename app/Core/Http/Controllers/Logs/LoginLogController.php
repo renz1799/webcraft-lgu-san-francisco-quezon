@@ -13,7 +13,7 @@ class LoginLogController extends Controller
     public function __construct(
         private readonly LoginLogServiceInterface $logs
     ) {
-        $this->middleware(['auth', 'role_or_permission:Administrator|admin|view Login Logs']);
+        $this->middleware(['auth', 'permission:login_logs.view']);
     }
 
     public function index(): View
@@ -32,6 +32,5 @@ class LoginLogController extends Controller
         ]);
     }
 }
-
 
 

@@ -5,6 +5,7 @@ namespace App\Core\Policies\Tasks;
 use App\Core\Models\Tasks\Task;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
 use App\Core\Models\User;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 
 class TaskPolicy
@@ -12,6 +13,10 @@ class TaskPolicy
     public function view(User $user, Task $task): bool
     {
         if (! $this->userHasActiveModuleAccess($user, (string) $task->module_id)) {
+            return false;
+        }
+
+        if (! $this->canAccessTaskWorkspace($user, $task)) {
             return false;
         }
 
@@ -36,7 +41,11 @@ class TaskPolicy
             return false;
         }
 
-        if ($this->isAdministrator($user)) {
+        if (! $this->authorizer()->allowsPermissionInModule($user, 'tasks.comment', (string) $task->module_id)) {
+            return false;
+        }
+
+        if ($this->canViewAll($user, $task)) {
             return true;
         }
 
@@ -50,7 +59,11 @@ class TaskPolicy
             return false;
         }
 
-        if ($this->isAdministrator($user)) {
+        if (! $this->authorizer()->allowsPermissionInModule($user, 'tasks.update_status', (string) $task->module_id)) {
+            return false;
+        }
+
+        if ($this->canViewAll($user, $task)) {
             return true;
         }
 
@@ -63,6 +76,10 @@ class TaskPolicy
             return false;
         }
 
+        if (! $this->authorizer()->allowsPermissionInModule($user, 'tasks.claim', (string) $task->module_id)) {
+            return false;
+        }
+
         return $this->claimableBy($user, $task);
     }
 
@@ -72,34 +89,48 @@ class TaskPolicy
             return false;
         }
 
-        return $this->isAdministrator($user) || $user->can('modify Reassign Tasks');
+        return $this->authorizer()->allowsPermissionInModule($user, 'tasks.reassign', (string) $task->module_id);
     }
 
     public function create(User $user): bool
     {
-        return $this->isAdministrator($user) && $this->hasCurrentModuleAccess($user);
+        return $this->hasCurrentModuleAccess($user)
+            && $this->authorizer()->allowsPermission($user, 'tasks.create');
     }
 
     public function delete(User $user, Task $task): bool
     {
-        return $this->isAdministrator($user)
+        return $this->authorizer()->allowsPermissionInModule($user, 'tasks.archive', (string) $task->module_id)
             && $this->userHasActiveModuleAccess($user, (string) $task->module_id);
     }
 
     public function restore(User $user, Task $task): bool
     {
-        return $this->isAdministrator($user)
+        return $this->authorizer()->allowsPermissionInModule($user, 'tasks.restore', (string) $task->module_id)
             && $this->userHasActiveModuleAccess($user, (string) $task->module_id);
     }
 
-    private function isAdministrator(User $user): bool
+    private function canAccessTaskWorkspace(User $user, Task $task): bool
     {
-        return $user->hasAnyRole(['Administrator', 'admin']);
+        return $this->authorizer()->allowsAnyPermissionInModule($user, [
+            'tasks.view',
+            'tasks.view_all',
+            'tasks.claim',
+            'tasks.comment',
+            'tasks.update_status',
+            'tasks.reassign',
+            'tasks.archive',
+            'tasks.restore',
+        ], (string) $task->module_id);
     }
 
-    private function canViewAll(User $user): bool
+    private function canViewAll(User $user, ?Task $task = null): bool
     {
-        return $this->isAdministrator($user) || $user->can('view All Tasks');
+        if ($task) {
+            return $this->authorizer()->allowsPermissionInModule($user, 'tasks.view_all', (string) $task->module_id);
+        }
+
+        return $this->authorizer()->allowsPermission($user, 'tasks.view_all');
     }
 
     private function claimableBy(User $user, Task $task): bool
@@ -139,5 +170,10 @@ class TaskPolicy
             ->where('module_id', $moduleId)
             ->where('is_active', true)
             ->exists();
+    }
+
+    private function authorizer(): AdminContextAuthorizer
+    {
+        return app(AdminContextAuthorizer::class);
     }
 }

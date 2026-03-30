@@ -10,7 +10,13 @@ class PrintRpciRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'reports.rpci.view',
+            'stocks.view',
+            'stocks.adjust',
+        ]);
     }
 
     protected function prepareForValidation(): void

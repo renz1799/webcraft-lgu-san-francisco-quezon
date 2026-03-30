@@ -3,15 +3,15 @@
 namespace App\Modules\GSO\Http\Requests\AssetTypes;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 
 class StoreAssetTypeRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user
-            && ($user->hasAnyRole(['Administrator', 'admin']) || $user->can('modify Asset Types'));
+        return $this->allowsGsoPermission('asset_types.create');
     }
 
     public function rules(): array

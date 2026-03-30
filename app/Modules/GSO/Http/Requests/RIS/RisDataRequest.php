@@ -8,7 +8,23 @@ class RisDataRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user();
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'ris.view',
+            'ris.create',
+            'ris.update',
+            'ris.submit',
+            'ris.approve',
+            'ris.reject',
+            'ris.reopen',
+            'ris.revert',
+            'ris.archive',
+            'ris.restore',
+            'ris.manage_items',
+            'ris.generate_from_air',
+            'ris.print',
+        ]);
     }
 
     public function rules(): array

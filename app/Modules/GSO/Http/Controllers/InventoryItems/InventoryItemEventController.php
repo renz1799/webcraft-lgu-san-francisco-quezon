@@ -12,10 +12,10 @@ class InventoryItemEventController extends Controller
     public function __construct(
         private readonly InventoryItemEventServiceInterface $events,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Inventory Items|modify Inventory Items')
+        $this->middleware('permission:inventory_items.view|inventory_items.create|inventory_items.update|inventory_items.archive|inventory_items.restore|inventory_items.manage_files|inventory_items.manage_events|inventory_items.import_from_inspection')
             ->only(['index']);
 
-        $this->middleware('role_or_permission:Administrator|admin|modify Inventory Items')
+        $this->middleware('permission:inventory_items.create|inventory_items.update|inventory_items.archive|inventory_items.restore|inventory_items.manage_files|inventory_items.manage_events|inventory_items.import_from_inspection')
             ->only(['store']);
     }
 

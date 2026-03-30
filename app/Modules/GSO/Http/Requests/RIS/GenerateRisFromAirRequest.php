@@ -9,10 +9,12 @@ class GenerateRisFromAirRequest extends FormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        if (!$u) return false;
 
-        // adjust to your permissions
-        return $u->hasRole('Administrator') || $u->can('create RIS') || $u->can('modify RIS');
+        return (bool) $u && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($u, [
+            'ris.generate_from_air',
+            'ris.create',
+            'ris.update',
+        ]);
     }
 
     public function rules(): array

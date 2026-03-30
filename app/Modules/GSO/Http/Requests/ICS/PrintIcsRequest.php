@@ -10,9 +10,13 @@ class PrintIcsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view ICS')
-            || $this->user()?->can('modify ICS');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'ics.print',
+            'ics.view',
+            'ics.update',
+        ]);
     }
 
     protected function prepareForValidation(): void

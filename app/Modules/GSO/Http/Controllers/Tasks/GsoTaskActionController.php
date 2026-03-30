@@ -25,10 +25,10 @@ class GsoTaskActionController extends Controller
         private readonly TaskReadServiceInterface $taskReadService,
         private readonly CurrentContext $context,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|Staff')
+        $this->middleware('permission:tasks.update_status|tasks.comment|tasks.claim|tasks.view_all')
             ->only(['changeStatus', 'comment', 'claim']);
 
-        $this->middleware('role_or_permission:Administrator|admin|modify Reassign Tasks')
+        $this->middleware('permission:tasks.reassign')
             ->only(['reassign']);
     }
 

@@ -2,8 +2,9 @@
 
 @php
     $isStockCardView = request('view') === 'stock-cards';
-    $canManageStocks = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Stocks');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageStocks = $gsoAuthorizer->allowsPermission($gsoUser, 'stocks.adjust');
     $pageTitle = $isStockCardView ? 'Stock Card' : 'Stocks';
     $pageCopy = $isStockCardView
         ? 'Choose a consumable item, then open its Appendix 58 stock card preview by fund source.'

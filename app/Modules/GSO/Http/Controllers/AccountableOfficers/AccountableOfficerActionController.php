@@ -16,7 +16,7 @@ class AccountableOfficerActionController extends Controller
     public function __construct(
         private readonly AccountablePersonServiceInterface $accountablePersons,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|modify Accountable Officers')
+        $this->middleware('permission:accountable_persons.create|accountable_persons.update|accountable_persons.archive|accountable_persons.restore')
             ->only(['store', 'update', 'destroy', 'restore']);
     }
 

@@ -17,7 +17,7 @@ class InspectionController extends Controller
     public function __construct(
         private readonly InspectionServiceInterface $inspections,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Inspections|modify Inspections')
+        $this->middleware('permission:inspections.view|inspections.create|inspections.update|inspections.archive|inspections.restore|inspections.manage_photos')
             ->only(['index', 'data']);
     }
 

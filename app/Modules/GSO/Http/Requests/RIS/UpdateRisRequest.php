@@ -10,10 +10,8 @@ class UpdateRisRequest extends FormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        if (!$u) return false;
 
-        // updating existing RIS = modify permission
-        return $u->hasRole('Administrator') || $u->can('modify RIS');
+        return (bool) $u && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($u, 'ris.update');
     }
 
     public function rules(): array

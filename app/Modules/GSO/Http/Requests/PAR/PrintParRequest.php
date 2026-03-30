@@ -10,9 +10,13 @@ class PrintParRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view PAR')
-            || $this->user()?->can('modify PAR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'par.print',
+            'par.view',
+            'par.update',
+        ]);
     }
 
     protected function prepareForValidation(): void

@@ -9,9 +9,12 @@ class UpdateRisItemRequest extends FormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        if (!$u) return false;
 
-        return $u->hasRole('Administrator') || $u->can('modify RIS') || $u->can('create RIS');
+        return (bool) $u && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($u, [
+            'ris.manage_items',
+            'ris.create',
+            'ris.update',
+        ]);
     }
 
     public function rules(): array

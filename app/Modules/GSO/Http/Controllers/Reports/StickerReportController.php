@@ -3,6 +3,7 @@
 namespace App\Modules\GSO\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Modules\GSO\Http\Requests\Reports\PrintStickerReportRequest;
 use App\Modules\GSO\Jobs\GenerateStickerPdfJob;
 use App\Modules\GSO\Models\InventoryItem;
@@ -20,7 +21,7 @@ class StickerReportController extends Controller
     public function __construct(
         private readonly StickerReportServiceInterface $stickers,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Inventory Items|modify Inventory Items');
+        $this->middleware('permission:reports.stickers.view|inventory_items.view|inventory_items.update');
     }
 
     public function print(PrintStickerReportRequest $request): View
@@ -173,10 +174,15 @@ class StickerReportController extends Controller
 
         abort_unless($user, 403);
 
-        if (
-            (string) $stickerPrintJob->requested_by === (string) $user->getAuthIdentifier()
-            || $user->hasAnyRole(['Administrator', 'admin'])
-        ) {
+        if ((string) $stickerPrintJob->requested_by === (string) $user->getAuthIdentifier()) {
+            return;
+        }
+
+        if (app(AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'reports.stickers.view',
+            'inventory_items.view',
+            'inventory_items.update',
+        ])) {
             return;
         }
 

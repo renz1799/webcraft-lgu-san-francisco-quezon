@@ -15,7 +15,7 @@ class InventoryItemBatchPropertyCardController extends Controller
         private readonly InventoryItemRepositoryInterface $inventoryItems,
         private readonly InventoryItemCardPrintServiceInterface $printer,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Inventory Items|modify Inventory Items');
+        $this->middleware('permission:reports.property_cards.view|inventory_items.view|inventory_items.update');
     }
 
     public function print(PrintInventoryItemPropertyCardsRequest $request): View

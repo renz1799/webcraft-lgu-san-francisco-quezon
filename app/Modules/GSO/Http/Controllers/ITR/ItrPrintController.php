@@ -14,7 +14,7 @@ class ItrPrintController extends Controller
     public function __construct(
         private readonly ItrPrintServiceInterface $printer,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view ITR|modify ITR');
+        $this->middleware('permission:itr.print|itr.view|itr.create|itr.update|itr.submit|itr.finalize|itr.reopen|itr.archive|itr.restore|itr.manage_items');
     }
 
     public function print(PrintItrRequest $request, Itr $itr): View

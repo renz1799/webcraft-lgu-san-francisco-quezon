@@ -3,16 +3,16 @@
 namespace App\Modules\GSO\Http\Requests\FundSources;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use Illuminate\Validation\Rule;
 
 class UpdateFundSourceRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user
-            && ($user->hasAnyRole(['Administrator', 'admin']) || $user->can('modify Fund Sources'));
+        return $this->allowsGsoPermission('fund_sources.update');
     }
 
     public function rules(): array

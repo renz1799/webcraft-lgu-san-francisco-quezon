@@ -17,7 +17,7 @@ class AirActionController extends Controller
     public function __construct(
         private readonly AirServiceInterface $airs,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|modify AIR')
+        $this->middleware('permission:air.create|air.update|air.inspect|air.manage_items|air.manage_files|air.promote_inventory|air.finalize_inspection|air.reopen_inspection|air.archive|air.restore|air.print')
             ->only(['update', 'submit', 'createFollowUp', 'destroy', 'restore', 'forceDestroy']);
     }
 

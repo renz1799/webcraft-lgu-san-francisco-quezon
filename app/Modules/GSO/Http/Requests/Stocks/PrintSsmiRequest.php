@@ -10,7 +10,13 @@ class PrintSsmiRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'reports.ssmi.view',
+            'stocks.view',
+            'stocks.adjust',
+        ]);
     }
 
     public function rules(): array

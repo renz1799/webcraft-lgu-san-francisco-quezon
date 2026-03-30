@@ -8,8 +8,12 @@ class SetPrimaryAirInspectionUnitFileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('modify AIR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'air.inspect',
+            'air.manage_files',
+        ]);
     }
 
     public function rules(): array

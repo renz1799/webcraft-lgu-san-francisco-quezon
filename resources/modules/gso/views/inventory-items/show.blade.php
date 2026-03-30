@@ -7,8 +7,17 @@
     use App\Modules\GSO\Support\InventoryStatuses;
     use Illuminate\Support\Str;
 
-    $canManageInventoryItems = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Inventory Items');
+    $inventoryViewer = auth()->user();
+    $inventoryAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageInventoryItems = $inventoryAuthorizer->allowsAnyPermission($inventoryViewer, [
+        'inventory_items.create',
+        'inventory_items.update',
+        'inventory_items.archive',
+        'inventory_items.restore',
+        'inventory_items.manage_files',
+        'inventory_items.manage_events',
+        'inventory_items.import_from_inspection',
+    ]);
 
     $photoFiles = collect($inventoryItem->files ?? [])
         ->sortBy(fn ($file) => sprintf(

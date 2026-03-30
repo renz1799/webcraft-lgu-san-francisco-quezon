@@ -21,8 +21,25 @@
 @php
   $user = auth()->user();
   $adminAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
-  $isAdmin = $adminAuthorizer->canManageCurrentContextAccess($user);
   $canRegisterUser = $adminAuthorizer->canRegisterUsers($user);
+  $canViewPlatformUsers = $adminAuthorizer->allowsAnyPermission($user, ['users.view', 'users.manage_access']);
+  $canViewPlatformRoles = $adminAuthorizer->allowsAnyPermission($user, ['roles.view', 'roles.create', 'roles.update', 'roles.archive', 'roles.restore']);
+  $canViewPlatformPermissions = $adminAuthorizer->allowsAnyPermission($user, ['permissions.view', 'permissions.create', 'permissions.update', 'permissions.archive', 'permissions.restore']);
+  $canViewPlatformLoginLogs = $adminAuthorizer->canViewPlatformLoginLogs($user);
+  $canViewPlatformAuditLogs = $adminAuthorizer->canViewCurrentContextAuditLogs($user);
+  $canViewDriveWorkspace = $adminAuthorizer->allowsAnyPermission($user, [
+      'drive_connections.view',
+      'drive_connections.connect',
+      'drive_connections.disconnect',
+      'drive_files.create',
+  ]);
+  $showPlatformAdminSection = $canViewPlatformUsers
+      || $canViewPlatformRoles
+      || $canViewPlatformPermissions
+      || $canRegisterUser
+      || $canViewPlatformLoginLogs
+      || $canViewPlatformAuditLogs
+      || $canViewDriveWorkspace;
   $adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class);
   $moduleLinks = $accessibleModules ?? collect();
   $currentModuleCode = strtoupper((string) ($currentModule->code ?? ''));
@@ -52,8 +69,14 @@
 
   @if($showCoreAdminSection)
     @include('layouts.components.sidebar.sections.admin', [
-        'isAdmin' => $isAdmin,
+        'showPlatformAdminSection' => $showPlatformAdminSection,
         'canRegisterUser' => $canRegisterUser,
+        'canViewPlatformUsers' => $canViewPlatformUsers,
+        'canViewPlatformRoles' => $canViewPlatformRoles,
+        'canViewPlatformPermissions' => $canViewPlatformPermissions,
+        'canViewPlatformLoginLogs' => $canViewPlatformLoginLogs,
+        'canViewPlatformAuditLogs' => $canViewPlatformAuditLogs,
+        'canViewDriveWorkspace' => $canViewDriveWorkspace,
     ])
   @endif
 

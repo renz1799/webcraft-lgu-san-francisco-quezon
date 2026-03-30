@@ -2,6 +2,7 @@
 
 namespace App\Core\Http\Requests\Tasks;
 
+use App\Core\Support\AdminContextAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ChangeTaskStatusRequest extends FormRequest
@@ -10,7 +11,8 @@ class ChangeTaskStatusRequest extends FormRequest
     {
         $user = $this->user();
 
-        return (bool) $user && $user->hasAnyRole(['Administrator', 'admin', 'Staff']);
+        return (bool) $user
+            && app(AdminContextAuthorizer::class)->allowsPermission($user, 'tasks.update_status');
     }
 
     public function rules(): array

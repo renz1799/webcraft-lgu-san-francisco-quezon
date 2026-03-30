@@ -110,7 +110,7 @@ class AuditLogAccessRequestTest extends TestCase
             ->andReturn(collect(['Staff']));
         $user->shouldReceive('getAllPermissions')
             ->once()
-            ->andReturn(collect([(object) ['name' => 'view Audit Logs']]));
+            ->andReturn(collect([(object) ['name' => 'audit_logs.view']]));
         $this->app->instance(AdminContextAuthorizer::class, $authorizer);
 
         $request = TestableRestoreSubjectRequest::create('/audit/restore', 'POST', [

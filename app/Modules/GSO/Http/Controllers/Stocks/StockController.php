@@ -20,10 +20,10 @@ class StockController extends Controller
     public function __construct(
         private readonly StockServiceInterface $stocks,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Stocks|modify Stocks')
+        $this->middleware('permission:stocks.view|stocks.adjust|stocks.view_ledger|reports.rpci.view|reports.ssmi.view|reports.stock_cards.view')
             ->only(['index', 'data', 'ledger', 'printCard', 'printRpci', 'printSsmi']);
 
-        $this->middleware('role_or_permission:Administrator|admin|modify Stocks')
+        $this->middleware('permission:stocks.adjust')
             ->only(['adjust']);
     }
 

@@ -16,7 +16,7 @@ class AccountableOfficerController extends Controller
         private readonly AccountableOfficerServiceInterface $accountableOfficers,
         private readonly DepartmentServiceInterface $departments,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Accountable Officers')
+        $this->middleware('permission:accountable_persons.view')
             ->only(['index', 'data', 'suggest']);
     }
 

@@ -6,8 +6,10 @@ use App\Core\Models\Tasks\Task;
 use App\Core\Models\User;
 use App\Core\Policies\Tasks\TaskPolicy;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
@@ -18,6 +20,12 @@ class TaskPolicyTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config()->set('database.default', 'sqlite');
+        config()->set('database.connections.sqlite.database', ':memory:');
+
+        DB::purge('sqlite');
+        DB::reconnect('sqlite');
 
         Schema::dropAllTables();
 
@@ -126,6 +134,16 @@ class TaskPolicyTest extends TestCase
         app()->instance(UserRepositoryInterface::class, $users);
 
         $actor = $this->mockActor($user, roles: ['Administrator']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('allowsAnyPermissionInModule')
+            ->once()
+            ->with($actor, Mockery::type('array'), 'module-2')
+            ->andReturn(true);
+        $authorizer->shouldReceive('allowsPermission')
+            ->once()
+            ->with($actor, 'tasks.view_all')
+            ->andReturn(false);
+        app()->instance(AdminContextAuthorizer::class, $authorizer);
 
         $this->assertTrue((new TaskPolicy())->view($actor, $task));
     }
@@ -152,6 +170,20 @@ class TaskPolicyTest extends TestCase
         $policy = new TaskPolicy();
         $assignedActor = $this->mockActor($user, roles: ['Staff']);
         $unrelatedActor = $this->mockActor($other, roles: ['Staff']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('allowsPermissionInModule')
+            ->withArgs(function (User $actor, string $permission, string $moduleId): bool {
+                return in_array($permission, ['tasks.comment', 'tasks.update_status', 'tasks.view_all'], true)
+                    && $moduleId === 'module-1';
+            })
+            ->andReturnUsing(function (User $actor, string $permission): bool {
+                return match ($permission) {
+                    'tasks.comment', 'tasks.update_status' => true,
+                    'tasks.view_all' => false,
+                    default => false,
+                };
+            });
+        app()->instance(AdminContextAuthorizer::class, $authorizer);
 
         $this->assertTrue($policy->comment($assignedActor, $task));
         $this->assertTrue($policy->updateStatus($assignedActor, $task));
@@ -176,7 +208,13 @@ class TaskPolicyTest extends TestCase
             ->andReturn([]);
         app()->instance(UserRepositoryInterface::class, $users);
 
-        $actor = $this->mockActor($user, roles: ['Staff'], permissions: ['modify Reassign Tasks']);
+        $actor = $this->mockActor($user, roles: ['Staff'], permissions: ['tasks.reassign']);
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('allowsPermissionInModule')
+            ->once()
+            ->with($actor, 'tasks.reassign', 'module-1')
+            ->andReturn(true);
+        app()->instance(AdminContextAuthorizer::class, $authorizer);
 
         $this->assertTrue((new TaskPolicy())->reassign($actor, $task));
     }

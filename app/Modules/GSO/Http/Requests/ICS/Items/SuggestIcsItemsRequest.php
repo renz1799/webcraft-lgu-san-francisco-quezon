@@ -8,10 +8,12 @@ class SuggestIcsItemsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('modify ICS')
-            || $this->user()?->can('view ICS');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'ics.view',
+            'ics.manage_items',
+        ]);
     }
 
     public function rules(): array

@@ -2,21 +2,24 @@
 
 namespace App\Core\Http\Requests\AccountablePersons\Concerns;
 
+use App\Core\Support\AdminContextAuthorizer;
+
 trait AuthorizesAccountablePersons
 {
     protected function canViewAccountablePersons(): bool
     {
         return $this->userHasAnyAccountablePersonAbility([
-            'view Accountable Persons',
-            'view Accountable Officers',
+            'accountable_persons.view',
         ]);
     }
 
     protected function canModifyAccountablePersons(): bool
     {
         return $this->userHasAnyAccountablePersonAbility([
-            'modify Accountable Persons',
-            'modify Accountable Officers',
+            'accountable_persons.create',
+            'accountable_persons.update',
+            'accountable_persons.archive',
+            'accountable_persons.restore',
         ]);
     }
 
@@ -27,20 +30,7 @@ trait AuthorizesAccountablePersons
     {
         $user = $this->user();
 
-        if (! $user) {
-            return false;
-        }
-
-        if ($user->hasAnyRole(['Administrator', 'admin'])) {
-            return true;
-        }
-
-        foreach ($abilities as $ability) {
-            if ($user->can($ability)) {
-                return true;
-            }
-        }
-
-        return false;
+        return (bool) $user
+            && app(AdminContextAuthorizer::class)->allowsAnyPermission($user, $abilities);
     }
 }

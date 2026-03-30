@@ -14,7 +14,7 @@ class RisPrintController extends Controller
     public function __construct(
         private readonly RisPrintServiceInterface $risPrints,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view RIS|modify RIS');
+        $this->middleware('permission:ris.print|ris.view|ris.create|ris.update|ris.submit|ris.approve|ris.reject|ris.reopen|ris.revert|ris.archive|ris.restore|ris.manage_items|ris.generate_from_air');
     }
 
     public function print(PrintRisRequest $request, Ris $ris): View

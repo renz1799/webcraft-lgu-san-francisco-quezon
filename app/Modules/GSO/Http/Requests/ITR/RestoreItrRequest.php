@@ -8,9 +8,12 @@ class RestoreItrRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->can('modify Allow Data Restoration')
-            || $this->user()?->can('restore ITR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'itr.restore',
+            'audit_logs.restore_data',
+        ]);
     }
 
     public function rules(): array
@@ -18,5 +21,3 @@ class RestoreItrRequest extends FormRequest
         return [];
     }
 }
-
-

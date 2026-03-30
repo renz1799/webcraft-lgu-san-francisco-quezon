@@ -26,6 +26,26 @@
 @endsection
 
 @section('content')
+    @php
+        $gsoUser = auth()->user();
+        $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+        $canCreateRis = $gsoAuthorizer->allowsPermission($gsoUser, 'ris.create');
+        $canEditRis = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+            'ris.update',
+            'ris.manage_items',
+            'ris.submit',
+            'ris.approve',
+            'ris.reject',
+            'ris.reopen',
+            'ris.revert',
+            'ris.generate_from_air',
+        ]);
+        $canDeleteRis = $gsoAuthorizer->allowsPermission($gsoUser, 'ris.archive');
+        $canRestoreRis = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+            'ris.restore',
+            'audit_logs.restore_data',
+        ]);
+    @endphp
     <div class="block justify-between page-header md:flex">
         <div>
             <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
@@ -114,12 +134,14 @@
 
                     <button id="ris-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
 
-                    <form method="POST" action="{{ route('gso.ris.create-draft') }}">
-                        @csrf
-                        <button type="submit" class="ti-btn ti-btn-primary">
-                            <i class="ri-add-line"></i> Create RIS
-                        </button>
-                    </form>
+                    @if($canCreateRis)
+                        <form method="POST" action="{{ route('gso.ris.create-draft') }}">
+                            @csrf
+                            <button type="submit" class="ti-btn ti-btn-primary">
+                                <i class="ri-add-line"></i> Create RIS
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
         </div>
@@ -145,13 +167,9 @@
             editUrlTemplate: @json(route('gso.ris.edit', ['ris' => '__RIS_ID__'])),
             deleteUrlTemplate: @json(route('gso.ris.destroy', ['ris' => '__RIS_ID__'])),
             restoreUrlTemplate: @json(route('gso.ris.restore', ['ris' => '__RIS_ID__'])),
-            canEdit: @json(auth()->user()?->hasRole('Administrator') || auth()->user()?->can('modify RIS')),
-            canDelete: @json(auth()->user()?->hasRole('Administrator') || auth()->user()?->can('delete RIS') || auth()->user()?->can('modify RIS')),
-            canRestore: @json(
-                auth()->user()?->hasRole('Administrator')
-                || auth()->user()?->can('modify Allow Data Restoration')
-                || auth()->user()?->can('restore RIS')
-            ),
+            canEdit: @json($canEditRis),
+            canDelete: @json($canDeleteRis),
+            canRestore: @json($canRestoreRis),
         };
     </script>
 @endpush

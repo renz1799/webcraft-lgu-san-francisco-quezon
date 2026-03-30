@@ -15,7 +15,7 @@ class AssetCategoryController extends Controller
         private readonly AssetCategoryServiceInterface $assetCategories,
         private readonly AssetTypeServiceInterface $assetTypes,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Asset Categories')
+        $this->middleware('permission:asset_categories.view|asset_categories.create|asset_categories.update|asset_categories.archive|asset_categories.restore')
             ->only(['index', 'data']);
     }
 

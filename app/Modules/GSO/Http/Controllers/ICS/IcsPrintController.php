@@ -14,7 +14,7 @@ class IcsPrintController extends Controller
     public function __construct(
         private readonly IcsPrintServiceInterface $printer,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view ICS|modify ICS');
+        $this->middleware('permission:ics.print|ics.view|ics.create|ics.update|ics.submit|ics.finalize|ics.reopen|ics.archive|ics.restore|ics.manage_items');
     }
 
     public function print(PrintIcsRequest $request, Ics $ics): View

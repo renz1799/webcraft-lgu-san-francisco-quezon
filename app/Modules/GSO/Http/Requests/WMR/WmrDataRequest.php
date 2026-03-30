@@ -8,12 +8,22 @@ class WmrDataRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('view WMR')
-            || $this->user()?->can('modify WMR');
-    }
+        $user = $this->user();
 
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'wmr.view',
+            'wmr.create',
+            'wmr.update',
+            'wmr.submit',
+            'wmr.approve',
+            'wmr.finalize',
+            'wmr.reopen',
+            'wmr.archive',
+            'wmr.restore',
+            'wmr.manage_items',
+            'wmr.print',
+        ]);
+    }
     public function rules(): array
     {
         return [

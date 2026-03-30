@@ -2,15 +2,15 @@
 
 namespace App\Core\Http\Requests\Files;
 
+use App\Core\Support\AdminContextAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreDriveFileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Add permission naming convention later if needed:
-        // return $this->user()->can('create Drive Files');
-        return true;
+        return (bool) $this->user()
+            && app(AdminContextAuthorizer::class)->allowsPermission($this->user(), 'drive_files.create');
     }
 
     public function rules(): array

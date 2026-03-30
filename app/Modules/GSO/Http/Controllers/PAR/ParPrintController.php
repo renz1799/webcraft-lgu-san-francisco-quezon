@@ -14,7 +14,7 @@ class ParPrintController extends Controller
     public function __construct(
         private readonly ParPrintServiceInterface $printer,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view PAR|modify PAR');
+        $this->middleware('permission:par.print|par.view|par.create|par.update|par.submit|par.finalize|par.reopen|par.archive|par.restore|par.manage_items');
     }
 
     public function print(PrintParRequest $request, Par $par): View

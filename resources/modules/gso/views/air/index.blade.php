@@ -1,8 +1,21 @@
 @extends('layouts.master')
 
 @php
-    $canManageAir = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify AIR');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canCreateAir = $gsoAuthorizer->allowsPermission($gsoUser, 'air.create');
+    $canManageAir = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'air.create',
+        'air.update',
+        'air.inspect',
+        'air.manage_items',
+        'air.manage_files',
+        'air.promote_inventory',
+        'air.finalize_inspection',
+        'air.reopen_inspection',
+        'air.archive',
+        'air.restore',
+    ]);
 @endphp
 
 @section('styles')
@@ -125,7 +138,7 @@
 
                     <button id="gso-air-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
 
-                    @if($canManageAir)
+                    @if($canCreateAir)
                         <a href="{{ route('gso.air.create') }}" class="ti-btn ti-btn-primary">
                             Create Draft
                         </a>

@@ -137,12 +137,14 @@ Core engineering standards are defined in:
 ## Structural Architecture
 
 - docs/ARCHITECTURE.md
+- docs/AUTHORIZATION_STANDARD.md
 
 Defines:
 - layering model
 - Core vs Module boundaries
 - service/repository structure
 - shared table architecture
+- permission-first authorization contract
 
 ## Development Conventions
 

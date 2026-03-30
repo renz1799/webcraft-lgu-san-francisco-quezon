@@ -10,7 +10,13 @@ class PrintAirRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'air.print',
+            'air.view',
+            'air.update',
+        ]);
     }
 
     protected function prepareForValidation(): void

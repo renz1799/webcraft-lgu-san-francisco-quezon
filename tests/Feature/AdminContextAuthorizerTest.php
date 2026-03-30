@@ -36,8 +36,26 @@ class AdminContextAuthorizerTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_platform_context_treats_admin_alias_as_manage_access_role(): void
+    public function test_platform_context_manage_access_is_permission_first(): void
     {
+        DB::table('permissions')->insert([
+            'id' => 'permission-manage-access',
+            'module_id' => 'module-core',
+            'name' => 'users.manage_access',
+            'page' => 'Core / Users',
+            'guard_name' => 'web',
+            'created_at' => now(),
+            'updated_at' => now(),
+            'deleted_at' => null,
+        ]);
+
+        DB::table('model_has_permissions')->insert([
+            'permission_id' => 'permission-manage-access',
+            'module_id' => 'module-core',
+            'model_type' => User::class,
+            'model_id' => 'user-1',
+        ]);
+
         $user = new User();
         $user->forceFill(['id' => 'user-1']);
 
@@ -70,13 +88,13 @@ class AdminContextAuthorizerTest extends TestCase
         $this->assertTrue($authorizer->canManageCurrentContextAccess($user));
     }
 
-    public function test_permission_lookup_only_reads_permissions_from_current_module(): void
+    public function test_permission_lookup_requires_normalized_permissions_inside_current_module(): void
     {
         DB::table('permissions')->insert([
             [
                 'id' => 'permission-1',
                 'module_id' => 'module-1',
-                'name' => 'view Audit Logs',
+                'name' => 'audit_logs.view',
                 'page' => 'Audit Logs',
                 'guard_name' => 'web',
                 'created_at' => now(),
@@ -86,7 +104,7 @@ class AdminContextAuthorizerTest extends TestCase
             [
                 'id' => 'permission-2',
                 'module_id' => 'module-2',
-                'name' => 'view Login Logs',
+                'name' => 'login_logs.view',
                 'page' => 'Login Logs',
                 'guard_name' => 'web',
                 'created_at' => now(),
@@ -122,14 +140,14 @@ class AdminContextAuthorizerTest extends TestCase
 
         $context = Mockery::mock(CurrentContext::class);
         $context->shouldReceive('moduleId')
-            ->times(4)
+            ->times(3)
             ->andReturn('module-1');
         $context->shouldReceive('module')
             ->never();
 
         $moduleAccess = Mockery::mock(ModuleAccessServiceInterface::class);
         $moduleAccess->shouldReceive('hasActiveModuleAccess')
-            ->times(2)
+            ->times(3)
             ->with($user, 'module-1')
             ->andReturn(true);
 
@@ -138,8 +156,55 @@ class AdminContextAuthorizerTest extends TestCase
 
         $authorizer = new AdminContextAuthorizer($context, $moduleAccess, $moduleRoles);
 
-        $this->assertTrue($authorizer->hasAnyPermission($user, 'view Audit Logs'));
-        $this->assertFalse($authorizer->hasAnyPermission($user, 'view Login Logs'));
+        $this->assertTrue($authorizer->allowsPermission($user, 'audit_logs.view'));
+        $this->assertTrue($authorizer->hasAnyPermission($user, 'audit_logs.view'));
+        $this->assertFalse($authorizer->allowsPermission($user, 'login_logs.view'));
+    }
+
+    public function test_permission_lookup_requires_normalized_gso_feature_permissions_inside_current_module(): void
+    {
+        DB::table('permissions')->insert([
+            'id' => 'permission-asset-types-manage',
+            'module_id' => 'module-1',
+            'name' => 'asset_types.update',
+            'page' => 'GSO / Reference Data',
+            'guard_name' => 'web',
+            'created_at' => now(),
+            'updated_at' => now(),
+            'deleted_at' => null,
+        ]);
+
+        DB::table('model_has_permissions')->insert([
+            'permission_id' => 'permission-asset-types-manage',
+            'module_id' => 'module-1',
+            'model_type' => User::class,
+            'model_id' => 'user-1',
+        ]);
+
+        $user = new User();
+        $user->forceFill(['id' => 'user-1']);
+
+        $context = Mockery::mock(CurrentContext::class);
+        $context->shouldReceive('moduleId')
+            ->times(3)
+            ->andReturn('module-1');
+        $context->shouldReceive('module')
+            ->never();
+
+        $moduleAccess = Mockery::mock(ModuleAccessServiceInterface::class);
+        $moduleAccess->shouldReceive('hasActiveModuleAccess')
+            ->times(3)
+            ->with($user, 'module-1')
+            ->andReturn(true);
+
+        $moduleRoles = Mockery::mock(ModuleRoleAssignmentServiceInterface::class);
+        $moduleRoles->shouldIgnoreMissing();
+
+        $authorizer = new AdminContextAuthorizer($context, $moduleAccess, $moduleRoles);
+
+        $this->assertTrue($authorizer->allowsPermission($user, 'asset_types.update'));
+        $this->assertTrue($authorizer->allowsAnyPermission($user, ['asset_types.create', 'asset_types.update']));
+        $this->assertFalse($authorizer->allowsPermission($user, 'asset_types.archive'));
     }
 
     private function createPermissionSchema(): void

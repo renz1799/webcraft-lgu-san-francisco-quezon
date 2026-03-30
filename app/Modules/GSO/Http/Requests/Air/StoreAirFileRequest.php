@@ -9,8 +9,9 @@ class StoreAirFileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('modify AIR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($user, 'air.manage_files');
     }
 
     public function rules(): array

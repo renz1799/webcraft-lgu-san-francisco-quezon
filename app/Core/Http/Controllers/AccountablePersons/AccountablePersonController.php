@@ -15,7 +15,7 @@ class AccountablePersonController extends Controller
     public function __construct(
         private readonly AccountablePersonServiceInterface $accountablePersons,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Accountable Persons|view Accountable Officers')
+        $this->middleware('permission:accountable_persons.view')
             ->only(['index', 'data', 'suggest']);
     }
 

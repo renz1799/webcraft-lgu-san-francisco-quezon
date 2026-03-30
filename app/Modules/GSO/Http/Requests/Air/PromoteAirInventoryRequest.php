@@ -8,9 +8,12 @@ class PromoteAirInventoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('modify AIR')
-            || $this->user()?->can('modify Inventory Items');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'air.promote_inventory',
+            'inventory_items.import_from_inspection',
+        ]);
     }
 
     public function rules(): array

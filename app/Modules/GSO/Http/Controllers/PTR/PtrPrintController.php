@@ -14,7 +14,7 @@ class PtrPrintController extends Controller
     public function __construct(
         private readonly PtrPrintServiceInterface $printer,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view PTR|modify PTR');
+        $this->middleware('permission:ptr.print|ptr.view|ptr.create|ptr.update|ptr.submit|ptr.finalize|ptr.reopen|ptr.archive|ptr.restore|ptr.manage_items');
     }
 
     public function print(PrintPtrRequest $request, Ptr $ptr): View

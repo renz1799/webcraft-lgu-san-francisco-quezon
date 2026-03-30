@@ -1,8 +1,18 @@
 @extends('layouts.master')
 
 @php
-    $canManageInventoryItems = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Inventory Items');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canCreateInventoryItems = $gsoAuthorizer->allowsPermission($gsoUser, 'inventory_items.create');
+    $canManageInventoryItems = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'inventory_items.create',
+        'inventory_items.update',
+        'inventory_items.archive',
+        'inventory_items.restore',
+        'inventory_items.manage_files',
+        'inventory_items.manage_events',
+        'inventory_items.import_from_inspection',
+    ]);
 @endphp
 
 @section('styles')
@@ -216,7 +226,7 @@
                     Clear
                 </button>
 
-                @if($canManageInventoryItems)
+                @if($canCreateInventoryItems)
                     <button
                         type="button"
                         class="hs-dropdown-toggle ti-btn btn-wave ti-btn-primary-full"

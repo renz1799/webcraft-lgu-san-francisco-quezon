@@ -2,6 +2,7 @@
 
 namespace App\Core\Http\Requests\Tasks;
 
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
@@ -13,10 +14,8 @@ class ReassignTaskRequest extends FormRequest
     {
         $user = $this->user();
 
-        return (bool) $user && (
-            $user->hasAnyRole(['Administrator', 'admin'])
-            || $user->can('modify Reassign Tasks')
-        );
+        return (bool) $user
+            && app(AdminContextAuthorizer::class)->allowsPermission($user, 'tasks.reassign');
     }
 
     public function rules(): array

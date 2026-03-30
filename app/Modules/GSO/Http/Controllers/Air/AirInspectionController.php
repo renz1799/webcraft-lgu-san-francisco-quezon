@@ -20,13 +20,13 @@ class AirInspectionController extends Controller
         private readonly AirInspectionServiceInterface $inspection,
         private readonly AirServiceInterface $airs,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view AIR|modify AIR')
+        $this->middleware('permission:air.view|air.inspect|air.finalize_inspection|air.reopen_inspection')
             ->only(['show']);
 
-        $this->middleware('role_or_permission:Administrator|admin|modify AIR')
+        $this->middleware('permission:air.inspect|air.finalize_inspection')
             ->only(['save', 'finalize']);
 
-        $this->middleware('role_or_permission:Administrator|admin|modify Inspection Status')
+        $this->middleware('permission:air.reopen_inspection')
             ->only(['reopen']);
     }
 

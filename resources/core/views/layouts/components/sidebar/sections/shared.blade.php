@@ -1,9 +1,16 @@
 @php
   $sharedUser = auth()->user();
+  $sharedAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
   $taskSidebarCounts = is_array($taskCounts ?? null) ? $taskCounts : [];
-  $canTasksMenu = $sharedUser && $sharedUser->hasAnyRole(['Administrator', 'admin', 'Staff']);
-  $canAllTasks = $sharedUser
-      && ($sharedUser->hasAnyRole(['Administrator', 'admin']) || $sharedUser->can('view All Tasks'));
+  $canTasksMenu = $sharedAuthorizer->allowsAnyPermission($sharedUser, [
+      'tasks.view',
+      'tasks.view_all',
+      'tasks.claim',
+      'tasks.comment',
+      'tasks.update_status',
+      'tasks.reassign',
+  ]);
+  $canAllTasks = $sharedAuthorizer->allowsPermission($sharedUser, 'tasks.view_all');
 @endphp
 
 @if($canTasksMenu)

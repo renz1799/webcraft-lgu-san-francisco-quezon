@@ -3,16 +3,16 @@
 namespace App\Modules\GSO\Http\Requests\AssetCategories;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use Illuminate\Validation\Rule;
 
 class UpdateAssetCategoryRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user
-            && ($user->hasAnyRole(['Administrator', 'admin']) || $user->can('modify Asset Categories'));
+        return $this->allowsGsoPermission('asset_categories.update');
     }
 
     public function rules(): array

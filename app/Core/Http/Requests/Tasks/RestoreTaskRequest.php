@@ -2,6 +2,7 @@
 
 namespace App\Core\Http\Requests\Tasks;
 
+use App\Core\Support\AdminContextAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RestoreTaskRequest extends FormRequest
@@ -10,7 +11,8 @@ class RestoreTaskRequest extends FormRequest
     {
         $user = $this->user();
 
-        return (bool) $user && $user->hasAnyRole(['Administrator', 'admin']);
+        return (bool) $user
+            && app(AdminContextAuthorizer::class)->allowsPermission($user, 'tasks.restore');
     }
 
     public function rules(): array

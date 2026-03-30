@@ -1,8 +1,14 @@
 @extends('layouts.master')
 
 @php
-    $canManageFundClusters = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Fund Clusters');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageFundClusters = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'fund_clusters.create',
+        'fund_clusters.update',
+        'fund_clusters.archive',
+        'fund_clusters.restore',
+    ]);
 @endphp
 
 @section('styles')

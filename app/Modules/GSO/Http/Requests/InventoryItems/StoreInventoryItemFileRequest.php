@@ -2,16 +2,18 @@
 
 namespace App\Modules\GSO\Http\Requests\InventoryItems;
 
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use App\Modules\GSO\Support\InventoryFileTypes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreInventoryItemFileRequest extends FormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('modify Inventory Items');
+        return $this->allowsGsoPermission('inventory_items.manage_files');
     }
 
     public function rules(): array

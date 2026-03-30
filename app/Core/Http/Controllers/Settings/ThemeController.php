@@ -13,7 +13,7 @@ class ThemeController extends Controller
     public function __construct(private ThemeService $theme)
     {
         $this->middleware('auth');
-        $this->middleware('role_or_permission:Administrator|admin')->only('updateColors');
+        $this->middleware('permission:theme.update_colors')->only('updateColors');
     }
 
     /** Per-user style (unchanged) */

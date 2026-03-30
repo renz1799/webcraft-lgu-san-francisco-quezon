@@ -8,9 +8,12 @@ class CreateAirFollowUpRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('modify AIR')
-            || $this->user()?->can('create AIR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'air.create',
+            'air.update',
+        ]);
     }
 
     public function rules(): array

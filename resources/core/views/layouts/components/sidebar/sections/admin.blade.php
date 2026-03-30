@@ -1,4 +1,4 @@
-@if($isAdmin)
+@if($showPlatformAdminSection ?? false)
   <li class="slide__category">
     <span class="category-name">Core Platform</span>
   </li>
@@ -15,23 +15,29 @@
         <a href="javascript:void(0)">Platform Administration</a>
       </li>
 
-      <li class="slide">
-        <a href="{{ route('access.users.index') }}" class="side-menu__item">
-          Users
-        </a>
-      </li>
+      @if($canViewPlatformUsers ?? false)
+        <li class="slide">
+          <a href="{{ route('access.users.index') }}" class="side-menu__item">
+            Users
+          </a>
+        </li>
+      @endif
 
-      <li class="slide">
-        <a href="{{ route('access.roles.index') }}" class="side-menu__item">
-          Roles
-        </a>
-      </li>
+      @if($canViewPlatformRoles ?? false)
+        <li class="slide">
+          <a href="{{ route('access.roles.index') }}" class="side-menu__item">
+            Roles
+          </a>
+        </li>
+      @endif
 
-      <li class="slide">
-        <a href="{{ route('access.permissions.index') }}" class="side-menu__item">
-          Permissions
-        </a>
-      </li>
+      @if($canViewPlatformPermissions ?? false)
+        <li class="slide">
+          <a href="{{ route('access.permissions.index') }}" class="side-menu__item">
+            Permissions
+          </a>
+        </li>
+      @endif
 
       @if($canRegisterUser)
         <li class="slide">
@@ -41,23 +47,29 @@
         </li>
       @endif
 
-      <li class="slide">
-        <a href="{{ route('logs.index') }}" class="side-menu__item">
-          Login Logs
-        </a>
-      </li>
+      @if($canViewPlatformLoginLogs ?? false)
+        <li class="slide">
+          <a href="{{ route('logs.index') }}" class="side-menu__item">
+            Login Logs
+          </a>
+        </li>
+      @endif
 
-      <li class="slide">
-        <a href="{{ route('audit-logs.index') }}" class="side-menu__item">
-          Audit Logs
-        </a>
-      </li>
+      @if($canViewPlatformAuditLogs ?? false)
+        <li class="slide">
+          <a href="{{ route('audit-logs.index') }}" class="side-menu__item">
+            Audit Logs
+          </a>
+        </li>
+      @endif
 
-      <li class="slide">
-        <a href="{{ route('drive.index') }}" class="side-menu__item">
-          Google Drive
-        </a>
-      </li>
+      @if($canViewDriveWorkspace ?? false)
+        <li class="slide">
+          <a href="{{ route('drive.index') }}" class="side-menu__item">
+            Google Drive
+          </a>
+        </li>
+      @endif
     </ul>
   </li>
 @endif

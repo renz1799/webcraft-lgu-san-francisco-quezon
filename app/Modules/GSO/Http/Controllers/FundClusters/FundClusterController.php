@@ -13,7 +13,7 @@ class FundClusterController extends Controller
     public function __construct(
         private readonly FundClusterServiceInterface $fundClusters,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Fund Clusters')
+        $this->middleware('permission:fund_clusters.view|fund_clusters.create|fund_clusters.update|fund_clusters.archive|fund_clusters.restore')
             ->only(['index', 'data']);
     }
 

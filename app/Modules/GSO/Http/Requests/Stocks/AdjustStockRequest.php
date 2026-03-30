@@ -2,15 +2,17 @@
 
 namespace App\Modules\GSO\Http\Requests\Stocks;
 
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class AdjustStockRequest extends FormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('modify Stocks');
+        return $this->allowsGsoPermission('stocks.adjust');
     }
 
     protected function prepareForValidation(): void

@@ -69,17 +69,17 @@ class AuditLogServiceTest extends TestCase
                 $this->assertSame('127.0.0.1', $payload['ip']);
                 $this->assertSame('PHPUnit Agent', $payload['user_agent']);
                 $this->assertSame(['direct_permissions' => []], $payload['changes_old']);
-                $this->assertSame(['direct_permissions' => ['modify Tasks']], $payload['changes_new']);
+                $this->assertSame(['direct_permissions' => ['tasks.update']], $payload['changes_new']);
                 $this->assertSame('users.edit', $payload['meta']['source']);
                 $this->assertSame('Permissions updated for Craig Scot Schamberger', $payload['meta']['display']['summary']);
                 $this->assertSame('Craig Scot Schamberger', $payload['meta']['display']['subject_label']);
                 $this->assertSame('Direct Permissions', $payload['meta']['display']['sections'][0]['title']);
                 $this->assertSame('Added', $payload['meta']['display']['sections'][0]['items'][0]['label']);
-                $this->assertSame(['Modify Tasks'], $payload['meta']['display']['sections'][0]['items'][0]['value']);
+                $this->assertSame(['Tasks / Update'], $payload['meta']['display']['sections'][0]['items'][0]['value']);
                 $this->assertSame('Reference No', array_key_first($payload['meta']['display']['request_details']));
                 $this->assertSame('PO-2026-0312', $payload['meta']['display']['request_details']['Reference No']);
                 $this->assertSame('Resolved selections', $payload['meta']['display']['system_notes'][0]['title']);
-                $this->assertSame(['Manage Tasks / Tasks / Edit'], $payload['meta']['display']['system_notes'][0]['items']);
+                $this->assertSame(['Manage Tasks / Tasks / Update'], $payload['meta']['display']['system_notes'][0]['items']);
 
                 return true;
             }))
@@ -98,7 +98,7 @@ class AuditLogServiceTest extends TestCase
             action: 'user.permissions.synced',
             subject: $subject,
             changesOld: ['direct_permissions' => []],
-            changesNew: ['direct_permissions' => ['modify Tasks']],
+            changesNew: ['direct_permissions' => ['tasks.update']],
             meta: ['source' => 'users.edit'],
             message: 'Permissions updated.',
             display: [
@@ -108,7 +108,7 @@ class AuditLogServiceTest extends TestCase
                     [
                         'title' => 'Direct Permissions',
                         'items' => [
-                            ['label' => 'Added', 'value' => ['Modify Tasks']],
+                            ['label' => 'Added', 'value' => ['Tasks / Update']],
                             ['label' => 'Removed', 'value' => []],
                         ],
                     ],
@@ -119,7 +119,7 @@ class AuditLogServiceTest extends TestCase
                 'system_notes' => [
                     [
                         'title' => 'Resolved selections',
-                        'items' => ['Manage Tasks / Tasks / Edit'],
+                        'items' => ['Manage Tasks / Tasks / Update'],
                     ],
                 ],
             ],

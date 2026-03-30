@@ -13,7 +13,7 @@ class AssetTypeController extends Controller
     public function __construct(
         private readonly AssetTypeServiceInterface $assetTypes,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Asset Types')
+        $this->middleware('permission:asset_types.view|asset_types.create|asset_types.update|asset_types.archive|asset_types.restore')
             ->only(['index', 'data']);
     }
 

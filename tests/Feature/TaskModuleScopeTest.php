@@ -13,15 +13,18 @@ use App\Core\Models\User;
 use App\Core\Models\UserProfile;
 use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
+use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
 use App\Core\Policies\Tasks\TaskPolicy;
 use App\Core\Services\Tasks\Contracts\TaskNotificationServiceInterface;
 use App\Core\Services\Tasks\TaskReadService;
 use App\Core\Services\Tasks\TaskService;
 use App\Core\Services\Tasks\TaskShowActionProvider;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
@@ -32,6 +35,12 @@ class TaskModuleScopeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config()->set('database.default', 'sqlite');
+        config()->set('database.connections.sqlite.database', ':memory:');
+
+        DB::purge('sqlite');
+        DB::reconnect('sqlite');
 
         $this->setUpSchema();
         $this->setUpTaskRoutes();
@@ -182,11 +191,12 @@ class TaskModuleScopeTest extends TestCase
             new TaskAdminStatsBuilder(),
             new TaskShowActionProvider(),
             new UserTaskReassignOptionBuilder(),
+            $this->makeTaskAuthorizer($moduleAccess),
         );
 
-        $actorWithPermissions = $this->mockActor($actor, roles: ['Staff'], permissions: ['view All Tasks']);
+        $this->grantDirectPermission($actor, 'module-1', 'tasks.view_all');
 
-        $payload = $readService->datatable($actorWithPermissions, [
+        $payload = $readService->datatable($actor, [
             'scope' => 'all',
             'page' => 1,
             'size' => 15,
@@ -198,7 +208,7 @@ class TaskModuleScopeTest extends TestCase
         $this->assertSame('GSO', $payload['data'][0]['owner_module_code']);
 
         $this->expectException(ModelNotFoundException::class);
-        $readService->findAccessibleOrFail($actorWithPermissions, (string) $otherTask->id);
+        $readService->findAccessibleOrFail($actor, (string) $otherTask->id);
     }
 
     public function test_platform_owner_modules_are_included_in_shared_tasks_when_accessible(): void
@@ -256,11 +266,12 @@ class TaskModuleScopeTest extends TestCase
             new TaskAdminStatsBuilder(),
             new TaskShowActionProvider(),
             new UserTaskReassignOptionBuilder(),
+            $this->makeTaskAuthorizer($moduleAccess),
         );
 
-        $actorWithPermissions = $this->mockActor($actor, roles: ['Administrator'], permissions: ['view All Tasks']);
+        $this->grantDirectPermission($actor, 'module-core', 'tasks.view_all');
 
-        $payload = $readService->datatable($actorWithPermissions, [
+        $payload = $readService->datatable($actor, [
             'scope' => 'all',
             'page' => 1,
             'size' => 15,
@@ -322,6 +333,44 @@ class TaskModuleScopeTest extends TestCase
             $table->uuid('default_department_id')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+        });
+
+        Schema::create('permissions', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('module_id');
+            $table->string('name');
+            $table->string('page')->nullable();
+            $table->string('guard_name');
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('roles', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('module_id');
+            $table->string('name');
+            $table->string('guard_name');
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('model_has_permissions', function (Blueprint $table) {
+            $table->uuid('permission_id');
+            $table->uuid('module_id');
+            $table->string('model_type');
+            $table->uuid('model_id');
+        });
+
+        Schema::create('model_has_roles', function (Blueprint $table) {
+            $table->uuid('role_id');
+            $table->uuid('module_id');
+            $table->string('model_type');
+            $table->uuid('model_id');
+        });
+
+        Schema::create('role_has_permissions', function (Blueprint $table) {
+            $table->uuid('permission_id');
+            $table->uuid('role_id');
         });
 
         Schema::create('tasks', function (Blueprint $table) {
@@ -414,18 +463,46 @@ class TaskModuleScopeTest extends TestCase
         return $user;
     }
 
-    private function mockActor(User $user, array $roles = [], array $permissions = []): User
+    private function grantDirectPermission(User $user, string $moduleId, string $permissionName): void
     {
-        $actor = Mockery::mock($user)->makePartial();
-        $roleCollection = new Collection($roles);
+        $permissionId = (string) Str::uuid();
 
-        $actor->shouldReceive('hasAnyRole')
-            ->andReturnUsing(static fn (array $check): bool => count(array_intersect($check, $roles)) > 0);
-        $actor->shouldReceive('can')
-            ->andReturnUsing(static fn (string $permission): bool => in_array($permission, $permissions, true));
-        $actor->shouldReceive('getRoleNames')
-            ->andReturn($roleCollection);
+        \DB::table('permissions')->insert([
+            'id' => $permissionId,
+            'module_id' => $moduleId,
+            'name' => $permissionName,
+            'page' => 'Tasks',
+            'guard_name' => 'web',
+            'created_at' => now(),
+            'updated_at' => now(),
+            'deleted_at' => null,
+        ]);
 
-        return $actor;
+        \DB::table('model_has_permissions')->insert([
+            'permission_id' => $permissionId,
+            'module_id' => $moduleId,
+            'model_type' => User::class,
+            'model_id' => $user->id,
+        ]);
+    }
+
+    private function makeTaskAuthorizer(ModuleAccessServiceInterface $moduleAccess): AdminContextAuthorizer
+    {
+        $moduleAccess->shouldReceive('hasActiveModuleAccess')
+            ->andReturnUsing(function (User $user, string $moduleId): bool {
+                return \DB::table('user_modules')
+                    ->where('user_id', $user->id)
+                    ->where('module_id', $moduleId)
+                    ->where('is_active', true)
+                    ->exists();
+            });
+
+        $context = Mockery::mock(CurrentContext::class);
+        $context->shouldIgnoreMissing();
+
+        $moduleRoles = Mockery::mock(ModuleRoleAssignmentServiceInterface::class);
+        $moduleRoles->shouldIgnoreMissing();
+
+        return new AdminContextAuthorizer($context, $moduleAccess, $moduleRoles);
     }
 }

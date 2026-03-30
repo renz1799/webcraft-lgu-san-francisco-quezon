@@ -13,7 +13,7 @@ class DepartmentController extends Controller
     public function __construct(
         private readonly DepartmentServiceInterface $departments,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Departments')
+        $this->middleware('permission:departments.view|departments.create|departments.update|departments.archive|departments.restore')
             ->only(['index', 'data']);
     }
 

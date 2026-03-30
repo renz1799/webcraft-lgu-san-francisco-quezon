@@ -2,16 +2,21 @@
 
 namespace App\Modules\GSO\Http\Requests\Stocks;
 
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StockTableDataRequest extends FormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view Stocks')
-            || $this->user()?->can('modify Stocks');
+        return $this->allowsAnyGsoPermission([
+            'stocks.view',
+            'stocks.adjust',
+            'stocks.view_ledger',
+        ]);
     }
 
     protected function prepareForValidation(): void

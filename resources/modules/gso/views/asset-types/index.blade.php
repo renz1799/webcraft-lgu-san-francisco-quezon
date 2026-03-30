@@ -1,8 +1,14 @@
 @extends('layouts.master')
 
 @php
-    $canManageAssetTypes = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Asset Types');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageAssetTypes = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'asset_types.create',
+        'asset_types.update',
+        'asset_types.archive',
+        'asset_types.restore',
+    ]);
 @endphp
 
 @section('styles')

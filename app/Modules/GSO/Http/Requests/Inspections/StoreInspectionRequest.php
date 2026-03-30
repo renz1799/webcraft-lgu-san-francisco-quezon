@@ -2,6 +2,7 @@
 
 namespace App\Modules\GSO\Http\Requests\Inspections;
 
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use App\Modules\GSO\Support\InspectionStatuses;
 use App\Modules\GSO\Support\InventoryConditions;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,10 +10,13 @@ use Illuminate\Validation\Rule;
 
 class StoreInspectionRequest extends FormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('modify Inspections');
+        return $this->allowsGsoPermission(
+            $this->isMethod('POST') ? 'inspections.create' : 'inspections.update'
+        );
     }
 
     protected function prepareForValidation(): void

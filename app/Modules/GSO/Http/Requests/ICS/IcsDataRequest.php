@@ -8,10 +8,20 @@ class IcsDataRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('view ICS')
-            || $this->user()?->can('modify ICS');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'ics.view',
+            'ics.create',
+            'ics.update',
+            'ics.submit',
+            'ics.finalize',
+            'ics.reopen',
+            'ics.archive',
+            'ics.restore',
+            'ics.manage_items',
+            'ics.print',
+        ]);
     }
 
     public function rules(): array

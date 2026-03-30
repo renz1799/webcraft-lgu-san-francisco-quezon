@@ -7,9 +7,11 @@ use App\Core\Http\Requests\Tasks\StoreTaskRequest;
 use App\Core\Http\Requests\Tasks\TaskTableDataRequest;
 use App\Core\Models\Tasks\Task;
 use App\Core\Models\User;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Mockery;
@@ -20,6 +22,12 @@ class TaskRequestValidationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config()->set('database.default', 'sqlite');
+        config()->set('database.connections.sqlite.database', ':memory:');
+
+        DB::purge('sqlite');
+        DB::reconnect('sqlite');
 
         Schema::dropAllTables();
 
@@ -94,6 +102,7 @@ class TaskRequestValidationTest extends TestCase
         ]);
         $request->setContainer($this->app);
         $request->setUserResolver(fn () => $this->mockActor($inModule, ['Administrator']));
+        $this->mockAuthorizerForPermission('tasks.create', true);
 
         $this->assertTrue($request->authorize());
         $this->assertTrue(Validator::make($request->all(), $request->rules())->passes());
@@ -104,6 +113,7 @@ class TaskRequestValidationTest extends TestCase
         ]);
         $invalidRequest->setContainer($this->app);
         $invalidRequest->setUserResolver(fn () => $this->mockActor($inModule, ['Administrator']));
+        $this->mockAuthorizerForPermission('tasks.create', true);
 
         $validator = Validator::make($invalidRequest->all(), $invalidRequest->rules());
 
@@ -125,7 +135,7 @@ class TaskRequestValidationTest extends TestCase
             'assignee_user_id' => $outOfModule->id,
         ]);
         $request->setContainer($this->app);
-        $request->setUserResolver(fn () => $this->mockActor($inModule, ['Staff'], ['modify Reassign Tasks']));
+        $request->setUserResolver(fn () => $this->mockActor($inModule, ['Staff'], ['tasks.reassign']));
         $request->setRouteResolver(function () {
             $route = Mockery::mock();
             $route->shouldReceive('parameter')
@@ -137,6 +147,7 @@ class TaskRequestValidationTest extends TestCase
 
             return $route;
         });
+        $this->mockAuthorizerForPermission('tasks.reassign', true);
 
         $this->assertTrue($request->authorize());
         $this->assertFalse(Validator::make($request->all(), $request->rules())->passes());
@@ -154,6 +165,7 @@ class TaskRequestValidationTest extends TestCase
         $request->setContainer($this->app);
         $request->setUserResolver(fn () => $this->mockActor($user, ['Staff']));
         $request->normalizeForTest();
+        $this->mockAuthorizerForPermission('tasks.view', true);
 
         $this->assertTrue($request->authorize());
 
@@ -167,6 +179,7 @@ class TaskRequestValidationTest extends TestCase
         $validRequest->setContainer($this->app);
         $validRequest->setUserResolver(fn () => $this->mockActor($user, ['Staff']));
         $validRequest->normalizeForTest();
+        $this->mockAuthorizerForPermission('tasks.view', true);
 
         $validator = Validator::make($validRequest->all(), $validRequest->rules());
         $validRequest->setValidator($validator);
@@ -180,6 +193,21 @@ class TaskRequestValidationTest extends TestCase
         $this->assertSame(15, $validated['size']);
         $this->assertSame('active', $validated['archived']);
         $this->assertSame('mine', $validated['scope']);
+    }
+
+    public function test_task_table_request_requires_view_all_permission_for_all_scope(): void
+    {
+        $user = $this->createUserWithModule('user-1', 'module-1');
+
+        $request = TestableTaskTableDataRequest::create('/tasks/data', 'GET', [
+            'scope' => 'all',
+        ]);
+        $request->setContainer($this->app);
+        $request->setUserResolver(fn () => $this->mockActor($user, ['Staff']));
+        $request->normalizeForTest();
+        $this->mockAuthorizerForPermission('tasks.view_all', true);
+
+        $this->assertTrue($request->authorize());
     }
 
     private function createUserWithModule(string $id, string $moduleId): User
@@ -232,6 +260,18 @@ class TaskRequestValidationTest extends TestCase
             ->andReturn($roleCollection);
 
         return $actor;
+    }
+
+    private function mockAuthorizerForPermission(string $permission, bool $result): void
+    {
+        $authorizer = Mockery::mock(AdminContextAuthorizer::class);
+        $authorizer->shouldReceive('allowsPermission')
+            ->withArgs(function ($user, string $requestedPermission) use ($permission): bool {
+                return $requestedPermission === $permission;
+            })
+            ->andReturn($result);
+
+        app()->instance(AdminContextAuthorizer::class, $authorizer);
     }
 }
 

@@ -9,9 +9,22 @@
 
 @section('content')
 @php
-  $canManageItr = auth()->user()?->hasRole('Administrator')
-    || auth()->user()?->hasRole('Staff')
-    || auth()->user()?->can('modify ITR');
+  $gsoUser = auth()->user();
+  $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+  $canCreateItr = $gsoAuthorizer->allowsPermission($gsoUser, 'itr.create');
+  $canManageItr = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+    'itr.create',
+    'itr.update',
+    'itr.submit',
+    'itr.finalize',
+    'itr.reopen',
+    'itr.manage_items',
+  ]);
+  $canDeleteItr = $gsoAuthorizer->allowsPermission($gsoUser, 'itr.archive');
+  $canRestoreItr = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+    'itr.restore',
+    'audit_logs.restore_data',
+  ]);
 @endphp
 
 <div class="block justify-between page-header md:flex">
@@ -139,7 +152,7 @@
 
         <button id="itr-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
 
-        @if($canManageItr)
+        @if($canCreateItr)
           <button id="itr-create" type="button" class="ti-btn ti-btn-primary">
             <i class="ri-add-line"></i> Create ITR
           </button>
@@ -171,12 +184,8 @@
       deleteUrlTemplate: @json(route('gso.itrs.destroy', ['itr' => '__ITR_ID__'])),
       restoreUrlTemplate: @json(route('gso.itrs.restore', ['itr' => '__ITR_ID__'])),
       canManage: @json($canManageItr),
-      canDelete: @json(auth()->user()?->hasRole('Administrator') || auth()->user()?->can('modify ITR')),
-      canRestore: @json(
-        auth()->user()?->hasRole('Administrator')
-        || auth()->user()?->can('modify Allow Data Restoration')
-        || auth()->user()?->can('restore ITR')
-      ),
+      canDelete: @json($canDeleteItr),
+      canRestore: @json($canRestoreItr),
     };
   </script>
 @endpush

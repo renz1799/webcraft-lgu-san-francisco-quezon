@@ -9,9 +9,9 @@ class UpdateItrRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('modify ITR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($user, 'itr.update');
     }
 
     public function rules(): array
@@ -75,5 +75,3 @@ class UpdateItrRequest extends FormRequest
         ]);
     }
 }
-
-

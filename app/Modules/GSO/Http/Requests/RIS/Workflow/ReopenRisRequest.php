@@ -9,9 +9,11 @@ class ReopenRisRequest extends FormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        if (!$u) return false;
 
-        return $u->hasRole('Administrator') || $u->can('reopen RIS') || $u->can('revert RIS');
+        return (bool) $u && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($u, [
+            'ris.reopen',
+            'ris.revert',
+        ]);
     }
 
     public function rules(): array

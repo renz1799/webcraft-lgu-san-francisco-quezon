@@ -3,10 +3,15 @@
 @php($adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class))
 @php($moduleScopedAccess = $adminRoutes->isModuleScoped())
 @php($moduleContextName = trim((string) ($currentModule->name ?? $adminRoutes->scopedModuleCode() ?? 'Module')) ?: 'Module')
+@php($accountablePersonViewer = auth()->user())
+@php($accountablePersonAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class))
 @php(
-    $canManageAccountablePersons = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Accountable Persons')
-        || auth()->user()?->can('modify Accountable Officers')
+    $canManageAccountablePersons = $accountablePersonAuthorizer->allowsAnyPermission($accountablePersonViewer, [
+        'accountable_persons.create',
+        'accountable_persons.update',
+        'accountable_persons.archive',
+        'accountable_persons.restore',
+    ])
 )
 
 @section('styles')

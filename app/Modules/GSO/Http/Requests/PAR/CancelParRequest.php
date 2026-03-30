@@ -8,9 +8,9 @@ class CancelParRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('modify PAR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($user, 'par.update');
     }
 
     public function rules(): array

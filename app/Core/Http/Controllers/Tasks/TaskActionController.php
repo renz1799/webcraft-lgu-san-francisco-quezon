@@ -22,13 +22,13 @@ class TaskActionController extends Controller
         private readonly TaskServiceInterface $taskService,
         private readonly TaskReadServiceInterface $taskReadService,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin')
+        $this->middleware('permission:tasks.create')
             ->only(['store']);
 
-        $this->middleware('role_or_permission:Administrator|admin|Staff')
+        $this->middleware('permission:tasks.update_status|tasks.comment|tasks.claim|tasks.view_all')
             ->only(['changeStatus', 'comment', 'claim']);
 
-        $this->middleware('role_or_permission:Administrator|admin|modify Reassign Tasks')
+        $this->middleware('permission:tasks.reassign')
             ->only(['reassign']);
     }
 

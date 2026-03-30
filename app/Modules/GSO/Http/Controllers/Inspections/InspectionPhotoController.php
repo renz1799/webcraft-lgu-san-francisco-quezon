@@ -13,10 +13,10 @@ class InspectionPhotoController extends Controller
     public function __construct(
         private readonly InspectionPhotoServiceInterface $photos,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Inspections|modify Inspections')
+        $this->middleware('permission:inspections.view|inspections.create|inspections.update|inspections.archive|inspections.restore|inspections.manage_photos')
             ->only(['index']);
 
-        $this->middleware('role_or_permission:Administrator|admin|modify Inspections')
+        $this->middleware('permission:inspections.create|inspections.update|inspections.archive|inspections.restore|inspections.manage_photos')
             ->only(['store', 'destroy']);
     }
 

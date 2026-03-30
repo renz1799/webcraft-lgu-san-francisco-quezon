@@ -3,15 +3,21 @@
 namespace App\Modules\GSO\Http\Requests\Departments;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 
 class DepartmentTableDataRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user
-            && ($user->hasAnyRole(['Administrator', 'admin']) || $user->can('view Departments'));
+        return $this->allowsAnyGsoPermission([
+            'departments.view',
+            'departments.create',
+            'departments.update',
+            'departments.archive',
+            'departments.restore',
+        ]);
     }
 
     public function rules(): array

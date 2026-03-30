@@ -1,8 +1,14 @@
 @extends('layouts.master')
 
 @php
-    $canManageFundSources = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Fund Sources');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageFundSources = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'fund_sources.create',
+        'fund_sources.update',
+        'fund_sources.archive',
+        'fund_sources.restore',
+    ]);
 @endphp
 
 @section('styles')

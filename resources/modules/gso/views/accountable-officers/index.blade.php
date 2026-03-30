@@ -1,8 +1,14 @@
 @extends('layouts.master')
 
 @php
-    $canManageAccountableOfficers = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Accountable Officers');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageAccountableOfficers = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'accountable_persons.create',
+        'accountable_persons.update',
+        'accountable_persons.archive',
+        'accountable_persons.restore',
+    ]);
 @endphp
 
 @section('styles')

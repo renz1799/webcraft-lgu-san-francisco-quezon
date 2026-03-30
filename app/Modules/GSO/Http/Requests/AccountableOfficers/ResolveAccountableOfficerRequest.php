@@ -3,38 +3,26 @@
 namespace App\Modules\GSO\Http\Requests\AccountableOfficers;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use Illuminate\Validation\Rule;
 
 class ResolveAccountableOfficerRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        if (! $user) {
-            return false;
-        }
-
-        if ($user->hasAnyRole(['Administrator', 'admin'])) {
-            return true;
-        }
-
-        foreach ([
-            'modify Accountable Officers',
-            'modify AIR',
-            'modify RIS',
-            'modify PAR',
-            'modify ICS',
-            'modify PTR',
-            'modify ITR',
-            'modify WMR',
-        ] as $ability) {
-            if ($user->can($ability)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->allowsAnyGsoPermission([
+            'accountable_persons.create',
+            'accountable_persons.update',
+            'air.update',
+            'ris.update',
+            'par.update',
+            'ics.update',
+            'ptr.update',
+            'itr.update',
+            'wmr.update',
+        ]);
     }
 
     public function rules(): array

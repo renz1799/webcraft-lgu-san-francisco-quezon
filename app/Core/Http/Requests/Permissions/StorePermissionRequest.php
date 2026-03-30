@@ -5,6 +5,7 @@ namespace App\Core\Http\Requests\Permissions;
 use App\Http\Requests\BaseFormRequest;
 use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
+use App\Core\Support\PermissionNaming;
 use Illuminate\Validation\Rule;
 
 class StorePermissionRequest extends BaseFormRequest
@@ -22,7 +23,7 @@ class StorePermissionRequest extends BaseFormRequest
         return [
             'name' => [
                 'bail', 'required', 'string', 'max:255',
-                'regex:/^(view|modify|delete)\s+.+$/i',
+                'regex:/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/',
                 Rule::unique('permissions', 'name')
                     ->where('module_id', $moduleId)
                     ->where('guard_name', $this->input('guard_name', 'web')),
@@ -34,20 +35,9 @@ class StorePermissionRequest extends BaseFormRequest
 
     protected function prepareForValidation(): void
     {
-        $name = trim((string) $this->input('name', ''));
+        $name = PermissionNaming::normalizeKey((string) $this->input('name', ''));
         $guard = $this->input('guard_name', 'web');
-
         $page = $this->input('page');
-        if (! $page && $name) {
-            $parts = preg_split('/\s+/', $name, 2);
-            $page = $parts[1] ?? null;
-        }
-
-        if ($name && preg_match('/^(view|modify|delete)\s+(.+)$/i', $name, $m)) {
-            $action = strtolower($m[1]);
-            $rest = $m[2];
-            $name = "{$action} {$rest}";
-        }
 
         $this->merge([
             'name' => $name,
@@ -59,7 +49,7 @@ class StorePermissionRequest extends BaseFormRequest
     public function messages(): array
     {
         return [
-            'name.regex' => 'Name must start with "view", "modify", or "delete", e.g. "view Login Logs".',
+            'name.regex' => 'Use a normalized permission key like "users.view" or "inventory_items.manage_files".',
         ];
     }
 

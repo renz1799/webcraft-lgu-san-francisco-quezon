@@ -9,9 +9,8 @@ class RejectRisRequest extends FormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        if (!$u) return false;
 
-        return $u->hasRole('Administrator') || $u->can('reject RIS');
+        return (bool) $u && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($u, 'ris.reject');
     }
 
     public function rules(): array

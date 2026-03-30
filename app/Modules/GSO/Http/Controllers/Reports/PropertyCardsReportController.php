@@ -13,7 +13,7 @@ class PropertyCardsReportController extends Controller
     public function __construct(
         private readonly PropertyCardsReportServiceInterface $propertyCards,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Inventory Items|modify Inventory Items');
+        $this->middleware('permission:reports.property_cards.view|inventory_items.view|inventory_items.update');
     }
 
     public function print(PrintPropertyCardsRequest $request): View

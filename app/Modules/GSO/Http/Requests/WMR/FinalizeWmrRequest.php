@@ -8,9 +8,9 @@ class FinalizeWmrRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('modify WMR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($user, 'wmr.finalize');
     }
 
     public function rules(): array

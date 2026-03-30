@@ -9,10 +9,8 @@ class DeleteRisRequest extends FormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        if (!$u) return false;
 
-        // ✅ follow your permission convention
-        return $u->hasRole('Administrator') || $u->can('delete RIS');
+        return (bool) $u && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($u, 'ris.archive');
     }
 
     public function rules(): array

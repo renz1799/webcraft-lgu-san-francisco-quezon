@@ -10,7 +10,13 @@ class PrintRisRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'ris.print',
+            'ris.view',
+            'ris.update',
+        ]);
     }
 
     protected function prepareForValidation(): void

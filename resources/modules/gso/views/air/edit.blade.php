@@ -1,12 +1,27 @@
 @extends('layouts.master')
 
 @php
-    $canManageAir = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify AIR');
-    $canForceDeleteAir = auth()->user()?->hasAnyRole(['Administrator', 'admin']);
+    $airViewer = auth()->user();
+    $airAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageAir = $airAuthorizer->allowsAnyPermission($airViewer, [
+        'air.create',
+        'air.update',
+        'air.inspect',
+        'air.manage_items',
+        'air.manage_files',
+        'air.promote_inventory',
+        'air.finalize_inspection',
+        'air.reopen_inspection',
+        'air.archive',
+        'air.restore',
+    ]);
+    $canForceDeleteAir = $airAuthorizer->allowsPermission($airViewer, 'air.archive');
     $status = (string) ($air['status'] ?? '');
     $isArchived = (bool) ($air['is_archived'] ?? false);
     $isLocked = ! $canManageAir || $isArchived || $status !== 'draft';
+    $canPrintAir = ! $isArchived
+        && in_array($status, ['submitted', 'inspected', 'in_progress'], true)
+        && $airAuthorizer->allowsAnyPermission($airViewer, ['air.print', 'air.view', 'air.update']);
     $selectedFundId = trim((string) old('fund_source_id', (string) ($air['fund_source_id'] ?? '')));
     if ($selectedFundId === '') {
         $legacyFundValue = trim((string) ($air['fund'] ?? ''));
@@ -87,7 +102,7 @@
         </a>
       @endif
 
-      @if(in_array($status, ['submitted', 'inspected', 'in_progress'], true) && ! $isArchived && !empty($air['id']))
+      @if($canPrintAir && !empty($air['id']))
         <a
           href="{{ route('gso.air.print', ['air' => $air['id'], 'preview' => 1]) }}"
           class="ti-btn ti-btn-secondary"

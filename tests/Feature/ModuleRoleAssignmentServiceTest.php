@@ -76,7 +76,7 @@ class ModuleRoleAssignmentServiceTest extends TestCase
         $permission = Permission::query()->create([
             'id' => 'permission-1',
             'module_id' => $module->id,
-            'name' => 'view Tasks',
+            'name' => 'tasks.view',
             'page' => 'Tasks',
             'guard_name' => 'web',
         ]);

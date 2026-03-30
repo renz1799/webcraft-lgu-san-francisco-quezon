@@ -8,9 +8,12 @@ class SuggestAirItemRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view AIR')
-            || $this->user()?->can('modify AIR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'air.view',
+            'air.manage_items',
+        ]);
     }
 
     public function rules(): array

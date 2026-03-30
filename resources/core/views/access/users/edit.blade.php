@@ -325,11 +325,11 @@
                 </div>
 
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  @foreach ($permissions as $page => $actions)
+                  @foreach (($permissionSections ?? []) as $page => $section)
                     <div class="box border border-defaultborder/10 dark:border-defaultborder/10 shadow-none mb-0 h-full">
                       <div class="box-header !justify-between !items-start gap-3">
                         <div>
-                          <h6 class="font-semibold text-[1rem] mb-1">{{ $page }}</h6>
+                          <h6 class="font-semibold text-[1rem] mb-1">{{ $section['title'] }}</h6>
                           <p class="text-[0.75rem] text-textmuted dark:text-textmuted/80 mb-0">
                             Toggle direct access for this module.
                           </p>
@@ -343,63 +343,28 @@
                           <thead class="bg-primary/10">
                             <tr>
                               <th class="p-3 text-start">Permission</th>
-                              <th class="p-3 text-center">View</th>
-                              <th class="p-3 text-center">Modify</th>
-                              <th class="p-3 text-center">Delete</th>
+                              @foreach ($section['actions'] as $action)
+                                <th class="p-3 text-center">{{ $action['label'] }}</th>
+                              @endforeach
                             </tr>
                           </thead>
                           <tbody>
-                            @php $groupedPermissions = []; @endphp
-                            @foreach ($actions as $permission)
-                              @php
-                                $words = explode(' ', $permission->name, 2);
-                                $action = strtolower($words[0] ?? '');
-                                $clean = $words[1] ?? '';
-
-                                if (! isset($groupedPermissions[$clean])) {
-                                    $groupedPermissions[$clean] = ['view' => false, 'modify' => false, 'delete' => false];
-                                }
-
-                                $groupedPermissions[$clean][$action] = $permission->id;
-                              @endphp
-                            @endforeach
-
-                            @foreach ($groupedPermissions as $permissionName => $acts)
+                            @foreach ($section['rows'] as $row)
                               <tr>
-                                <td class="p-3 text-start">{{ $permissionName }}</td>
-                                <td class="text-center">
-                                  @if ($acts['view'])
-                                    <input type="checkbox"
-                                      class="permission-checkbox ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4"
-                                      data-page="{{ $page }}"
-                                      data-action="view"
-                                      data-permission="{{ $permissionName }}"
-                                      aria-label="Toggle permission access for {{ $permissionName }} on {{ $page }}"
-                                      {{ isset($userPermissions[$page][$permissionName]) && in_array('view', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
-                                  @endif
-                                </td>
-                                <td class="text-center">
-                                  @if ($acts['modify'])
-                                    <input type="checkbox"
-                                      class="permission-checkbox ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4"
-                                      data-page="{{ $page }}"
-                                      data-action="modify"
-                                      data-permission="{{ $permissionName }}"
-                                      aria-label="Toggle permission access for {{ $permissionName }} on {{ $page }}"
-                                      {{ isset($userPermissions[$page][$permissionName]) && in_array('modify', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
-                                  @endif
-                                </td>
-                                <td class="text-center">
-                                  @if ($acts['delete'])
-                                    <input type="checkbox"
-                                      class="permission-checkbox ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4"
-                                      data-page="{{ $page }}"
-                                      data-action="delete"
-                                      data-permission="{{ $permissionName }}"
-                                      aria-label="Toggle permission access for {{ $permissionName }} on {{ $page }}"
-                                      {{ isset($userPermissions[$page][$permissionName]) && in_array('delete', $userPermissions[$page][$permissionName]) ? 'checked' : '' }}>
-                                  @endif
-                                </td>
+                                <td class="p-3 text-start">{{ $row['label'] }}</td>
+                                @foreach ($section['actions'] as $action)
+                                  <td class="text-center">
+                                    @if (isset($row['actions'][$action['key']]))
+                                      <input type="checkbox"
+                                        class="permission-checkbox ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4"
+                                        data-page="{{ $page }}"
+                                        data-action="{{ $action['key'] }}"
+                                        data-permission="{{ $row['key'] }}"
+                                        aria-label="Toggle permission access for {{ $row['label'] }} on {{ $section['title'] }}"
+                                        {{ isset($userPermissions[$page][$row['key']]) && in_array($action['key'], $userPermissions[$page][$row['key']], true) ? 'checked' : '' }}>
+                                    @endif
+                                  </td>
+                                @endforeach
                               </tr>
                             @endforeach
                           </tbody>

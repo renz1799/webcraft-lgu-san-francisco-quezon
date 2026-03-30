@@ -936,7 +936,25 @@ Route middleware → first gate
 
 FormRequest authorize() → second gate
 
-Keep role naming consistent across modules.
+Policy / service checks → record-specific gate when needed
+
+Permission-first rule:
+
+normalized permissions are the runtime contract
+
+roles are permission bundles
+
+do not add new module-sensitive raw role gates when a permission exists
+
+Use:
+
+* context-aware `permission:` middleware
+* `AdminContextAuthorizer`
+* policy abilities only when workflow or record state matters
+
+See:
+
+`docs/AUTHORIZATION_STANDARD.md`
 
 Module access remains separate from role authorization.
 

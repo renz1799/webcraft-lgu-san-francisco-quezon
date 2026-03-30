@@ -8,9 +8,9 @@ class CreateItrDraftRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('modify ITR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($user, 'itr.create');
     }
 
     public function rules(): array
@@ -18,5 +18,3 @@ class CreateItrDraftRequest extends FormRequest
         return [];
     }
 }
-
-

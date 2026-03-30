@@ -1,8 +1,14 @@
 @extends('layouts.master')
 
 @php
-    $canManageDepartments = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Departments');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageDepartments = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'departments.create',
+        'departments.update',
+        'departments.archive',
+        'departments.restore',
+    ]);
 @endphp
 
 @section('styles')

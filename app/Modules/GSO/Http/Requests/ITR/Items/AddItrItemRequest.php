@@ -8,9 +8,9 @@ class AddItrItemRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('modify ITR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($user, 'itr.manage_items');
     }
 
     public function rules(): array
@@ -20,6 +20,3 @@ class AddItrItemRequest extends FormRequest
         ];
     }
 }
-
-
-

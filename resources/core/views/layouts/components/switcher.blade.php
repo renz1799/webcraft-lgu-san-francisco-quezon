@@ -1,5 +1,7 @@
 @php
-    $canEditThemeColors = auth()->check() && auth()->user()?->hasAnyRole(['Administrator', 'admin']);
+    $themeUser = auth()->user();
+    $themeAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canEditThemeColors = auth()->check() && $themeAuthorizer->allowsPermission($themeUser, 'theme.update_colors');
 @endphp
 
 

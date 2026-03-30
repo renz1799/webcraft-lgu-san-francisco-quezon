@@ -8,10 +8,20 @@ class PtrDataRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('view PTR')
-            || $this->user()?->can('modify PTR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'ptr.view',
+            'ptr.create',
+            'ptr.update',
+            'ptr.submit',
+            'ptr.finalize',
+            'ptr.reopen',
+            'ptr.archive',
+            'ptr.restore',
+            'ptr.manage_items',
+            'ptr.print',
+        ]);
     }
 
     public function rules(): array

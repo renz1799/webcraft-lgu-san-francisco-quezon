@@ -8,9 +8,9 @@ class CreateIcsDraftRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('modify ICS');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($user, 'ics.create');
     }
 
     public function rules(): array

@@ -208,9 +208,11 @@
   </ol>
 </div>
 
-@php($canViewAll = auth()->user()?->hasAnyRole(['Administrator', 'admin']) || auth()->user()?->can('view All Tasks'))
-@php($canArchive = auth()->user()?->hasAnyRole(['Administrator', 'admin']))
-@php($isAdminStatsUser = auth()->user()?->hasAnyRole(['Administrator', 'admin']))
+@php($taskViewer = auth()->user())
+@php($taskAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class))
+@php($canViewAll = $taskAuthorizer->allowsPermission($taskViewer, 'tasks.view_all'))
+@php($canArchive = $taskAuthorizer->allowsPermission($taskViewer, 'tasks.archive'))
+@php($isAdminStatsUser = $canViewAll)
 @php($initialSearch = request('search', request('q', '')))
 @php($initialArchivedRaw = request('archived', 'active'))
 @php($initialArchived = in_array($initialArchivedRaw, ['active', 'archived', 'all'], true) ? $initialArchivedRaw : 'active')

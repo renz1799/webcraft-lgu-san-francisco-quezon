@@ -15,7 +15,7 @@ class AssetCategoryActionController extends Controller
     public function __construct(
         private readonly AssetCategoryServiceInterface $assetCategories,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|modify Asset Categories')
+        $this->middleware('permission:asset_categories.create|asset_categories.update|asset_categories.archive|asset_categories.restore')
             ->only(['store', 'update', 'destroy', 'restore']);
     }
 

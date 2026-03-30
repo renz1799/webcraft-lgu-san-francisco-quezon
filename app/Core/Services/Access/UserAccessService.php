@@ -15,6 +15,7 @@ use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\AdminRouteResolver;
 use App\Core\Support\CurrentContext;
+use App\Core\Support\PermissionNaming;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -99,9 +100,7 @@ class UserAccessService implements UserAccessServiceInterface
             ->whereNull('deleted_at')
             ->orderBy('name')
             ->get()
-            ->groupBy(function (Permission $permission) {
-                return explode(' ', $permission->name, 2)[1] ?? 'others';
-            });
+            ->groupBy(fn (Permission $permission) => $permission->page ?: 'Others');
 
         $userPermissions = $this->currentModuleDirectPermissionNames($user);
         $roles = Role::query()
@@ -352,26 +351,18 @@ class UserAccessService implements UserAccessServiceInterface
             ->whereNull('deleted_at')
             ->orderBy('page')
             ->orderBy('name')
-            ->get()
-            ->groupBy('page');
+            ->get();
+
+        $permissionSections = $this->buildPermissionSections($permissions);
+        $permissions = $permissions->groupBy(fn (Permission $permission) => $permission->page ?: 'Others');
 
         $userRole = $this->currentRole($user);
 
-        $userPermissions = $this->currentModuleDirectPermissions($user)
-            ->groupBy('page')
-            ->map(function ($perPage) {
-                return $perPage->mapToGroups(function (Permission $permission) {
-                    $parts = explode(' ', $permission->name);
-                    $action = strtolower(array_shift($parts));
-                    $resource = implode(' ', $parts);
-
-                    return [$resource => [$action]];
-                })->map(fn ($actions) => $actions->flatten()->unique()->values()->all());
-            });
+        $userPermissions = $this->buildPermissionSelections($this->currentModuleDirectPermissions($user));
 
         $roleDefaults = $this->buildRoleDefaults($roles);
 
-        return compact('user', 'roles', 'permissions', 'userPermissions', 'userRole', 'roleDefaults');
+        return compact('user', 'roles', 'permissions', 'permissionSections', 'userPermissions', 'userRole', 'roleDefaults');
     }
 
     /**
@@ -449,10 +440,11 @@ class UserAccessService implements UserAccessServiceInterface
 
             $dict = [];
             foreach ($pool as $permission) {
-                [$actionRaw, $resourceRaw] = explode(' ', $permission->name, 2);
-                $page = strtolower(trim((string) $permission->page));
-                $action = $this->normalizeAction($actionRaw ?? '');
-                $resource = strtolower(trim($resourceRaw ?? ''));
+                $page = trim((string) ($permission->page ?: 'Others'));
+                $descriptor = PermissionNaming::descriptor($permission->name, $page);
+                $resource = strtolower(trim((string) ($descriptor['resource_key'] ?: $descriptor['resource_label'])));
+                $action = $descriptor['action_key'];
+
                 $dict[$page][$resource][$action] = $permission->id;
             }
 
@@ -461,9 +453,9 @@ class UserAccessService implements UserAccessServiceInterface
             $misses = [];
 
             foreach ($nested as $page => $resources) {
-                $pKey = strtolower(trim($page));
+                $pKey = trim((string) $page);
                 foreach ($resources as $resource => $actions) {
-                    $rKey = strtolower(trim($resource));
+                    $rKey = strtolower(trim((string) $resource));
                     foreach ((array) $actions as $action) {
                         $aKey = $this->normalizeAction($action);
                         $id = $dict[$pKey][$rKey][$aKey] ?? null;
@@ -547,21 +539,7 @@ class UserAccessService implements UserAccessServiceInterface
     /** Normalize action names so UI "modify" maps to DB "edit", etc. */
     private function normalizeAction(string $action): string
     {
-        $key = strtolower(trim($action));
-        $aliases = [
-            'modify' => 'edit',
-            'edit' => 'edit',
-            'update' => 'update',
-            'view' => 'view',
-            'show' => 'view',
-            'create' => 'create',
-            'add' => 'create',
-            'delete' => 'delete',
-            'remove' => 'delete',
-            'export' => 'export',
-        ];
-
-        return $aliases[$key] ?? $key;
+        return PermissionNaming::normalizeAction($action);
     }
 
     private function meta(): array
@@ -814,22 +792,17 @@ class UserAccessService implements UserAccessServiceInterface
 
     private function formatPermissionLabel(string $permission): string
     {
-        return str($permission)
-            ->replaceMatches('/\s+/', ' ')
-            ->trim()
-            ->title()
-            ->value();
+        return PermissionNaming::displayName($permission);
     }
 
     private function formatSelectionPath(array $item): string
     {
         return collect([
-            $item['pKey'] ?? null,
-            $item['rKey'] ?? null,
-            $item['aKey'] ?? null,
+            isset($item['pKey']) ? PermissionNaming::pageDisplayName((string) $item['pKey']) : null,
+            isset($item['rKey']) ? PermissionNaming::descriptor((string) $item['rKey'] . '.view')['resource_label'] : null,
+            isset($item['aKey']) ? PermissionNaming::actionLabel((string) $item['aKey']) : null,
         ])
             ->filter(fn (mixed $value): bool => filled($value))
-            ->map(fn (mixed $value): string => str((string) $value)->replaceMatches('/\s+/', ' ')->trim()->title()->value())
             ->implode(' / ');
     }
 
@@ -839,12 +812,12 @@ class UserAccessService implements UserAccessServiceInterface
             $nested = [];
 
             foreach ($role->permissions as $permission) {
-                $page = $permission->page ?: 'Others';
-                $words = explode(' ', $permission->name, 2);
-                $action = $this->normalizeRoleDefaultAction($words[0] ?? '');
-                $resource = trim((string) ($words[1] ?? ''));
+                $page = trim((string) ($permission->page ?: 'Others'));
+                $descriptor = PermissionNaming::descriptor($permission->name, $page);
+                $resource = trim((string) ($descriptor['resource_key'] ?: $descriptor['resource_label']));
+                $action = $descriptor['action_key'];
 
-                if ($resource === '') {
+                if ($resource === '' || $action === '') {
                     continue;
                 }
 
@@ -860,12 +833,134 @@ class UserAccessService implements UserAccessServiceInterface
         })->all();
     }
 
-    private function normalizeRoleDefaultAction(string $action): string
+    private function buildPermissionSelections($permissions): array
     {
-        return match (strtolower(trim($action))) {
-            'edit', 'modify' => 'modify',
-            default => strtolower(trim($action)),
-        };
+        $nested = [];
+
+        foreach ($permissions as $permission) {
+            if (! $permission instanceof Permission) {
+                continue;
+            }
+
+            $page = trim((string) ($permission->page ?: 'Others'));
+            $descriptor = PermissionNaming::descriptor($permission->name, $page);
+            $resource = trim((string) ($descriptor['resource_key'] ?: $descriptor['resource_label']));
+            $action = $descriptor['action_key'];
+
+            if ($resource === '' || $action === '') {
+                continue;
+            }
+
+            $nested[$page] ??= [];
+            $nested[$page][$resource] ??= [];
+
+            if (! in_array($action, $nested[$page][$resource], true)) {
+                $nested[$page][$resource][] = $action;
+            }
+        }
+
+        return $nested;
+    }
+
+    private function buildPermissionSections($permissions): array
+    {
+        $sections = [];
+
+        foreach ($permissions as $permission) {
+            if (! $permission instanceof Permission) {
+                continue;
+            }
+
+            $page = trim((string) ($permission->page ?: 'Others'));
+            $descriptor = PermissionNaming::descriptor($permission->name, $page);
+            $resourceKey = trim((string) ($descriptor['resource_key'] ?: $descriptor['resource_label']));
+            $actionKey = $descriptor['action_key'];
+
+            if ($resourceKey === '' || $actionKey === '') {
+                continue;
+            }
+
+            $sections[$page] ??= [
+                'title' => PermissionNaming::pageDisplayName($page),
+                'actions' => [],
+                'rows' => [],
+            ];
+
+            $sections[$page]['actions'][$actionKey] = [
+                'key' => $actionKey,
+                'label' => $descriptor['action_label'],
+            ];
+
+            $sections[$page]['rows'][$resourceKey] ??= [
+                'key' => $resourceKey,
+                'label' => $descriptor['resource_label'],
+                'actions' => [],
+            ];
+
+            $sections[$page]['rows'][$resourceKey]['actions'][$actionKey] = (string) $permission->id;
+        }
+
+        foreach ($sections as &$section) {
+            $actionKeys = array_keys($section['actions']);
+            usort($actionKeys, fn (string $left, string $right): int => $this->compareActionKeys($left, $right));
+
+            $section['actions'] = array_values(array_map(
+                fn (string $actionKey): array => $section['actions'][$actionKey],
+                $actionKeys
+            ));
+
+            uasort($section['rows'], fn (array $left, array $right): int => strcmp($left['label'], $right['label']));
+            $section['rows'] = array_values($section['rows']);
+        }
+        unset($section);
+
+        return $sections;
+    }
+
+    private function compareActionKeys(string $left, string $right): int
+    {
+        $order = [
+            'view',
+            'view_all',
+            'create',
+            'update',
+            'submit',
+            'approve',
+            'reject',
+            'finalize',
+            'reopen',
+            'revert',
+            'inspect',
+            'manage_items',
+            'manage_files',
+            'manage_events',
+            'manage_photos',
+            'promote_inventory',
+            'generate_from_air',
+            'adjust',
+            'adjust_stock',
+            'claim',
+            'comment',
+            'update_status',
+            'reassign',
+            'archive',
+            'restore',
+            'print',
+            'connect',
+            'disconnect',
+            'deactivate',
+            'reset_password',
+            'view_access',
+            'manage_access',
+        ];
+
+        $leftIndex = array_search($left, $order, true);
+        $rightIndex = array_search($right, $order, true);
+
+        $leftIndex = $leftIndex === false ? PHP_INT_MAX : $leftIndex;
+        $rightIndex = $rightIndex === false ? PHP_INT_MAX : $rightIndex;
+
+        return $leftIndex <=> $rightIndex ?: strcmp($left, $right);
     }
 
     /**

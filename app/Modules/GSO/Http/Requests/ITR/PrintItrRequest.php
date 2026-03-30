@@ -10,9 +10,13 @@ class PrintItrRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view ITR')
-            || $this->user()?->can('modify ITR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'itr.print',
+            'itr.view',
+            'itr.update',
+        ]);
     }
 
     protected function prepareForValidation(): void

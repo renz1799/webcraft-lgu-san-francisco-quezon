@@ -13,10 +13,10 @@ class AirInventoryPromotionController extends Controller
     public function __construct(
         private readonly AirInventoryPromotionServiceInterface $promotion,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view AIR|modify AIR|modify Inventory Items')
+        $this->middleware('permission:air.promote_inventory|inventory_items.import_from_inspection')
             ->only(['eligible']);
 
-        $this->middleware('role_or_permission:Administrator|admin|modify AIR|modify Inventory Items')
+        $this->middleware('permission:air.promote_inventory|inventory_items.import_from_inspection')
             ->only(['promote']);
     }
 

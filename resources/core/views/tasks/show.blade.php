@@ -419,7 +419,11 @@
     $typeLabel = $task->type
         ? \Illuminate\Support\Str::headline(str_replace(['-', '_'], ' ', (string) $task->type))
         : 'General';
-    $canReassign = auth()->user()?->hasAnyRole(['Administrator', 'admin']) || auth()->user()?->can('modify Reassign Tasks');
+    $taskViewer = auth()->user();
+    $taskAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $taskModuleId = (string) $task->module_id;
+    $canReassign = $taskAuthorizer->allowsPermissionInModule($taskViewer, 'tasks.reassign', $taskModuleId);
+    $canViewAllTaskRecords = $taskAuthorizer->allowsPermissionInModule($taskViewer, 'tasks.view_all', $taskModuleId);
     $normalizedHeaderActions = collect($headerActions ?? [])->map(function ($action) {
         $actionType = ($action['type'] ?? 'link') === 'button' ? 'button' : 'link';
         $actionLabel = trim((string) ($action['label'] ?? ''));
@@ -597,7 +601,7 @@
                         </div>
                     @endcan
 
-                    @if((string) $task->type === 'air_inspection' && !auth()->user()?->hasAnyRole(['Administrator', 'admin']))
+                    @if((string) $task->type === 'air_inspection' && ! $canViewAllTaskRecords)
                         <div class="rounded-lg border border-info/20 bg-info/5 p-4">
                             <div class="font-semibold text-defaulttextcolor dark:text-white mb-1">Inspection Workflow</div>
                             <p class="text-sm text-[#8c9097] dark:text-white/50">

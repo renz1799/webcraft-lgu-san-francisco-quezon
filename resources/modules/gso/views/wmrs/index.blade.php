@@ -11,9 +11,23 @@
 
 @section('content')
 @php
-  $canManageWmr = auth()->user()?->hasRole('Administrator')
-    || auth()->user()?->hasRole('Staff')
-    || auth()->user()?->can('modify WMR');
+  $gsoUser = auth()->user();
+  $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+  $canCreateWmr = $gsoAuthorizer->allowsPermission($gsoUser, 'wmr.create');
+  $canManageWmr = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+    'wmr.create',
+    'wmr.update',
+    'wmr.submit',
+    'wmr.approve',
+    'wmr.finalize',
+    'wmr.reopen',
+    'wmr.manage_items',
+  ]);
+  $canDeleteWmr = $gsoAuthorizer->allowsPermission($gsoUser, 'wmr.archive');
+  $canRestoreWmr = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+    'wmr.restore',
+    'audit_logs.restore_data',
+  ]);
 @endphp
 
 <div class="block justify-between page-header md:flex">
@@ -106,7 +120,7 @@
 
         <button id="wmr-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
 
-        @if($canManageWmr)
+        @if($canCreateWmr)
           <button id="wmr-create" type="button" class="ti-btn ti-btn-primary">
             <i class="ri-add-line"></i> Create WMR
           </button>
@@ -138,12 +152,8 @@
       deleteUrlTemplate: @json(route('gso.wmrs.destroy', ['wmr' => '__WMR_ID__'])),
       restoreUrlTemplate: @json(route('gso.wmrs.restore', ['wmr' => '__WMR_ID__'])),
       canManage: @json($canManageWmr),
-      canDelete: @json(auth()->user()?->hasRole('Administrator') || auth()->user()?->can('modify WMR')),
-      canRestore: @json(
-        auth()->user()?->hasRole('Administrator')
-        || auth()->user()?->can('modify Allow Data Restoration')
-        || auth()->user()?->can('restore WMR')
-      ),
+      canDelete: @json($canDeleteWmr),
+      canRestore: @json($canRestoreWmr),
     };
   </script>
 @endpush

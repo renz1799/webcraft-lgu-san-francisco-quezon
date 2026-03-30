@@ -10,9 +10,13 @@ class PrintWmrRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view WMR')
-            || $this->user()?->can('modify WMR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'wmr.print',
+            'wmr.view',
+            'wmr.update',
+        ]);
     }
 
     protected function prepareForValidation(): void

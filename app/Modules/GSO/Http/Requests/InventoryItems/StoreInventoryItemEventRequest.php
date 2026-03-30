@@ -2,6 +2,7 @@
 
 namespace App\Modules\GSO\Http\Requests\InventoryItems;
 
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use App\Modules\GSO\Support\InventoryConditions;
 use App\Modules\GSO\Support\InventoryEventTypes;
 use App\Modules\GSO\Support\InventoryStatuses;
@@ -10,10 +11,11 @@ use Illuminate\Validation\Rule;
 
 class StoreInventoryItemEventRequest extends FormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('modify Inventory Items');
+        return $this->allowsGsoPermission('inventory_items.manage_events');
     }
 
     public function rules(): array

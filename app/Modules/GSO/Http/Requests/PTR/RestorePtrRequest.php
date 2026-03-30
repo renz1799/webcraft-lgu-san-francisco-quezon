@@ -8,9 +8,12 @@ class RestorePtrRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->can('modify Allow Data Restoration')
-            || $this->user()?->can('restore PTR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'ptr.restore',
+            'audit_logs.restore_data',
+        ]);
     }
 
     public function rules(): array

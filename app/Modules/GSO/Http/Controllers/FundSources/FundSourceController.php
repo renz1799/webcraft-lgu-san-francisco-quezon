@@ -15,7 +15,7 @@ class FundSourceController extends Controller
         private readonly FundSourceServiceInterface $fundSources,
         private readonly FundClusterServiceInterface $fundClusters,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Fund Sources')
+        $this->middleware('permission:fund_sources.view|fund_sources.create|fund_sources.update|fund_sources.archive|fund_sources.restore')
             ->only(['index', 'data']);
     }
 

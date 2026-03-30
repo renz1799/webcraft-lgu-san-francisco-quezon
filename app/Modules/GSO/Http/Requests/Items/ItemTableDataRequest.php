@@ -2,16 +2,23 @@
 
 namespace App\Modules\GSO\Http\Requests\Items;
 
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ItemTableDataRequest extends FormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view Items')
-            || $this->user()?->can('modify Items');
+        return $this->allowsAnyGsoPermission([
+            'items.view',
+            'items.create',
+            'items.update',
+            'items.archive',
+            'items.restore',
+        ]);
     }
 
     protected function prepareForValidation(): void

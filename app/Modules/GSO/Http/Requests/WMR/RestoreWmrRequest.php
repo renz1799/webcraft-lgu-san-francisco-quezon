@@ -8,11 +8,13 @@ class RestoreWmrRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->can('modify Allow Data Restoration')
-            || $this->user()?->can('restore WMR');
-    }
+        $user = $this->user();
 
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'wmr.restore',
+            'audit_logs.restore_data',
+        ]);
+    }
     public function rules(): array
     {
         return [];

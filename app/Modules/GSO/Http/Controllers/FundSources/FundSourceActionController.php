@@ -15,7 +15,7 @@ class FundSourceActionController extends Controller
     public function __construct(
         private readonly FundSourceServiceInterface $fundSources,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|modify Fund Sources')
+        $this->middleware('permission:fund_sources.create|fund_sources.update|fund_sources.archive|fund_sources.restore')
             ->only(['store', 'update', 'destroy', 'restore']);
     }
 

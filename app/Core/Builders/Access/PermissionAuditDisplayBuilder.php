@@ -4,6 +4,7 @@ namespace App\Core\Builders\Access;
 
 use App\Core\Builders\Contracts\Access\PermissionAuditDisplayBuilderInterface;
 use App\Core\Models\Permission;
+use App\Core\Support\PermissionNaming;
 
 class PermissionAuditDisplayBuilder implements PermissionAuditDisplayBuilderInterface
 {
@@ -113,19 +114,11 @@ class PermissionAuditDisplayBuilder implements PermissionAuditDisplayBuilderInte
 
     private function permissionDisplayName(string $name): string
     {
-        return str($name)
-            ->replaceMatches('/\s+/', ' ')
-            ->trim()
-            ->title()
-            ->value();
+        return PermissionNaming::displayName($name);
     }
 
     private function pageDisplayName(string $page): string
     {
-        return str($page)
-            ->replaceMatches('/[_\s]+/', ' ')
-            ->trim()
-            ->title()
-            ->value();
+        return PermissionNaming::pageDisplayName($page);
     }
 }

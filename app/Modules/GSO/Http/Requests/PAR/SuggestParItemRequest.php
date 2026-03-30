@@ -8,9 +8,12 @@ class SuggestParItemRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('modify PAR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'par.view',
+            'par.manage_items',
+        ]);
     }
 
     public function rules(): array

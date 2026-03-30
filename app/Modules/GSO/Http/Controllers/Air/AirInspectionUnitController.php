@@ -13,10 +13,10 @@ class AirInspectionUnitController extends Controller
     public function __construct(
         private readonly AirInspectionUnitServiceInterface $units,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view AIR|modify AIR')
+        $this->middleware('permission:air.view|air.create|air.update|air.inspect|air.manage_items|air.manage_files|air.promote_inventory|air.finalize_inspection|air.reopen_inspection|air.archive|air.restore|air.print')
             ->only(['index']);
 
-        $this->middleware('role_or_permission:Administrator|admin|modify AIR')
+        $this->middleware('permission:air.create|air.update|air.inspect|air.manage_items|air.manage_files|air.promote_inventory|air.finalize_inspection|air.reopen_inspection|air.archive|air.restore|air.print')
             ->only(['save', 'destroy']);
     }
 

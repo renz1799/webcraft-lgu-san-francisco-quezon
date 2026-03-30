@@ -15,7 +15,7 @@ class AssetTypeActionController extends Controller
     public function __construct(
         private readonly AssetTypeServiceInterface $assetTypes,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|modify Asset Types')
+        $this->middleware('permission:asset_types.create|asset_types.update|asset_types.archive|asset_types.restore')
             ->only(['store', 'update', 'destroy', 'restore']);
     }
 

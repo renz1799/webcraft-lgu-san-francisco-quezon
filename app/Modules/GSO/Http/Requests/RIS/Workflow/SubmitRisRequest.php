@@ -9,9 +9,11 @@ class SubmitRisRequest extends FormRequest
     public function authorize(): bool
     {
         $u = $this->user();
-        if (!$u) return false;
 
-        return $u->hasRole('Administrator') || $u->can('submit RIS') || $u->can('modify RIS');
+        return (bool) $u && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($u, [
+            'ris.submit',
+            'ris.update',
+        ]);
     }
 
     public function rules(): array

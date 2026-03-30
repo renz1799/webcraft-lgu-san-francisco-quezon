@@ -4,6 +4,7 @@ namespace App\Core\Builders\Access;
 
 use App\Core\Builders\Contracts\Access\RoleAuditDisplayBuilderInterface;
 use App\Core\Models\Role;
+use App\Core\Support\PermissionNaming;
 
 class RoleAuditDisplayBuilder implements RoleAuditDisplayBuilderInterface
 {
@@ -117,10 +118,6 @@ class RoleAuditDisplayBuilder implements RoleAuditDisplayBuilderInterface
 
     private function formatPermissionLabel(string $permission): string
     {
-        return str($permission)
-            ->replaceMatches('/\s+/', ' ')
-            ->trim()
-            ->title()
-            ->value();
+        return PermissionNaming::displayName($permission);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Modules\GSO\Http\Requests\InventoryItems;
 
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use App\Modules\GSO\Support\InventoryConditions;
 use App\Modules\GSO\Support\InventoryCustodyStates;
 use App\Modules\GSO\Support\InventoryStatuses;
@@ -10,11 +11,20 @@ use Illuminate\Validation\Rule;
 
 class InventoryItemTableDataRequest extends FormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view Inventory Items')
-            || $this->user()?->can('modify Inventory Items');
+        return $this->allowsAnyGsoPermission([
+            'inventory_items.view',
+            'inventory_items.create',
+            'inventory_items.update',
+            'inventory_items.archive',
+            'inventory_items.restore',
+            'inventory_items.manage_files',
+            'inventory_items.manage_events',
+            'inventory_items.import_from_inspection',
+        ]);
     }
 
     protected function prepareForValidation(): void

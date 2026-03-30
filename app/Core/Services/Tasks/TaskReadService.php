@@ -13,6 +13,7 @@ use App\Core\Policies\Tasks\TaskPolicy;
 use App\Core\Repositories\Tasks\Contracts\TaskEventRepositoryInterface;
 use App\Core\Repositories\Tasks\Contracts\TaskRepositoryInterface;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Services\Tasks\Contracts\TaskReadServiceInterface;
 use App\Core\Services\Tasks\Contracts\TaskShowActionProviderInterface;
 use Illuminate\Support\Collection;
@@ -30,6 +31,7 @@ class TaskReadService implements TaskReadServiceInterface
         private readonly TaskAdminStatsBuilderInterface $taskAdminStatsBuilder,
         private readonly TaskShowActionProviderInterface $taskShowActions,
         private readonly UserTaskReassignOptionBuilderInterface $userTaskReassignOptionBuilder,
+        private readonly AdminContextAuthorizer $authorizer,
     ) {}
 
     public function indexData(?User $actor, array|string|null $ownerModuleIds = null): array
@@ -45,11 +47,12 @@ class TaskReadService implements TaskReadServiceInterface
         $ownerModules = $ownerModules
             ->filter(fn (Module $module) => in_array((string) $module->id, $ownerModuleIds, true))
             ->values();
-        $isAdministrator = $actor?->hasAnyRole(['Administrator', 'admin']) ?? false;
+        $canViewAllTasks = $actor !== null
+            && $this->actorCanViewAllTasksInModules($actor, $ownerModuleIds);
 
         $adminTaskStats = null;
 
-        if ($isAdministrator && $ownerModuleIds !== []) {
+        if ($canViewAllTasks && $ownerModuleIds !== []) {
             $adminTaskStats = $this->taskAdminStatsBuilder->build(
                 $this->tasks->adminDashboardStats(6, $ownerModuleIds)
             );
@@ -92,8 +95,7 @@ class TaskReadService implements TaskReadServiceInterface
 
         $filters['actor_user_id'] = (string) $actor->id;
         $filters['actor_roles_by_module'] = $this->actorRolesByModule($actor, $moduleIds);
-        $filters['can_view_all'] = $actor->hasAnyRole(['Administrator', 'admin'])
-            || $actor->can('view All Tasks');
+        $filters['can_view_all'] = $this->actorCanViewAllTasksInModules($actor, $moduleIds);
 
         $payload = $this->tasks->datatable($filters, $page, $size, $moduleIds);
 
@@ -251,6 +253,17 @@ class TaskReadService implements TaskReadServiceInterface
         }
 
         return $rolesByModule;
+    }
+
+    private function actorCanViewAllTasksInModules(User $actor, array $moduleIds): bool
+    {
+        foreach ($moduleIds as $moduleId) {
+            if ($this->authorizer->allowsPermissionInModule($actor, 'tasks.view_all', (string) $moduleId)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function assertActorCanReachTask(User $actor, Task $task): Task

@@ -8,10 +8,12 @@ class SuggestPtrItemsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('modify PTR')
-            || $this->user()?->can('view PTR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'ptr.view',
+            'ptr.manage_items',
+        ]);
     }
 
     public function rules(): array

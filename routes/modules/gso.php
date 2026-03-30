@@ -142,11 +142,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                 ->whereUuid('id')
                 ->name('tasks.restore');
 
-            Route::middleware('role:Administrator|admin')->group(function () {
+            Route::middleware('permission:access.users.view|access.users.manage')->group(function () {
                 Route::get('/users/data', [UserAccessController::class, 'data'])->name('access.users.data');
                 Route::get('/users', [UserAccessController::class, 'index'])->name('access.users.index');
-                Route::get('/users/create', [ModuleUserOnboardingController::class, 'create'])->name('access.users.create');
-                Route::post('/users', [ModuleUserOnboardingController::class, 'store'])->name('access.users.store');
 
                 Route::get('/users/permissions/data', [UserAccessController::class, 'data'])->name('legacy.access.users.data');
                 Route::get('/users/permissions', [UserAccessController::class, 'index'])->name('legacy.access.users.index');
@@ -155,22 +153,43 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                     ->whereUuid(['user'])
                     ->group(function () {
                         Route::get('{user}/permissions', [UserAccessController::class, 'show'])->name('access.users.show');
-                        Route::get('{user}/permissions/edit', [UserAccessController::class, 'edit'])->name('access.users.edit');
-                        Route::patch('{user}/permissions', [UserAccessController::class, 'updateModulePermissions'])->name('access.users.update');
-                        Route::patch('{user}/toggle-status', [UserAccessController::class, 'updateStatus'])->name('access.users.status.update');
                     });
+            });
 
+            Route::middleware('permission:access.users.manage')->group(function () {
+                Route::get('/users/create', [ModuleUserOnboardingController::class, 'create'])->name('access.users.create');
+                Route::post('/users', [ModuleUserOnboardingController::class, 'store'])->name('access.users.store');
+                Route::get('/users/{user}/permissions/edit', [UserAccessController::class, 'edit'])
+                    ->whereUuid('user')
+                    ->name('access.users.edit');
+                Route::patch('/users/{user}/permissions', [UserAccessController::class, 'updateModulePermissions'])
+                    ->whereUuid('user')
+                    ->name('access.users.update');
+                Route::patch('/users/{user}/toggle-status', [UserAccessController::class, 'updateStatus'])
+                    ->whereUuid('user')
+                    ->name('access.users.status.update');
+            });
+
+            Route::middleware('permission:access.roles.view|access.roles.manage')->group(function () {
                 Route::get('/roles/data', [RolesController::class, 'data'])->name('access.roles.data');
                 Route::get('/roles', [RolesController::class, 'index'])->name('access.roles.index');
+            });
+
+            Route::middleware('permission:access.roles.manage')->group(function () {
                 Route::get('/roles/create', [RolesController::class, 'create'])->name('access.roles.create');
                 Route::post('/roles', [RolesController::class, 'store'])->name('access.roles.store');
                 Route::get('/roles/{role}/edit', [RolesController::class, 'edit'])->whereUuid('role')->name('access.roles.edit');
                 Route::match(['put', 'patch'], '/roles/{role}', [RolesController::class, 'update'])->whereUuid('role')->name('access.roles.update');
                 Route::delete('/roles/{role}', [RolesController::class, 'destroy'])->whereUuid('role')->name('access.roles.destroy');
                 Route::patch('/roles/{role}/restore', [RolesController::class, 'restore'])->whereUuid('role')->name('access.roles.restore');
+            });
 
+            Route::middleware('permission:access.permissions.view|access.permissions.manage')->group(function () {
                 Route::get('/permissions/data', [PermissionController::class, 'data'])->name('access.permissions.data');
                 Route::get('/permissions', [PermissionController::class, 'index'])->name('access.permissions.index');
+            });
+
+            Route::middleware('permission:access.permissions.manage')->group(function () {
                 Route::post('/permissions', [PermissionController::class, 'store'])->name('access.permissions.store');
                 Route::patch('/permissions/{permission}', [PermissionController::class, 'update'])
                     ->whereUuid('permission')
@@ -183,14 +202,17 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                     ->name('access.permissions.restore');
             });
 
-            Route::middleware('role_or_permission:Administrator|admin|view Audit Logs')->group(function () {
+            Route::middleware('permission:audit_logs.view')->group(function () {
                 Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
                 Route::get('/audit-logs/data', [AuditLogController::class, 'data'])->name('audit-logs.data');
+            });
+
+            Route::middleware('permission:audit_logs.print')->group(function () {
                 Route::get('/audit-logs/print', [AuditLogPrintController::class, 'preview'])->name('audit-logs.print.index');
                 Route::get('/audit-logs/print/pdf', [AuditLogPrintController::class, 'downloadPdf'])->name('audit-logs.print.pdf');
             });
 
-            Route::middleware('role_or_permission:Administrator|admin|modify Allow Data Restoration')->group(function () {
+            Route::middleware('permission:audit_logs.restore_data')->group(function () {
                 Route::post('/audit/restore', [AuditRestoreController::class, 'restore'])->name('audit.restore');
             });
 

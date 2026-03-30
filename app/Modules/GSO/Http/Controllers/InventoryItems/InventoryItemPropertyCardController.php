@@ -11,7 +11,7 @@ class InventoryItemPropertyCardController extends Controller
     public function __construct(
         private readonly InventoryItemRepositoryInterface $inventoryItems,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Inventory Items|modify Inventory Items');
+        $this->middleware('permission:reports.property_cards.view|inventory_items.view|inventory_items.update');
     }
 
     public function print(string $inventoryItem): RedirectResponse

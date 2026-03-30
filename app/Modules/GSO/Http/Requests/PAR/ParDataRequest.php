@@ -8,9 +8,20 @@ class ParDataRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view PAR')
-            || $this->user()?->can('modify PAR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'par.view',
+            'par.create',
+            'par.update',
+            'par.submit',
+            'par.finalize',
+            'par.reopen',
+            'par.archive',
+            'par.restore',
+            'par.manage_items',
+            'par.print',
+        ]);
     }
 
     public function rules(): array

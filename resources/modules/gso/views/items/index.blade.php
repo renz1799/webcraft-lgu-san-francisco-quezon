@@ -1,8 +1,15 @@
 @extends('layouts.master')
 
 @php
-    $canManageItems = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Items');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canCreateItems = $gsoAuthorizer->allowsPermission($gsoUser, 'items.create');
+    $canManageItems = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'items.create',
+        'items.update',
+        'items.archive',
+        'items.restore',
+    ]);
 @endphp
 
 @section('styles')
@@ -181,7 +188,7 @@
                     Clear
                 </button>
 
-                @if($canManageItems)
+                @if($canCreateItems)
                     <button
                         type="button"
                         class="hs-dropdown-toggle ti-btn btn-wave ti-btn-primary-full"

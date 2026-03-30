@@ -20,7 +20,7 @@ class PermissionController extends Controller
     public function __construct(
         private readonly PermissionServiceInterface $permissions
     ) {
-        $this->middleware(['auth', 'role_or_permission:Administrator|admin'])
+        $this->middleware(['auth', 'permission:permissions.view|permissions.create|permissions.update|permissions.archive|permissions.restore|access.permissions.view|access.permissions.manage'])
             ->only(['index', 'data', 'store', 'update', 'destroy', 'restore']);
     }
 

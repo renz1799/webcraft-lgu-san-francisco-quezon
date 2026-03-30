@@ -1,19 +1,35 @@
 @extends('layouts.master')
 
 @php
-    $canManageAir = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify AIR');
-    $canPromoteInventory = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify AIR')
-        || auth()->user()?->can('modify Inventory Items');
+    $airViewer = auth()->user();
+    $airAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageAir = $airAuthorizer->allowsAnyPermission($airViewer, [
+        'air.create',
+        'air.update',
+        'air.inspect',
+        'air.manage_items',
+        'air.manage_files',
+        'air.promote_inventory',
+        'air.finalize_inspection',
+        'air.reopen_inspection',
+        'air.archive',
+        'air.restore',
+    ]);
+    $canPromoteInventory = $airAuthorizer->allowsAnyPermission($airViewer, [
+        'air.promote_inventory',
+        'inventory_items.create',
+        'inventory_items.update',
+        'inventory_items.import_from_inspection',
+    ]);
     $canEditInspection = $canManageAir && (bool) ($air['can_edit_inspection'] ?? false);
     $canViewInspection = (bool) ($air['can_view_inspection'] ?? false);
     $isArchived = (bool) ($air['is_archived'] ?? false);
     $status = (string) ($air['status'] ?? '');
     $continuationNo = max(1, (int) ($air['continuation_no'] ?? 1));
-    $canPrintAir = ! $isArchived && in_array($status, ['submitted', 'in_progress', 'inspected'], true);
-    $canReopenInspection = (auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Inspection Status'))
+    $canPrintAir = ! $isArchived
+        && in_array($status, ['submitted', 'in_progress', 'inspected'], true)
+        && $airAuthorizer->allowsAnyPermission($airViewer, ['air.print', 'air.view', 'air.update']);
+    $canReopenInspection = $airAuthorizer->allowsPermission($airViewer, 'air.reopen_inspection')
         && (bool) ($air['can_reopen_inspection'] ?? false);
     $canCreateFollowUpAir = $canManageAir && (bool) ($air['can_create_follow_up_air'] ?? false);
     $latestFollowUpAir = is_array($air['latest_follow_up_air'] ?? null)

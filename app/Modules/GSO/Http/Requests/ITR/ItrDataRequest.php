@@ -8,10 +8,20 @@ class ItrDataRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('Administrator')
-            || $this->user()?->hasRole('Staff')
-            || $this->user()?->can('view ITR')
-            || $this->user()?->can('modify ITR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'itr.view',
+            'itr.create',
+            'itr.update',
+            'itr.submit',
+            'itr.finalize',
+            'itr.reopen',
+            'itr.archive',
+            'itr.restore',
+            'itr.manage_items',
+            'itr.print',
+        ]);
     }
 
     public function rules(): array
@@ -31,5 +41,3 @@ class ItrDataRequest extends FormRequest
         ];
     }
 }
-
-

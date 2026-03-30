@@ -3,15 +3,21 @@
 namespace App\Modules\GSO\Http\Requests\AssetTypes;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 
 class AssetTypeTableDataRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user
-            && ($user->hasAnyRole(['Administrator', 'admin']) || $user->can('view Asset Types'));
+        return $this->allowsAnyGsoPermission([
+            'asset_types.view',
+            'asset_types.create',
+            'asset_types.update',
+            'asset_types.archive',
+            'asset_types.restore',
+        ]);
     }
 
     public function rules(): array

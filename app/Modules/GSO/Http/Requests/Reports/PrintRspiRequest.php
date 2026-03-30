@@ -10,7 +10,13 @@ class PrintRspiRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'reports.rspi.view',
+            'inventory_items.view',
+            'inventory_items.update',
+        ]);
     }
 
     public function rules(): array

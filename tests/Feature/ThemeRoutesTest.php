@@ -21,6 +21,6 @@ class ThemeRoutesTest extends TestCase
 
         $this->assertContains('auth', $styleRoute->gatherMiddleware());
         $this->assertContains('password.changed', $styleRoute->gatherMiddleware());
-        $this->assertContains('role_or_permission:Administrator|admin', $colorsRoute->gatherMiddleware());
+        $this->assertContains('permission:theme.update_colors', $colorsRoute->gatherMiddleware());
     }
 }

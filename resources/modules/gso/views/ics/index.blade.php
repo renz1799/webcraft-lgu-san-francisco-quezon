@@ -1,9 +1,22 @@
 @extends('layouts.master')
 
 @php
-    $canManageIcs = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->hasRole('Staff')
-        || auth()->user()?->can('modify ICS');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canCreateIcs = $gsoAuthorizer->allowsPermission($gsoUser, 'ics.create');
+    $canManageIcs = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'ics.create',
+        'ics.update',
+        'ics.submit',
+        'ics.finalize',
+        'ics.reopen',
+        'ics.manage_items',
+    ]);
+    $canDeleteIcs = $gsoAuthorizer->allowsPermission($gsoUser, 'ics.archive');
+    $canRestoreIcs = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'ics.restore',
+        'audit_logs.restore_data',
+    ]);
 @endphp
 
 @section('styles')
@@ -136,7 +149,7 @@
 
                     <button id="ics-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
 
-                    @if($canManageIcs)
+                    @if($canCreateIcs)
                         <form method="POST" action="{{ route('gso.ics.create-draft') }}" class="inline-flex">
                             @csrf
                             <button type="submit" class="ti-btn ti-btn-primary">
@@ -170,12 +183,8 @@
             deleteUrlTemplate: @json(route('gso.ics.destroy', ['ics' => '__ICS_ID__'])),
             restoreUrlTemplate: @json(route('gso.ics.restore', ['ics' => '__ICS_ID__'])),
             canEdit: @json($canManageIcs),
-            canDelete: @json(auth()->user()?->hasAnyRole(['Administrator', 'admin']) || auth()->user()?->can('modify ICS')),
-            canRestore: @json(
-                auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-                || auth()->user()?->can('modify Allow Data Restoration')
-                || auth()->user()?->can('restore ICS')
-            ),
+            canDelete: @json($canDeleteIcs),
+            canRestore: @json($canRestoreIcs),
         };
     </script>
 @endpush

@@ -13,7 +13,7 @@ class RegspiReportController extends Controller
     public function __construct(
         private readonly RegspiReportServiceInterface $regspiReports,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Inventory Items|modify Inventory Items');
+        $this->middleware('permission:reports.regspi.view|inventory_items.view|inventory_items.update');
     }
 
     public function print(PrintRegspiRequest $request): View

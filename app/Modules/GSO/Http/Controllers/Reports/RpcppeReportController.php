@@ -13,7 +13,7 @@ class RpcppeReportController extends Controller
     public function __construct(
         private readonly RpcppeReportServiceInterface $rpcppeReports,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Inventory Items|modify Inventory Items');
+        $this->middleware('permission:reports.rpcppe.view|inventory_items.view|inventory_items.update');
     }
 
     public function print(PrintRpcppeRequest $request): View

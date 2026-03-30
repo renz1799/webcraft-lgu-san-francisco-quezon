@@ -14,7 +14,7 @@ class TaskController extends Controller
     public function __construct(
         private readonly TaskReadServiceInterface $taskReadService,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|Staff')
+        $this->middleware('permission:tasks.view|tasks.view_all|tasks.claim|tasks.comment|tasks.update_status|tasks.reassign')
             ->only(['index', 'data', 'show']);
     }
 

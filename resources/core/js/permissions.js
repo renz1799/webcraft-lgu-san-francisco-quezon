@@ -58,8 +58,8 @@ function collectSelectedPermissions() {
   const selected = {};
   document.querySelectorAll('.permission-checkbox:checked').forEach(cb => {
     const page = cb.getAttribute('data-page');
-    const action = cb.getAttribute('data-action');         // 'view' | 'modify' | 'delete'
-    const resource = cb.getAttribute('data-permission');   // e.g., 'Users'
+    const action = cb.getAttribute('data-action');
+    const resource = cb.getAttribute('data-permission');
     if (!selected[page]) selected[page] = {};
     if (!selected[page][resource]) selected[page][resource] = [];
     selected[page][resource].push(action);

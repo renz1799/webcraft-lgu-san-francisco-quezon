@@ -3,16 +3,16 @@
 namespace App\Modules\GSO\Http\Requests\FundClusters;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use Illuminate\Validation\Rule;
 
 class UpdateFundClusterRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user
-            && ($user->hasAnyRole(['Administrator', 'admin']) || $user->can('modify Fund Clusters'));
+        return $this->allowsGsoPermission('fund_clusters.update');
     }
 
     public function rules(): array

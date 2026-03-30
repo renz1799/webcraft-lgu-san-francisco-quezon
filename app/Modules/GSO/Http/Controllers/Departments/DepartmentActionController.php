@@ -15,7 +15,7 @@ class DepartmentActionController extends Controller
     public function __construct(
         private readonly DepartmentServiceInterface $departments,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|modify Departments')
+        $this->middleware('permission:departments.create|departments.update|departments.archive|departments.restore')
             ->only(['store', 'update', 'destroy', 'restore']);
     }
 

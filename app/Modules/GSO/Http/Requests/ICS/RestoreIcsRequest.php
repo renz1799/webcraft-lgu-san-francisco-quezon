@@ -8,9 +8,12 @@ class RestoreIcsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('modify Allow Data Restoration')
-            || $this->user()?->can('restore ICS');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'ics.restore',
+            'audit_logs.restore_data',
+        ]);
     }
 
     public function rules(): array

@@ -2,6 +2,7 @@
 
 namespace App\Modules\GSO\Http\Requests\InventoryItems;
 
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use App\Modules\GSO\Models\AccountableOfficer;
 use App\Modules\GSO\Models\Item;
 use App\Modules\GSO\Support\InventoryConditions;
@@ -12,10 +13,13 @@ use Illuminate\Validation\Rule;
 
 class StoreInventoryItemRequest extends FormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('modify Inventory Items');
+        return $this->allowsGsoPermission(
+            $this->isMethod('POST') ? 'inventory_items.create' : 'inventory_items.update'
+        );
     }
 
     protected function prepareForValidation(): void

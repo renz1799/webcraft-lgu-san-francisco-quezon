@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Core\Builders\Contracts\User\UserPlatformAccessOverviewBuilderInterface;
 use App\Core\Models\Role;
 use App\Core\Models\User;
 use App\Core\Repositories\Contracts\UserRepositoryInterface;
@@ -42,7 +43,10 @@ class UserAccessServiceAuditDisplayTest extends TestCase
             ->with($user)
             ->andReturn(collect([new Role(['name' => 'Staff'])]));
 
-        $service = new UserAccessService($users, $audit, $context, $roleAssignments);
+        $overviewBuilder = Mockery::mock(UserPlatformAccessOverviewBuilderInterface::class);
+        $overviewBuilder->shouldIgnoreMissing();
+
+        $service = new UserAccessService($users, $audit, $context, $roleAssignments, $overviewBuilder);
 
         $method = new ReflectionMethod($service, 'buildPermissionsSyncedDisplay');
         $method->setAccessible(true);
@@ -50,10 +54,10 @@ class UserAccessServiceAuditDisplayTest extends TestCase
         $display = $method->invoke(
             $service,
             $user,
-            ['view Tasks'],
-            ['view Tasks', 'modify Tasks', 'delete Tasks'],
+            ['tasks.view'],
+            ['tasks.view', 'tasks.update', 'tasks.archive'],
             [
-                ['pKey' => 'manage tasks', 'rKey' => 'tasks', 'aKey' => 'edit'],
+                ['pKey' => 'manage tasks', 'rKey' => 'tasks', 'aKey' => 'update'],
             ],
             []
         );
@@ -62,13 +66,13 @@ class UserAccessServiceAuditDisplayTest extends TestCase
         $this->assertSame('Craig Scot Schamberger', $display['subject_label']);
         $this->assertSame('Direct Permissions', $display['sections'][0]['title']);
         $this->assertSame('Added', $display['sections'][0]['items'][0]['label']);
-        $this->assertSame(['Modify Tasks', 'Delete Tasks'], $display['sections'][0]['items'][0]['value']);
+        $this->assertSame(['Tasks / Update', 'Tasks / Archive'], $display['sections'][0]['items'][0]['value']);
         $this->assertSame('Removed', $display['sections'][0]['items'][1]['label']);
         $this->assertSame([], $display['sections'][0]['items'][1]['value']);
         $this->assertSame('Staff', $display['request_details']['Role']);
         $this->assertSame(3, $display['request_details']['Direct Permission Count']);
         $this->assertSame('Resolved selections', $display['system_notes'][0]['title']);
-        $this->assertSame(['Manage Tasks / Tasks / Edit'], $display['system_notes'][0]['items']);
+        $this->assertSame(['Manage Tasks / Tasks / Update'], $display['system_notes'][0]['items']);
     }
 
     public function test_role_and_status_display_payloads_are_human_friendly(): void
@@ -91,7 +95,10 @@ class UserAccessServiceAuditDisplayTest extends TestCase
             ->with($user)
             ->andReturn(collect([new Role(['name' => 'Administrator'])]));
 
-        $service = new UserAccessService($users, $audit, $context, $roleAssignments);
+        $overviewBuilder = Mockery::mock(UserPlatformAccessOverviewBuilderInterface::class);
+        $overviewBuilder->shouldIgnoreMissing();
+
+        $service = new UserAccessService($users, $audit, $context, $roleAssignments, $overviewBuilder);
 
         $roleMethod = new ReflectionMethod($service, 'buildRoleChangedDisplay');
         $roleMethod->setAccessible(true);

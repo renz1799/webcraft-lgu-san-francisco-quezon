@@ -2,6 +2,7 @@
 
 namespace App\Core\Http\Requests\Drive;
 
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Models\Module;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,10 +13,8 @@ class ConnectDriveRequest extends FormRequest
     {
         $u = $this->user();
 
-        return (bool) $u && (
-            $u->hasAnyRole(['Administrator', 'admin'])
-            || $u->can('modify Google Drive Connection')
-        );
+        return (bool) $u
+            && app(AdminContextAuthorizer::class)->allowsPermission($u, 'drive_connections.connect');
     }
 
     public function rules(): array

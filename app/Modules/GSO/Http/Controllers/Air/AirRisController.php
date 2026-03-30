@@ -12,7 +12,7 @@ class AirRisController extends Controller
     public function __construct(
         private readonly RisServiceInterface $risService,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|modify AIR|create RIS|modify RIS');
+        $this->middleware('permission:air.update|ris.create|ris.update|ris.generate_from_air');
     }
 
     public function generate(GenerateRisFromAirRequest $request, string $air): JsonResponse

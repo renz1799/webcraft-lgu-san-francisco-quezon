@@ -13,7 +13,7 @@ class AirPrintController extends Controller
     public function __construct(
         private readonly AirPrintServiceInterface $prints,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view AIR|modify AIR');
+        $this->middleware('permission:air.print|air.view|air.update');
     }
 
     public function preview(PrintAirRequest $request, string $air): View

@@ -2,6 +2,7 @@
 
 namespace App\Core\Http\Requests\Tasks;
 
+use App\Core\Support\AdminContextAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TaskTableDataRequest extends FormRequest
@@ -9,23 +10,19 @@ class TaskTableDataRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+        $authorizer = app(AdminContextAuthorizer::class);
 
         if (! $user) {
-            return false;
-        }
-
-        if (! $user->hasAnyRole(['Administrator', 'admin', 'Staff'])) {
             return false;
         }
 
         $scope = (string) ($this->input('scope', 'mine') ?? 'mine');
 
         if ($scope === 'all') {
-            return $user->hasAnyRole(['Administrator', 'admin'])
-                || $user->can('view All Tasks');
+            return $authorizer->allowsPermission($user, 'tasks.view_all');
         }
 
-        return true;
+        return $authorizer->allowsPermission($user, 'tasks.view');
     }
 
     public function rules(): array

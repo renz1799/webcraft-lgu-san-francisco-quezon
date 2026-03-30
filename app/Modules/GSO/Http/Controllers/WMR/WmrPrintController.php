@@ -14,7 +14,7 @@ class WmrPrintController extends Controller
     public function __construct(
         private readonly WmrPrintServiceInterface $printer,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view WMR|modify WMR');
+        $this->middleware('permission:wmr.print|wmr.view|wmr.create|wmr.update|wmr.submit|wmr.approve|wmr.finalize|wmr.reopen|wmr.archive|wmr.restore|wmr.manage_items');
     }
 
     public function print(PrintWmrRequest $request, Wmr $wmr): View

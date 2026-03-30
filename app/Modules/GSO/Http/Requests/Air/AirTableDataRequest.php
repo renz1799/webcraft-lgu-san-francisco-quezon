@@ -10,9 +10,22 @@ class AirTableDataRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view AIR')
-            || $this->user()?->can('modify AIR');
+        $user = $this->user();
+
+        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
+            'air.view',
+            'air.create',
+            'air.update',
+            'air.inspect',
+            'air.manage_items',
+            'air.manage_files',
+            'air.finalize_inspection',
+            'air.reopen_inspection',
+            'air.promote_inventory',
+            'air.archive',
+            'air.restore',
+            'air.print',
+        ]);
     }
 
     protected function prepareForValidation(): void

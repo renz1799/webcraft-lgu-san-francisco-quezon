@@ -3,15 +3,21 @@
 namespace App\Modules\GSO\Http\Requests\FundSources;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 
 class FundSourceTableDataRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user
-            && ($user->hasAnyRole(['Administrator', 'admin']) || $user->can('view Fund Sources'));
+        return $this->allowsAnyGsoPermission([
+            'fund_sources.view',
+            'fund_sources.create',
+            'fund_sources.update',
+            'fund_sources.archive',
+            'fund_sources.restore',
+        ]);
     }
 
     public function rules(): array

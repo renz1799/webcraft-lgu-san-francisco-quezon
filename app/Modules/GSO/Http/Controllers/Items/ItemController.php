@@ -14,7 +14,7 @@ class ItemController extends Controller
     public function __construct(
         private readonly ItemServiceInterface $items,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Items|modify Items')
+        $this->middleware('permission:items.view|items.create|items.update|items.archive|items.restore')
             ->only(['index', 'data']);
     }
 

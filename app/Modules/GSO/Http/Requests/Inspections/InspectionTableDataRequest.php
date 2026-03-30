@@ -2,17 +2,25 @@
 
 namespace App\Modules\GSO\Http\Requests\Inspections;
 
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 use App\Modules\GSO\Support\InspectionStatuses;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class InspectionTableDataRequest extends FormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['Administrator', 'admin'])
-            || $this->user()?->can('view Inspections')
-            || $this->user()?->can('modify Inspections');
+        return $this->allowsAnyGsoPermission([
+            'inspections.view',
+            'inspections.create',
+            'inspections.update',
+            'inspections.archive',
+            'inspections.restore',
+            'inspections.manage_photos',
+        ]);
     }
 
     protected function prepareForValidation(): void

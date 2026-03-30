@@ -9,6 +9,7 @@ use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
 use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\Access\RoleAssignments\ModuleRoleAssignmentServiceInterface;
 use App\Core\Services\Contracts\Auth\RegisterUserServiceInterface;
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -21,12 +22,13 @@ class RegisterUserService implements RegisterUserServiceInterface
         private readonly ModuleAccessServiceInterface $moduleAccess,
         private readonly ModuleDepartmentResolverInterface $moduleDepartments,
         private readonly ModuleRoleAssignmentServiceInterface $roleAssignments,
+        private readonly AdminContextAuthorizer $authorizer,
         private readonly CurrentContext $currentContext,
 ) {}
 
     public function register(User $actor, RegisterUserData $data): User
     {
-        if (! $actor->hasRole('Administrator')) {
+        if (! $this->authorizer->canRegisterUsers($actor)) {
             abort(403, 'Only Administrators may create users.');
         }
 

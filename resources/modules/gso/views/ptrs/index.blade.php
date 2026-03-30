@@ -9,9 +9,22 @@
 
 @section('content')
 @php
-  $canManagePtr = auth()->user()?->hasRole('Administrator')
-    || auth()->user()?->hasRole('Staff')
-    || auth()->user()?->can('modify PTR');
+  $gsoUser = auth()->user();
+  $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+  $canCreatePtr = $gsoAuthorizer->allowsPermission($gsoUser, 'ptr.create');
+  $canManagePtr = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+    'ptr.create',
+    'ptr.update',
+    'ptr.submit',
+    'ptr.finalize',
+    'ptr.reopen',
+    'ptr.manage_items',
+  ]);
+  $canDeletePtr = $gsoAuthorizer->allowsPermission($gsoUser, 'ptr.archive');
+  $canRestorePtr = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+    'ptr.restore',
+    'audit_logs.restore_data',
+  ]);
 @endphp
 
 <div class="block justify-between page-header md:flex">
@@ -139,7 +152,7 @@
 
         <button id="ptr-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
 
-        @if($canManagePtr)
+        @if($canCreatePtr)
           <button id="ptr-create" type="button" class="ti-btn ti-btn-primary">
             <i class="ri-add-line"></i> Create PTR
           </button>
@@ -171,12 +184,8 @@
       deleteUrlTemplate: @json(route('gso.ptrs.destroy', ['ptr' => '__PTR_ID__'])),
       restoreUrlTemplate: @json(route('gso.ptrs.restore', ['ptr' => '__PTR_ID__'])),
       canManage: @json($canManagePtr),
-      canDelete: @json(auth()->user()?->hasRole('Administrator') || auth()->user()?->can('modify PTR')),
-      canRestore: @json(
-        auth()->user()?->hasRole('Administrator')
-        || auth()->user()?->can('modify Allow Data Restoration')
-        || auth()->user()?->can('restore PTR')
-      ),
+      canDelete: @json($canDeletePtr),
+      canRestore: @json($canRestorePtr),
     };
   </script>
 @endpush

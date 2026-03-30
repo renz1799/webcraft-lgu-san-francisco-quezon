@@ -6,14 +6,26 @@
 
 @section('content')
 @php
+  $parViewer = auth()->user();
+  $parAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
   $status = strtolower((string) ($par->status ?? 'draft'));
   $isArchived = !empty($par->deleted_at);
   $isDraft = $status === 'draft';
   $itemCount = (int) ($par->items?->count() ?? 0);
-  $canModify = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-    || auth()->user()?->hasRole('Staff')
-    || auth()->user()?->can('modify PAR');
+  $canModify = $parAuthorizer->allowsAnyPermission($parViewer, [
+    'par.create',
+    'par.update',
+    'par.submit',
+    'par.finalize',
+    'par.reopen',
+    'par.manage_items',
+  ]);
   $canEditDraft = !$isArchived && $isDraft && $canModify;
+  $canSubmitPar = !$isArchived && $status === 'draft' && $parAuthorizer->allowsPermission($parViewer, 'par.submit');
+  $canReopenPar = !$isArchived && $status === 'submitted' && $parAuthorizer->allowsPermission($parViewer, 'par.reopen');
+  $canFinalizePar = !$isArchived && $status === 'submitted' && $parAuthorizer->allowsPermission($parViewer, 'par.finalize');
+  $canCancelPar = !$isArchived && !in_array($status, ['finalized', 'cancelled'], true) && $parAuthorizer->allowsPermission($parViewer, 'par.update');
+  $canPrintPar = !$isArchived && $status === 'finalized' && $parAuthorizer->allowsAnyPermission($parViewer, ['par.print', 'par.view', 'par.update']);
 
   $currentFundClusterCode = trim((string) optional(optional($par->fundSource)->fundCluster)->code);
 @endphp
@@ -41,7 +53,7 @@
         <button id="parSaveBtn" type="button" class="ti-btn ti-btn-primary">Save</button>
       @endif
 
-      @if(!$isArchived && $status === 'draft')
+      @if($canSubmitPar)
         <form
           id="par-submit-form"
           method="POST"
@@ -54,38 +66,42 @@
         </form>
       @endif
 
-      @if(!$isArchived && $status === 'submitted')
-        <form
-          id="par-reopen-form"
-          method="POST"
-          action="{{ route('gso.pars.reopen', $par->id) }}"
-          data-action="par-reopen-form"
-          data-endpoint="{{ route('gso.pars.reopen', $par->id) }}"
-        >
-          @csrf
-          <button id="parReopenBtn" type="submit" class="ti-btn ti-btn-light" data-action="par-reopen">Reopen PAR</button>
-        </form>
+      @if($canReopenPar || $canFinalizePar)
+        @if($canReopenPar)
+          <form
+            id="par-reopen-form"
+            method="POST"
+            action="{{ route('gso.pars.reopen', $par->id) }}"
+            data-action="par-reopen-form"
+            data-endpoint="{{ route('gso.pars.reopen', $par->id) }}"
+          >
+            @csrf
+            <button id="parReopenBtn" type="submit" class="ti-btn ti-btn-light" data-action="par-reopen">Reopen PAR</button>
+          </form>
+        @endif
 
-        <form
-          id="par-finalize-form"
-          method="POST"
-          action="{{ route('gso.pars.finalize', $par->id) }}"
-          data-action="par-finalize-form"
-          data-endpoint="{{ route('gso.pars.finalize', $par->id) }}"
-        >
-          @csrf
-          <button type="submit" class="ti-btn ti-btn-primary" data-action="par-finalize">Finalize</button>
-        </form>
+        @if($canFinalizePar)
+          <form
+            id="par-finalize-form"
+            method="POST"
+            action="{{ route('gso.pars.finalize', $par->id) }}"
+            data-action="par-finalize-form"
+            data-endpoint="{{ route('gso.pars.finalize', $par->id) }}"
+          >
+            @csrf
+            <button type="submit" class="ti-btn ti-btn-primary" data-action="par-finalize">Finalize</button>
+          </form>
+        @endif
       @endif
 
-      @if(!$isArchived && !in_array($status, ['finalized', 'cancelled'], true))
+      @if($canCancelPar)
         <form method="POST" action="{{ route('gso.pars.cancel', $par->id) }}">
           @csrf
           <button type="submit" class="ti-btn ti-btn-light">Cancel</button>
         </form>
       @endif
 
-      @if(!$isArchived && $status === 'finalized')
+      @if($canPrintPar)
         <a href="{{ route('gso.pars.print', $par->id) }}" target="_blank" rel="noopener" class="ti-btn ti-btn-light">Print PAR</a>
       @endif
 

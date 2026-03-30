@@ -3,15 +3,21 @@
 namespace App\Modules\GSO\Http\Requests\AccountableOfficers;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 
 class AccountableOfficerTableDataRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user
-            && ($user->hasAnyRole(['Administrator', 'admin']) || $user->can('view Accountable Officers'));
+        return $this->allowsAnyGsoPermission([
+            'accountable_persons.view',
+            'accountable_persons.create',
+            'accountable_persons.update',
+            'accountable_persons.archive',
+            'accountable_persons.restore',
+        ]);
     }
 
     public function rules(): array

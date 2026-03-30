@@ -13,7 +13,7 @@ class RrspReportController extends Controller
     public function __construct(
         private readonly RrspReportServiceInterface $rrspReports,
     ) {
-        $this->middleware('role_or_permission:Administrator|admin|view Inventory Items|modify Inventory Items');
+        $this->middleware('permission:reports.rrsp.view|inventory_items.view|inventory_items.update');
     }
 
     public function print(PrintRrspRequest $request): View

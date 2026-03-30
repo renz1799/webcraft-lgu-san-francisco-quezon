@@ -109,28 +109,28 @@ class RolePermissionModuleScopeTest extends TestCase
         Permission::query()->create([
             'id' => 'permission-1',
             'module_id' => 'module-1',
-            'name' => 'view AIR',
-            'page' => 'AIR',
+            'name' => 'air.view',
+            'page' => 'GSO / AIR',
             'guard_name' => 'web',
         ]);
         Permission::query()->create([
             'id' => 'permission-2',
             'module_id' => 'module-1',
-            'name' => 'modify AIR',
-            'page' => 'AIR',
+            'name' => 'air.update',
+            'page' => 'GSO / AIR',
             'guard_name' => 'web',
         ]);
         Permission::query()->create([
             'id' => 'permission-3',
             'module_id' => 'module-1',
-            'name' => 'view Unpaged',
+            'name' => 'tasks.view',
             'page' => null,
             'guard_name' => 'web',
         ]);
         Permission::query()->create([
             'id' => 'permission-4',
             'module_id' => 'module-2',
-            'name' => 'view Tasks',
+            'name' => 'tasks.view',
             'page' => 'Tasks',
             'guard_name' => 'web',
         ]);
@@ -148,13 +148,13 @@ class RolePermissionModuleScopeTest extends TestCase
         $result = $service->indexData();
 
         $this->assertCount(3, $result['permissions']);
-        $this->assertSame(['AIR', 'Uncategorized'], $result['permissionsByPage']->keys()->all());
+        $this->assertSame(['GSO / AIR', 'Uncategorized'], $result['permissionsByPage']->keys()->all());
         $this->assertSame(
-            ['modify AIR', 'view AIR'],
-            $result['permissionsByPage']->get('AIR')->pluck('name')->sort()->values()->all()
+            ['air.update', 'air.view'],
+            $result['permissionsByPage']->get('GSO / AIR')->pluck('name')->sort()->values()->all()
         );
         $this->assertSame(
-            ['view Unpaged'],
+            ['tasks.view'],
             $result['permissionsByPage']->get('Uncategorized')->pluck('name')->all()
         );
     }
@@ -203,7 +203,7 @@ class RolePermissionModuleScopeTest extends TestCase
         $permission = new Permission([
             'id' => 'permission-1',
             'module_id' => 'module-2',
-            'name' => 'view Tasks',
+            'name' => 'tasks.view',
             'page' => 'Manage Tasks',
             'guard_name' => 'web',
         ]);

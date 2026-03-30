@@ -3,15 +3,21 @@
 namespace App\Modules\GSO\Http\Requests\AssetCategories;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 
 class AssetCategoryTableDataRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user
-            && ($user->hasAnyRole(['Administrator', 'admin']) || $user->can('view Asset Categories'));
+        return $this->allowsAnyGsoPermission([
+            'asset_categories.view',
+            'asset_categories.create',
+            'asset_categories.update',
+            'asset_categories.archive',
+            'asset_categories.restore',
+        ]);
     }
 
     public function rules(): array

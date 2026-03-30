@@ -20,6 +20,16 @@
 @endsection
 
 @section('content')
+@php
+  $gsoUser = auth()->user();
+  $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+  $canCreatePar = $gsoAuthorizer->allowsPermission($gsoUser, 'par.create');
+  $canDeletePar = $gsoAuthorizer->allowsPermission($gsoUser, 'par.archive');
+  $canRestorePar = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+    'par.restore',
+    'audit_logs.restore_data',
+  ]);
+@endphp
 <div class="block justify-between page-header md:flex">
   <div>
     <h3 class="!text-defaulttextcolor dark:!text-defaulttextcolor/70 dark:text-white text-[1.125rem] font-semibold">
@@ -112,12 +122,14 @@
 
         <button id="par-clear" type="button" class="ti-btn ti-btn-light">Clear</button>
 
-        <form method="POST" action="{{ route('gso.pars.create-draft') }}" class="inline-block">
-          @csrf
-          <button type="submit" class="ti-btn ti-btn-primary">
-            <i class="ri-add-line"></i> Create PAR
-          </button>
-        </form>
+        @if($canCreatePar)
+          <form method="POST" action="{{ route('gso.pars.create-draft') }}" class="inline-block">
+            @csrf
+            <button type="submit" class="ti-btn ti-btn-primary">
+              <i class="ri-add-line"></i> Create PAR
+            </button>
+          </form>
+        @endif
       </div>
     </div>
   </div>
@@ -146,12 +158,8 @@
       deleteUrlTemplate: @json(route('gso.pars.destroy', ['par' => '__PAR_ID__'])),
       restoreUrlTemplate: @json(route('gso.pars.restore', ['par' => '__PAR_ID__'])),
 
-      canDelete: @json(auth()->user()?->hasAnyRole(['Administrator', 'admin']) || auth()->user()?->can('modify PAR')),
-      canRestore: @json(
-        auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Allow Data Restoration')
-        || auth()->user()?->can('restore PAR')
-      ),
+      canDelete: @json($canDeletePar),
+      canRestore: @json($canRestorePar),
     };
   </script>
 

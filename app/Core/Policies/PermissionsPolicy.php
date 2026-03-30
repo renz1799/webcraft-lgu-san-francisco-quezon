@@ -3,33 +3,28 @@
 namespace App\Core\Policies;
 
 use App\Core\Models\User;
-use Illuminate\Support\Facades\Log;
+use App\Core\Support\AdminContextAuthorizer;
 
 class PermissionsPolicy
 {
     public function view(User $user, User $targetUser)
     {
-        Log::info('Checking view permissions', [
-            'authenticated_user' => $user->id,
-            'target_user' => $targetUser->id,
-            'has_permission' => $user->hasPermissionTo('view-permissions'),
-            'is_admin' => $user->hasRole('Administrator'),
+        return $this->authorizer()->allowsAnyPermission($user, [
+            'permissions.view',
+            'access.permissions.manage',
         ]);
-    
-        // Allow admins to bypass
-        if ($user->hasRole('Administrator')) {
-            return true;
-        }
-    
-        // Default: Check "view-permissions"
-        return $user->hasPermissionTo('view-permissions');
     }
-    
-    
+
     public function modify(User $user, User $targetUser)
     {
-        // Allow only if the current user has permission to modify permissions
-        return $user->hasPermissionTo('modify-permissions');
+        return $this->authorizer()->allowsAnyPermission($user, [
+            'permissions.update',
+            'access.permissions.manage',
+        ]);
     }
-    
+
+    private function authorizer(): AdminContextAuthorizer
+    {
+        return app(AdminContextAuthorizer::class);
+    }
 }

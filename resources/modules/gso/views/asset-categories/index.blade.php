@@ -1,8 +1,14 @@
 @extends('layouts.master')
 
 @php
-    $canManageAssetCategories = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Asset Categories');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageAssetCategories = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'asset_categories.create',
+        'asset_categories.update',
+        'asset_categories.archive',
+        'asset_categories.restore',
+    ]);
 @endphp
 
 @section('styles')

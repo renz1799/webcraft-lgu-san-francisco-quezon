@@ -3,15 +3,21 @@
 namespace App\Modules\GSO\Http\Requests\FundClusters;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Modules\GSO\Http\Requests\Concerns\AuthorizesGsoPermissions;
 
 class FundClusterTableDataRequest extends BaseFormRequest
 {
+    use AuthorizesGsoPermissions;
+
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user
-            && ($user->hasAnyRole(['Administrator', 'admin']) || $user->can('view Fund Clusters'));
+        return $this->allowsAnyGsoPermission([
+            'fund_clusters.view',
+            'fund_clusters.create',
+            'fund_clusters.update',
+            'fund_clusters.archive',
+            'fund_clusters.restore',
+        ]);
     }
 
     public function rules(): array

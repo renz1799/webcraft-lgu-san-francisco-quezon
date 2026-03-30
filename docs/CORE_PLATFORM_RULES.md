@@ -715,8 +715,24 @@ Security must exist in:
 services
 policies
 access checks
+permission middleware
+FormRequest authorize()
 
 Never trust UI restrictions alone.
+
+Permission-first rule:
+
+permissions are the runtime access contract
+
+roles are permission bundles for assignment
+
+administrator coverage must come from seeded permission bundles, not scattered hardcoded bypass checks
+
+Normalized permission keys must use explicit `feature.action` naming.
+
+See:
+
+`docs/AUTHORIZATION_STANDARD.md`
 
 ---
 

@@ -2,6 +2,7 @@
 
 namespace App\Core\Http\Requests\Tasks;
 
+use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,7 +13,8 @@ class StoreTaskRequest extends FormRequest
     {
         $user = $this->user();
 
-        return (bool) $user && $user->hasAnyRole(['Administrator', 'admin']);
+        return (bool) $user
+            && app(AdminContextAuthorizer::class)->allowsPermission($user, 'tasks.create');
     }
 
     public function rules(): array

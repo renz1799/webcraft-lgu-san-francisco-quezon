@@ -33,7 +33,7 @@ class AccessDatatableRepositoryTest extends TestCase
         $permission = Permission::query()->create([
             'id' => 'permission-1',
             'module_id' => 'module-1',
-            'name' => 'view Tasks',
+            'name' => 'tasks.view',
             'page' => 'Tasks',
             'guard_name' => 'web',
         ]);
@@ -76,7 +76,7 @@ class AccessDatatableRepositoryTest extends TestCase
         $permission = Permission::query()->create([
             'id' => 'permission-1',
             'module_id' => 'module-1',
-            'name' => 'view Tasks',
+            'name' => 'tasks.view',
             'page' => 'Tasks',
             'guard_name' => 'web',
         ]);
@@ -84,7 +84,7 @@ class AccessDatatableRepositoryTest extends TestCase
         Permission::query()->create([
             'id' => 'permission-2',
             'module_id' => 'module-2',
-            'name' => 'view Inspections',
+            'name' => 'inspections.view',
             'page' => 'Inspections',
             'guard_name' => 'web',
         ]);

@@ -2,13 +2,17 @@
 
 namespace App\Core\Http\Middleware;
 
+use App\Core\Support\AdminContextAuthorizer;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class CheckAdminOrPermission
 {
+    public function __construct(
+        private readonly AdminContextAuthorizer $authorizer,
+    ) {}
+
     /**
      * Handle an incoming request.
      *
@@ -21,17 +25,7 @@ class CheckAdminOrPermission
     {
         $user = Auth::user();
 
-        // Check if the user has the 'admin' role or the specified permission
-        if (!$user || (!$user->hasRole('Administrator') && !$user->can($permission))) {
-            // Log the failure for debugging
-            Log::info('User failed middleware check', [
-                'user_id' => Auth::id(),
-                'roles' => $user ? $user->roles->pluck('name') : null,
-                'permissions' => $user ? $user->getAllPermissions()->pluck('name') : null,
-                'required_permission' => $permission,
-            ]);
-
-            // Abort with a 403 error
+        if (! $user || ! $this->authorizer->allowsPermission($user, (string) $permission)) {
             abort(403, 'Unauthorized');
         }
 

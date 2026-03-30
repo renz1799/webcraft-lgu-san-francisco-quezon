@@ -162,7 +162,7 @@
               id="addPermissionName"
               name="name"
               class="form-control w-full !rounded-md"
-              placeholder='e.g., "view Login Logs" or "modify User Lists"'
+              placeholder='e.g., "users.view" or "inventory_items.manage_files"'
               required
             >
           </div>
@@ -174,7 +174,7 @@
               id="addPermissionPage"
               name="page"
               class="form-control w-full !rounded-md"
-              placeholder='e.g., "Login Logs" or "Manage Users"'
+              placeholder='e.g., "Core / Users" or "GSO / Inventory"'
               required
             >
           </div>

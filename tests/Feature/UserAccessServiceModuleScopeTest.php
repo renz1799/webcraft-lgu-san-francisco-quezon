@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Core\Builders\Contracts\User\UserPlatformAccessOverviewBuilderInterface;
 use App\Core\Models\Permission;
 use App\Core\Models\Role;
 use App\Core\Models\User;
@@ -72,7 +73,7 @@ class UserAccessServiceModuleScopeTest extends TestCase
         $currentPermission = Permission::query()->create([
             'id' => 'permission-1',
             'module_id' => 'module-1',
-            'name' => 'view Tasks',
+            'name' => 'tasks.view',
             'page' => 'Tasks',
             'guard_name' => 'web',
         ]);
@@ -80,7 +81,7 @@ class UserAccessServiceModuleScopeTest extends TestCase
         Permission::query()->create([
             'id' => 'permission-2',
             'module_id' => 'module-2',
-            'name' => 'view Inspections',
+            'name' => 'inspections.view',
             'page' => 'Inspections',
             'guard_name' => 'web',
         ]);
@@ -107,11 +108,11 @@ class UserAccessServiceModuleScopeTest extends TestCase
         $context->shouldReceive('moduleId')->atLeast()->once()->andReturn('module-1');
         $roleAssignments->shouldReceive('roles')->atLeast()->once()->with($user)->andReturn(collect([$currentRole]));
 
-        $service = new UserAccessService($repo, $audit, $context, $roleAssignments);
+        $service = $this->makeService($repo, $audit, $context, $roleAssignments);
 
         $result = $service->getUserPermissions($user);
 
-        $this->assertSame(['view Tasks'], $result['userPermissions']);
+        $this->assertSame(['tasks.view'], $result['userPermissions']);
         $this->assertSame(['Staff'], $result['roles']);
         $this->assertSame('Staff', $result['currentRole']);
         $this->assertTrue($result['permissions']->has('Tasks'));
@@ -156,7 +157,7 @@ class UserAccessServiceModuleScopeTest extends TestCase
         $context->shouldReceive('moduleId')->atLeast()->once()->andReturn('module-1');
         $roleAssignments->shouldReceive('roles')->never();
 
-        $service = new UserAccessService($repo, $audit, $context, $roleAssignments);
+        $service = $this->makeService($repo, $audit, $context, $roleAssignments);
 
         $this->expectException(ModelNotFoundException::class);
 
@@ -195,7 +196,7 @@ class UserAccessServiceModuleScopeTest extends TestCase
         $viewPermission = Permission::query()->create([
             'id' => 'permission-view',
             'module_id' => 'module-1',
-            'name' => 'view Tasks',
+            'name' => 'tasks.view',
             'page' => 'Tasks',
             'guard_name' => 'web',
         ]);
@@ -203,7 +204,7 @@ class UserAccessServiceModuleScopeTest extends TestCase
         $editPermission = Permission::query()->create([
             'id' => 'permission-edit',
             'module_id' => 'module-1',
-            'name' => 'edit Tasks',
+            'name' => 'tasks.update',
             'page' => 'Tasks',
             'guard_name' => 'web',
         ]);
@@ -211,7 +212,7 @@ class UserAccessServiceModuleScopeTest extends TestCase
         $otherPermission = Permission::query()->create([
             'id' => 'permission-other',
             'module_id' => 'module-2',
-            'name' => 'view Inspections',
+            'name' => 'inspections.view',
             'page' => 'Inspections',
             'guard_name' => 'web',
         ]);
@@ -230,7 +231,7 @@ class UserAccessServiceModuleScopeTest extends TestCase
         $context->shouldReceive('moduleId')->atLeast()->once()->andReturn('module-1');
         $roleAssignments->shouldReceive('roles')->atLeast()->once()->with($user)->andReturn(collect([$staffRole]));
 
-        $service = new UserAccessService($repo, $audit, $context, $roleAssignments);
+        $service = $this->makeService($repo, $audit, $context, $roleAssignments);
 
         $result = $service->getEditData($user);
 
@@ -238,7 +239,7 @@ class UserAccessServiceModuleScopeTest extends TestCase
         $this->assertSame([
             'Staff' => [
                 'Tasks' => [
-                    'Tasks' => ['view', 'modify'],
+                    'tasks' => ['view', 'update'],
                 ],
             ],
         ], $result['roleDefaults']);
@@ -289,7 +290,7 @@ class UserAccessServiceModuleScopeTest extends TestCase
         });
         $roleAssignments->shouldReceive('roles')->atLeast()->once()->with($user)->andReturn(collect());
 
-        $service = new UserAccessService($repo, $audit, $context, $roleAssignments);
+        $service = $this->makeService($repo, $audit, $context, $roleAssignments);
 
         $service->updateModuleStatus($user, false);
 
@@ -349,7 +350,7 @@ class UserAccessServiceModuleScopeTest extends TestCase
         });
         $roleAssignments->shouldReceive('roles')->atLeast()->once()->with($user)->andReturn(collect());
 
-        $service = new UserAccessService($repo, $audit, $context, $roleAssignments);
+        $service = $this->makeService($repo, $audit, $context, $roleAssignments);
 
         $service->updateModuleStatus($user, true);
 
@@ -429,5 +430,17 @@ class UserAccessServiceModuleScopeTest extends TestCase
             $table->timestamp('granted_at')->nullable();
             $table->timestamp('revoked_at')->nullable();
         });
+    }
+
+    private function makeService(
+        UserRepositoryInterface $repo,
+        AuditLogServiceInterface $audit,
+        CurrentContext $context,
+        ModuleRoleAssignmentServiceInterface $roleAssignments,
+    ): UserAccessService {
+        $overviewBuilder = Mockery::mock(UserPlatformAccessOverviewBuilderInterface::class);
+        $overviewBuilder->shouldIgnoreMissing();
+
+        return new UserAccessService($repo, $audit, $context, $roleAssignments, $overviewBuilder);
     }
 }

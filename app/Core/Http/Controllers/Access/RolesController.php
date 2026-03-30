@@ -19,7 +19,7 @@ class RolesController extends Controller
 {
     public function __construct(private readonly RoleServiceInterface $roles)
     {
-        $this->middleware(['auth', 'role_or_permission:Administrator|admin']);
+        $this->middleware(['auth', 'permission:roles.view|roles.create|roles.update|roles.archive|roles.restore|access.roles.view|access.roles.manage']);
     }
 
     public function index(): View
@@ -94,4 +94,3 @@ class RolesController extends Controller
             ->with('success', 'Role deleted successfully.');
     }
 }
-

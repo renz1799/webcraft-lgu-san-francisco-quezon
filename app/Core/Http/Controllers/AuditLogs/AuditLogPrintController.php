@@ -11,7 +11,7 @@ class AuditLogPrintController extends Controller
     public function __construct(
         private readonly AuditLogPrintServiceInterface $printService,
     ) {
-        $this->middleware(['auth', 'role_or_permission:Administrator|admin|view Audit Logs']);
+        $this->middleware(['auth', 'permission:audit_logs.print']);
     }
 
     public function preview(AuditLogPrintRequest $request)

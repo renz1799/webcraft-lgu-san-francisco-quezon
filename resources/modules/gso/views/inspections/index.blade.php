@@ -1,8 +1,15 @@
 @extends('layouts.master')
 
 @php
-    $canManageInspections = auth()->user()?->hasAnyRole(['Administrator', 'admin'])
-        || auth()->user()?->can('modify Inspections');
+    $gsoUser = auth()->user();
+    $gsoAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $canManageInspections = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
+        'inspections.create',
+        'inspections.update',
+        'inspections.archive',
+        'inspections.restore',
+        'inspections.manage_photos',
+    ]);
 @endphp
 
 @section('styles')
