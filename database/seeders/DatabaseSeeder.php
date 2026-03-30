@@ -33,9 +33,9 @@ class DatabaseSeeder extends Seeder
         $this->call(AssetCategorySeeder::class);
         $this->call(FundClusterSeeder::class);
         $this->call(FundSourceSeeder::class);
-        $this->call(ItemSeeder::class);
-        $this->call(AirWithItemsSeeder::class);
-        $this->call(AirRisPrintTestSeeder::class);
+      $this->call(ItemSeeder::class);
+       $this->call(AirWithItemsSeeder::class);
+       $this->call(AirRisPrintTestSeeder::class);
     }
 }
 
