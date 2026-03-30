@@ -143,6 +143,7 @@ use App\Modules\GSO\Services\Contracts\PAR\ParPrintServiceInterface;
 use App\Modules\GSO\Services\Contracts\PAR\ParServiceInterface;
 use App\Modules\GSO\Services\Contracts\PAR\ParWorkflowServiceInterface;
 use App\Modules\GSO\Services\Contracts\PropertyCardsReportServiceInterface;
+use App\Modules\GSO\Services\Contracts\StickerDirectPdfServiceInterface;
 use App\Modules\GSO\Services\Contracts\StickerReportServiceInterface;
 use App\Modules\GSO\Services\Contracts\PTR\PtrItemServiceInterface;
 use App\Modules\GSO\Services\Contracts\PTR\PtrPrintServiceInterface;
@@ -201,6 +202,7 @@ use App\Modules\GSO\Services\Numbers\IcsNumberService;
 use App\Modules\GSO\Services\Numbers\ItrNumberService;
 use App\Modules\GSO\Services\Numbers\WmrNumberService;
 use App\Modules\GSO\Services\PropertyCardsReportService;
+use App\Modules\GSO\Services\StickerDirectPdfService;
 use App\Modules\GSO\Services\StickerReportService;
 use App\Modules\GSO\Services\RegspiReportService;
 use App\Modules\GSO\Services\RspiReportService;
@@ -238,7 +240,8 @@ class GsoServiceProvider extends ServiceProvider
             $taskCounts = null;
 
             if ($user) {
-                $moduleId = trim((string) app(CurrentContext::class)->moduleId());
+                $sidebarModule = $view->getData()['moduleSidebarModule'] ?? null;
+                $moduleId = trim((string) ($sidebarModule->id ?? app(CurrentContext::class)->moduleId()));
                 $cacheKey = 'task_counts:gso:' . $user->id . ':' . $moduleId;
 
                 $taskCounts = Cache::remember($cacheKey, now()->addSeconds(20), function () use ($user, $moduleId) {
@@ -432,6 +435,7 @@ class GsoServiceProvider extends ServiceProvider
 
             /* Reports */
             PropertyCardsReportServiceInterface::class => PropertyCardsReportService::class,
+            StickerDirectPdfServiceInterface::class => StickerDirectPdfService::class,
             StickerReportServiceInterface::class => StickerReportService::class,
             RegspiReportServiceInterface::class => RegspiReportService::class,
             RspiReportServiceInterface::class => RspiReportService::class,

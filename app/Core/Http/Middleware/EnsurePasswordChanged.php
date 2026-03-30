@@ -2,12 +2,18 @@
 
 namespace App\Core\Http\Middleware;
 
+use App\Core\Support\ProfileRouteResolver;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsurePasswordChanged
 {
+    public function __construct(
+        private readonly ProfileRouteResolver $profileRoutes,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
@@ -23,14 +29,21 @@ class EnsurePasswordChanged
         }
 
         // Allow these routes while forced to change password
-        $allowedRouteNames = [
+        $allowedRoutePatterns = [
             'profile.index',          // GET /profile
             'profile.updatePassword', // PUT /profile/password
+            '*.profile.index',
+            '*.profile.updatePassword',
             'logout',                 // POST /logout
         ];
 
         $routeName = $request->route()?->getName();
-        if ($routeName && in_array($routeName, $allowedRouteNames, true)) {
+        if (
+            $routeName
+            && collect($allowedRoutePatterns)->contains(
+                fn (string $pattern): bool => Str::is($pattern, $routeName)
+            )
+        ) {
             return $next($request);
         }
 
@@ -44,7 +57,6 @@ class EnsurePasswordChanged
             return $next($request);
         }
 
-        return redirect()->route('profile.index', ['tab' => 'account-settings']);
+        return redirect()->to($this->profileRoutes->accountSettingsUrl($user));
     }
 }
-

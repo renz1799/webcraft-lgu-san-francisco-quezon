@@ -20,6 +20,11 @@
     $remainingSelectedStickerCount = max(0, $selectedStickers->count() - $selectedStickerPreview->count());
     $copies = max(1, (int) ($controls['copies'] ?? 2));
     $showCutGuides = (bool) ($controls['show_cut_guides'] ?? true);
+    $pdfParams = array_filter([
+        'inventory_item_ids' => $selectedInventoryItemIds->all(),
+        'copies' => $copies,
+        'show_cut_guides' => $showCutGuides ? 1 : 0,
+    ], static fn ($value) => $value !== null && $value !== '' && $value !== []);
 
     $inventoryItemSelectConfig = [
         'placeholder' => $searchPlaceholder,
@@ -183,16 +188,16 @@
                 <div class="core-print-sidebar__section-title">Actions</div>
                 <div class="core-print-sidebar__actions">
                     <button type="submit" class="ti-btn btn-wave ti-btn-primary-full w-full">Update Preview</button>
-                    <button
-                        type="button"
-                        data-stickers-print-job-start="1"
-                        data-stickers-print-job-start-url="{{ route('gso.reports.stickers.jobs.store') }}"
+                    <a
+                        href="{{ route('gso.reports.stickers.print.pdf', $pdfParams) }}"
+                        data-stickers-print-pdf-download="1"
+                        data-stickers-print-pdf-base="{{ route('gso.reports.stickers.print.pdf') }}"
                         class="ti-btn btn-wave ti-btn-outline-primary label-ti-btn w-full text-center {{ $selectedStickerPreview->isEmpty() ? 'pointer-events-none opacity-50' : '' }}"
-                        @if($selectedStickerPreview->isEmpty()) disabled aria-disabled="true" @endif
+                        @if($selectedStickerPreview->isEmpty()) aria-disabled="true" @endif
                     >
                         <i class="ri-file-pdf-line label-ti-btn-icon me-2"></i>
                         Download PDF
-                    </button>
+                    </a>
                     @if ($selectedStickerPreview->count() === 1 && $sticker)
                         <a href="{{ $sticker['inventory_item_url'] }}" class="ti-btn btn-wave ti-btn-outline-primary w-full text-center">
                             Open Inventory Item

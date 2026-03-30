@@ -83,6 +83,7 @@ use App\Core\Http\Controllers\Access\UserAccessController;
 use App\Core\Http\Controllers\AuditLogs\AuditLogController;
 use App\Core\Http\Controllers\AuditLogs\AuditLogPrintController;
 use App\Core\Http\Controllers\AuditLogs\AuditRestoreController;
+use App\Core\Http\Controllers\Profile\UserProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::bind('ics', fn ($value) => $value instanceof Ics ? $value : Ics::withTrashed()->findOrFail($value));
@@ -114,6 +115,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->middleware('module:gso')
         ->group(function () {
             Route::get('/dashboard', GsoDashboardController::class)->name('dashboard');
+            Route::get('/profile', [UserProfileController::class, 'index'])->name('profile.index');
+            Route::put('/profile', [UserProfileController::class, 'update'])->name('profile.update');
+            Route::put('/profile/password', [UserProfileController::class, 'updatePassword'])->name('profile.updatePassword');
             Route::get('/tasks', [GsoTaskController::class, 'index'])->name('tasks.index');
             Route::get('/tasks/my', fn () => redirect()->route('gso.tasks.index', ['scope' => 'mine', 'archived' => 'active']))
                 ->name('tasks.my');

@@ -14,6 +14,7 @@ use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use App\Core\Services\Contracts\Notifications\NotificationServiceInterface;
 use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
 use App\Core\Support\CurrentContext;
+use App\Core\Support\ProfileRouteResolver;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,7 @@ class UserIdentityChangeRequestService implements UserIdentityChangeRequestServi
         private readonly NotificationServiceInterface $notifications,
         private readonly AuditLogServiceInterface $audit,
         private readonly CurrentContext $context,
+        private readonly ProfileRouteResolver $profileRoutes,
         private readonly UserIdentityChangeRequestAuditDisplayBuilderInterface $auditDisplayBuilder,
     ) {}
 
@@ -710,7 +712,7 @@ class UserIdentityChangeRequestService implements UserIdentityChangeRequestServi
     private function profileUrl(): ?string
     {
         return Route::has('profile.index')
-            ? route('profile.index')
+            ? $this->profileRoutes->indexUrl()
             : null;
     }
 

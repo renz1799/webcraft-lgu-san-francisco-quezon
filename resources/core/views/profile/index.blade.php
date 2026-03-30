@@ -13,6 +13,7 @@
 @section('content')
 @php($activeTab = request('tab', 'personal-info'))
 @php($isAccountTab = $activeTab === 'account-settings')
+@php($profileRoutes = $profileRoutes ?? app(\App\Core\Support\ProfileRouteResolver::class)->routesFor(auth()->user()))
 @php($latestIdentityStatus = $latestIdentityChangeRequest?->status ?? 'none')
 @php($identityStatusClasses = [
     'none' => 'bg-light text-defaulttextcolor',
@@ -48,17 +49,17 @@
                             <div class="box">
                             <div class="box-header sm:flex block !justify-start">
     <nav aria-label="Tabs" class="md:flex block !justify-start whitespace-nowrap" role="tablist">
-        <a href="{{ route('profile.index', ['tab' => 'personal-info']) }}" class="m-1 block w-full cursor-pointer py-2 px-3 flex-grow text-[0.75rem] font-medium rounded-md {{ $isAccountTab ? 'text-defaulttextcolor dark:text-defaulttextcolor/70 hover:text-primary' : 'bg-primary/10 text-primary' }}" id="Personal-item">
+        <a href="{{ $profileRoutes['personal_info'] }}" class="m-1 block w-full cursor-pointer py-2 px-3 flex-grow text-[0.75rem] font-medium rounded-md {{ $isAccountTab ? 'text-defaulttextcolor dark:text-defaulttextcolor/70 hover:text-primary' : 'bg-primary/10 text-primary' }}" id="Personal-item">
             Personal Information
         </a>
-        <a href="{{ route('profile.index', ['tab' => 'account-settings']) }}" class="m-1 block w-full cursor-pointer py-2 px-3 text-[0.75rem] flex-grow font-medium rounded-md {{ $isAccountTab ? 'bg-primary/10 text-primary' : 'text-defaulttextcolor dark:text-defaulttextcolor/70 hover:text-primary' }}" id="account-item">
+        <a href="{{ $profileRoutes['account_settings'] }}" class="m-1 block w-full cursor-pointer py-2 px-3 text-[0.75rem] flex-grow font-medium rounded-md {{ $isAccountTab ? 'bg-primary/10 text-primary' : 'text-defaulttextcolor dark:text-defaulttextcolor/70 hover:text-primary' }}" id="account-item">
             Account Settings
         </a>
     </nav>
 </div>
                                 <div class="box-body">
                                 <div class="tab-content">
-    <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ $profileRoutes['update'] }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
@@ -258,7 +259,7 @@
         <div class="box shadow-none mb-0 border dark:border-defaultborder/10">
             <div class="box-body">
                 <div class="sm:p-4 p-0">
-                    <form method="POST" action="{{ route('profile.updatePassword') }}" id="resetPasswordForm">
+                    <form method="POST" action="{{ $profileRoutes['update_password'] }}" id="resetPasswordForm">
                         @csrf
                         @method('PUT')
 

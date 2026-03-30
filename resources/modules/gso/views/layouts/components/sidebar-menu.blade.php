@@ -5,10 +5,19 @@
 @php
   $sidebarUser = auth()->user();
   $adminAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
-  $canManageGsoAccess = $adminAuthorizer->canManageCurrentContextAccess($sidebarUser);
-  $canViewGsoAuditLogs = $adminAuthorizer->canViewCurrentContextAuditLogs($sidebarUser);
+  $sidebarModuleId = trim((string) ($moduleSidebarModule->id ?? ''));
+  $allowsAnyInSidebarModule = static fn (array $permissions): bool => $sidebarModuleId !== ''
+      && $adminAuthorizer->allowsAnyPermissionInModule($sidebarUser, $permissions, $sidebarModuleId);
+  $allowsInSidebarModule = static fn (string $permission): bool => $sidebarModuleId !== ''
+      && $adminAuthorizer->allowsPermissionInModule($sidebarUser, $permission, $sidebarModuleId);
+  $canManageGsoAccess = $allowsAnyInSidebarModule([
+      'access.users.manage',
+      'access.roles.manage',
+      'access.permissions.manage',
+  ]);
+  $canViewGsoAuditLogs = $allowsInSidebarModule('audit_logs.view');
   $gsoSidebarTaskCounts = is_array($gsoTaskCounts ?? null) ? $gsoTaskCounts : [];
-  $canTasksMenu = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canTasksMenu = $allowsAnyInSidebarModule([
       'tasks.view',
       'tasks.view_all',
       'tasks.claim',
@@ -16,67 +25,67 @@
       'tasks.update_status',
       'tasks.reassign',
   ]);
-  $canAllTasks = $adminAuthorizer->allowsPermission($sidebarUser, 'tasks.view_all');
-  $canViewAir = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canAllTasks = $allowsInSidebarModule('tasks.view_all');
+  $canViewAir = $allowsAnyInSidebarModule([
       'air.view', 'air.create', 'air.update', 'air.inspect', 'air.manage_items',
       'air.manage_files', 'air.promote_inventory', 'air.finalize_inspection',
       'air.reopen_inspection', 'air.archive', 'air.restore', 'air.print',
   ]);
-  $canViewRis = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canViewRis = $allowsAnyInSidebarModule([
       'ris.view', 'ris.create', 'ris.update', 'ris.submit', 'ris.approve',
       'ris.reject', 'ris.reopen', 'ris.revert', 'ris.archive', 'ris.restore',
       'ris.manage_items', 'ris.generate_from_air', 'ris.print',
   ]);
-  $canViewPar = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canViewPar = $allowsAnyInSidebarModule([
       'par.view', 'par.create', 'par.update', 'par.submit', 'par.finalize',
       'par.reopen', 'par.archive', 'par.restore', 'par.manage_items', 'par.print',
   ]);
-  $canViewIcs = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canViewIcs = $allowsAnyInSidebarModule([
       'ics.view', 'ics.create', 'ics.update', 'ics.submit', 'ics.finalize',
       'ics.reopen', 'ics.archive', 'ics.restore', 'ics.manage_items', 'ics.print',
   ]);
-  $canViewPtr = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canViewPtr = $allowsAnyInSidebarModule([
       'ptr.view', 'ptr.create', 'ptr.update', 'ptr.submit', 'ptr.finalize',
       'ptr.reopen', 'ptr.archive', 'ptr.restore', 'ptr.manage_items', 'ptr.print',
   ]);
-  $canViewItr = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canViewItr = $allowsAnyInSidebarModule([
       'itr.view', 'itr.create', 'itr.update', 'itr.submit', 'itr.finalize',
       'itr.reopen', 'itr.archive', 'itr.restore', 'itr.manage_items', 'itr.print',
   ]);
-  $canViewWmr = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canViewWmr = $allowsAnyInSidebarModule([
       'wmr.view', 'wmr.create', 'wmr.update', 'wmr.submit', 'wmr.approve',
       'wmr.finalize', 'wmr.reopen', 'wmr.archive', 'wmr.restore', 'wmr.manage_items', 'wmr.print',
   ]);
   $showDocumentsMenu = $canViewAir || $canViewRis || $canViewPar || $canViewIcs || $canViewPtr || $canViewItr || $canViewWmr;
-  $canViewItems = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canViewItems = $allowsAnyInSidebarModule([
       'items.view', 'items.create', 'items.update', 'items.archive', 'items.restore',
   ]);
-  $canViewInventoryItems = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canViewInventoryItems = $allowsAnyInSidebarModule([
       'inventory_items.view', 'inventory_items.create', 'inventory_items.update',
       'inventory_items.archive', 'inventory_items.restore', 'inventory_items.manage_files',
       'inventory_items.manage_events', 'inventory_items.import_from_inspection',
   ]);
-  $canViewStocks = $adminAuthorizer->allowsAnyPermission($sidebarUser, [
+  $canViewStocks = $allowsAnyInSidebarModule([
       'stocks.view', 'stocks.adjust', 'stocks.view_ledger',
   ]);
   $showInventoryMenu = $canViewItems || $canViewInventoryItems || $canViewStocks;
-  $canViewAssetTypes = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['asset_types.view', 'asset_types.create', 'asset_types.update', 'asset_types.archive', 'asset_types.restore']);
-  $canViewAssetCategories = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['asset_categories.view', 'asset_categories.create', 'asset_categories.update', 'asset_categories.archive', 'asset_categories.restore']);
-  $canViewDepartments = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['departments.view', 'departments.create', 'departments.update', 'departments.archive', 'departments.restore']);
-  $canViewFundClusters = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['fund_clusters.view', 'fund_clusters.create', 'fund_clusters.update', 'fund_clusters.archive', 'fund_clusters.restore']);
-  $canViewFundSources = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['fund_sources.view', 'fund_sources.create', 'fund_sources.update', 'fund_sources.archive', 'fund_sources.restore']);
-  $canViewAccountablePersons = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['accountable_persons.view', 'accountable_persons.create', 'accountable_persons.update', 'accountable_persons.archive', 'accountable_persons.restore']);
+  $canViewAssetTypes = $allowsAnyInSidebarModule(['asset_types.view', 'asset_types.create', 'asset_types.update', 'asset_types.archive', 'asset_types.restore']);
+  $canViewAssetCategories = $allowsAnyInSidebarModule(['asset_categories.view', 'asset_categories.create', 'asset_categories.update', 'asset_categories.archive', 'asset_categories.restore']);
+  $canViewDepartments = $allowsAnyInSidebarModule(['departments.view', 'departments.create', 'departments.update', 'departments.archive', 'departments.restore']);
+  $canViewFundClusters = $allowsAnyInSidebarModule(['fund_clusters.view', 'fund_clusters.create', 'fund_clusters.update', 'fund_clusters.archive', 'fund_clusters.restore']);
+  $canViewFundSources = $allowsAnyInSidebarModule(['fund_sources.view', 'fund_sources.create', 'fund_sources.update', 'fund_sources.archive', 'fund_sources.restore']);
+  $canViewAccountablePersons = $allowsAnyInSidebarModule(['accountable_persons.view', 'accountable_persons.create', 'accountable_persons.update', 'accountable_persons.archive', 'accountable_persons.restore']);
   $showReferenceDataMenu = $canViewAssetTypes || $canViewAssetCategories || $canViewDepartments || $canViewFundClusters || $canViewFundSources || $canViewAccountablePersons;
-  $canViewRpci = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['reports.rpci.view', 'stocks.view', 'stocks.adjust']);
-  $canViewRpcppe = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['reports.rpcppe.view', 'inventory_items.view', 'inventory_items.update']);
-  $canViewRpcsp = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['reports.rpcsp.view', 'inventory_items.view', 'inventory_items.update']);
-  $canViewRegspi = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['reports.regspi.view', 'inventory_items.view', 'inventory_items.update']);
-  $canViewRspi = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['reports.rspi.view', 'inventory_items.view', 'inventory_items.update']);
-  $canViewRrsp = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['reports.rrsp.view', 'inventory_items.view', 'inventory_items.update']);
-  $canViewSsmi = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['reports.ssmi.view', 'stocks.view', 'stocks.adjust']);
-  $canViewPropertyCards = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['reports.property_cards.view', 'inventory_items.view', 'inventory_items.update']);
-  $canViewStickers = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['reports.stickers.view', 'inventory_items.view', 'inventory_items.update']);
-  $canViewStockCards = $adminAuthorizer->allowsAnyPermission($sidebarUser, ['reports.stock_cards.view', 'stocks.view', 'stocks.view_ledger']);
+  $canViewRpci = $allowsAnyInSidebarModule(['reports.rpci.view', 'stocks.view', 'stocks.adjust']);
+  $canViewRpcppe = $allowsAnyInSidebarModule(['reports.rpcppe.view', 'inventory_items.view', 'inventory_items.update']);
+  $canViewRpcsp = $allowsAnyInSidebarModule(['reports.rpcsp.view', 'inventory_items.view', 'inventory_items.update']);
+  $canViewRegspi = $allowsAnyInSidebarModule(['reports.regspi.view', 'inventory_items.view', 'inventory_items.update']);
+  $canViewRspi = $allowsAnyInSidebarModule(['reports.rspi.view', 'inventory_items.view', 'inventory_items.update']);
+  $canViewRrsp = $allowsAnyInSidebarModule(['reports.rrsp.view', 'inventory_items.view', 'inventory_items.update']);
+  $canViewSsmi = $allowsAnyInSidebarModule(['reports.ssmi.view', 'stocks.view', 'stocks.adjust']);
+  $canViewPropertyCards = $allowsAnyInSidebarModule(['reports.property_cards.view', 'inventory_items.view', 'inventory_items.update']);
+  $canViewStickers = $allowsAnyInSidebarModule(['reports.stickers.view', 'inventory_items.view', 'inventory_items.update']);
+  $canViewStockCards = $allowsAnyInSidebarModule(['reports.stock_cards.view', 'stocks.view', 'stocks.view_ledger']);
   $showReportsMenu = $canViewRpci || $canViewRpcppe || $canViewRpcsp || $canViewRegspi || $canViewRspi || $canViewRrsp || $canViewSsmi || $canViewPropertyCards || $canViewStickers || $canViewStockCards;
 @endphp
 

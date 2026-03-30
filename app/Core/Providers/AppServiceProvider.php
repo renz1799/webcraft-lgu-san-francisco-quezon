@@ -7,6 +7,7 @@ use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
 use App\Core\Services\UI\ThemeService;
 use App\Core\Support\AdminRouteResolver;
 use App\Core\Support\CurrentContext;
+use App\Core\Support\ProfileRouteResolver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Http\Request;
@@ -48,6 +49,13 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(CurrentContext::class),
             );
         });
+
+        $this->app->singleton(ProfileRouteResolver::class, function ($app) {
+            return new ProfileRouteResolver(
+                $app->make(CurrentContext::class),
+                $app->make(ModuleAccessServiceInterface::class),
+            );
+        });
     }
 
     public function boot(ThemeService $theme): void
@@ -77,7 +85,7 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($key);
         });
 
-        View::composer(['layouts.master', 'layouts.custom-master'], function ($view) use ($theme) {
+        View::composer(['layouts.master', 'layouts.custom-master', 'profile.index'], function ($view) use ($theme) {
             $user = Auth::user();
             $currentModule = app(CurrentContext::class)->module();
             $accessibleModules = collect();
@@ -92,11 +100,13 @@ class AppServiceProvider extends ServiceProvider
                 : ThemeService::defaults()['style'];
 
             $themeColors = $theme->getModuleColors();
+            $profileRoutes = $this->app->make(ProfileRouteResolver::class)->routesFor($user);
 
             $view->with('themeStyle', $themeStyle)
                 ->with('themeColors', $themeColors)
                 ->with('currentModule', $currentModule)
-                ->with('accessibleModules', $accessibleModules);
+                ->with('accessibleModules', $accessibleModules)
+                ->with('profileRoutes', $profileRoutes);
         });
 
         View::share('adminRoutes', $this->app->make(AdminRouteResolver::class));

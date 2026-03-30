@@ -10,6 +10,7 @@ use App\Core\Services\Contracts\Access\ModuleAccessServiceInterface;
 use App\Core\Services\Contracts\Auth\AuthServiceInterface;
 use App\Core\Services\Contracts\Auth\RegisterUserServiceInterface;
 use App\Core\Services\Contracts\Auth\RegistrationOptionsServiceInterface;
+use App\Core\Support\ProfileRouteResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
@@ -22,6 +23,7 @@ class AuthController extends Controller
         private readonly ModuleAccessServiceInterface $moduleAccess,
         private readonly RegisterUserServiceInterface $registerUser,
         private readonly RegistrationOptionsServiceInterface $registrationOptions,
+        private readonly ProfileRouteResolver $profileRoutes,
     ) {}
 
     public function showSignUpForm(): View
@@ -79,7 +81,7 @@ class AuthController extends Controller
 
         $user = auth()->user();
         if ($user && (bool) $user->must_change_password) {
-            return redirect()->route('profile.index', ['tab' => 'account-settings'])
+            return redirect()->to($this->profileRoutes->accountSettingsUrl($user))
                 ->with('force_password_change', true);
         }
 

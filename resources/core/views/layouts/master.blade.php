@@ -11,6 +11,8 @@
         <meta name="keywords" content="admin panel in laravel, tailwind, tailwind template admin, laravel admin panel, tailwind css dashboard, admin dashboard template, admin template, tailwind laravel, template dashboard, admin panel tailwind, tailwind css admin template, laravel tailwind template, laravel tailwind, tailwind admin dashboard">
         <meta name="force-password-change" content="{{ auth()->check() && auth()->user()->must_change_password ? '1' : '0' }}">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="profile-index-url" content="{{ $profileRoutes['index'] ?? route('profile.index') }}">
+        <meta name="profile-account-settings-url" content="{{ $profileRoutes['account_settings'] ?? route('profile.index', ['tab' => 'account-settings']) }}">
         @php
             $currentModuleCode = strtoupper(trim((string) ($currentModule->code ?? '')));
             $defaultBrandTitle = 'LGU San Francisco Information System';

@@ -8,6 +8,7 @@ use App\Modules\GSO\Http\Requests\Reports\PrintStickerReportRequest;
 use App\Modules\GSO\Jobs\GenerateStickerPdfJob;
 use App\Modules\GSO\Models\InventoryItem;
 use App\Modules\GSO\Models\StickerPrintJob;
+use App\Modules\GSO\Services\Contracts\StickerDirectPdfServiceInterface;
 use App\Modules\GSO\Services\Contracts\StickerReportServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,7 @@ class StickerReportController extends Controller
 {
     public function __construct(
         private readonly StickerReportServiceInterface $stickers,
+        private readonly StickerDirectPdfServiceInterface $directStickerPdf,
     ) {
         $this->middleware('permission:reports.stickers.view|inventory_items.view|inventory_items.update');
     }
@@ -46,7 +48,7 @@ class StickerReportController extends Controller
     public function downloadPdf(PrintStickerReportRequest $request): BinaryFileResponse
     {
         $validated = $request->validated();
-        $path = $this->stickers->generatePdf($validated);
+        $path = $this->directStickerPdf->generate($validated);
 
         return response()->download($path)->deleteFileAfterSend(true);
     }

@@ -8,16 +8,24 @@ function getForceFlag() {
   return meta && meta.getAttribute("content") === "1";
 }
 
+function getAccountSettingsUrl() {
+  const meta = document.querySelector('meta[name="profile-account-settings-url"]');
+  return meta?.getAttribute("content") || "/profile?tab=account-settings";
+}
+
 function isAccountSettingsPage() {
   const url = new URL(window.location.href);
+  const accountSettingsUrl = new URL(getAccountSettingsUrl(), window.location.origin);
+
   return (
-    (url.pathname === "/profile" || url.pathname === "/mail-settings") &&
-    url.searchParams.get("tab") === "account-settings"
+    url.pathname === accountSettingsUrl.pathname &&
+    url.searchParams.get("tab") ===
+      (accountSettingsUrl.searchParams.get("tab") || "account-settings")
   );
 }
 
 function redirectToAccountSettings() {
-  window.location.href = "/profile?tab=account-settings";
+  window.location.href = getAccountSettingsUrl();
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -58,4 +66,3 @@ document.addEventListener("DOMContentLoaded", async () => {
     localStorage.setItem(STORAGE_KEY, "1");
   }
 });
-

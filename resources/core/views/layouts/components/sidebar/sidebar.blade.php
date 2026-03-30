@@ -71,12 +71,14 @@
       $candidateView = strtolower((string) $moduleSidebarModule->code) . '::layouts.components.sidebar-menu';
       $moduleSidebarView = view()->exists($candidateView) ? $candidateView : null;
   }
+
+  $effectiveSidebarModule = $moduleSidebarModule ?? $currentModule;
 @endphp
 
 <ul class="main-menu">
   @include('layouts.components.sidebar.sections.module-switcher', [
       'moduleLinks' => $moduleLinks,
-      'currentModule' => $currentModule,
+      'currentModule' => $effectiveSidebarModule,
   ])
 
   @if($moduleSidebarView)
