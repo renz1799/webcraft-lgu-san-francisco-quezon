@@ -22,13 +22,6 @@ class ModuleSelectorController extends Controller
             return redirect()->to($this->moduleAccess->postLoginRedirectPathForUser($request->user()));
         }
 
-        if ($modules->count() === 1) {
-            $module = $modules->first();
-            $this->moduleAccess->rememberActiveModule($module);
-
-            return redirect()->to($this->moduleAccess->homePathForModule($module));
-        }
-
         return view('modules.index', [
             'modules' => $modules,
         ]);

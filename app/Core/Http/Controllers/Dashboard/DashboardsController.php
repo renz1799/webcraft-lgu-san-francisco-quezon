@@ -21,6 +21,6 @@ class DashboardsController extends Controller
             return redirect()->to($this->moduleAccess->postLoginRedirectPathForUser($user));
         }
 
-        return view('pages.dashboards.index');
+        return view('public.landing');
     }
 }

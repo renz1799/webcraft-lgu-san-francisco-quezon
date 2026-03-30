@@ -18,7 +18,12 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            $moduleCodes = ['GSO'];
+            $adminModuleCodes = ['CORE', 'GSO'];
+            $staffModuleCodes = ['GSO'];
+            $moduleCodes = array_values(array_unique([
+                ...$adminModuleCodes,
+                ...$staffModuleCodes,
+            ]));
 
             $modules = Module::query()
                 ->whereIn('code', $moduleCodes)
@@ -29,7 +34,7 @@ class UserSeeder extends Seeder
                 throw new \RuntimeException('UserSeeder: required modules not found. Run ModuleSeeder first.');
             }
 
-            $primaryModule = $modules->first();
+            $primaryModule = $modules->get('GSO') ?? $modules->first();
             $primaryDepartmentId = (string) ($primaryModule?->default_department_id ?? '');
 
             if ($primaryDepartmentId === '') {
@@ -92,7 +97,11 @@ class UserSeeder extends Seeder
                 ]
             );
 
-            $this->syncUserAcrossModules($admin, $rolesByModule, 'admin_role');
+            $this->syncUserAcrossModules(
+                $admin,
+                $rolesByModule->only($this->normalizeModuleCodes($adminModuleCodes)),
+                'admin_role'
+            );
 
             for ($index = 1; $index <= 5; $index++) {
                 $staff = User::query()->updateOrCreate(
@@ -119,7 +128,11 @@ class UserSeeder extends Seeder
                     ]
                 );
 
-                $this->syncUserAcrossModules($staff, $rolesByModule, 'staff_role');
+                $this->syncUserAcrossModules(
+                    $staff,
+                    $rolesByModule->only($this->normalizeModuleCodes($staffModuleCodes)),
+                    'staff_role'
+                );
             }
         });
     }
@@ -158,5 +171,17 @@ class UserSeeder extends Seeder
                 []
             );
         }
+    }
+
+    /**
+     * @param  array<int, string>  $moduleCodes
+     * @return array<int, string>
+     */
+    private function normalizeModuleCodes(array $moduleCodes): array
+    {
+        return array_values(array_unique(array_map(
+            static fn (string $moduleCode): string => strtoupper(trim($moduleCode)),
+            $moduleCodes
+        )));
     }
 }

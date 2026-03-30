@@ -5,6 +5,7 @@ return [
         'CORE' => [
             'code' => 'CORE',
             'name' => 'Core Platform',
+            'brand_title' => 'LGU San Francisco Information System',
             'description' => 'Platform-level pages and shared administrative tooling.',
             'type' => 'platform',
             'home_route' => 'access.users.index',
@@ -12,6 +13,7 @@ return [
         'GSO' => [
             'code' => 'GSO',
             'name' => 'General Services Office',
+            'brand_title' => 'GSO Information System',
             'description' => 'Legacy GSO workflows being integrated into the LGU platform.',
             'type' => 'business',
             'home_route' => 'gso.dashboard',

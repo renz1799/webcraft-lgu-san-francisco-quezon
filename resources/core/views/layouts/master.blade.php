@@ -11,8 +11,22 @@
         <meta name="keywords" content="admin panel in laravel, tailwind, tailwind template admin, laravel admin panel, tailwind css dashboard, admin dashboard template, admin template, tailwind laravel, template dashboard, admin panel tailwind, tailwind css admin template, laravel tailwind template, laravel tailwind, tailwind admin dashboard">
         <meta name="force-password-change" content="{{ auth()->check() && auth()->user()->must_change_password ? '1' : '0' }}">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        @php
+            $currentModuleCode = strtoupper(trim((string) ($currentModule->code ?? '')));
+            $defaultBrandTitle = 'LGU San Francisco Information System';
+            $moduleBrandTitle = trim((string) data_get(config('modules.registry'), $currentModuleCode . '.brand_title', ''));
+            $documentTitle = trim((string) ($title ?? ''));
+
+            if ($documentTitle === '') {
+                $documentTitle = trim((string) $__env->yieldContent('title'));
+            }
+
+            if ($documentTitle === '') {
+                $documentTitle = $moduleBrandTitle !== '' ? $moduleBrandTitle : $defaultBrandTitle;
+            }
+        @endphp
         <!-- TITLE -->
-		<title> Webcraft Core System </title>
+		<title>{{ $documentTitle }}</title>
 
         <!-- FAVICON -->
         <link rel="icon" href="{{asset('build/assets/images/brand-logos/favicon.ico')}}" type="image/x-icon">
