@@ -54,12 +54,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Normalize deployment defaults
-        run: |
-          echo "SSH_PORT=${SSH_PORT:-65002}" >> "$GITHUB_ENV"
-          echo "PHP_BIN=${PHP_BIN:-php}" >> "$GITHUB_ENV"
-          echo "COMPOSER_BIN=${COMPOSER_BIN:-composer}" >> "$GITHUB_ENV"
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -92,7 +86,7 @@ jobs:
           if [ -n "${KNOWN_HOSTS}" ]; then
             printf '%s\n' "${KNOWN_HOSTS}" >> ~/.ssh/known_hosts
           else
-            if ! ssh-keyscan -T 30 -p "${SSH_PORT}" -t ed25519,ecdsa,rsa "${SSH_HOST}" > ~/.ssh/known_hosts.tmp 2>/dev/null; then
+            if ! ssh-keyscan -T 30 -p "${SSH_PORT:-65002}" -t ed25519,ecdsa,rsa "${SSH_HOST}" > ~/.ssh/known_hosts.tmp 2>/dev/null; then
               echo "::error::Unable to fetch SSH host key from ${SSH_HOST}:${SSH_PORT}. Verify HOSTINGER_SSH_HOST, HOSTINGER_SSH_PORT, and that SSH is enabled in Hostinger."
               exit 1
             fi
@@ -106,8 +100,8 @@ jobs:
             rm -f ~/.ssh/known_hosts.tmp
           fi
 
-          if ! ssh-keygen -F "[${SSH_HOST}]:${SSH_PORT}" -f ~/.ssh/known_hosts >/dev/null; then
-            echo "::error::Known hosts does not contain a matching entry for [${SSH_HOST}]:${SSH_PORT}. Set HOSTINGER_KNOWN_HOSTS explicitly from ssh-keyscan if this persists."
+          if ! ssh-keygen -F "[${SSH_HOST}]:${SSH_PORT:-65002}" -f ~/.ssh/known_hosts >/dev/null; then
+            echo "::error::Known hosts does not contain a matching entry for [${SSH_HOST}]:${SSH_PORT:-65002}. Set HOSTINGER_KNOWN_HOSTS explicitly from ssh-keyscan if this persists."
             exit 1
           fi
 
@@ -115,7 +109,7 @@ jobs:
 
       - name: Ensure remote path exists
         run: |
-          ssh -T -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o LogLevel=ERROR -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" "mkdir -p '${REMOTE_PATH}'"
+          ssh -T -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o LogLevel=ERROR -p "${SSH_PORT:-65002}" "${SSH_USER}@${SSH_HOST}" "mkdir -p '${REMOTE_PATH}'"
 
       - name: Deploy application files
         run: |
@@ -128,12 +122,12 @@ jobs:
             --exclude='.env' \
             --exclude='.env.*' \
             --exclude='tests' \
-            -e "ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -p ${SSH_PORT}" \
+            -e "ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -p ${SSH_PORT:-65002}" \
             ./ "${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}/"
 
       - name: Run remote Laravel deployment steps
         run: |
-          ssh -T -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o LogLevel=ERROR -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" "bash -se" <<EOF
+          ssh -T -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o LogLevel=ERROR -p "${SSH_PORT:-65002}" "${SSH_USER}@${SSH_HOST}" "bash -se" <<EOF
           set -euo pipefail
           cd "${REMOTE_PATH}"
 
@@ -143,14 +137,14 @@ jobs:
           mkdir -p storage/framework/views
           mkdir -p storage/logs
 
-          ${COMPOSER_BIN} install --no-dev --prefer-dist --optimize-autoloader --no-interaction
-          ${PHP_BIN} artisan migrate --force
-          ${PHP_BIN} artisan optimize:clear
-          ${PHP_BIN} artisan config:cache
-          ${PHP_BIN} artisan route:cache
-          ${PHP_BIN} artisan view:cache
+          ${COMPOSER_BIN:-composer} install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+          ${PHP_BIN:-php} artisan migrate --force
+          ${PHP_BIN:-php} artisan optimize:clear
+          ${PHP_BIN:-php} artisan config:cache
+          ${PHP_BIN:-php} artisan route:cache
+          ${PHP_BIN:-php} artisan view:cache
 
           if [ ! -L public/storage ] && [ ! -e public/storage ]; then
-            ${PHP_BIN} artisan storage:link || true
+            ${PHP_BIN:-php} artisan storage:link || true
           fi
           EOF
