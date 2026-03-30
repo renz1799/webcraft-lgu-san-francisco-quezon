@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 class StickerReportController extends Controller
 {
@@ -45,12 +46,24 @@ class StickerReportController extends Controller
         ]);
     }
 
-    public function downloadPdf(PrintStickerReportRequest $request): BinaryFileResponse
+    public function downloadPdf(PrintStickerReportRequest $request): BinaryFileResponse|JsonResponse
     {
-        $validated = $request->validated();
-        $path = $this->directStickerPdf->generate($validated);
+        try {
+            $validated = $request->validated();
+            $path = $this->directStickerPdf->generate($validated);
 
-        return response()->download($path)->deleteFileAfterSend(true);
+            return response()->download($path)->deleteFileAfterSend(true);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'message' => $this->stickerPdfFailureMessage($exception),
+                ], 500);
+            }
+
+            throw $exception;
+        }
     }
 
     public function startPdfJob(PrintStickerReportRequest $request): JsonResponse
@@ -271,5 +284,26 @@ class StickerReportController extends Controller
             ->where('payload', 'like', '%GenerateStickerPdfJob%')
             ->where('created_at', '<=', $cutoff->timestamp)
             ->delete();
+    }
+
+    private function stickerPdfFailureMessage(Throwable $exception): string
+    {
+        $message = trim($exception->getMessage());
+
+        if ($message !== '') {
+            if (str_contains($message, 'Chrome/Chromium binary not found')) {
+                return 'The server PDF engine is unavailable. Configure CHROME_BIN or install Chrome/Chromium on the server.';
+            }
+
+            if (str_contains($message, 'No usable sandbox') || str_contains($message, '--no-sandbox')) {
+                return 'The server PDF engine needs shared-hosting safe Chrome flags. Retry after updating the PDF generator settings.';
+            }
+        }
+
+        if (config('app.debug') && $message !== '') {
+            return $message;
+        }
+
+        return 'The sticker sheet could not be prepared right now.';
     }
 }

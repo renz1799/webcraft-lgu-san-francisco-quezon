@@ -52,8 +52,11 @@ class ChromePdfGenerator implements PdfGeneratorInterface
             $process = new Process([
                 $this->resolveChromeBinary(),
                 '--user-data-dir=' . $profileDir,
-                '--headless=new',
+                '--headless',
                 '--disable-gpu',
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
                 '--disable-crash-reporter',
                 '--disable-crashpad-for-testing',
                 '--no-first-run',
@@ -62,6 +65,7 @@ class ChromePdfGenerator implements PdfGeneratorInterface
                 '--disable-component-update',
                 '--disable-sync',
                 '--metrics-recording-only',
+                '--allow-file-access-from-files',
                 '--no-pdf-header-footer',
                 '--print-to-pdf=' . $outputPath,
                 $this->toFileUrl($htmlPath),
@@ -103,6 +107,11 @@ class ChromePdfGenerator implements PdfGeneratorInterface
             '/usr/bin/google-chrome-stable',
             '/usr/bin/chromium',
             '/usr/bin/chromium-browser',
+            '/usr/local/bin/google-chrome',
+            '/usr/local/bin/google-chrome-stable',
+            '/usr/local/bin/chromium',
+            '/usr/local/bin/chromium-browser',
+            '/opt/google/chrome/chrome',
         ]);
 
         foreach ($candidates as $candidate) {

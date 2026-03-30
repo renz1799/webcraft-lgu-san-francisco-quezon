@@ -52,6 +52,31 @@ function parseFilename(response, fallback) {
   return fallback;
 }
 
+async function extractErrorMessage(response, fallback) {
+  const contentType = (response.headers.get("content-type") || "").toLowerCase();
+
+  try {
+    if (contentType.includes("application/json")) {
+      const payload = await response.json();
+      const message = typeof payload?.message === "string" ? payload.message.trim() : "";
+
+      if (message !== "") {
+        return message;
+      }
+    }
+
+    const text = (await response.text()).trim();
+
+    if (text !== "" && !text.startsWith("<!DOCTYPE html") && !text.startsWith("<html")) {
+      return text;
+    }
+  } catch {
+    // Fall back to the caller-provided message when the response body is not readable.
+  }
+
+  return fallback;
+}
+
 function clampPercent(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
@@ -280,7 +305,7 @@ async function downloadPdf(url, messages, fallbackFilename) {
     });
 
     if (!response.ok) {
-      throw new Error(messages.failed);
+      throw new Error(await extractErrorMessage(response, messages.failed));
     }
 
     estimatedProgress.stop();
@@ -372,7 +397,9 @@ async function refreshPreview(form, config) {
     });
 
     if (!response.ok) {
-      throw new Error(config.previewMessages.failed);
+      throw new Error(
+        await extractErrorMessage(response, config.previewMessages.failed),
+      );
     }
 
     const html = await response.text();
