@@ -49,10 +49,26 @@
   $hasCurrentModuleAccess = $currentModuleCode !== ''
       && $moduleLinks->contains(fn ($module) => strtoupper((string) $module->code) === $currentModuleCode);
   $moduleSidebarView = null;
+  $moduleSidebarModule = null;
   $showCoreAdminSection = ! $adminRoutes->isModuleScoped() && ! $isSharedCapabilityRoute;
 
   if ($hasCurrentModuleAccess && ! $isSharedCapabilityRoute) {
-      $candidateView = strtolower($currentModuleCode) . '::layouts.components.sidebar-menu';
+      $moduleSidebarModule = $moduleLinks->first(
+          fn ($module) => strtoupper((string) $module->code) === $currentModuleCode
+      );
+  } elseif (
+      ! $isSharedCapabilityRoute
+      && ! $adminRoutes->isModuleScoped()
+      && ! $showPlatformAdminSection
+      && $moduleLinks->isNotEmpty()
+  ) {
+      // On shared platform pages like profile, non-platform admins still need
+      // a usable module menu if they only operate inside business modules.
+      $moduleSidebarModule = $moduleLinks->first();
+  }
+
+  if ($moduleSidebarModule) {
+      $candidateView = strtolower((string) $moduleSidebarModule->code) . '::layouts.components.sidebar-menu';
       $moduleSidebarView = view()->exists($candidateView) ? $candidateView : null;
   }
 @endphp

@@ -43,15 +43,6 @@
       background: rgba(79, 70, 229, 0.08);
     }
 
-    .permission-grid-table th,
-    .permission-grid-table td {
-      vertical-align: middle;
-    }
-
-    .permission-grid-table tbody tr:last-child td {
-      border-bottom-width: 0;
-    }
-
     .user-access-avatar-fallback {
       width: 5.5rem;
       height: 5.5rem;
@@ -88,6 +79,141 @@
         padding-inline: 1rem;
       }
     }
+
+    .permission-concern-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .permission-concern-button {
+      border: 1px solid rgba(79, 70, 229, 0.14);
+      background: rgba(248, 250, 252, 0.86);
+      border-radius: 999px;
+      padding: 0.7rem 1rem;
+      min-width: 12rem;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+
+    .permission-concern-button:hover {
+      border-color: rgba(79, 70, 229, 0.28);
+      background: rgba(79, 70, 229, 0.06);
+    }
+
+    .permission-concern-button.is-active {
+      border-color: rgba(79, 70, 229, 0.26);
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.12), rgba(14, 165, 233, 0.08));
+      box-shadow: 0 10px 24px rgba(79, 70, 229, 0.1);
+    }
+
+    .dark .permission-concern-button {
+      border-color: rgba(129, 140, 248, 0.16);
+      background: rgba(15, 23, 42, 0.55);
+    }
+
+    .dark .permission-concern-button.is-active {
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.18), rgba(14, 165, 233, 0.12));
+    }
+
+    .permission-section-card {
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 1rem;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .dark .permission-section-card {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .permission-section-summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.1rem 1.15rem;
+      background: rgba(248, 250, 252, 0.75);
+    }
+
+    .permission-section-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .dark .permission-section-summary {
+      background: rgba(15, 23, 42, 0.42);
+    }
+
+    .permission-section-card[open] .permission-section-summary {
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .dark .permission-section-card[open] .permission-section-summary {
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .permission-section-chevron {
+      transition: transform 0.2s ease;
+    }
+
+    .permission-section-card[open] .permission-section-chevron {
+      transform: rotate(180deg);
+    }
+
+    .permission-section-body {
+      padding: 1rem 1.15rem 1.15rem;
+    }
+
+    .permission-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 1rem;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 0.95rem;
+      background: rgba(248, 250, 252, 0.55);
+    }
+
+    .permission-toggle-row + .permission-toggle-row {
+      margin-top: 0.75rem;
+    }
+
+    .dark .permission-toggle-row {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: rgba(2, 6, 23, 0.34);
+    }
+
+    .permission-toggle-copy {
+      min-width: 0;
+    }
+
+    .permission-toggle-title {
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+
+    .permission-toggle-meta {
+      font-size: 0.75rem;
+      color: rgb(100 116 139);
+      margin-bottom: 0;
+    }
+
+    .dark .permission-toggle-meta {
+      color: rgba(148, 163, 184, 0.92);
+    }
+
+    .permission-toggle-control {
+      flex-shrink: 0;
+    }
+
+    .permission-save-status {
+      display: none;
+      align-items: center;
+    }
   </style>
 @endsection
 
@@ -118,6 +244,141 @@
   $verificationLabel = $user->email_verified_at ? 'Verified' : 'Unverified';
   $joinedDate = $user->created_at?->format('M d, Y') ?? 'N/A';
   $updatedDate = $user->updated_at?->format('M d, Y') ?? 'N/A';
+  $permissionConcernCatalog = [
+      'documents' => [
+          'label' => 'Documents',
+          'description' => 'AIR, RIS, PAR, ICS, PTR, ITR, and WMR workflow permissions.',
+          'order' => 10,
+      ],
+      'inventory' => [
+          'label' => 'Inventory',
+          'description' => 'Items, inventory records, stocks, and inspection access.',
+          'order' => 20,
+      ],
+      'reference_data' => [
+          'label' => 'Reference Data',
+          'description' => 'Asset setup, departments, fund sources, and accountable personnel.',
+          'order' => 30,
+      ],
+      'reports' => [
+          'label' => 'Reports',
+          'description' => 'Printing workspaces and generated report access.',
+          'order' => 40,
+      ],
+      'tasks' => [
+          'label' => 'Tasks',
+          'description' => 'Module task queue visibility and task actions.',
+          'order' => 50,
+      ],
+      'access' => [
+          'label' => 'Access',
+          'description' => 'Users, roles, permissions, and audit-related administration.',
+          'order' => 60,
+      ],
+      'other' => [
+          'label' => 'Other',
+          'description' => 'Additional permissions that do not fit a main concern yet.',
+          'order' => 99,
+      ],
+  ];
+  $resolvePermissionConcern = function (string $page, array $section) use ($permissionConcernCatalog): string {
+      $title = \Illuminate\Support\Str::lower((string) ($section['title'] ?? $page));
+      $pageKey = \Illuminate\Support\Str::lower($page);
+      $haystack = $pageKey . ' ' . $title;
+
+      return match (true) {
+          str_contains($haystack, 'air'),
+          str_contains($haystack, 'ris'),
+          str_contains($haystack, 'par'),
+          str_contains($haystack, 'ics'),
+          str_contains($haystack, 'ptr'),
+          str_contains($haystack, 'itr'),
+          str_contains($haystack, 'wmr') => 'documents',
+          str_contains($haystack, 'inventory'),
+          str_contains($haystack, 'items'),
+          str_contains($haystack, 'stock'),
+          str_contains($haystack, 'inspection') => 'inventory',
+          str_contains($haystack, 'asset type'),
+          str_contains($haystack, 'asset categor'),
+          str_contains($haystack, 'department'),
+          str_contains($haystack, 'fund cluster'),
+          str_contains($haystack, 'fund source'),
+          str_contains($haystack, 'accountable') => 'reference_data',
+          str_contains($haystack, 'report'),
+          str_contains($haystack, 'rpci'),
+          str_contains($haystack, 'rpcppe'),
+          str_contains($haystack, 'rpcsp'),
+          str_contains($haystack, 'regspi'),
+          str_contains($haystack, 'rspi'),
+          str_contains($haystack, 'rrsp'),
+          str_contains($haystack, 'ssmi'),
+          str_contains($haystack, 'sticker'),
+          str_contains($haystack, 'property card'),
+          str_contains($haystack, 'stock card') => 'reports',
+          str_contains($haystack, 'task') => 'tasks',
+          str_contains($haystack, 'access'),
+          str_contains($haystack, 'user'),
+          str_contains($haystack, 'role'),
+          str_contains($haystack, 'permission'),
+          str_contains($haystack, 'audit') => 'access',
+          default => 'other',
+      };
+  };
+  $permissionConcernGroups = [];
+
+  foreach (($permissionSections ?? []) as $page => $section) {
+      $concernKey = $resolvePermissionConcern($page, $section);
+      $concernMeta = $permissionConcernCatalog[$concernKey] ?? $permissionConcernCatalog['other'];
+      $entries = [];
+      $assignedCount = 0;
+
+      foreach (($section['rows'] ?? []) as $row) {
+          foreach (($section['actions'] ?? []) as $action) {
+              if (! isset($row['actions'][$action['key']])) {
+                  continue;
+              }
+
+              $isChecked = isset($userPermissions[$page][$row['key']])
+                  && in_array($action['key'], $userPermissions[$page][$row['key']], true);
+
+              $entries[] = [
+                  'row_key' => $row['key'],
+                  'row_label' => $row['label'],
+                  'action_key' => $action['key'],
+                  'action_label' => $action['label'],
+                  'checked' => $isChecked,
+              ];
+
+              if ($isChecked) {
+                  $assignedCount++;
+              }
+          }
+      }
+
+      $permissionConcernGroups[$concernKey] ??= [
+          'key' => $concernKey,
+          'label' => $concernMeta['label'],
+          'description' => $concernMeta['description'],
+          'order' => $concernMeta['order'],
+          'entry_count' => 0,
+          'assigned_count' => 0,
+          'sections' => [],
+      ];
+
+      $permissionConcernGroups[$concernKey]['entry_count'] += count($entries);
+      $permissionConcernGroups[$concernKey]['assigned_count'] += $assignedCount;
+      $permissionConcernGroups[$concernKey]['sections'][] = [
+          'page' => $page,
+          'slug' => \Illuminate\Support\Str::slug($page),
+          'title' => $section['title'],
+          'entry_count' => count($entries),
+          'assigned_count' => $assignedCount,
+          'entries' => $entries,
+      ];
+  }
+
+  uasort($permissionConcernGroups, fn (array $left, array $right): int => $left['order'] <=> $right['order']);
+  $firstPermissionConcernKey = array_key_first($permissionConcernGroups);
 @endphp
 
 <div id="access-user-edit-page" class="container user-access-shell">
@@ -255,15 +516,19 @@
             <div class="box-title">{{ $moduleScopedAccess ? 'Module Access Workspace' : 'User Access Workspace' }}</div>
             <p class="text-[0.75rem] text-textmuted dark:text-textmuted/80 mb-0">
               {{ $moduleScopedAccess
-                  ? 'Manage this user\'s role assignment and direct permissions inside ' . $moduleContextName . '.'
-                  : 'Switch between permission management and account recovery tools without leaving the page.' }}
+                  ? 'Separate role assignment from direct permission tuning inside ' . $moduleContextName . '.'
+                  : 'Switch between role assignment, permission management, and account recovery without leaving the page.' }}
             </p>
           </div>
 
           <nav aria-label="Tabs" class="md:flex block !justify-start whitespace-nowrap" role="tablist">
             <a class="m-1 block w-full hs-tab-active:bg-primary/10 hs-tab-active:text-primary cursor-pointer text-defaulttextcolor dark:text-defaulttextcolor/70 py-2 px-3 flex-grow text-[0.75rem] font-medium rounded-md hover:text-primary active"
-               id="Roles-permission" data-hs-tab="#roles-permission" aria-controls="roles-permission">
-              Roles and Permissions
+               id="roles-item" data-hs-tab="#roles-panel" aria-controls="roles-panel">
+              Roles
+            </a>
+            <a class="m-1 block w-full hs-tab-active:bg-primary/10 hs-tab-active:text-primary cursor-pointer text-defaulttextcolor dark:text-defaulttextcolor/70 py-2 px-3 flex-grow text-[0.75rem] font-medium rounded-md hover:text-primary"
+               id="permissions-item" data-hs-tab="#permissions-panel" aria-controls="permissions-panel">
+              Permissions
             </a>
             @unless($moduleScopedAccess)
               <a class="m-1 block w-full hs-tab-active:bg-primary/10 hs-tab-active:text-primary cursor-pointer text-defaulttextcolor dark:text-defaulttextcolor/70 py-2 px-3 text-[0.75rem] flex-grow font-medium rounded-md hover:text-primary"
@@ -276,7 +541,7 @@
 
         <div class="box-body">
           <div class="tab-content">
-            <div class="tab-pane show active dark:border-defaultborder/10" id="roles-permission" aria-labelledby="Roles-permission">
+            <div class="tab-pane show active dark:border-defaultborder/10" id="roles-panel" aria-labelledby="roles-item">
               <div class="sm:p-2 p-0">
                 <div class="user-access-help mb-6">
                   <div class="sm:flex items-start justify-between gap-4">
@@ -284,13 +549,13 @@
                       <h6 class="font-semibold mb-1 text-[1rem]">Role Assignment</h6>
                       <p class="text-[0.8125rem] text-textmuted dark:text-textmuted/80 mb-0">
                         {{ $moduleScopedAccess
-                            ? 'Assign the baseline role for ' . $moduleContextName . ', then use the grid below to add or remove direct permissions for this module only.'
-                            : 'Select the user\'s baseline role first, then use the grid below to add or remove direct permissions.' }}
+                            ? 'Assign the baseline role for ' . $moduleContextName . '. Direct permission overrides are handled in the separate Permissions tab.'
+                            : 'Select the user\'s baseline role here. Direct permission overrides are handled in the separate Permissions tab.' }}
                       </p>
                     </div>
 
                     <div class="flex flex-wrap gap-2 mt-3 sm:mt-0">
-                      <span class="badge bg-primary/10 text-primary">{{ $managedPagesCount }} permission sections</span>
+                      <span class="badge bg-primary/10 text-primary">{{ $currentRoleName }}</span>
                       <span class="badge bg-secondary/10 text-secondary">{{ $directPermissionCount }} direct permissions</span>
                     </div>
                   </div>
@@ -323,55 +588,157 @@
                     </select>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  @foreach (($permissionSections ?? []) as $page => $section)
-                    <div class="box border border-defaultborder/10 dark:border-defaultborder/10 shadow-none mb-0 h-full">
-                      <div class="box-header !justify-between !items-start gap-3">
-                        <div>
-                          <h6 class="font-semibold text-[1rem] mb-1">{{ $section['title'] }}</h6>
+            <div class="tab-pane hidden dark:border-defaultborder/10" id="permissions-panel" aria-labelledby="permissions-item">
+              <div class="sm:p-2 p-0">
+                <div class="user-access-help mb-6">
+                  <div class="sm:flex items-start justify-between gap-4">
+                    <div>
+                      <h6 class="font-semibold mb-1 text-[1rem]">Direct Permissions</h6>
+                      <p class="text-[0.8125rem] text-textmuted dark:text-textmuted/80 mb-0">
+                        {{ $moduleScopedAccess
+                            ? 'Fine-tune direct permissions for ' . $moduleContextName . '. These overrides sit on top of the selected role.'
+                            : 'Fine-tune direct permissions here. These overrides sit on top of the selected role.' }}
+                      </p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 mt-3 sm:mt-0">
+                      <span class="badge bg-primary/10 text-primary">{{ $managedPagesCount }} permission sections</span>
+                      <span class="badge bg-secondary/10 text-secondary">{{ $directPermissionCount }} direct permissions</span>
+                    </div>
+                  </div>
+                </div>
+
+                @if (count($permissionConcernGroups) > 1)
+                  <div class="mb-6">
+                    <div class="permission-concern-nav" role="tablist" aria-label="Permission concern tabs">
+                      @foreach ($permissionConcernGroups as $concernKey => $concern)
+                        <button
+                          type="button"
+                          class="permission-concern-button {{ $concernKey === $firstPermissionConcernKey ? 'is-active' : '' }}"
+                          data-permission-concern-tab="{{ $concernKey }}"
+                          aria-pressed="{{ $concernKey === $firstPermissionConcernKey ? 'true' : 'false' }}"
+                        >
+                          <div class="flex items-center justify-between gap-3 mb-1">
+                            <span class="font-semibold text-[0.875rem]">{{ $concern['label'] }}</span>
+                            <span class="badge bg-primary/10 text-primary">{{ count($concern['sections']) }}</span>
+                          </div>
                           <p class="text-[0.75rem] text-textmuted dark:text-textmuted/80 mb-0">
-                            Toggle direct access for this module.
+                            {{ $concern['description'] }}
+                          </p>
+                        </button>
+                      @endforeach
+                    </div>
+                  </div>
+                @endif
+
+                <div class="space-y-6">
+                  @foreach ($permissionConcernGroups as $concernKey => $concern)
+                    <section
+                      data-permission-concern-panel="{{ $concernKey }}"
+                      style="{{ $concernKey === $firstPermissionConcernKey ? '' : 'display: none;' }}"
+                    >
+                      <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+                        <div>
+                          <h6 class="font-semibold text-[1rem] mb-1">{{ $concern['label'] }}</h6>
+                          <p class="text-[0.75rem] text-textmuted dark:text-textmuted/80 mb-0">
+                            {{ $concern['description'] }}
                           </p>
                         </div>
 
-                        <span id="feedback-{{ Str::slug($page) }}" class="badge bg-success/10 text-success hidden">Saved</span>
+                        <div class="flex flex-wrap gap-2">
+                          <span class="badge bg-primary/10 text-primary">{{ count($concern['sections']) }} sections</span>
+                          <span class="badge bg-secondary/10 text-secondary">{{ $concern['assigned_count'] }} direct permissions</span>
+                        </div>
                       </div>
 
-                      <div class="box-body !p-0">
-                        <table class="table whitespace-nowrap permission-grid-table mb-0 w-full">
-                          <thead class="bg-primary/10">
-                            <tr>
-                              <th class="p-3 text-start">Permission</th>
-                              @foreach ($section['actions'] as $action)
-                                <th class="p-3 text-center">{{ $action['label'] }}</th>
+                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                        @foreach ($concern['sections'] as $section)
+                          <details
+                            class="permission-section-card self-start"
+                            data-permission-accordion="{{ $concernKey }}"
+                            {{ $loop->first ? 'open' : '' }}
+                          >
+                            <summary class="permission-section-summary">
+                              <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-2 mb-1">
+                                  <h6 class="font-semibold text-[0.975rem] mb-0">{{ $section['title'] }}</h6>
+                                  <span class="badge bg-primary/10 text-primary">{{ $section['entry_count'] }} toggles</span>
+                                  <span class="badge bg-secondary/10 text-secondary">{{ $section['assigned_count'] }} enabled</span>
+                                </div>
+                                <p class="text-[0.75rem] text-textmuted dark:text-textmuted/80 mb-0">
+                                  One permission per row for easier review and assignment.
+                                </p>
+                              </div>
+
+                              <i class="ti ti-chevron-down text-textmuted permission-section-chevron"></i>
+                            </summary>
+
+                            <div class="permission-section-body">
+                              @foreach ($section['entries'] as $entry)
+                                <label class="permission-toggle-row">
+                                  <div class="permission-toggle-copy">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                      <p class="permission-toggle-title">{{ $entry['row_label'] }}</p>
+                                      <span class="badge bg-primary/10 text-primary">{{ $entry['action_label'] }}</span>
+                                    </div>
+                                    <p class="permission-toggle-meta mb-0">
+                                      {{ $section['title'] }} direct override
+                                    </p>
+                                  </div>
+
+                                  <input
+                                    type="checkbox"
+                                    class="permission-checkbox permission-toggle-control ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4"
+                                    data-page="{{ $section['page'] }}"
+                                    data-action="{{ $entry['action_key'] }}"
+                                    data-permission="{{ $entry['row_key'] }}"
+                                    aria-label="Toggle {{ $entry['action_label'] }} for {{ $entry['row_label'] }} on {{ $section['title'] }}"
+                                    {{ $entry['checked'] ? 'checked' : '' }}
+                                  >
+                                </label>
                               @endforeach
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @foreach ($section['rows'] as $row)
-                              <tr>
-                                <td class="p-3 text-start">{{ $row['label'] }}</td>
-                                @foreach ($section['actions'] as $action)
-                                  <td class="text-center">
-                                    @if (isset($row['actions'][$action['key']]))
-                                      <input type="checkbox"
-                                        class="permission-checkbox ti-switch shrink-0 !w-[35px] !h-[21px] before:size-4"
-                                        data-page="{{ $page }}"
-                                        data-action="{{ $action['key'] }}"
-                                        data-permission="{{ $row['key'] }}"
-                                        aria-label="Toggle permission access for {{ $row['label'] }} on {{ $section['title'] }}"
-                                        {{ isset($userPermissions[$page][$row['key']]) && in_array($action['key'], $userPermissions[$page][$row['key']], true) ? 'checked' : '' }}>
-                                    @endif
-                                  </td>
-                                @endforeach
-                              </tr>
-                            @endforeach
-                          </tbody>
-                        </table>
+                            </div>
+                          </details>
+                        @endforeach
                       </div>
-                    </div>
+                    </section>
                   @endforeach
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-dashed dark:border-defaultborder/10">
+                  <div class="sm:flex items-center justify-between gap-3">
+                    <p class="text-[0.75rem] text-textmuted dark:text-textmuted/80 mb-3 sm:mb-0">
+                      {{ $moduleScopedAccess
+                          ? 'Restore Defaults previews the selected role baseline for ' . $moduleContextName . ' before you save direct permission changes.'
+                          : 'Restore Defaults previews the selected role baseline before you save direct permission changes.' }}
+                    </p>
+
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <span
+                        id="permissionsSavedBadge"
+                        class="badge bg-success/10 text-success permission-save-status"
+                        style="display: none;"
+                      >
+                        Saved just now
+                      </span>
+
+                      <button type="button" class="ti-btn btn-wave ti-btn-light" id="restoreDefaultsButton">
+                        Restore Defaults
+                      </button>
+
+                      <button
+                        type="button"
+                        class="ti-btn btn-wave bg-primary text-white"
+                        id="savePermissionsButton"
+                        data-endpoint="{{ $adminRoutes->route('access.users.update', $user) }}"
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -448,31 +815,6 @@
               </div>
               </div>
             @endunless
-          </div>
-        </div>
-
-        <div class="box-footer">
-          <div class="sm:flex items-center justify-between gap-3">
-            <p class="text-[0.75rem] text-textmuted dark:text-textmuted/80 mb-3 sm:mb-0">
-              {{ $moduleScopedAccess
-                  ? 'Restore Defaults previews the selected role baseline for ' . $moduleContextName . ' before you save direct permission changes.'
-                  : 'Restore Defaults previews the selected role baseline before you save direct permission changes.' }}
-            </p>
-
-            <div class="flex flex-wrap justify-end gap-2">
-              <button type="button" class="ti-btn btn-wave ti-btn-light" id="restoreDefaultsButton">
-                Restore Defaults
-              </button>
-
-              <button
-                type="button"
-                class="ti-btn btn-wave bg-primary text-white"
-                id="savePermissionsButton"
-                data-endpoint="{{ $adminRoutes->route('access.users.update', $user) }}"
-              >
-                Save Changes
-              </button>
-            </div>
           </div>
         </div>
       </div>

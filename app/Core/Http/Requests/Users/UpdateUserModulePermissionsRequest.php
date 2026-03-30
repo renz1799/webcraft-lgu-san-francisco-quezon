@@ -5,6 +5,7 @@ namespace App\Core\Http\Requests\Users;
 use App\Http\Requests\BaseFormRequest;
 use App\Core\Support\AdminContextAuthorizer;
 use App\Core\Support\CurrentContext;
+use App\Core\Support\PermissionNaming;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 
@@ -33,7 +34,40 @@ class UpdateUserModulePermissionsRequest extends BaseFormRequest
 
         $alreadyNested = is_array($input) && !Arr::isList($input) &&
             collect($input)->every(fn ($v) => is_array($v));
-        if ($alreadyNested) return;
+        if ($alreadyNested) {
+            $normalized = [];
+
+            foreach ($input as $page => $resources) {
+                if (! is_array($resources)) {
+                    continue;
+                }
+
+                foreach ($resources as $resource => $actions) {
+                    if (! is_array($actions)) {
+                        continue;
+                    }
+
+                    foreach ($actions as $action) {
+                        $normalizedAction = PermissionNaming::normalizeAction((string) $action);
+
+                        if ($normalizedAction === '') {
+                            continue;
+                        }
+
+                        $normalized[$page][$resource][] = $normalizedAction;
+                    }
+                }
+            }
+
+            foreach ($normalized as $page => $resources) {
+                foreach ($resources as $resource => $actions) {
+                    $normalized[$page][$resource] = array_values(array_unique($actions));
+                }
+            }
+
+            $this->merge(['permissions' => $normalized]);
+            return;
+        }
 
         $nested = [];
 
@@ -89,7 +123,7 @@ class UpdateUserModulePermissionsRequest extends BaseFormRequest
             'permissions'       => ['sometimes', 'array', 'max:50'],
             'permissions.*'     => ['array', 'max:50'], // page
             'permissions.*.*'   => ['array', 'max:50'], // resource
-            'permissions.*.*.*' => ['string', 'in:view,create,update,edit,modify,delete,export'],
+            'permissions.*.*.*' => ['string', Rule::in(PermissionNaming::actionKeys())],
         ];
     }
 

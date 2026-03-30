@@ -156,6 +156,11 @@ class PermissionNaming
         return self::ACTION_LABELS[$actionKey] ?? self::humanizeToken($actionKey);
     }
 
+    public static function actionKeys(): array
+    {
+        return array_keys(self::ACTION_LABELS);
+    }
+
     public static function normalizeAction(string $action): string
     {
         return match (self::normalizeKey($action)) {

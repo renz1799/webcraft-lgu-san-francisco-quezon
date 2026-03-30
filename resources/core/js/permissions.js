@@ -53,6 +53,36 @@ function toastError(message) {
   });
 }
 
+function getPermissionsSavedBadge() {
+  return document.getElementById('permissionsSavedBadge');
+}
+
+function hidePermissionsSavedBadge() {
+  const badge = getPermissionsSavedBadge();
+  if (!badge) return;
+
+  if (badge._hideTimer) {
+    clearTimeout(badge._hideTimer);
+  }
+
+  badge.style.display = 'none';
+}
+
+function showPermissionsSavedBadge(message = 'Saved just now') {
+  const badge = getPermissionsSavedBadge();
+  if (!badge) return;
+
+  if (badge._hideTimer) {
+    clearTimeout(badge._hideTimer);
+  }
+
+  badge.textContent = message;
+  badge.style.display = 'inline-flex';
+  badge._hideTimer = setTimeout(() => {
+    badge.style.display = 'none';
+  }, 2500);
+}
+
 /* --- collect checked permissions into nested {page:{resource:[actions...]}} --- */
 function collectSelectedPermissions() {
   const selected = {};
@@ -116,6 +146,7 @@ function bindRestoreDefaults() {
     }
 
     setSelectedPermissions(defaults || {});
+    hidePermissionsSavedBadge();
     toastSuccess(`Restored ${roleName} defaults. Click Save Changes to apply.`);
   });
 }
@@ -215,14 +246,7 @@ function bindSavePermissions() {
       const data = await apiJson(endpoint, { method: 'PATCH', body: { permissions } });
       const count = Number(data.count ?? 0);
       toastSuccess(`Permissions updated${count ? ` (${count})` : ''}.`);
-      Object.keys(permissions).forEach(page => {
-        const span = document.getElementById(`feedback-${page.replace(/\s+/g, '-').toLowerCase()}`);
-        if (span) {
-          span.classList.remove('hidden');
-          span.textContent = 'Saved';
-          setTimeout(() => span.classList.add('hidden'), 2500);
-        }
-      });
+      showPermissionsSavedBadge();
     } catch (err) {
       toastError(err.message);
     } finally {
@@ -342,6 +366,71 @@ function bindResetPassword() {
   });
 }
 
+function bindPermissionEditorState() {
+  document.addEventListener('change', (event) => {
+    if (event.target.classList.contains('permission-checkbox')) {
+      hidePermissionsSavedBadge();
+    }
+  });
+}
+
+function bindPermissionConcernTabs() {
+  const buttons = Array.from(document.querySelectorAll('[data-permission-concern-tab]'));
+  const panels = Array.from(document.querySelectorAll('[data-permission-concern-panel]'));
+
+  if (!buttons.length || !panels.length) {
+    return;
+  }
+
+  const activate = (key) => {
+    buttons.forEach((button) => {
+      const isActive = button.getAttribute('data-permission-concern-tab') === key;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+
+    panels.forEach((panel) => {
+      const isActive = panel.getAttribute('data-permission-concern-panel') === key;
+      panel.style.display = isActive ? '' : 'none';
+
+      if (isActive && !panel.querySelector('details[open]')) {
+        const firstDetails = panel.querySelector('details[data-permission-accordion]');
+        if (firstDetails) {
+          firstDetails.open = true;
+        }
+      }
+    });
+  };
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => activate(button.getAttribute('data-permission-concern-tab')));
+  });
+
+  activate(buttons[0].getAttribute('data-permission-concern-tab'));
+}
+
+function bindPermissionAccordions() {
+  const sections = Array.from(document.querySelectorAll('details[data-permission-accordion]'));
+  if (!sections.length) {
+    return;
+  }
+
+  sections.forEach((section) => {
+    section.addEventListener('toggle', () => {
+      if (!section.open) {
+        return;
+      }
+
+      const group = section.getAttribute('data-permission-accordion');
+      sections.forEach((other) => {
+        if (other !== section && other.getAttribute('data-permission-accordion') === group) {
+          other.open = false;
+        }
+      });
+    });
+  });
+}
+
 
 onReady(() => {
   const hasPermissionsEditor = !!document.getElementById('savePermissionsButton');
@@ -360,4 +449,7 @@ onReady(() => {
   bindRestoreDefaults();
   bindRoleChange();
   bindResetPassword();
+  bindPermissionEditorState();
+  bindPermissionConcernTabs();
+  bindPermissionAccordions();
 });
