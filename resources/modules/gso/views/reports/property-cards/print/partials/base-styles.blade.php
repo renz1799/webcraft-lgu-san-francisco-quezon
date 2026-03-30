@@ -219,3 +219,5 @@
         font-size: 13px;
     }
 </style>
+
+@include('gso::reports.shared.partials.dompdf-compat-styles')

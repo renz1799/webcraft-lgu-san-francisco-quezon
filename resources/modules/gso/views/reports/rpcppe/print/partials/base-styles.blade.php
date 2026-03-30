@@ -31,3 +31,5 @@
     .gso-rpcppe-print-page-number { margin-left: auto; text-align: right; font-size: 10px; }
     .gso-rpcppe-print-footer-image-wrap { line-height: 0; width: 100%; }
 </style>
+
+@include('gso::reports.shared.partials.dompdf-compat-styles')
