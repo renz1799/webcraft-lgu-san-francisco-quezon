@@ -85,7 +85,7 @@
       flex-wrap: wrap;
       gap: 0.75rem;
     } 
-
+ 
     .permission-concern-button {
       border: 1px solid rgba(79, 70, 229, 0.14);
       background: rgba(248, 250, 252, 0.86);
