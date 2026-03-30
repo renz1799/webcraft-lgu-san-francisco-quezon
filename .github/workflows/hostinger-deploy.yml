@@ -109,7 +109,7 @@ jobs:
 
       - name: Ensure remote path exists
         run: |
-          ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" "mkdir -p '${REMOTE_PATH}'"
+          ssh -T -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o LogLevel=ERROR -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" "mkdir -p '${REMOTE_PATH}'"
 
       - name: Deploy application files
         run: |
@@ -127,8 +127,8 @@ jobs:
 
       - name: Run remote Laravel deployment steps
         run: |
-          ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" <<EOF
-          set -e
+          ssh -T -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o LogLevel=ERROR -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" "bash -se" <<EOF
+          set -euo pipefail
           cd "${REMOTE_PATH}"
 
           mkdir -p bootstrap/cache
