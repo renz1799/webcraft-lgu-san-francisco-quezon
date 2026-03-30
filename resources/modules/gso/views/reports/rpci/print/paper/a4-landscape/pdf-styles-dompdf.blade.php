@@ -3,9 +3,13 @@
 ])
 
 <style>
+    .gso-rpci-print-page {
+        position: relative !important;
+    }
+
     .gso-rpci-print-page__body {
         width: auto !important;
-        padding: 3mm 9mm 4mm !important;
+        padding: 3mm 9mm 28mm !important;
     }
 
     .gso-rpci-print-appendix {
@@ -42,5 +46,16 @@
 
     .gso-rpci-print-signature-line {
         width: 88% !important;
+    }
+
+    .gso-rpci-print-footer {
+        position: absolute !important;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+
+    .gso-rpci-print-footer-content {
+        padding: 2px 9mm 3px !important;
     }
 </style>
