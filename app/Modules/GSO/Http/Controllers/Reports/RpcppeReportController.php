@@ -76,6 +76,16 @@ class RpcppeReportController extends Controller
             paperOverrides: $request->paperOverrides(),
         );
 
+        if ($request->boolean('inline')) {
+            return response()->file(
+                $path,
+                [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+                ],
+            )->deleteFileAfterSend(true);
+        }
+
         return response()->download($path)->deleteFileAfterSend(true);
     }
 }

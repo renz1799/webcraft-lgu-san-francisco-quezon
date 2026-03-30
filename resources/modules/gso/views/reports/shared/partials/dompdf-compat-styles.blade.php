@@ -13,10 +13,27 @@
             width: 100% !important;
         }
 
-        [class$="-print-page__body"] {
+        [class$="-print-page__body"],
+        [class$="-print-body"] {
             display: block !important;
             overflow: hidden !important;
-            padding: 3mm 8mm 4mm !important;
+            width: auto !important;
+            padding: 3mm 8mm 28mm !important;
+        }
+
+        [class$="-print-appendix"] {
+            padding-right: 1mm !important;
+            font-size: 9px !important;
+        }
+
+        [class$="-print-title"] {
+            font-size: 14px !important;
+            margin-bottom: 3px !important;
+        }
+
+        [class$="-print-flow-note"],
+        [class$="-print-page-number"] {
+            font-size: 9px !important;
         }
 
         [class$="-print-sheet"] {
@@ -24,10 +41,17 @@
             width: 100% !important;
         }
 
+        [class$="-print-footer"] {
+            position: absolute !important;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
         [class$="-print-footer-content"] {
             display: block !important;
             min-height: 0 !important;
-            padding: 2px 8mm 4px !important;
+            padding: 2px 8mm 3px !important;
         }
 
         [class$="-print-flow-note--footer"] {
@@ -81,6 +105,7 @@
             min-height: 16px !important;
             line-height: 16px !important;
             margin: 6px auto 2px !important;
+            width: 88% !important;
         }
 
         [class$="-print-signature-caption"],

@@ -280,3 +280,5 @@
         width: 100%;
     }
 </style>
+
+@include('gso::reports.shared.partials.dompdf-compat-styles')

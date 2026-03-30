@@ -40,6 +40,13 @@ class ItrPrintController extends Controller
             paperOverrides: $request->paperOverrides(),
         );
 
+        if ($request->boolean('inline')) {
+            return response()->file(
+                file: $path,
+                headers: ['Content-Type' => 'application/pdf'],
+            )->deleteFileAfterSend(true);
+        }
+
         return response()->download(
             file: $path,
             name: basename($path),
