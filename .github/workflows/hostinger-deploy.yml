@@ -1,0 +1,145 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: hostinger-deploy-main
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  REMOTE_PATH: ${{ vars.HOSTINGER_DEPLOY_PATH }}
+  SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+  SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+  SSH_PORT: ${{ vars.HOSTINGER_SSH_PORT != '' && vars.HOSTINGER_SSH_PORT || '65002' }}
+  KNOWN_HOSTS: ${{ vars.HOSTINGER_KNOWN_HOSTS }}
+  PHP_BIN: ${{ vars.HOSTINGER_PHP_BIN != '' && vars.HOSTINGER_PHP_BIN || 'php' }}
+  COMPOSER_BIN: ${{ vars.HOSTINGER_COMPOSER_BIN != '' && vars.HOSTINGER_COMPOSER_BIN || 'composer' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate deployment configuration
+        run: |
+          if [ -z "${SSH_HOST}" ]; then
+            echo "::error::Missing secret HOSTINGER_SSH_HOST."
+            exit 1
+          fi
+
+          if [ -z "${SSH_USER}" ]; then
+            echo "::error::Missing secret HOSTINGER_SSH_USER."
+            exit 1
+          fi
+
+          if [ -z "${REMOTE_PATH}" ]; then
+            echo "::error::Missing repository variable HOSTINGER_DEPLOY_PATH."
+            exit 1
+          fi
+
+          case "${REMOTE_PATH}" in
+            */public|*/public/)
+              echo "::error::HOSTINGER_DEPLOY_PATH must point to the Laravel app root, not the public directory. Example: /home/u991999878/domains/webcraft.ph/public_html/lgusanfrancisco"
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, bcmath, ctype, fileinfo, json, openssl, pdo, tokenizer, xml
+          coverage: none
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build Vite assets
+        run: npm run build
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+
+      - name: Add Hostinger host key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          if [ -n "${KNOWN_HOSTS}" ]; then
+            printf '%s\n' "${KNOWN_HOSTS}" >> ~/.ssh/known_hosts
+          else
+            if ! ssh-keyscan -T 30 -p "${SSH_PORT}" -H "${SSH_HOST}" > ~/.ssh/known_hosts.tmp 2>/dev/null; then
+              echo "::error::Unable to fetch SSH host key from ${SSH_HOST}:${SSH_PORT}. Verify HOSTINGER_SSH_HOST, HOSTINGER_SSH_PORT, and that SSH is enabled in Hostinger."
+              exit 1
+            fi
+
+            if [ ! -s ~/.ssh/known_hosts.tmp ]; then
+              echo "::error::ssh-keyscan returned no host keys for ${SSH_HOST}:${SSH_PORT}. Verify HOSTINGER_SSH_HOST is the SSH host or IP, not just the website domain."
+              exit 1
+            fi
+
+            cat ~/.ssh/known_hosts.tmp >> ~/.ssh/known_hosts
+            rm -f ~/.ssh/known_hosts.tmp
+          fi
+
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Ensure remote path exists
+        run: |
+          ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" "mkdir -p '${REMOTE_PATH}'"
+
+      - name: Deploy application files
+        run: |
+          rsync -az --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='vendor' \
+            --exclude='storage' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='tests' \
+            -e "ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -p ${SSH_PORT}" \
+            ./ "${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}/"
+
+      - name: Run remote Laravel deployment steps
+        run: |
+          ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" <<EOF
+          set -e
+          cd "${REMOTE_PATH}"
+
+          mkdir -p bootstrap/cache
+          mkdir -p storage/framework/cache
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/views
+          mkdir -p storage/logs
+
+          ${COMPOSER_BIN} install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+          ${PHP_BIN} artisan migrate --force
+          ${PHP_BIN} artisan optimize:clear
+          ${PHP_BIN} artisan config:cache
+          ${PHP_BIN} artisan route:cache
+          ${PHP_BIN} artisan view:cache
+
+          if [ ! -L public/storage ] && [ ! -e public/storage ]; then
+            ${PHP_BIN} artisan storage:link || true
+          fi
+          EOF
