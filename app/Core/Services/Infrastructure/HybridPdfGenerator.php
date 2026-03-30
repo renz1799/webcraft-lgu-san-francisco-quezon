@@ -33,6 +33,21 @@ class HybridPdfGenerator implements PdfGeneratorInterface
         );
     }
 
+    public function resolveDriver(): string
+    {
+        $driver = $this->configuredDriver();
+
+        if ($driver === 'dompdf') {
+            return 'dompdf';
+        }
+
+        if ($driver === 'chrome') {
+            return 'chrome';
+        }
+
+        return $this->chrome->isAvailable() ? 'chrome' : 'dompdf';
+    }
+
     private function configuredDriver(): string
     {
         return match (config('pdf.driver', 'auto')) {
@@ -46,7 +61,7 @@ class HybridPdfGenerator implements PdfGeneratorInterface
      */
     private function runWithConfiguredDriver(callable $callback): string
     {
-        $driver = $this->configuredDriver();
+        $driver = $this->resolveDriver();
 
         if ($driver === 'dompdf') {
             return $callback($this->dompdf);

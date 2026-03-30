@@ -1,12 +1,23 @@
 @extends('layouts.master')
 
+@php
+    $resolvedPreviewEngine = app(\App\Core\Services\Infrastructure\HybridPdfGenerator::class)->resolveDriver();
+    $previewStylesView = $resolvedPreviewEngine === 'dompdf'
+        ? ($paperProfile['dompdf_pdf_styles_view'] ?? $paperProfile['pdf_styles_view'] ?? $paperProfile['styles_view'])
+        : $paperProfile['styles_view'];
+    $previewPagesView = $resolvedPreviewEngine === 'dompdf'
+        ? ($paperProfile['dompdf_pdf_pages_view'] ?? $paperProfile['pages_view'])
+        : $paperProfile['pages_view'];
+@endphp
+
 @section('styles')
     <meta data-print-workspace-styles-start="1">
     <x-print.workspace-styles />
     <x-print.workspace-panel-styles />
 
-    @include($paperProfile['styles_view'], [
+    @include($previewStylesView, [
         'paperProfile' => $paperProfile,
+        'pdfEngine' => $resolvedPreviewEngine,
     ])
     <meta data-print-workspace-styles-end="1">
 @endsection
@@ -38,11 +49,12 @@
                 ])
             </x-slot:sidebar>
 
-            @include($paperProfile['pages_view'], [
+            @include($previewPagesView, [
                 'report' => $report,
                 'paperProfile' => $paperProfile,
                 'headerImage' => !empty($paperProfile['header_image_web']) ? asset($paperProfile['header_image_web']) : null,
                 'footerImage' => !empty($paperProfile['footer_image_web']) ? asset($paperProfile['footer_image_web']) : null,
+                'pdfEngine' => $resolvedPreviewEngine,
             ])
         </x-print.workspace>
     </div>
