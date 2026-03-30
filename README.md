@@ -122,11 +122,7 @@ Applications should:
 If new generic behavior is needed:
 
 Add it to Core first.
-Then sync to applications.
-
-See:
-
-docs/CORE_SYNC_OPERATIONS.md
+Then propagate it into applications through the normal repository workflow.
 
 ---
 
@@ -174,12 +170,12 @@ Defines:
 
 - docs/AUDIT_LOGGING.md
 - docs/PRINT_WORKSPACE_STANDARD.md
-- docs/CORE_SYNC_OPERATIONS.md
+- docs/HOSTINGER_DEPLOY.md
 
 Defines:
 - audit policies
 - print workspace standards
-- Core synchronization workflow
+- Hostinger deployment workflow
 
 Together these documents form the Core engineering handbook.
 

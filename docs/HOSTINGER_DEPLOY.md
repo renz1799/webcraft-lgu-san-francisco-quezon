@@ -31,6 +31,8 @@ Set these in this repository's GitHub settings:
 - `HOSTINGER_KNOWN_HOSTS`
   - Optional
   - If blank, the workflow uses `ssh-keyscan`
+  - If Hostinger still fails host verification, set this explicitly using:
+    - `ssh-keyscan -p 65002 -t ed25519,ecdsa,rsa YOUR_SSH_HOST`
 - `HOSTINGER_PHP_BIN`
   - Optional
   - Defaults to `php`
@@ -66,3 +68,18 @@ But the workflow must deploy to the Laravel project root:
 - `/home/u991999878/domains/webcraft.ph/public_html/lgusanfrancisco`
 
 The workflow validates this and fails if `HOSTINGER_DEPLOY_PATH` ends with `/public`.
+
+## If Host Key Verification Fails
+
+This is separate from your private SSH key.
+
+- `HOSTINGER_SSH_PRIVATE_KEY` is your login key.
+- `HOSTINGER_KNOWN_HOSTS` is the server identity pin.
+
+If GitHub Actions fails with `Host key verification failed`, generate the host entry locally and paste it into `HOSTINGER_KNOWN_HOSTS`:
+
+```bash
+ssh-keyscan -p 65002 -t ed25519,ecdsa,rsa YOUR_SSH_HOST
+```
+
+Use the exact SSH host from Hostinger, then copy the full output into the repository variable `HOSTINGER_KNOWN_HOSTS`.
