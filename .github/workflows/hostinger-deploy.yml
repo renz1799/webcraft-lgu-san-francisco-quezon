@@ -17,10 +17,10 @@ env:
   REMOTE_PATH: ${{ vars.HOSTINGER_DEPLOY_PATH }}
   SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
   SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-  SSH_PORT: ${{ vars.HOSTINGER_SSH_PORT != '' && vars.HOSTINGER_SSH_PORT || '65002' }}
+  SSH_PORT: ${{ vars.HOSTINGER_SSH_PORT }}
   KNOWN_HOSTS: ${{ vars.HOSTINGER_KNOWN_HOSTS }}
-  PHP_BIN: ${{ vars.HOSTINGER_PHP_BIN != '' && vars.HOSTINGER_PHP_BIN || 'php' }}
-  COMPOSER_BIN: ${{ vars.HOSTINGER_COMPOSER_BIN != '' && vars.HOSTINGER_COMPOSER_BIN || 'composer' }}
+  PHP_BIN: ${{ vars.HOSTINGER_PHP_BIN }}
+  COMPOSER_BIN: ${{ vars.HOSTINGER_COMPOSER_BIN }}
 
 jobs:
   deploy:
@@ -53,6 +53,12 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Normalize deployment defaults
+        run: |
+          echo "SSH_PORT=${SSH_PORT:-65002}" >> "$GITHUB_ENV"
+          echo "PHP_BIN=${PHP_BIN:-php}" >> "$GITHUB_ENV"
+          echo "COMPOSER_BIN=${COMPOSER_BIN:-composer}" >> "$GITHUB_ENV"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
