@@ -6,8 +6,11 @@
     $previewStylesView = $resolvedPreviewEngine === 'dompdf'
         ? ($paperProfile['dompdf_pdf_styles_view'] ?? $paperProfile['pdf_styles_view'] ?? $paperProfile['styles_view'])
         : $paperProfile['styles_view'];
-    $pdfPreviewUrl = route('gso.air.print.pdf', array_merge(['air' => $air['id'] ?? ''], $filters ?? [], ['inline' => 1]))
-        . '#toolbar=0&navpanes=0&scrollbar=0&view=FitH';
+    $pdfPreviewUrl = route('gso.air.print.pdf', array_merge([
+        'air' => $air['id'] ?? '',
+        '_preview' => \Illuminate\Support\Str::uuid()->toString(),
+    ], $filters ?? [], ['inline' => 1]))
+        . '#toolbar=0&navpanes=0&scrollbar=0&zoom=page-width';
 @endphp
 
 @section('content')

@@ -104,10 +104,28 @@
     .gso-ris-print-meta-label {
         font-weight: 700;
         white-space: nowrap;
+        padding-right: 6px !important;
     }
 
     .gso-ris-print-meta-value {
         font-weight: 600;
+        padding-left: 5px !important;
+    }
+
+    .gso-ris-print-meta-label--right {
+        text-align: left;
+    }
+
+    .gso-ris-print-meta-value--right {
+        white-space: nowrap;
+    }
+
+    .gso-ris-print-meta-date {
+        display: inline-block;
+        margin-left: 10px;
+        font-size: 10px;
+        font-weight: 500;
+        white-space: nowrap;
     }
 
     .gso-ris-print-items-head th {
@@ -127,6 +145,21 @@
 
     .gso-ris-print-small {
         font-size: 10px;
+    }
+
+    .gso-ris-print-col-head--compact,
+    .gso-ris-print-col-cell--compact {
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+        white-space: nowrap;
+    }
+
+    .gso-ris-print-col-head--compact {
+        font-size: 10px;
+    }
+
+    .gso-ris-print-cell--numeric {
+        font-variant-numeric: tabular-nums;
     }
 
     .gso-ris-print-center {

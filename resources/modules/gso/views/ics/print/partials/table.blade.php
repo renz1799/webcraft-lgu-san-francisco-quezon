@@ -5,6 +5,15 @@
     $lastPageGridRows = max(0, (int) ($lastPageGridRows ?? 0));
     $usedGridUnits = max($rows->count(), (int) ($usedGridUnits ?? $rows->count()));
     $remainingRows = max(0, $gridRows - $usedGridUnits);
+    $itemColumns = array_merge([
+        'qty' => '7%',
+        'unit' => '7%',
+        'unit_cost' => '11%',
+        'total_cost' => '11%',
+        'description' => '34%',
+        'inventory_item_no' => '18%',
+        'useful_life' => '12%',
+    ], (array) ($paperProfile['item_column_widths'] ?? []));
 
     if ($isLastPage && $lastPageGridRows > 0) {
         $remainingRows = max(0, $lastPageGridRows - $usedGridUnits);
@@ -13,26 +22,26 @@
 
 <table class="gso-ics-print-sheet gso-ics-print-stack-next">
     <colgroup>
-        <col style="width:7%;">
-        <col style="width:7%;">
-        <col style="width:11%;">
-        <col style="width:11%;">
-        <col style="width:34%;">
-        <col style="width:18%;">
-        <col style="width:12%;">
+        <col style="width: {{ $itemColumns['qty'] }};">
+        <col style="width: {{ $itemColumns['unit'] }};">
+        <col style="width: {{ $itemColumns['unit_cost'] }};">
+        <col style="width: {{ $itemColumns['total_cost'] }};">
+        <col style="width: {{ $itemColumns['description'] }};">
+        <col style="width: {{ $itemColumns['inventory_item_no'] }};">
+        <col style="width: {{ $itemColumns['useful_life'] }};">
     </colgroup>
     <thead class="gso-ics-print-items-head">
         <tr>
-            <th rowspan="2">Qty</th>
-            <th rowspan="2">Unit</th>
+            <th rowspan="2" class="gso-ics-print-col--qty gso-ics-print-col-head--compact" style="width: {{ $itemColumns['qty'] }};">Qty</th>
+            <th rowspan="2" class="gso-ics-print-col--unit gso-ics-print-col-head--compact" style="width: {{ $itemColumns['unit'] }};">Unit</th>
             <th colspan="2">Amount</th>
-            <th rowspan="2">Description</th>
-            <th rowspan="2">Inventory Item No.</th>
-            <th rowspan="2">Estimated Useful Life</th>
+            <th rowspan="2" class="gso-ics-print-col--description" style="width: {{ $itemColumns['description'] }};">Description</th>
+            <th rowspan="2" class="gso-ics-print-col--inventory-item-no" style="width: {{ $itemColumns['inventory_item_no'] }};">Inventory Item No.</th>
+            <th rowspan="2" class="gso-ics-print-col--useful-life gso-ics-print-col-head--compact" style="width: {{ $itemColumns['useful_life'] }};">Est. Useful Life</th>
         </tr>
         <tr>
-            <th>Unit Cost</th>
-            <th>Total Cost</th>
+            <th class="gso-ics-print-col--unit-cost gso-ics-print-col-head--compact" style="width: {{ $itemColumns['unit_cost'] }};">Unit Cost</th>
+            <th class="gso-ics-print-col--total-cost gso-ics-print-col-head--compact" style="width: {{ $itemColumns['total_cost'] }};">Total Cost</th>
         </tr>
     </thead>
     <tbody>
@@ -44,17 +53,17 @@
         @else
             @foreach ($rows as $row)
                 <tr class="gso-ics-print-items-row">
-                    <td class="gso-ics-print-center">{{ (int) ($row['quantity'] ?? 0) }}</td>
-                    <td class="gso-ics-print-center">{{ $row['unit'] ?: ' ' }}</td>
-                    <td class="gso-ics-print-right">
+                    <td class="gso-ics-print-center gso-ics-print-col--qty gso-ics-print-col-cell--compact gso-ics-print-cell--numeric" style="width: {{ $itemColumns['qty'] }};">{{ (int) ($row['quantity'] ?? 0) }}</td>
+                    <td class="gso-ics-print-center gso-ics-print-col--unit gso-ics-print-col-cell--compact" style="width: {{ $itemColumns['unit'] }};">{{ $row['unit'] ?: ' ' }}</td>
+                    <td class="gso-ics-print-right gso-ics-print-col--unit-cost gso-ics-print-col-cell--compact gso-ics-print-cell--numeric" style="width: {{ $itemColumns['unit_cost'] }};">
                         {{ $row['unit_cost'] !== null ? number_format((float) $row['unit_cost'], 2) : ' ' }}
                     </td>
-                    <td class="gso-ics-print-right">
+                    <td class="gso-ics-print-right gso-ics-print-col--total-cost gso-ics-print-col-cell--compact gso-ics-print-cell--numeric" style="width: {{ $itemColumns['total_cost'] }};">
                         {{ $row['total_cost'] !== null ? number_format((float) $row['total_cost'], 2) : ' ' }}
                     </td>
-                    <td class="gso-ics-print-description">{{ $row['description'] ?: ' ' }}</td>
-                    <td class="gso-ics-print-center">{{ $row['inventory_item_no'] ?: ' ' }}</td>
-                    <td class="gso-ics-print-center">{{ $row['estimated_useful_life'] ?: ' ' }}</td>
+                    <td class="gso-ics-print-description gso-ics-print-col--description" style="width: {{ $itemColumns['description'] }};">{{ $row['description'] ?: ' ' }}</td>
+                    <td class="gso-ics-print-center gso-ics-print-col--inventory-item-no" style="width: {{ $itemColumns['inventory_item_no'] }};">{{ $row['inventory_item_no'] ?: ' ' }}</td>
+                    <td class="gso-ics-print-center gso-ics-print-col--useful-life gso-ics-print-col-cell--compact" style="width: {{ $itemColumns['useful_life'] }};">{{ $row['estimated_useful_life'] ?: ' ' }}</td>
                 </tr>
             @endforeach
         @endif

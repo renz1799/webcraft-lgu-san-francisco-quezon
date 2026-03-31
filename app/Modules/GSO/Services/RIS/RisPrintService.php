@@ -325,15 +325,10 @@ class RisPrintService implements RisPrintServiceInterface
 
     private function fundLabel(Ris $ris): string
     {
-        $code = $this->nullableTrim($ris->fundSource?->code);
         $name = $this->nullableTrim($ris->fundSource?->name);
         $fallback = $this->nullableTrim($ris->fund);
 
-        if ($code !== null && $name !== null) {
-            return "{$code} - {$name}";
-        }
-
-        return $name ?? $code ?? $fallback ?? '';
+        return $name ?? $fallback ?? '';
     }
 
     private function nullableTrim(mixed $value): ?string

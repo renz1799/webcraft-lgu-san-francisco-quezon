@@ -104,17 +104,6 @@
         font-weight: 600;
     }
 
-    .gso-air-print-meta-inline {
-        border-left: 0 !important;
-        white-space: nowrap;
-    }
-
-    .gso-air-print-meta-inline strong {
-        display: inline-block;
-        min-width: 56px;
-        font-weight: 700;
-    }
-
     .gso-air-print-column-head th {
         text-align: center;
         font-weight: 700;
@@ -128,6 +117,45 @@
 
     .gso-air-print-center {
         text-align: center;
+    }
+
+    .gso-air-print-col--property {
+        width: 16%;
+    }
+
+    .gso-air-print-col--description {
+        width: 54%;
+    }
+
+    .gso-air-print-col--unit {
+        width: 12%;
+    }
+
+    .gso-air-print-col--quantity {
+        width: 18%;
+    }
+
+    .gso-air-print-meta-label {
+        white-space: nowrap;
+    }
+
+    .gso-air-print-cell--compact {
+        white-space: nowrap;
+    }
+
+    .gso-air-print-cell--numeric {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .gso-air-print-col-head--compact,
+    .gso-air-print-col-cell--compact {
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+    }
+
+    .gso-air-print-col-head--compact {
+        white-space: nowrap;
+        font-size: 10px;
     }
 
     .gso-air-print-message {

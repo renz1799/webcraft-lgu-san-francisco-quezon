@@ -328,14 +328,10 @@ class ParPrintService implements ParPrintServiceInterface
 
     private function fundClusterLabel(Par $par): string
     {
-        $code = $this->nullableTrim($par->fundSource?->fundCluster?->code);
         $name = $this->nullableTrim($par->fundSource?->fundCluster?->name);
+        $fallback = $this->nullableTrim($par->fundSource?->name);
 
-        if ($code !== null && $name !== null) {
-            return "{$code} - {$name}";
-        }
-
-        return $name ?? $code ?? '';
+        return $name ?? $fallback ?? '';
     }
 
     private function nullableTrim(mixed $value): ?string

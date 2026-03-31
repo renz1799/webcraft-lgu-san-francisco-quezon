@@ -102,10 +102,17 @@
     .gso-par-print-meta-label {
         font-weight: 700;
         white-space: nowrap;
+        padding-right: 6px !important;
     }
 
     .gso-par-print-meta-value {
+        font-weight: 600;
         text-transform: uppercase;
+        padding-left: 5px !important;
+    }
+
+    .gso-par-print-meta-value--right {
+        white-space: nowrap;
     }
 
     .gso-par-print-items-head th {
@@ -117,6 +124,21 @@
     .gso-par-print-items-row td {
         height: 18px;
         vertical-align: middle;
+    }
+
+    .gso-par-print-col-head--compact,
+    .gso-par-print-col-cell--compact {
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+        white-space: nowrap;
+    }
+
+    .gso-par-print-col-head--compact {
+        font-size: 10px;
+    }
+
+    .gso-par-print-cell--numeric {
+        font-variant-numeric: tabular-nums;
     }
 
     .gso-par-print-stack-next {

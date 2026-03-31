@@ -367,6 +367,65 @@ Report content must NEVER move into paper folders.
 
 ---
 
+# Metadata Layout Rule
+
+`meta.blade.php` owns the top metadata block layout.
+
+Use Blade-local widths for metadata rows when the metadata block needs manual visual alignment.
+
+Example:
+
+```php
+@php
+    $leftLabelWidth = '16%';
+    $leftValueWidth = '54%';
+    $rightLabelWidth = '12%';
+    $rightValueWidth = '18%';
+@endphp
+```
+
+Then apply those widths directly on the metadata cells in the Blade.
+
+Do this for report-specific tuning such as:
+
+* moving metadata labels left or right
+* separating document number and date rows
+* matching a legacy LGU paper form
+* making metadata align visually with a printable form even when item columns stay unchanged
+
+Do NOT assume `item_column_widths` from `config/print-modules/*.php` is a safe metadata-only control.
+
+`item_column_widths` is primarily for the item table.
+
+If `meta.blade.php` derives widths from `item_column_widths`, then changing those values will also affect the line-item table and may appear to do nothing when a paper-profile override is active.
+
+Default rule:
+
+* item table widths belong in config
+* metadata block widths belong in `meta.blade.php`
+
+Only couple metadata widths to item-table config when that coupling is intentional and clearly documented inside the Blade.
+
+---
+
+# Metadata Troubleshooting Rule
+
+If the metadata block is not moving when you edit widths:
+
+1. Check `meta.blade.php` first.
+2. Confirm the metadata widths are not being derived from `paperProfile['item_column_widths']`.
+3. Confirm the active paper profile is not overriding the values you changed.
+4. Clear cached config and views:
+
+```bash
+php artisan optimize:clear
+php artisan view:cache
+```
+
+If the goal is only to move metadata labels and values, prefer editing `meta.blade.php` instead of config.
+
+---
+
 # Pagination Rules
 
 Pagination must live inside:

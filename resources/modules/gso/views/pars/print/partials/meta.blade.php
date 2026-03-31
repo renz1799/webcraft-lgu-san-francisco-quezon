@@ -1,32 +1,29 @@
 @php
     $document = $report['document'] ?? [];
+    $entityName = ($document['entity_name'] ?? '') ?: 'Local Government Unit';
+    $issuedDate = ($document['issued_date_label'] ?? '') ?: '-';
+    $fundCluster = ($document['fund_cluster'] ?? '') ?: '-';
+    $parNumber = ($document['par_number'] ?? '') ?: '-';
+
+    $leftLabelWidth = '16%';
+    $leftValueWidth = '54%';
+    $rightLabelWidth = '15%';
+    $rightValueWidth = '15%';
 @endphp
 
 <table class="gso-par-print-sheet">
-    <colgroup>
-        <col style="width:70%;">
-        <col style="width:30%;">
-    </colgroup>
     <tbody>
         <tr class="gso-par-print-meta-row">
-            <td>
-                <span class="gso-par-print-meta-label">Entity Name :</span>
-                <span class="gso-par-print-meta-value">{{ $document['entity_name'] ?? '' }}</span>
-            </td>
-            <td>
-                <span class="gso-par-print-meta-label">Date :</span>
-                <span class="gso-par-print-meta-value">{{ $document['issued_date_label'] ?? '' }}</span>
-            </td>
+            <td class="gso-par-print-meta-label gso-par-print-col--meta-label" style="width: {{ $leftLabelWidth }};">Entity Name :</td>
+            <td class="gso-par-print-meta-value gso-par-print-col--meta-value" style="width: {{ $leftValueWidth }};">{{ $entityName }}</td>
+            <td class="gso-par-print-meta-label gso-par-print-col--date-acquired gso-par-print-col-head--compact" style="width: {{ $rightLabelWidth }};">Date :</td>
+            <td class="gso-par-print-meta-value gso-par-print-col--amount gso-par-print-meta-value--right" style="width: {{ $rightValueWidth }};">{{ $issuedDate }}</td>
         </tr>
         <tr class="gso-par-print-meta-row">
-            <td>
-                <span class="gso-par-print-meta-label">Fund Cluster :</span>
-                <span class="gso-par-print-meta-value">{{ $document['fund_cluster'] ?? '' }}</span>
-            </td>
-            <td>
-                <span class="gso-par-print-meta-label">PAR No. :</span>
-                <span class="gso-par-print-meta-value">{{ $document['par_number'] ?? '' }}</span>
-            </td>
+            <td class="gso-par-print-meta-label gso-par-print-col--meta-label" style="width: {{ $leftLabelWidth }};">Fund Cluster :</td>
+            <td class="gso-par-print-meta-value gso-par-print-col--meta-value" style="width: {{ $leftValueWidth }};">{{ $fundCluster }}</td>
+            <td class="gso-par-print-meta-label gso-par-print-col--date-acquired gso-par-print-col-head--compact" style="width: {{ $rightLabelWidth }};">PAR No. :</td>
+            <td class="gso-par-print-meta-value gso-par-print-col--amount gso-par-print-meta-value--right" style="width: {{ $rightValueWidth }};">{{ $parNumber }}</td>
         </tr>
     </tbody>
 </table>

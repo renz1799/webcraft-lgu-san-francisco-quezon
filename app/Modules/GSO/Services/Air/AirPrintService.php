@@ -314,15 +314,10 @@ class AirPrintService implements AirPrintServiceInterface
 
     private function fundSourceLabel(Air $air): string
     {
-        $code = $this->nullableTrim($air->fundSource?->code);
         $name = $this->nullableTrim($air->fundSource?->name);
         $fallback = $this->nullableTrim($air->fund);
 
-        if ($code !== null && $name !== null) {
-            return "{$code} - {$name}";
-        }
-
-        return $name ?? $code ?? $fallback ?? '';
+        return $name ?? $fallback ?? '';
     }
 
     private function simpleLabel(mixed $value): string

@@ -317,6 +317,30 @@ Example:
 
 This keeps physical paper definitions reusable while allowing each module or Core-owned printable to define its own layout bindings.
 
+Important:
+
+`config/print-modules/*.php` should describe printable registration and item-table behavior.
+
+It should NOT be treated as the default place for top metadata-row styling.
+
+Use config for things like:
+
+* allowed papers
+* default paper
+* rows per page
+* description wrap estimates
+* item table column widths
+* engine-specific PDF view bindings
+
+Use `partials/meta.blade.php` for things like:
+
+* metadata label/value widths
+* metadata row splitting such as `RIS No.` and `Date`
+* rowspan decisions
+* legacy form-specific alignment adjustments
+
+This prevents a common failure mode where developers change `item_column_widths` expecting the metadata block to move, but the live output is actually controlled by Blade or overridden by a paper profile.
+
 ---
 
 # Print Config Loader Rule

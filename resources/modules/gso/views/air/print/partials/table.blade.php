@@ -21,10 +21,10 @@
 
 <table class="gso-air-print-sheet">
     <colgroup>
+        <col style="width:16%;">
+        <col style="width:54%;">
+        <col style="width:12%;">
         <col style="width:18%;">
-        <col style="width:52%;">
-        <col style="width:15%;">
-        <col style="width:15%;">
     </colgroup>
     <tbody>
         @include('gso::air.print.partials.meta', [
@@ -32,10 +32,10 @@
         ])
 
         <tr class="gso-air-print-column-head">
-            <th>Property No.</th>
-            <th>Description</th>
-            <th>Unit</th>
-            <th>Quantity</th>
+            <th class="gso-air-print-col--property" style="width:16%;">Property No.</th>
+            <th class="gso-air-print-col--description" style="width:54%;">Description</th>
+            <th class="gso-air-print-col--unit gso-air-print-col-head--compact" style="width:12%;">Unit</th>
+            <th class="gso-air-print-col--quantity gso-air-print-col-head--compact" style="width:18%;">Quantity</th>
         </tr>
 
         @if ($rows->isEmpty())
@@ -46,20 +46,20 @@
         @else
             @foreach ($rows as $row)
                 <tr>
-                    <td class="gso-air-print-center">{{ $row['property_no'] ?: ' ' }}</td>
-                    <td>{{ $row['description'] ?: ' ' }}</td>
-                    <td class="gso-air-print-center">{{ $row['unit'] ?: ' ' }}</td>
-                    <td class="gso-air-print-center">{{ $row['quantity'] !== '' ? $row['quantity'] : ' ' }}</td>
+                    <td class="gso-air-print-center gso-air-print-col--property" style="width:16%;">{{ $row['property_no'] ?: ' ' }}</td>
+                    <td class="gso-air-print-col--description" style="width:54%;">{{ $row['description'] ?: ' ' }}</td>
+                    <td class="gso-air-print-center gso-air-print-cell--compact gso-air-print-col--unit gso-air-print-col-cell--compact" style="width:12%;">{{ $row['unit'] ?: ' ' }}</td>
+                    <td class="gso-air-print-center gso-air-print-cell--compact gso-air-print-cell--numeric gso-air-print-col--quantity gso-air-print-col-cell--compact" style="width:18%;">{{ $row['quantity'] !== '' ? $row['quantity'] : ' ' }}</td>
                 </tr>
             @endforeach
         @endif
 
         @for ($i = 0; $i < $remainingRows; $i++)
             <tr>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
+                <td class="gso-air-print-col--property" style="width:16%;">&nbsp;</td>
+                <td class="gso-air-print-col--description" style="width:54%;">&nbsp;</td>
+                <td class="gso-air-print-col--unit" style="width:12%;">&nbsp;</td>
+                <td class="gso-air-print-col--quantity" style="width:18%;">&nbsp;</td>
             </tr>
         @endfor
 
