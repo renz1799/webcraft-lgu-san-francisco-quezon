@@ -547,7 +547,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
                 ->name('inventory.index');
             Route::get('/inventory/{page}', function (string $page) {
                 return match ($page) {
-                    'stocks-ledger' => app(GsoWorkspaceController::class)->show('stocks'),
+                    'stocks-ledger' => redirect()->route('gso.stocks.index', request()->query()),
                 };
             })->whereIn('page', ['stocks-ledger'])
                 ->name('inventory.show');

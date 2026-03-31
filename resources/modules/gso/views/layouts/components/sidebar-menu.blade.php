@@ -226,7 +226,7 @@
       @endif
       @if($canViewStocks)
         <li class="slide">
-          <a href="{{ route('gso.inventory.show', ['page' => 'stocks-ledger']) }}" class="side-menu__item">Stocks / Ledger</a>
+          <a href="{{ route('gso.stocks.index') }}" class="side-menu__item">Stocks / Ledger</a>
         </li>
       @endif
     </ul>

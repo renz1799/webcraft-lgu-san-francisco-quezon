@@ -32,10 +32,6 @@ class GsoWorkspaceController extends Controller
             'title' => 'Inspections',
             'description' => 'Inspection workflows and follow-up actions are being integrated as the first GSO workflow slice.',
         ],
-        'stocks' => [
-            'title' => 'Stocks / Ledger',
-            'description' => 'Stock ledgers, balance history, and inventory movement workspaces are reserved under the GSO inventory area while the final module screens are being aligned.',
-        ],
         'inventory' => [
             'title' => 'Inventory',
             'description' => 'The legacy inventory menu structure is now reserved inside the platform-owned GSO module so its pages can be migrated in one shared inventory area.',

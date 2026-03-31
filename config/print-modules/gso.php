@@ -36,7 +36,7 @@ $config = [
                     'last_page_grid_rows' => 16,
                     'description_chars_per_line' => 40,
 
-                    'pdf_preview_fragment' => 'toolbar=0&navpanes=0&scrollbar=0&zoom=980',
+                    'pdf_preview_fragment' => 'toolbar=0&navpanes=0&scrollbar=0&zoom=90',
                 ],
                 'legal-portrait' => [
                     'pages_view' => 'gso::air.print.paper.legal-portrait.pages',

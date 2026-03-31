@@ -279,12 +279,19 @@ import "sweetalert2/dist/sweetalert2.min.css";
     const isStockCardMode = pageMode === "stock-cards";
     const infoElement = document.getElementById("gso-stocks-info");
     const searchInput = document.getElementById("gso-stocks-search");
+    const archivedSelect = document.getElementById("gso-stocks-archived-filter");
     const fundFilter = document.getElementById("gso-stocks-fund-filter");
     const dateFromInput = document.getElementById("gso-stocks-date-from");
     const dateToInput = document.getElementById("gso-stocks-date-to");
     const onHandMinInput = document.getElementById("gso-stocks-onhand-min");
     const onHandMaxInput = document.getElementById("gso-stocks-onhand-max");
     const clearButton = document.getElementById("gso-stocks-clear");
+    const moreButton = document.getElementById("gso-stocks-more-btn");
+    const morePanel = document.getElementById("gso-stocks-more-panel");
+    const moreCloseButton = document.getElementById("gso-stocks-more-close");
+    const advancedApplyButton = document.getElementById("gso-stocks-adv-apply");
+    const advancedResetButton = document.getElementById("gso-stocks-adv-reset");
+    const advancedCountBadge = document.getElementById("gso-stocks-adv-count");
 
     let filters = {
       search: "",
@@ -293,9 +300,13 @@ import "sweetalert2/dist/sweetalert2.min.css";
       date_to: "",
       onhand_min: "",
       onhand_max: "",
-      archived: "active",
+      archived: archivedSelect?.value || "active",
     };
     let lastTotal = 0;
+    let panelOpen = false;
+    let panelOpenedAt = 0;
+    let panelPlaceholder = null;
+    let panelPortaled = false;
 
     function setInfo(text) {
       if (infoElement) {
@@ -319,6 +330,129 @@ import "sweetalert2/dist/sweetalert2.min.css";
           ? `Showing ${start}-${end} of ${lastTotal} stock-card source item(s)`
           : `Showing ${start}-${end} of ${lastTotal} consumable item(s)`
       );
+    }
+
+    function countAdvancedFilters() {
+      let count = 0;
+
+      if ((archivedSelect?.value || "active").trim() !== "active") count++;
+      if ((fundFilter?.value || "").trim() !== "") count++;
+      if ((dateFromInput?.value || "").trim() !== "") count++;
+      if ((dateToInput?.value || "").trim() !== "") count++;
+      if ((onHandMinInput?.value || "").trim() !== "") count++;
+      if ((onHandMaxInput?.value || "").trim() !== "") count++;
+
+      if (advancedCountBadge) {
+        advancedCountBadge.textContent = String(count);
+        advancedCountBadge.classList.toggle("hidden", count === 0);
+      }
+
+      return count;
+    }
+
+    function syncFiltersFromUi() {
+      filters.search = (searchInput?.value || "").trim();
+      filters.archived = (archivedSelect?.value || "active").trim();
+      filters.fund_source_id = (fundFilter?.value || "").trim();
+      filters.date_from = (dateFromInput?.value || "").trim();
+      filters.date_to = (dateToInput?.value || "").trim();
+      filters.onhand_min = (onHandMinInput?.value || "").trim();
+      filters.onhand_max = (onHandMaxInput?.value || "").trim();
+    }
+
+    function restorePanel() {
+      if (!panelPortaled || !panelPlaceholder || !morePanel) {
+        return;
+      }
+
+      panelPlaceholder.parentNode.insertBefore(morePanel, panelPlaceholder);
+      panelPlaceholder.parentNode.removeChild(panelPlaceholder);
+      panelPlaceholder = null;
+      panelPortaled = false;
+
+      morePanel.style.position = "";
+      morePanel.style.top = "";
+      morePanel.style.left = "";
+      morePanel.style.right = "";
+      morePanel.style.bottom = "";
+      morePanel.style.zIndex = "";
+      morePanel.style.transform = "";
+      morePanel.style.opacity = "";
+      morePanel.style.visibility = "";
+      morePanel.style.pointerEvents = "";
+      morePanel.style.display = "";
+    }
+
+    function portalPanel() {
+      if (!morePanel || panelPortaled) {
+        return;
+      }
+
+      panelPlaceholder = document.createComment("gso-stocks-more-panel-placeholder");
+      morePanel.parentNode.insertBefore(panelPlaceholder, morePanel);
+      document.body.appendChild(morePanel);
+      panelPortaled = true;
+    }
+
+    function positionPanel() {
+      if (!moreButton || !morePanel) {
+        return;
+      }
+
+      const buttonRect = moreButton.getBoundingClientRect();
+      const margin = 8;
+
+      morePanel.classList.remove("hidden");
+      morePanel.style.display = "block";
+      morePanel.style.visibility = "visible";
+      morePanel.style.opacity = "1";
+      morePanel.style.pointerEvents = "auto";
+      morePanel.style.transform = "none";
+      morePanel.style.zIndex = "999999";
+      morePanel.style.position = "fixed";
+
+      const panelRect = morePanel.getBoundingClientRect();
+      let left = buttonRect.right - panelRect.width;
+      left = Math.max(margin, Math.min(left, window.innerWidth - panelRect.width - margin));
+
+      morePanel.style.left = `${left}px`;
+      morePanel.style.top = `${buttonRect.bottom + margin}px`;
+      morePanel.style.right = "auto";
+      morePanel.style.bottom = "auto";
+    }
+
+    function closePanel() {
+      if (!morePanel) {
+        return;
+      }
+
+      panelOpen = false;
+      morePanel.classList.add("hidden");
+      morePanel.style.display = "none";
+      restorePanel();
+    }
+
+    function openPanel() {
+      if (!morePanel) {
+        return;
+      }
+
+      panelOpen = true;
+      panelOpenedAt = Date.now();
+      portalPanel();
+      positionPanel();
+    }
+
+    function togglePanel() {
+      if (!morePanel) {
+        return;
+      }
+
+      if (panelOpen) {
+        closePanel();
+      } else {
+        openPanel();
+      }
     }
 
     function reload(table) {
@@ -465,23 +599,41 @@ import "sweetalert2/dist/sweetalert2.min.css";
     table.on("pageLoaded", () => updateInfo(table));
 
     function applyFilters() {
-      filters.search = (searchInput?.value || "").trim();
-      filters.fund_source_id = (fundFilter?.value || "").trim();
-      filters.date_from = (dateFromInput?.value || "").trim();
-      filters.date_to = (dateToInput?.value || "").trim();
-      filters.onhand_min = (onHandMinInput?.value || "").trim();
-      filters.onhand_max = (onHandMaxInput?.value || "").trim();
+      syncFiltersFromUi();
+      countAdvancedFilters();
       reload(table);
     }
 
     const debouncedApply = debounce(applyFilters, 350);
 
     searchInput?.addEventListener("input", debouncedApply);
-    fundFilter?.addEventListener("change", applyFilters);
-    dateFromInput?.addEventListener("change", applyFilters);
-    dateToInput?.addEventListener("change", applyFilters);
-    onHandMinInput?.addEventListener("input", debouncedApply);
-    onHandMaxInput?.addEventListener("input", debouncedApply);
+    archivedSelect?.addEventListener("change", applyFilters);
+    moreButton?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      togglePanel();
+    });
+    moreCloseButton?.addEventListener("click", (event) => {
+      event.preventDefault();
+      closePanel();
+    });
+    advancedApplyButton?.addEventListener("click", (event) => {
+      event.preventDefault();
+      applyFilters();
+      closePanel();
+    });
+    advancedResetButton?.addEventListener("click", (event) => {
+      event.preventDefault();
+
+      if (archivedSelect) archivedSelect.value = "active";
+      if (fundFilter) fundFilter.value = "";
+      if (dateFromInput) dateFromInput.value = "";
+      if (dateToInput) dateToInput.value = "";
+      if (onHandMinInput) onHandMinInput.value = "";
+      if (onHandMaxInput) onHandMaxInput.value = "";
+
+      countAdvancedFilters();
+    });
 
     clearButton?.addEventListener("click", () => {
       filters = {
@@ -495,14 +647,49 @@ import "sweetalert2/dist/sweetalert2.min.css";
       };
 
       if (searchInput) searchInput.value = "";
+      if (archivedSelect) archivedSelect.value = "active";
       if (fundFilter) fundFilter.value = "";
       if (dateFromInput) dateFromInput.value = "";
       if (dateToInput) dateToInput.value = "";
       if (onHandMinInput) onHandMinInput.value = "";
       if (onHandMaxInput) onHandMaxInput.value = "";
 
+      countAdvancedFilters();
+      closePanel();
       reload(table);
     });
+
+    document.addEventListener("click", (event) => {
+      if (!panelOpen || !morePanel || !moreButton) {
+        return;
+      }
+
+      const target = event.target;
+
+      if (morePanel.contains(target) || moreButton.contains(target)) {
+        return;
+      }
+
+      if (Date.now() - panelOpenedAt < 50) {
+        return;
+      }
+
+      closePanel();
+    });
+
+    window.addEventListener("resize", () => {
+      if (panelOpen) {
+        positionPanel();
+      }
+    });
+
+    window.addEventListener("scroll", () => {
+      if (panelOpen) {
+        positionPanel();
+      }
+    }, true);
+
+    countAdvancedFilters();
 
     tableElement.addEventListener("click", async (event) => {
       const button = event.target.closest("button[data-action]");
