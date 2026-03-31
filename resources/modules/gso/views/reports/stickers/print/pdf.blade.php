@@ -15,6 +15,7 @@
         'stickers' => $stickers,
         'controls' => $controls,
         'sheet' => $sheet,
+        'stickerBackgroundUrl' => $stickerBackgroundUrl ?? null,
     ])
 </body>
 </html>

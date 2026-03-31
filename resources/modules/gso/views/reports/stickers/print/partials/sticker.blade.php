@@ -1,4 +1,15 @@
+@php
+    $resolvedStickerBackgroundUrl = $stickerBackgroundUrl ?? ($sticker['template_url'] ?? asset('print/sticker.jpg'));
+@endphp
+
 <div class="sticker-card">
+    <img
+        src="{{ $resolvedStickerBackgroundUrl }}"
+        alt=""
+        aria-hidden="true"
+        class="sticker-card-background"
+    >
+
     @if ($showCutGuides)
         <div class="cut-guide"></div>
         <div class="cut-guide-mark h mark-top-left-h"></div>

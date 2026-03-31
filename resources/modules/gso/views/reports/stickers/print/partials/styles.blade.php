@@ -60,11 +60,18 @@
         width: 92mm;
         height: 48.25mm;
         margin-right: 6mm;
-        background-image: url('{{ $stickerBackgroundUrl }}');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
+        background: #fff;
         overflow: visible;
+    }
+
+    .sticker-card-background {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
     }
 
     .sticker-sheet-row .sticker-card:last-child {

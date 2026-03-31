@@ -21,6 +21,8 @@ return [
                     'description_chars_per_line' => 73,
                     'header_image_web' => 'headers/Picture1.png',
                     'footer_image_web' => 'headers/Picture2.png',
+                    'header_image_pdf' => 'headers/Picture1.png',
+                    'footer_image_pdf' => 'headers/Picture2.png',
                 ],
                 'letter-portrait' => [
                     'pages_view' => 'gso::air.print.paper.letter-portrait.pages',

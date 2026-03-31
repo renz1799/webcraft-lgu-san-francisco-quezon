@@ -13,6 +13,7 @@
                         @include('gso::reports.stickers.print.partials.sticker', [
                             'sticker' => $copySticker,
                             'showCutGuides' => $showCutGuides,
+                            'stickerBackgroundUrl' => $stickerBackgroundUrl ?? null,
                         ])
                     @endforeach
 

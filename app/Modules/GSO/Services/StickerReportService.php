@@ -100,7 +100,7 @@ class StickerReportService implements StickerReportServiceInterface
             $pages->count(),
             (int) ($payload['sheet']['page_count'] ?? 0),
         );
-        $stickerBackgroundUrl = $this->localFileUrl($this->pdfStickerBackgroundPath());
+        $stickerBackgroundUrl = $this->embeddedImageDataUri($this->pdfStickerBackgroundPath());
 
         File::ensureDirectoryExists($buildDirectory);
 
@@ -137,6 +137,7 @@ class StickerReportService implements StickerReportServiceInterface
                         'totalPages' => $totalPages,
                         'controls' => $payload['controls'],
                         'sheet' => $payload['sheet'],
+                        'stickerBackgroundUrl' => $stickerBackgroundUrl,
                     ])->render());
 
                     $this->reportProgress($progress, [
@@ -438,6 +439,18 @@ class StickerReportService implements StickerReportServiceInterface
         }
 
         return 'file:///' . ltrim($normalized, '/');
+    }
+
+    private function embeddedImageDataUri(string $path): string
+    {
+        if (! is_file($path)) {
+            return $this->localFileUrl($path);
+        }
+
+        $mimeType = File::mimeType($path) ?: 'image/jpeg';
+        $contents = File::get($path);
+
+        return 'data:' . $mimeType . ';base64,' . base64_encode($contents);
     }
 
     private function pdfStickerBackgroundPath(): string

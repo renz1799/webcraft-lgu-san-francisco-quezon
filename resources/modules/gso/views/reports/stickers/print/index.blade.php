@@ -41,6 +41,7 @@
                 'stickers' => $stickers,
                 'controls' => $controls,
                 'sheet' => $sheet,
+                'stickerBackgroundUrl' => $sticker['template_url'] ?? asset('print/sticker.jpg'),
             ])
         </x-print.workspace>
     </div>

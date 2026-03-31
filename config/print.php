@@ -19,10 +19,10 @@ return [
             'preview_width' => '210mm',
 
             // platform defaults
-            'header_image_web' => 'headers/a4_header_template_dark_2480x300.png',
-            'footer_image_web' => 'headers/a4_footer_template_dark_2480x250.png',
-            'header_image_pdf' => 'headers/a4_header_template_dark_2480x300.png',
-            'footer_image_pdf' => 'headers/a4_footer_template_dark_2480x250.png',
+                    'header_image_web' => 'headers/Picture1.png',
+                    'footer_image_web' => 'headers/Picture2.png',
+                    'header_image_pdf' => 'headers/Picture1.png',
+                    'footer_image_pdf' => 'headers/Picture2.png',
         ],
 
         'a4-landscape' => [
@@ -79,10 +79,10 @@ return [
             'preview_width' => '8.5in',
 
             // platform defaults
-            'header_image_web' => 'headers/letter_portrait_header_2550x300.png',
-            'footer_image_web' => 'headers/letter_portrait_footer_2550x250.png',
-            'header_image_pdf' => 'headers/letter_portrait_header_2550x300.png',
-            'footer_image_pdf' => 'headers/letter_portrait_footer_2550x250.png',
+                    'header_image_web' => 'headers/Picture1.png',
+                    'footer_image_web' => 'headers/Picture2.png',
+                    'header_image_pdf' => 'headers/Picture1.png',
+                    'footer_image_pdf' => 'headers/Picture2.png',
         ],
 
         'legal-portrait' => [
@@ -94,10 +94,10 @@ return [
             'preview_width' => '8.5in',
 
             // platform defaults
-            'header_image_web' => 'headers/longbond_portrait_header_2550x300.png',
-            'footer_image_web' => 'headers/longbond_portrait_footer_2550x250.png',
-            'header_image_pdf' => 'headers/longbond_portrait_header_2550x300.png',
-            'footer_image_pdf' => 'headers/longbond_portrait_footer_2550x250.png',
+                    'header_image_web' => 'headers/Picture1.png',
+                    'footer_image_web' => 'headers/Picture2.png',
+                    'header_image_pdf' => 'headers/Picture1.png',
+                    'footer_image_pdf' => 'headers/Picture2.png',
         ],
 
     ],
