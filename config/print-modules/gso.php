@@ -1,6 +1,6 @@
 <?php
 
-return [
+$config = [
     'printables' => [
         'gso_air' => [
             'module' => 'GSO',
@@ -23,6 +23,9 @@ return [
                     'footer_image_web' => 'headers/Picture2.png',
                     'header_image_pdf' => 'headers/Picture1.png',
                     'footer_image_pdf' => 'headers/Picture2.png',
+
+                    'pdf_preview_fragment' => 'toolbar=0&navpanes=0&scrollbar=0&zoom=98',
+
                 ],
                 'letter-portrait' => [
                     'pages_view' => 'gso::air.print.paper.letter-portrait.pages',
@@ -741,3 +744,14 @@ return [
         ],
     ],
 ];
+
+foreach ($config['printables'] as &$printable) {
+    foreach (($printable['profiles'] ?? []) as &$profile) {
+        $profile['pdf_preview_fragment'] = $profile['pdf_preview_fragment']
+            ?? 'toolbar=0&navpanes=0&scrollbar=0&zoom=100';
+    }
+}
+
+unset($printable, $profile);
+
+return $config;

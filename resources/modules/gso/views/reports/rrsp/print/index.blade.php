@@ -8,8 +8,9 @@
     $previewPagesView = $resolvedPreviewEngine === 'dompdf'
         ? ($paperProfile['dompdf_pdf_pages_view'] ?? $paperProfile['pages_view'])
         : $paperProfile['pages_view'];
+    $pdfPreviewFragment = $paperProfile['pdf_preview_fragment'] ?? 'toolbar=0&navpanes=0&scrollbar=0&zoom=100';
     $pdfPreviewUrl = route('gso.reports.rrsp.print.pdf', array_merge($filters ?? [], ['inline' => 1]))
-        . '#toolbar=0&navpanes=0&scrollbar=0&view=FitH';
+        . '#' . $pdfPreviewFragment;
 @endphp
 
 @section('styles')

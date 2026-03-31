@@ -6,8 +6,9 @@
     $previewStylesView = $resolvedPreviewEngine === 'dompdf'
         ? ($paperProfile['dompdf_pdf_styles_view'] ?? $paperProfile['pdf_styles_view'] ?? $paperProfile['styles_view'])
         : $paperProfile['styles_view'];
+    $pdfPreviewFragment = $paperProfile['pdf_preview_fragment'] ?? 'toolbar=0&navpanes=0&scrollbar=0&zoom=100';
     $pdfPreviewUrl = route('gso.itrs.print.pdf', array_merge(['itr' => $itr['id'] ?? ''], $filters ?? [], ['inline' => 1]))
-        . '#toolbar=0&navpanes=0&scrollbar=0&view=FitH';
+        . '#' . $pdfPreviewFragment;
 @endphp
 
 @section('content')
