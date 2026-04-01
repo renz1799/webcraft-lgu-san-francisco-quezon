@@ -9,6 +9,7 @@ use App\Core\Services\Contracts\GoogleDrive\GoogleDriveSettingsProviderInterface
 use Google\Service\Drive\DriveFile;
 use Google\Service\Drive\Permission;
 use Illuminate\Http\UploadedFile;
+use RuntimeException;
 
 class GoogleDriveFileService implements GoogleDriveFileServiceInterface
 {
@@ -24,31 +25,41 @@ class GoogleDriveFileService implements GoogleDriveFileServiceInterface
         bool $makePublic = false,
         ?string $folderId = null,
     ): array {
-        $drive = $this->clientFactory->makeAuthorizedDrive();
-        $targetFolderId = $this->resolveUploadFolderId($folderId);
-        $finalName = $name ?: $this->safeFileName($file);
-        $mimeType = $file->getMimeType() ?: 'application/octet-stream';
-        $shouldMakePublic = $makePublic || $this->settings->defaultMakePublic();
+        return $this->uploadBytes(
+            bytes: file_get_contents($file->getRealPath()) ?: '',
+            name: $name ?: $this->safeFileName($file),
+            mimeType: $file->getMimeType() ?: 'application/octet-stream',
+            makePublic: $makePublic,
+            folderId: $folderId,
+        );
+    }
 
-        $driveFile = new DriveFile([
-            'name' => $finalName,
-            'parents' => [$targetFolderId],
-            'mimeType' => $mimeType,
-        ]);
+    public function uploadFromPath(
+        string $path,
+        ?string $name = null,
+        ?string $mimeType = null,
+        bool $makePublic = false,
+        ?string $folderId = null,
+    ): array {
+        $resolvedPath = trim($path);
 
-        $created = $drive->files->create($driveFile, [
-            'data' => file_get_contents($file->getRealPath()),
-            'mimeType' => $mimeType,
-            'uploadType' => 'multipart',
-            'fields' => 'id,name,mimeType,size,webViewLink,webContentLink,createdTime,parents',
-            'supportsAllDrives' => true,
-        ]);
-
-        if ($shouldMakePublic) {
-            $this->makeFilePublic($drive, (string) $created->id);
+        if ($resolvedPath === '' || ! is_file($resolvedPath) || ! is_readable($resolvedPath)) {
+            throw new RuntimeException('Google Drive upload source file is missing or unreadable.');
         }
 
-        return $this->fileMetadataBuilder->build($created, $targetFolderId, $shouldMakePublic);
+        $bytes = file_get_contents($resolvedPath);
+
+        if ($bytes === false) {
+            throw new RuntimeException('Failed to read the Google Drive upload source file.');
+        }
+
+        return $this->uploadBytes(
+            bytes: $bytes,
+            name: $name ?: basename($resolvedPath),
+            mimeType: $mimeType ?: (mime_content_type($resolvedPath) ?: 'application/octet-stream'),
+            makePublic: $makePublic,
+            folderId: $folderId,
+        );
     }
 
     public function copyFile(
@@ -98,6 +109,45 @@ class GoogleDriveFileService implements GoogleDriveFileServiceInterface
             false,
             ['source_file_id' => $resolvedSourceFileId],
         );
+    }
+
+    public function replaceFileInFolder(
+        string $path,
+        string $name,
+        string $folderId,
+        ?string $mimeType = null,
+        bool $makePublic = false,
+    ): array {
+        $resolvedFolderId = $this->resolveUploadFolderId($folderId);
+        $resolvedName = trim($name);
+
+        if ($resolvedName === '') {
+            throw new RuntimeException('Google Drive replacement file name is required.');
+        }
+
+        $deletedCount = 0;
+
+        foreach ($this->findFilesByName($resolvedName, $resolvedFolderId) as $existing) {
+            $existingId = trim((string) ($existing->id ?? ''));
+
+            if ($existingId === '') {
+                continue;
+            }
+
+            $this->deleteFile($existingId);
+            $deletedCount++;
+        }
+
+        return $this->uploadFromPath(
+            path: $path,
+            name: $resolvedName,
+            mimeType: $mimeType,
+            makePublic: $makePublic,
+            folderId: $resolvedFolderId,
+        ) + [
+            'replaced_count' => $deletedCount,
+            'replaced_existing' => $deletedCount > 0,
+        ];
     }
 
     public function deleteFile(string $fileId): void
@@ -153,6 +203,70 @@ class GoogleDriveFileService implements GoogleDriveFileServiceInterface
         return $resolvedFolderId;
     }
 
+    private function uploadBytes(
+        string $bytes,
+        string $name,
+        string $mimeType,
+        bool $makePublic,
+        ?string $folderId,
+    ): array {
+        $drive = $this->clientFactory->makeAuthorizedDrive();
+        $targetFolderId = $this->resolveUploadFolderId($folderId);
+        $finalName = trim($name);
+
+        if ($finalName === '') {
+            throw new RuntimeException('Google Drive file name is required.');
+        }
+
+        $resolvedMimeType = trim($mimeType) !== '' ? trim($mimeType) : 'application/octet-stream';
+        $shouldMakePublic = $makePublic || $this->settings->defaultMakePublic();
+
+        $driveFile = new DriveFile([
+            'name' => $finalName,
+            'parents' => [$targetFolderId],
+            'mimeType' => $resolvedMimeType,
+        ]);
+
+        $created = $drive->files->create($driveFile, [
+            'data' => $bytes,
+            'mimeType' => $resolvedMimeType,
+            'uploadType' => 'multipart',
+            'fields' => 'id,name,mimeType,size,webViewLink,webContentLink,createdTime,parents',
+            'supportsAllDrives' => true,
+        ]);
+
+        if ($shouldMakePublic) {
+            $this->makeFilePublic($drive, (string) $created->id);
+        }
+
+        return $this->fileMetadataBuilder->build($created, $targetFolderId, $shouldMakePublic);
+    }
+
+    /**
+     * @return array<int, object>
+     */
+    private function findFilesByName(string $name, string $folderId): array
+    {
+        $drive = $this->clientFactory->makeAuthorizedDrive();
+        $query = sprintf(
+            "'%s' in parents and trashed = false and name = '%s'",
+            $this->escapeQueryValue($folderId),
+            $this->escapeQueryValue($name),
+        );
+
+        $response = $drive->files->listFiles([
+            'q' => $query,
+            'pageSize' => 25,
+            'fields' => 'files(id,name,parents)',
+            'supportsAllDrives' => true,
+            'includeItemsFromAllDrives' => true,
+        ]);
+
+        return method_exists($response, 'getFiles')
+            ? ($response->getFiles() ?? [])
+            : (array) ($response->files ?? []);
+    }
+
     private function safeFileName(UploadedFile $file): string
     {
         $original = $file->getClientOriginalName();
@@ -165,6 +279,11 @@ class GoogleDriveFileService implements GoogleDriveFileServiceInterface
         $rand = bin2hex(random_bytes(4));
 
         return $ext ? "{$base}_{$stamp}_{$rand}.{$ext}" : "{$base}_{$stamp}_{$rand}";
+    }
+
+    private function escapeQueryValue(string $value): string
+    {
+        return str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
     }
 
     private function makeFilePublic(object $drive, string $fileId): void

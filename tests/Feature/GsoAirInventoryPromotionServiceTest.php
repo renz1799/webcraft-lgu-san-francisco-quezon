@@ -12,6 +12,7 @@ use App\Modules\GSO\Repositories\Eloquent\EloquentStockMovementRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentStockRepository;
 use App\Modules\GSO\Services\AssetComponentService;
 use App\Modules\GSO\Services\Air\AirInventoryPromotionService;
+use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemEventServiceInterface;
 use App\Modules\GSO\Support\Air\AirStatuses;
 use App\Modules\GSO\Support\InventoryConditions;
@@ -82,10 +83,10 @@ class GsoAirInventoryPromotionServiceTest extends TestCase
         $driveFolders = Mockery::mock(GoogleDriveFolderServiceInterface::class);
         $driveFolders->shouldReceive('ensureFolder')
             ->once()
-            ->with('PO-2026-001', 'gso-inventory-root')
+            ->with(Mockery::pattern('/^2026-ICT-PPE-00001$/'), 'gso-inventory-root')
             ->andReturn([
                 'drive_folder_id' => 'inventory-drive-folder-1',
-                'name' => 'PO-2026-001',
+                'name' => '2026-ICT-PPE-00001',
                 'created' => true,
                 'parent_id' => 'gso-inventory-root',
             ]);
@@ -110,6 +111,7 @@ class GsoAirInventoryPromotionServiceTest extends TestCase
             $audit,
             $driveFolders,
             $driveFiles,
+            $this->mockStorageSettings(),
         );
 
         $eligibility = $service->getEligibility('air-1');
@@ -226,6 +228,7 @@ class GsoAirInventoryPromotionServiceTest extends TestCase
             $audit,
             $driveFolders,
             $driveFiles,
+            $this->mockStorageSettings(),
         );
 
         $this->expectException(ValidationException::class);
@@ -772,5 +775,14 @@ class GsoAirInventoryPromotionServiceTest extends TestCase
             $table->timestamps();
             $table->softDeletes();
         });
+    }
+
+    private function mockStorageSettings(): GsoStorageSettingsServiceInterface
+    {
+        $storageSettings = Mockery::mock(GsoStorageSettingsServiceInterface::class);
+        $storageSettings->shouldReceive('inventoryFilesFolderId')
+            ->andReturn('gso-inventory-root');
+
+        return $storageSettings;
     }
 }

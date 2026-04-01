@@ -10,6 +10,7 @@ use App\Modules\GSO\Models\AirFile;
 use App\Modules\GSO\Repositories\Contracts\AirFileRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\AirRepositoryInterface;
 use App\Modules\GSO\Services\Contracts\Air\AirFileServiceInterface;
+use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use App\Modules\GSO\Support\Air\AirStatuses;
 use App\Modules\GSO\Support\InventoryFileTypes;
 use Illuminate\Http\UploadedFile;
@@ -27,6 +28,7 @@ class AirFileService implements AirFileServiceInterface
         private readonly AuditLogServiceInterface $auditLogs,
         private readonly GoogleDriveFolderServiceInterface $driveFolders,
         private readonly GoogleDriveFileServiceInterface $driveFiles,
+        private readonly GsoStorageSettingsServiceInterface $storageSettings,
     ) {}
 
     public function listForAir(string $airId): array
@@ -316,10 +318,7 @@ class AirFileService implements AirFileServiceInterface
             return $existingFolderId;
         }
 
-        $baseFolderId = trim((string) config(
-            'gso.storage.air_files_folder_id',
-            config('services.google_drive.folder_id', '')
-        ));
+        $baseFolderId = trim((string) ($this->storageSettings->airFilesFolderId() ?? ''));
 
         if ($baseFolderId === '') {
             throw new RuntimeException('GSO AIR file folder is not configured.');

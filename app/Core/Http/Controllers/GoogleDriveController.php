@@ -4,6 +4,7 @@ namespace App\Core\Http\Controllers;
 
 use App\Core\Http\Requests\Drive\ConnectDriveRequest;
 use App\Core\Http\Requests\Drive\DisconnectDriveRequest;
+use App\Core\Http\Requests\Drive\UpdateDriveStorageSettingsRequest;
 use App\Core\Http\Requests\Drive\UploadDriveFileRequest;
 use App\Core\Models\GoogleToken;
 use App\Core\Models\Module;
@@ -11,6 +12,7 @@ use App\Core\Models\User;
 use App\Core\Services\Contracts\Access\ModuleDepartmentResolverInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveConnectionServiceInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveFileServiceInterface;
+use App\Core\Services\Contracts\GoogleDrive\GoogleDriveModuleStorageSettingsServiceInterface;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,12 +26,21 @@ class GoogleDriveController extends Controller
         private readonly GoogleDriveConnectionServiceInterface $connection,
         private readonly GoogleDriveFileServiceInterface $files,
         private readonly ModuleDepartmentResolverInterface $moduleDepartments,
+        private readonly GoogleDriveModuleStorageSettingsServiceInterface $moduleStorageSettings,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $activeTab = trim((string) $request->query('tab', 'connections'));
+
+        if (! in_array($activeTab, ['connections', 'storage'], true)) {
+            $activeTab = 'connections';
+        }
+
         return view('drive.index', [
+            'activeTab' => $activeTab,
             'contexts' => $this->integrationContexts(),
+            'storageContexts' => $this->moduleStorageSettings->contexts(),
         ]);
     }
 
@@ -117,6 +128,21 @@ class GoogleDriveController extends Controller
         );
 
         return back()->with('uploaded', $meta);
+    }
+
+    public function updateStorage(UpdateDriveStorageSettingsRequest $request): RedirectResponse
+    {
+        $moduleId = (string) $request->validated('module_id');
+        $storage = (array) $request->validated('storage');
+
+        $updated = $this->moduleStorageSettings->updateModuleSettings($moduleId, $storage);
+        $module = Module::query()->findOrFail($moduleId);
+
+        return redirect()
+            ->route('drive.index', ['tab' => 'storage'])
+            ->with('status', $updated === []
+                ? "Google Drive storage roots cleared for {$module->name}. Config fallback will apply where available."
+                : "Google Drive storage roots saved for {$module->name}.");
     }
 
     public function preview(Request $request, string $fileId): Response

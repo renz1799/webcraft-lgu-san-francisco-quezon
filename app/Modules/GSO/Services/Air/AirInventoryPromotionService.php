@@ -22,6 +22,7 @@ use App\Modules\GSO\Repositories\Contracts\StockMovementRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\StockRepositoryInterface;
 use App\Modules\GSO\Services\AssetComponentService;
 use App\Modules\GSO\Services\Contracts\Air\AirInventoryPromotionServiceInterface;
+use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemEventServiceInterface;
 use App\Modules\GSO\Support\Air\AirStatuses;
 use App\Modules\GSO\Support\InventoryConditions;
@@ -49,6 +50,7 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
         private readonly AuditLogServiceInterface $auditLogs,
         private readonly GoogleDriveFolderServiceInterface $driveFolders,
         private readonly GoogleDriveFileServiceInterface $driveFiles,
+        private readonly GsoStorageSettingsServiceInterface $storageSettings,
     ) {}
 
     public function getEligibility(string $airId): array
@@ -134,6 +136,7 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
             $copiedFiles = 0;
             $copiedComponents = 0;
             $createdInventoryItemIds = [];
+            $propertyCreatedDetails = [];
 
             foreach ($unitsToPromote as $unit) {
                 $promotion = $this->promotePropertyUnit(
@@ -150,12 +153,20 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
 
                 $propertyCreated++;
                 $createdInventoryItemIds[] = (string) $inventoryItem->id;
-                $copiedComponents += (int) ($promotion['components_copied'] ?? 0);
-                $copiedFiles += $this->copyUnitFilesToInventoryItem($unit, $inventoryItem);
+                $copiedComponentsForUnit = (int) ($promotion['components_copied'] ?? 0);
+                $copiedFilesForUnit = $this->copyUnitFilesToInventoryItem($unit, $inventoryItem);
+                $copiedComponents += $copiedComponentsForUnit;
+                $copiedFiles += $copiedFilesForUnit;
+                $propertyCreatedDetails[] = $this->serializePromotedPropertyResult(
+                    unit: $unit,
+                    inventoryItem: $inventoryItem,
+                    copiedFiles: $copiedFilesForUnit,
+                    copiedComponents: $copiedComponentsForUnit,
+                );
             }
 
             $propertySkipped = max(0, $eligiblePropertyUnits->count() - $unitsToPromote->count());
-            [$consumablePosted, $consumableSkipped] = $this->promoteConsumables(
+            [$consumablePosted, $consumableSkipped, $consumablePostedDetails] = $this->promoteConsumables(
                 actorUserId: $actorUserId,
                 actorName: $actorName,
                 air: $air,
@@ -170,13 +181,25 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
                 'inventory_item_ids' => $createdInventoryItemIds,
                 'copied_files' => $copiedFiles,
                 'components_copied' => $copiedComponents,
+                'property_created_details' => $propertyCreatedDetails,
+                'consumable_posted_details' => $consumablePostedDetails,
+            ];
+
+            $auditSummary = [
+                'property_created' => $propertyCreated,
+                'property_skipped' => $propertySkipped,
+                'consumable_posted' => $consumablePosted,
+                'consumable_skipped' => $consumableSkipped,
+                'inventory_item_ids' => $createdInventoryItemIds,
+                'copied_files' => $copiedFiles,
+                'components_copied' => $copiedComponents,
             ];
 
             $this->auditLogs->record(
                 action: 'gso.air.inventory.promoted',
                 subject: $air,
                 changesOld: [],
-                changesNew: $result,
+                changesNew: $auditSummary,
                 meta: [
                     'actor_user_id' => $actorUserId,
                     'selected_air_item_unit_ids' => $selectedIds->all(),
@@ -291,7 +314,7 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
     }
 
     /**
-     * @return array{0:int,1:int}
+     * @return array{0:int,1:int,2:array<int,array<string,mixed>>}
      */
     private function promoteConsumables(
         string $actorUserId,
@@ -301,6 +324,7 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
     ): array {
         $posted = 0;
         $skipped = 0;
+        $postedDetails = [];
         $occurredAt = ($air->date_inspected ?? $air->air_date ?? now())->copy()->endOfDay();
         $createdByName = $this->nullableString($actorName) ?? $actorUserId;
 
@@ -377,9 +401,10 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
             ]);
 
             $posted++;
+            $postedDetails[] = $this->serializeConsumablePromotionResult($airItem, $conversion);
         }
 
-        return [$posted, $skipped];
+        return [$posted, $skipped, $postedDetails];
     }
 
     private function findPromotableAir(string $airId): Air
@@ -572,10 +597,14 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
             'item_label' => $airItem instanceof AirItem ? $this->airItemLabel($airItem) : 'AIR Item',
             'unit_label' => $this->unitLabel($unit),
             'stock_no' => $this->nullableString($airItem?->stock_no_snapshot),
+            'description' => $this->nullableString($airItem?->description_snapshot),
             'serial_number' => $this->nullableString($unit->serial_number),
             'property_number' => $this->nullableString($unit->property_number),
+            'brand' => $this->nullableString($unit->brand),
+            'model' => $this->nullableString($unit->model),
             'condition_status' => $this->nullableString($unit->condition_status),
             'condition_status_text' => InventoryConditions::labels()[(string) ($unit->condition_status ?? '')] ?? 'Unknown',
+            'condition_notes' => $this->nullableString($unit->condition_notes),
             'file_count' => $unit->relationLoaded('files') ? $unit->files->count() : 0,
             'classification' => $isIcs ? 'ICS' : 'PPE',
             'is_ics' => $isIcs,
@@ -628,6 +657,7 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
             'item_id' => (string) ($item?->id ?? ''),
             'item_label' => $this->airItemLabel($airItem),
             'stock_no' => $this->nullableString($airItem->stock_no_snapshot),
+            'description' => $this->nullableString($airItem->description_snapshot),
             'qty_accepted' => $qtyAccepted,
             'unit_snapshot' => $this->nullableString($airItem->unit_snapshot),
             'base_qty' => (int) ($conversion['base_qty'] ?? 0),
@@ -820,22 +850,19 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
             return $existingFolderId;
         }
 
-        $baseFolderId = trim((string) config(
-            'gso.storage.inventory_files_folder_id',
-            config('services.google_drive.folder_id', '')
-        ));
+        $baseFolderId = trim((string) ($this->storageSettings->inventoryFilesFolderId() ?? ''));
 
         if ($baseFolderId === '') {
             throw new \RuntimeException('GSO inventory files folder is not configured.');
         }
 
-        $folderName = $this->nullableString($inventoryItem->po_number)
+        $folderName = $this->nullableString($inventoryItem->property_number)
             ?? $fallbackName
-            ?? $this->nullableString($inventoryItem->property_number);
+            ?? $this->nullableString($inventoryItem->po_number);
 
         if ($folderName === null) {
             throw ValidationException::withMessages([
-                'po_number' => ['PO number or property number is required before copying inventory files.'],
+                'property_number' => ['Property number or reference is required before copying inventory files.'],
             ]);
         }
 
@@ -1016,6 +1043,60 @@ class AirInventoryPromotionService implements AirInventoryPromotionServiceInterf
         return $serial
             ?? $property
             ?? ($brand && $model ? "{$brand} {$model}" : ($brand ?? $model ?? 'Inspection Unit'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializePromotedPropertyResult(
+        AirItemUnit $unit,
+        InventoryItem $inventoryItem,
+        int $copiedFiles,
+        int $copiedComponents,
+    ): array {
+        $airItem = $unit->airItem;
+
+        return [
+            'inventory_item_id' => (string) $inventoryItem->id,
+            'air_item_unit_id' => (string) $unit->id,
+            'item_label' => $airItem instanceof AirItem ? $this->airItemLabel($airItem) : 'AIR Item',
+            'unit_label' => $this->unitLabel($unit),
+            'classification' => (bool) ($inventoryItem->is_ics ?? false) ? 'ICS' : 'PPE',
+            'property_number' => $this->nullableString($inventoryItem->property_number),
+            'stock_no' => $this->nullableString($airItem?->stock_no_snapshot),
+            'description' => $this->nullableString($inventoryItem->description)
+                ?? $this->nullableString($airItem?->description_snapshot),
+            'serial_number' => $this->nullableString($inventoryItem->serial_number)
+                ?? $this->nullableString($unit->serial_number),
+            'brand' => $this->nullableString($inventoryItem->brand)
+                ?? $this->nullableString($unit->brand),
+            'model' => $this->nullableString($inventoryItem->model)
+                ?? $this->nullableString($unit->model),
+            'condition_status_text' => InventoryConditions::labels()[(string) ($unit->condition_status ?? '')] ?? 'Unknown',
+            'accountable_officer' => $this->nullableString($inventoryItem->accountable_officer),
+            'acquisition_cost' => $inventoryItem->acquisition_cost !== null ? (float) $inventoryItem->acquisition_cost : null,
+            'copied_files' => $copiedFiles,
+            'copied_components' => $copiedComponents,
+        ];
+    }
+
+    /**
+     * @param  array{input_unit:?string,base_unit:?string,multiplier:int,base_qty:int}  $conversion
+     * @return array<string, mixed>
+     */
+    private function serializeConsumablePromotionResult(AirItem $airItem, array $conversion): array
+    {
+        return [
+            'air_item_id' => (string) $airItem->id,
+            'item_label' => $this->airItemLabel($airItem),
+            'stock_no' => $this->nullableString($airItem->stock_no_snapshot),
+            'description' => $this->nullableString($airItem->description_snapshot),
+            'qty_accepted' => max(0, (int) ($airItem->qty_accepted ?? 0)),
+            'unit_snapshot' => $this->nullableString($airItem->unit_snapshot),
+            'base_qty' => (int) ($conversion['base_qty'] ?? 0),
+            'base_unit' => $this->nullableString($conversion['base_unit'] ?? null),
+            'multiplier' => (int) ($conversion['multiplier'] ?? 1),
+        ];
     }
 
     /**

@@ -171,6 +171,11 @@ import "sweetalert2/dist/sweetalert2.min.css";
     let activeUnitId = null;
     let inspectionBaseline = null;
     let inspectionGuardState = null;
+    let promotionState = {
+      hasEligibleTargets: null,
+      isLoading: false,
+      targetCount: 0,
+    };
     let unitRowsBaseline = [];
     let activeTabletTab = "receiving";
 
@@ -236,6 +241,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
       isFinalizing: false,
       defaultSaveLabel: saveButton?.textContent?.trim() || "Save Inspection",
       defaultFinalizeLabel: finalizeButton?.textContent?.trim() || "Finalize",
+      defaultPromoteLabel: promoteButton?.textContent?.trim() || "Promote to Inventory",
     };
     const unitToolbarState = {
       dirtyCount: 0,
@@ -256,6 +262,139 @@ import "sweetalert2/dist/sweetalert2.min.css";
         !!config.canPromoteInventory &&
         String(state.air?.status || "") === "inspected"
       );
+    }
+
+    function getTodayDateString() {
+      const now = new Date();
+      const timezoneOffset = now.getTimezoneOffset() * 60 * 1000;
+
+      return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10);
+    }
+
+    function collectInspectionProgress() {
+      const unresolvedItems = (state.items || []).filter((item) => {
+        const ordered = Math.max(0, Number(item?.qty_ordered || 0));
+        const accepted = Math.max(0, Number(item?.qty_accepted || 0));
+
+        return accepted < ordered;
+      });
+      const needsFollowUp = unresolvedItems.length > 0;
+      const singleItemIncomplete =
+        (state.items || []).length === 1 && unresolvedItems.length > 0;
+
+      return {
+        unresolvedItems,
+        needsFollowUp,
+        singleItemIncomplete,
+        expectedCompleteness: needsFollowUp ? "partial" : "complete",
+      };
+    }
+
+    function getAutoReceivedCompleteness() {
+      return collectInspectionProgress().expectedCompleteness;
+    }
+
+    function getDefaultedDateValue(value) {
+      const normalized = normalizeText(value || "");
+
+      if (normalized !== "") {
+        return normalized;
+      }
+
+      return canEdit() ? getTodayDateString() : "";
+    }
+
+    function hasPromotionTargets(eligibility) {
+      const propertyUnits = Array.isArray(eligibility?.property_units)
+        ? eligibility.property_units
+        : [];
+      const blockedPropertyUnits = Array.isArray(eligibility?.blocked_property_units)
+        ? eligibility.blocked_property_units
+        : [];
+      const consumables = Array.isArray(eligibility?.consumables)
+        ? eligibility.consumables
+        : [];
+
+      return (
+        propertyUnits.length > 0 ||
+        blockedPropertyUnits.length > 0 ||
+        consumables.length > 0
+      );
+    }
+
+    function getPromotionTargetCount(eligibility) {
+      const propertyUnits = Array.isArray(eligibility?.property_units)
+        ? eligibility.property_units
+        : [];
+      const consumables = Array.isArray(eligibility?.consumables)
+        ? eligibility.consumables
+        : [];
+
+      return propertyUnits.length + consumables.length;
+    }
+
+    function syncPromoteButtonState() {
+      if (!promoteButton) return;
+
+      const shouldShow =
+        canPromote() && promotionState.hasEligibleTargets === true;
+
+      promoteButton.textContent =
+        shouldShow && promotionState.targetCount > 0
+          ? `${inspectionToolbarState.defaultPromoteLabel} (${promotionState.targetCount})`
+          : inspectionToolbarState.defaultPromoteLabel;
+      promoteButton.hidden = !shouldShow;
+      promoteButton.classList.toggle("hidden", !shouldShow);
+      promoteButton.style.display = shouldShow ? "" : "none";
+      promoteButton.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+      promoteButton.disabled = !shouldShow || promotionState.isLoading;
+    }
+
+    async function refreshPromotionEligibility(options = {}) {
+      const { force = false } = options;
+
+      if (!promoteButton) {
+        return false;
+      }
+
+      if (!canPromote()) {
+        promotionState.hasEligibleTargets = false;
+        promotionState.isLoading = false;
+        promotionState.targetCount = 0;
+        syncPromoteButtonState();
+        return false;
+      }
+
+      if (promotionState.isLoading) {
+        return promotionState.hasEligibleTargets === true;
+      }
+
+      if (promotionState.hasEligibleTargets !== null && !force) {
+        syncPromoteButtonState();
+        return promotionState.hasEligibleTargets === true;
+      }
+
+      promotionState.isLoading = true;
+      syncPromoteButtonState();
+
+      try {
+        const parsed = await loadPromotionEligibility();
+        const eligibility = parsed.ok ? parsed.data?.data || {} : {};
+
+        promotionState.hasEligibleTargets =
+          parsed.ok && hasPromotionTargets(eligibility);
+        promotionState.targetCount =
+          parsed.ok ? getPromotionTargetCount(eligibility) : 0;
+
+        return promotionState.hasEligibleTargets === true;
+      } catch (error) {
+        promotionState.hasEligibleTargets = false;
+        promotionState.targetCount = 0;
+        return false;
+      } finally {
+        promotionState.isLoading = false;
+        syncPromoteButtonState();
+      }
     }
 
     function showFormError(message) {
@@ -312,9 +451,18 @@ import "sweetalert2/dist/sweetalert2.min.css";
 
     function syncHeaderInputs() {
       if (invoiceNumberInput) invoiceNumberInput.value = state.air?.invoice_number || "";
-      if (invoiceDateInput) invoiceDateInput.value = state.air?.invoice_date || "";
-      if (dateReceivedInput) dateReceivedInput.value = state.air?.date_received || "";
-      if (completenessSelect) completenessSelect.value = state.air?.received_completeness || "";
+      if (invoiceDateInput) {
+        invoiceDateInput.value = getDefaultedDateValue(state.air?.invoice_date || "");
+      }
+      if (dateReceivedInput) {
+        dateReceivedInput.value = getDefaultedDateValue(state.air?.date_received || "");
+      }
+      if (completenessSelect) {
+        completenessSelect.value = getAutoReceivedCompleteness();
+        completenessSelect.disabled = true;
+        completenessSelect.setAttribute("aria-disabled", "true");
+        completenessSelect.title = "Received Completeness is auto-detected from the accepted inspection quantities.";
+      }
       if (receivedNotesInput) receivedNotesInput.value = state.air?.received_notes || "";
     }
 
@@ -434,7 +582,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
         );
         unitCountText.textContent = String(totalUnits);
       }
-      if (promoteButton) promoteButton.disabled = !canPromote();
+      syncPromoteButtonState();
       refreshInspectionGuards();
       syncStickyOffsets();
     }
@@ -564,10 +712,19 @@ import "sweetalert2/dist/sweetalert2.min.css";
         air: { ...(payload?.air || state.air) },
         items: Array.isArray(payload?.items) ? payload.items : state.items,
       };
+      promotionState.hasEligibleTargets = null;
+      promotionState.isLoading = false;
+      promotionState.targetCount = 0;
 
       syncHeaderInputs();
       renderSummary();
       renderItems();
+
+      if (canPromote()) {
+        void refreshPromotionEligibility({ force: true });
+      } else {
+        syncPromoteButtonState();
+      }
     }
 
     function findItem(id) {
@@ -611,19 +768,13 @@ import "sweetalert2/dist/sweetalert2.min.css";
     }
 
     function getInspectionGuardState() {
-      const unresolvedItems = (state.items || []).filter((item) => {
-        const ordered = Math.max(0, Number(item?.qty_ordered || 0));
-        const accepted = Math.max(0, Number(item?.qty_accepted || 0));
-
-        return accepted < ordered;
-      });
-      const needsFollowUp = unresolvedItems.length > 0;
-      const singleItemIncomplete =
-        (state.items || []).length === 1 && unresolvedItems.length > 0;
-      const expectedCompleteness = needsFollowUp ? "partial" : "complete";
-      const completenessValue = normalizeText(
-        completenessSelect?.value || "",
-      ).toLowerCase();
+      const {
+        unresolvedItems,
+        needsFollowUp,
+        singleItemIncomplete,
+        expectedCompleteness,
+      } = collectInspectionProgress();
+      const completenessValue = expectedCompleteness;
       const missingFields = [];
 
       if (!normalizeText(invoiceNumberInput?.value || "")) {
@@ -635,12 +786,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
       if (!normalizeText(dateReceivedInput?.value || "")) {
         missingFields.push("Date Received");
       }
-      if (!normalizeText(completenessSelect?.value || "")) {
-        missingFields.push("Received Completeness");
-      }
-
-      const completenessMismatch =
-        completenessValue === "" || completenessValue !== expectedCompleteness;
+      const completenessMismatch = false;
       let finalizeReason = "";
 
       if (missingFields.length > 0) {
@@ -648,10 +794,6 @@ import "sweetalert2/dist/sweetalert2.min.css";
       } else if (singleItemIncomplete) {
         finalizeReason =
           "Single-item AIR inspections cannot be finalized until the ordered quantity is fully accepted.";
-      } else if (completenessMismatch) {
-        finalizeReason = needsFollowUp
-          ? "Finalize is locked because this AIR still has unresolved items. Set Received Completeness to Partial first."
-          : "Finalize is locked because all ordered items are fully accepted. Set Received Completeness to Complete first.";
       }
 
       return {
@@ -669,36 +811,26 @@ import "sweetalert2/dist/sweetalert2.min.css";
     function syncCompletenessControl(guardState) {
       if (!completenessSelect) return;
 
-      const completeOption = completenessSelect.querySelector('option[value="complete"]');
-      const partialOption = completenessSelect.querySelector('option[value="partial"]');
-
-      if (completeOption) {
-        completeOption.disabled = canEdit() && guardState.expectedCompleteness !== "complete";
-      }
-
-      if (partialOption) {
-        partialOption.disabled = canEdit() && guardState.expectedCompleteness !== "partial";
-      }
+      completenessSelect.value = guardState.expectedCompleteness;
+      completenessSelect.disabled = true;
+      completenessSelect.setAttribute("aria-disabled", "true");
 
       if (!completenessHint) return;
 
       if (guardState.singleItemIncomplete) {
-        completenessHint.textContent = guardState.completenessMismatch
-          ? "This AIR only has one delivered item. Save it as Partial if needed, but finalization stays locked until the full ordered quantity is accepted."
-          : "This AIR only has one delivered item. Finalization stays locked until the full ordered quantity is accepted.";
+        completenessHint.textContent =
+          "Received Completeness is auto-set to Partial while this AIR still has only one unresolved delivered item. Finalization stays locked until the full ordered quantity is accepted.";
         return;
       }
 
       if (guardState.needsFollowUp) {
-        completenessHint.textContent = guardState.completenessMismatch
-          ? "This AIR still has unresolved items. Change Received Completeness to Partial before saving or finalizing."
-          : "This AIR is correctly marked Partial. You can finalize it, then create a follow-up AIR for the remaining quantity.";
+        completenessHint.textContent =
+          "Received Completeness is auto-set to Partial because this AIR still has unresolved items. You can finalize it, then create a follow-up AIR for the remaining quantity.";
         return;
       }
 
-      completenessHint.textContent = guardState.completenessMismatch
-        ? "All ordered items are fully accepted. Change Received Completeness to Complete before saving or finalizing."
-        : "This AIR is correctly marked Complete because all ordered items are fully accepted.";
+      completenessHint.textContent =
+        "Received Completeness is auto-set to Complete because all ordered items are fully accepted.";
     }
 
     function syncFinalizeControl(guardState) {
@@ -786,7 +918,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
         invoice_number: normalizeText(invoiceNumberInput?.value || ""),
         invoice_date: normalizeText(invoiceDateInput?.value || ""),
         date_received: normalizeText(dateReceivedInput?.value || ""),
-        received_completeness: normalizeText(completenessSelect?.value || ""),
+        received_completeness: getAutoReceivedCompleteness(),
         received_notes: String(receivedNotesInput?.value || "").trim(),
         items: (state.items || []).map((item) => ({
           id: item.id,
@@ -810,6 +942,27 @@ import "sweetalert2/dist/sweetalert2.min.css";
           received_notes: payload.received_notes,
         },
         items: (payload.items || [])
+          .map((item) => ({
+            id: String(item?.id || ""),
+            description_snapshot: String(item?.description_snapshot || "").trim(),
+            qty_delivered: Math.max(0, Number(item?.qty_delivered || 0)),
+            qty_accepted: Math.max(0, Number(item?.qty_accepted || 0)),
+            remarks: String(item?.remarks || "").trim(),
+          }))
+          .sort((left, right) => left.id.localeCompare(right.id)),
+      };
+    }
+
+    function getPersistedInspectionSnapshot() {
+      return {
+        header: {
+          invoice_number: normalizeText(state.air?.invoice_number || ""),
+          invoice_date: normalizeText(state.air?.invoice_date || ""),
+          date_received: normalizeText(state.air?.date_received || ""),
+          received_completeness: normalizeText(state.air?.received_completeness || ""),
+          received_notes: String(state.air?.received_notes || "").trim(),
+        },
+        items: (state.items || [])
           .map((item) => ({
             id: String(item?.id || ""),
             description_snapshot: String(item?.description_snapshot || "").trim(),
@@ -873,7 +1026,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
     }
 
     function resetInspectionBaseline() {
-      inspectionBaseline = getInspectionSnapshot();
+      inspectionBaseline = getPersistedInspectionSnapshot();
       refreshInspectionDirtyCount();
     }
 
@@ -1190,6 +1343,219 @@ import "sweetalert2/dist/sweetalert2.min.css";
       return requestJson(config.promoteEligibleUrl, { method: "GET" });
     }
 
+    function pluralize(count, singular, plural = `${singular}s`) {
+      return Number(count || 0) === 1 ? singular : plural;
+    }
+
+    function buildPromotionMetricCard(label, value, tone = "default") {
+      const tones = {
+        default: {
+          border: "#dbeafe",
+          background: "#f8fbff",
+          label: "#64748b",
+          value: "#0f172a",
+        },
+        success: {
+          border: "#bbf7d0",
+          background: "#f0fdf4",
+          label: "#166534",
+          value: "#14532d",
+        },
+        warning: {
+          border: "#fde68a",
+          background: "#fffbeb",
+          label: "#92400e",
+          value: "#78350f",
+        },
+        danger: {
+          border: "#fecaca",
+          background: "#fef2f2",
+          label: "#b91c1c",
+          value: "#7f1d1d",
+        },
+      };
+      const palette = tones[tone] || tones.default;
+
+      return `
+        <div style="border:1px solid ${palette.border}; border-radius:14px; background:${palette.background}; padding:12px 14px;">
+          <div style="font-size:11px; letter-spacing:0.04em; text-transform:uppercase; color:${palette.label};">${escapeHtml(label)}</div>
+          <div style="margin-top:6px; font-size:22px; font-weight:700; color:${palette.value};">${escapeHtml(value)}</div>
+        </div>
+      `;
+    }
+
+    function buildPromotionFieldGrid(fields) {
+      const rows = fields
+        .filter((field) => normalizeText(field?.value || "") !== "")
+        .map(
+          (field) => `
+            <div style="min-width:0;">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.03em; color:#64748b;">${escapeHtml(field.label || "")}</div>
+              <div style="margin-top:3px; font-size:13px; line-height:1.35; color:#0f172a; word-break:break-word; font-weight:${field?.strong ? "600" : "500"};">${escapeHtml(field.value || "")}</div>
+            </div>
+          `,
+        )
+        .join("");
+
+      if (rows === "") {
+        return "";
+      }
+
+      return `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px 14px; margin-top:10px;">
+          ${rows}
+        </div>
+      `;
+    }
+
+    function buildPromotionPropertyCards(rows, options = {}) {
+      const { blocked = false, completed = false } = options;
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return "";
+      }
+
+      return rows
+        .map((row, index) => {
+          const description = normalizeText(row?.description || "");
+          const brandModel = [normalizeText(row?.brand || ""), normalizeText(row?.model || "")]
+            .filter(Boolean)
+            .join(" / ");
+          const propertyNumber =
+            normalizeText(row?.property_number || "") ||
+            (completed ? "" : "Auto-generated on promotion");
+          const chips = [
+            row?.classification ? `${row.classification} item` : "",
+            row?.file_count !== undefined
+              ? `${escapeHtml(row.file_count || 0)} ${pluralize(
+                  row?.file_count || 0,
+                  "image",
+                )}`
+              : "",
+            row?.component_count !== undefined
+              ? `${escapeHtml(row.component_count || 0)} ${pluralize(
+                  row?.component_count || 0,
+                  "component",
+                )}`
+              : "",
+            row?.copied_files !== undefined
+              ? `${escapeHtml(row.copied_files || 0)} ${pluralize(
+                  row?.copied_files || 0,
+                  "file",
+                )} copied`
+              : "",
+            row?.copied_components !== undefined
+              ? `${escapeHtml(row.copied_components || 0)} ${pluralize(
+                  row?.copied_components || 0,
+                  "component",
+                )} copied`
+              : "",
+          ]
+            .filter(Boolean)
+            .map(
+              (chip) => `
+                <span style="display:inline-flex; align-items:center; border:1px solid #dbeafe; border-radius:999px; padding:4px 9px; background:#f8fbff; font-size:11px; color:#1d4ed8; white-space:nowrap;">
+                  ${chip}
+                </span>
+              `,
+            )
+            .join("");
+
+          const statusNote = blocked
+            ? `<div style="margin-top:10px; border:1px solid #fecaca; border-radius:12px; background:#fef2f2; padding:10px 12px; font-size:12px; color:#991b1b;"><strong>Blocked:</strong> ${escapeHtml(row?.promotion_blocked_reason || "This unit cannot be promoted yet.")}</div>`
+            : normalizeText(row?.promotion_warning || "") !== ""
+              ? `<div style="margin-top:10px; border:1px solid #fde68a; border-radius:12px; background:#fffbeb; padding:10px 12px; font-size:12px; color:#92400e;"><strong>Check before promoting:</strong> ${escapeHtml(row?.promotion_warning || "")}</div>`
+              : "";
+
+          return `
+            <div style="border:1px solid ${blocked ? "#fecaca" : "#dbeafe"}; border-radius:16px; background:${blocked ? "#fff7f7" : "#ffffff"}; padding:14px 16px;">
+              <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:10px;">
+                <div>
+                  <div style="font-size:15px; font-weight:700; color:#0f172a;">${escapeHtml(row?.item_label || `Property Unit ${index + 1}`)}</div>
+                  <div style="margin-top:3px; font-size:12px; color:#64748b;">${escapeHtml(row?.unit_label || `Inspection Unit ${index + 1}`)}</div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end;">
+                  ${chips}
+                </div>
+              </div>
+              ${
+                description !== ""
+                  ? `<div style="margin-top:10px; font-size:12px; line-height:1.5; color:#334155;"><strong>Description:</strong> ${escapeHtml(description)}</div>`
+                  : ""
+              }
+              ${buildPromotionFieldGrid([
+                { label: "Property Number", value: propertyNumber, strong: true },
+                { label: "Stock No.", value: normalizeText(row?.stock_no || "") },
+                { label: "Serial Number", value: normalizeText(row?.serial_number || "") },
+                { label: "Brand / Model", value: brandModel },
+                { label: "Condition", value: normalizeText(row?.condition_status_text || "") },
+                {
+                  label: completed ? "Recorded Cost" : "Unit Cost",
+                  value:
+                    row?.acquisition_cost !== null && row?.acquisition_cost !== undefined
+                      ? `PHP ${formatCurrency(row.acquisition_cost)}`
+                      : "",
+                  strong: true,
+                },
+                { label: "Accountable Officer", value: normalizeText(row?.accountable_officer || "") },
+                { label: "Condition Notes", value: normalizeText(row?.condition_notes || "") },
+              ])}
+              ${statusNote}
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function buildPromotionConsumableCards(rows, options = {}) {
+      const { completed = false } = options;
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return "";
+      }
+
+      return rows
+        .map((row, index) => {
+          const description = normalizeText(row?.description || "");
+          const acceptedText =
+            normalizeText(row?.unit_snapshot || "") !== ""
+              ? `${escapeHtml(row?.qty_accepted || 0)} ${escapeHtml(row?.unit_snapshot || "")}`
+              : String(row?.qty_accepted || 0);
+          const stockText =
+            normalizeText(row?.base_unit || "") !== ""
+              ? `${escapeHtml(row?.base_qty || 0)} ${escapeHtml(row?.base_unit || "")}`
+              : String(row?.base_qty || 0);
+
+          return `
+            <div style="border:1px solid #dbeafe; border-radius:16px; background:#ffffff; padding:14px 16px;">
+              <div style="font-size:15px; font-weight:700; color:#0f172a;">${escapeHtml(row?.item_label || `Consumable ${index + 1}`)}</div>
+              ${
+                description !== ""
+                  ? `<div style="margin-top:4px; font-size:12px; line-height:1.5; color:#334155;"><strong>Description:</strong> ${escapeHtml(description)}</div>`
+                  : ""
+              }
+              ${buildPromotionFieldGrid([
+                { label: "Stock No.", value: normalizeText(row?.stock_no || "") },
+                {
+                  label: completed ? "Accepted Qty" : "Accepted Qty for Posting",
+                  value: acceptedText,
+                  strong: true,
+                },
+                { label: "Stock Ledger Qty", value: stockText, strong: true },
+                {
+                  label: "Conversion",
+                  value:
+                    Number(row?.multiplier || 1) > 1
+                      ? `1 ${normalizeText(row?.unit_snapshot || "unit")} = ${escapeHtml(row?.multiplier || 1)} ${escapeHtml(row?.base_unit || "base")}`
+                      : `1:1 (${escapeHtml(row?.base_unit || row?.unit_snapshot || "unit")})`,
+                },
+              ])}
+            </div>
+          `;
+        })
+        .join("");
+    }
+
     function buildPromotionSummaryHtml(eligibility) {
       const propertyUnits = Array.isArray(eligibility?.property_units)
         ? eligibility.property_units
@@ -1202,88 +1568,106 @@ import "sweetalert2/dist/sweetalert2.min.css";
         : [];
       const summary = eligibility?.summary || {};
 
-      const propertyPreview = propertyUnits
-        .slice(0, 4)
-        .map(
-          (row) =>
-            `<li>${escapeHtml(
-              row?.unit_label || row?.item_label || "Property unit",
-            )} <span class="text-[#8c9097]">(${escapeHtml(
-              row?.classification || "PPE",
-            )})</span></li>`,
-        )
-        .join("");
-      const blockedPreview = blockedPropertyUnits
-        .slice(0, 4)
-        .map(
-          (row) =>
-            `<li>${escapeHtml(
-              row?.unit_label || row?.item_label || "Blocked unit",
-            )} <span class="text-danger">${escapeHtml(
-              row?.promotion_blocked_reason || "Blocked from promotion",
-            )}</span></li>`,
-        )
-        .join("");
-      const warningPreview = propertyUnits
-        .filter((row) => normalizeText(row?.promotion_warning || "") !== "")
-        .slice(0, 4)
-        .map(
-          (row) =>
-            `<li>${escapeHtml(
-              row?.unit_label || row?.item_label || "Property unit",
-            )} <span class="text-warning">${escapeHtml(
-              row?.promotion_warning || "",
-            )}</span></li>`,
-        )
-        .join("");
-      const consumablePreview = consumables
-        .slice(0, 4)
-        .map(
-          (row) =>
-            `<li>${escapeHtml(row?.item_label || "Consumable line")} <span class="text-[#8c9097]">(${escapeHtml(
-              row?.qty_accepted || 0,
-            )} ${escapeHtml(
-              row?.unit_snapshot || row?.base_unit || "unit",
-            )})</span></li>`,
-        )
-        .join("");
+      return `
+        <div style="text-align:left;">
+          <div style="margin-bottom:14px; font-size:13px; color:#475569;">
+            Review every line below before promotion. Property items will create inventory records, while consumables will post incoming stock movements.
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:16px;">
+            ${buildPromotionMetricCard("Property Units Ready", summary.property_units_count || 0, "success")}
+            ${buildPromotionMetricCard("Blocked Units", summary.blocked_property_units_count || 0, blockedPropertyUnits.length > 0 ? "danger" : "default")}
+            ${buildPromotionMetricCard("Consumable Lines", summary.consumable_lines_count || 0, consumables.length > 0 ? "warning" : "default")}
+            ${buildPromotionMetricCard("Accepted Consumable Qty", summary.consumable_qty_accepted || 0, "default")}
+          </div>
+          <div style="max-height:56vh; overflow:auto; padding-right:6px;">
+            ${
+              propertyUnits.length > 0
+                ? `
+                  <div style="margin-bottom:16px;">
+                    <div style="margin-bottom:8px; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; color:#1d4ed8;">Ready Property Units</div>
+                    <div style="display:grid; gap:12px;">
+                      ${buildPromotionPropertyCards(propertyUnits)}
+                    </div>
+                  </div>
+                `
+                : ""
+            }
+            ${
+              blockedPropertyUnits.length > 0
+                ? `
+                  <div style="margin-bottom:16px;">
+                    <div style="margin-bottom:8px; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; color:#b91c1c;">Blocked Property Units</div>
+                    <div style="display:grid; gap:12px;">
+                      ${buildPromotionPropertyCards(blockedPropertyUnits, { blocked: true })}
+                    </div>
+                  </div>
+                `
+                : ""
+            }
+            ${
+              consumables.length > 0
+                ? `
+                  <div>
+                    <div style="margin-bottom:8px; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; color:#92400e;">Consumables to Post</div>
+                    <div style="display:grid; gap:12px;">
+                      ${buildPromotionConsumableCards(consumables)}
+                    </div>
+                  </div>
+                `
+                : ""
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    function buildPromotionResultHtml(result, message) {
+      const propertyDetails = Array.isArray(result?.property_created_details)
+        ? result.property_created_details
+        : [];
+      const consumableDetails = Array.isArray(result?.consumable_posted_details)
+        ? result.consumable_posted_details
+        : [];
 
       return `
-        <div class="text-left">
-          <div class="mb-3 rounded bg-light p-3 text-sm text-[#475569]">
-            <div><strong>Property units:</strong> ${escapeHtml(
-              summary.property_units_count || 0,
-            )}</div>
-            <div><strong>Blocked property units:</strong> ${escapeHtml(
-              summary.blocked_property_units_count || 0,
-            )}</div>
-            <div><strong>Consumable lines:</strong> ${escapeHtml(
-              summary.consumable_lines_count || 0,
-            )}</div>
-            <div><strong>Total accepted consumable qty:</strong> ${escapeHtml(
-              summary.consumable_qty_accepted || 0,
-            )}</div>
+        <div style="text-align:left;">
+          <div style="margin-bottom:14px; font-size:13px; color:#475569;">${escapeHtml(
+            message || "AIR promoted successfully.",
+          )}</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:16px;">
+            ${buildPromotionMetricCard("Property Created", result?.property_created || 0, "success")}
+            ${buildPromotionMetricCard("Property Skipped", result?.property_skipped || 0, result?.property_skipped > 0 ? "warning" : "default")}
+            ${buildPromotionMetricCard("Consumables Posted", result?.consumable_posted || 0, "warning")}
+            ${buildPromotionMetricCard("Consumables Skipped", result?.consumable_skipped || 0, result?.consumable_skipped > 0 ? "warning" : "default")}
+            ${buildPromotionMetricCard("Files Copied", result?.copied_files || 0, "default")}
+            ${buildPromotionMetricCard("Components Copied", result?.components_copied || 0, "default")}
           </div>
-          ${
-            propertyPreview
-              ? `<div class="mb-3"><div class="mb-1 text-xs uppercase tracking-wide text-[#8c9097]">Property Preview</div><ul class="pl-4 text-sm">${propertyPreview}</ul></div>`
-              : ""
-          }
-          ${
-            blockedPreview
-              ? `<div class="mb-3"><div class="mb-1 text-xs uppercase tracking-wide text-danger">Blocked Property Units</div><ul class="pl-4 text-sm">${blockedPreview}</ul></div>`
-              : ""
-          }
-          ${
-            warningPreview
-              ? `<div class="mb-3"><div class="mb-1 text-xs uppercase tracking-wide text-warning">Promotion Warnings</div><ul class="pl-4 text-sm">${warningPreview}</ul></div>`
-              : ""
-          }
-          ${
-            consumablePreview
-              ? `<div><div class="mb-1 text-xs uppercase tracking-wide text-[#8c9097]">Consumable Preview</div><ul class="pl-4 text-sm">${consumablePreview}</ul></div>`
-              : ""
-          }
+          <div style="max-height:56vh; overflow:auto; padding-right:6px;">
+            ${
+              propertyDetails.length > 0
+                ? `
+                  <div style="margin-bottom:16px;">
+                    <div style="margin-bottom:8px; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; color:#166534;">Created Property Records</div>
+                    <div style="display:grid; gap:12px;">
+                      ${buildPromotionPropertyCards(propertyDetails, { completed: true })}
+                    </div>
+                  </div>
+                `
+                : ""
+            }
+            ${
+              consumableDetails.length > 0
+                ? `
+                  <div>
+                    <div style="margin-bottom:8px; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; color:#92400e;">Posted Consumables</div>
+                    <div style="display:grid; gap:12px;">
+                      ${buildPromotionConsumableCards(consumableDetails, { completed: true })}
+                    </div>
+                  </div>
+                `
+                : ""
+            }
+          </div>
         </div>
       `;
     }
@@ -1336,7 +1720,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
             blockedPropertyUnits.length > 0
               ? buildPromotionSummaryHtml(eligibility)
               : "This AIR no longer has eligible property units or consumable lines to promote.",
-          width: blockedPropertyUnits.length > 0 ? 720 : undefined,
+          width: blockedPropertyUnits.length > 0 ? 920 : undefined,
         });
         return;
       }
@@ -1346,9 +1730,12 @@ import "sweetalert2/dist/sweetalert2.min.css";
         title: "Promote AIR to inventory?",
         html: buildPromotionSummaryHtml(eligibility),
         showCancelButton: true,
-        confirmButtonText: "Promote",
+        confirmButtonText:
+          propertyUnits.length + consumables.length > 0
+            ? `Promote (${propertyUnits.length + consumables.length})`
+            : "Promote",
         cancelButtonText: "Cancel",
-        width: 720,
+        width: 920,
       });
 
       if (!confirmation.isConfirmed) return;
@@ -1386,18 +1773,15 @@ import "sweetalert2/dist/sweetalert2.min.css";
         await Swal.fire({
           icon: "success",
           title: "Promotion complete",
-          html: `
-            <div class="text-left">
-              <p class="mb-3">${escapeHtml(parsed.message || "AIR promoted successfully.")}</p>
-              <div class="rounded bg-light p-3 text-sm text-[#475569]">
-                <div><strong>Property created:</strong> ${escapeHtml(result.property_created || 0)}</div>
-                <div><strong>Consumables posted:</strong> ${escapeHtml(result.consumable_posted || 0)}</div>
-                <div><strong>Copied files:</strong> ${escapeHtml(result.copied_files || 0)}</div>
-                <div><strong>Copied components:</strong> ${escapeHtml(result.components_copied || 0)}</div>
-              </div>
-            </div>
-          `,
+          html: buildPromotionResultHtml(
+            result,
+            parsed.message || "AIR promoted successfully.",
+          ),
+          width: 920,
         });
+        promotionState.hasEligibleTargets = null;
+        promotionState.targetCount = 0;
+        void refreshPromotionEligibility({ force: true });
       } catch (error) {
         Swal.close();
         const message =
@@ -1777,7 +2161,8 @@ import "sweetalert2/dist/sweetalert2.min.css";
                   <label class="mb-1 block text-xs text-[#8c9097]">Property Number</label>
                   <input type="text" class="ti-form-input w-full" data-field="property_number" data-key="${escapeHtml(
                     row.__key,
-                  )}" value="${escapeHtml(row.property_number || "")}" readonly disabled>
+                  )}" value="${escapeHtml(row.property_number || "")}" placeholder="Auto-generated when promoted to inventory" readonly aria-readonly="true">
+                  <p class="mt-1 text-[11px] text-[#8c9097]">Generated automatically once this AIR is promoted to inventory.</p>
                 </div>
                 <div>
                   <label class="mb-1 block text-xs text-[#8c9097]">Condition</label>
@@ -2713,5 +3098,10 @@ import "sweetalert2/dist/sweetalert2.min.css";
     resetInspectionBaseline();
     updateFileUploadButton();
     applyTabletLayout();
+    if (canPromote()) {
+      void refreshPromotionEligibility({ force: true });
+    } else {
+      syncPromoteButtonState();
+    }
   });
 })();

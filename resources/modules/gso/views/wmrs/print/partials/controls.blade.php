@@ -39,6 +39,7 @@
         'last_page_grid_rows' => $filters['last_page_grid_rows'] ?? null,
         'description_chars_per_line' => $filters['description_chars_per_line'] ?? null,
     ], fn ($value) => $value !== null && $value !== '');
+    $archiveDocumentNumber = trim((string) ($document['wmr_number'] ?? ''));
 @endphp
 
 <x-print.panel
@@ -53,6 +54,8 @@
                 WMR print preview is rendered from the saved report and follows the selected paper profile.
             </p>
         </div>
+
+        @include('gso::print.partials.archive-feedback', ['documentType' => 'WMR'])
 
         <form
             method="GET"
@@ -188,6 +191,14 @@
                         <i class="ri-file-pdf-line label-ti-btn-icon me-2"></i>
                         Download PDF
                     </a>
+
+                    @include('gso::print.partials.archive-action', [
+                        'documentType' => 'WMR',
+                        'documentNumber' => $archiveDocumentNumber,
+                        'archiveRoute' => 'gso.wmrs.print.archive',
+                        'routeParams' => ['wmr' => $wmr['id'] ?? ''],
+                        'pdfParams' => $pdfParams,
+                    ])
 
                     <a href="{{ route('gso.wmrs.print', ['wmr' => $wmr['id'] ?? '']) }}" class="core-print-sidebar__reset">
                         Reset

@@ -229,6 +229,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::patch('/ris/{ris}/restore', [RisController::class, 'restore'])->whereUuid('ris')->name('ris.restore');
             Route::get('/ris/{ris}/print', [RisPrintController::class, 'print'])->whereUuid('ris')->name('ris.print');
             Route::get('/ris/{ris}/print/pdf', [RisPrintController::class, 'downloadPdf'])->whereUuid('ris')->name('ris.print.pdf');
+            Route::get('/ris/{ris}/print/pdf/store', [RisPrintController::class, 'storePdf'])->whereUuid('ris')->name('ris.print.archive');
             Route::get('/ris/{ris}/items', [RisItemController::class, 'list'])->whereUuid('ris')->name('ris.items.list');
             Route::get('/ris/{ris}/items/suggest', [RisItemController::class, 'suggest'])->whereUuid('ris')->name('ris.items.suggest');
             Route::post('/ris/{ris}/items/add', [RisItemController::class, 'add'])->whereUuid('ris')->name('ris.items.add');
@@ -258,6 +259,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::delete('/pars/{par}/items/{parItem}', [ParItemController::class, 'destroy'])->whereUuid(['par', 'parItem'])->name('pars.items.destroy');
             Route::get('/pars/{par}/print', [ParPrintController::class, 'print'])->whereUuid('par')->name('pars.print');
             Route::get('/pars/{par}/print/pdf', [ParPrintController::class, 'downloadPdf'])->whereUuid('par')->name('pars.print.pdf');
+            Route::get('/pars/{par}/print/pdf/store', [ParPrintController::class, 'storePdf'])->whereUuid('par')->name('pars.print.archive');
             Route::get('/ics', [IcsController::class, 'index'])->name('ics.index');
             Route::get('/ics/data', [IcsController::class, 'data'])->name('ics.data');
             Route::post('/ics/create-draft', [IcsController::class, 'createDraft'])->name('ics.create-draft');
@@ -275,6 +277,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::delete('/ics/{ics}/items/{icsItem}', [IcsItemController::class, 'destroy'])->whereUuid(['ics', 'icsItem'])->name('ics.items.destroy');
             Route::get('/ics/{ics}/print', [IcsPrintController::class, 'print'])->whereUuid('ics')->name('ics.print');
             Route::get('/ics/{ics}/print/pdf', [IcsPrintController::class, 'downloadPdf'])->whereUuid('ics')->name('ics.print.pdf');
+            Route::get('/ics/{ics}/print/pdf/store', [IcsPrintController::class, 'storePdf'])->whereUuid('ics')->name('ics.print.archive');
             Route::get('/ptrs', [PtrController::class, 'index'])->name('ptrs.index');
             Route::get('/ptrs/data', [PtrController::class, 'data'])->name('ptrs.data');
             Route::post('/ptrs/create-draft', [PtrController::class, 'createDraft'])->name('ptrs.create-draft');
@@ -292,6 +295,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::delete('/ptrs/{ptr}/items/{ptrItem}', [PtrItemController::class, 'destroy'])->whereUuid(['ptr', 'ptrItem'])->name('ptrs.items.destroy');
             Route::get('/ptrs/{ptr}/print', [PtrPrintController::class, 'print'])->whereUuid('ptr')->name('ptrs.print');
             Route::get('/ptrs/{ptr}/print/pdf', [PtrPrintController::class, 'downloadPdf'])->whereUuid('ptr')->name('ptrs.print.pdf');
+            Route::get('/ptrs/{ptr}/print/pdf/store', [PtrPrintController::class, 'storePdf'])->whereUuid('ptr')->name('ptrs.print.archive');
             Route::get('/itrs', [ItrController::class, 'index'])->name('itrs.index');
             Route::get('/itrs/data', [ItrController::class, 'data'])->name('itrs.data');
             Route::post('/itrs/create-draft', [ItrController::class, 'createDraft'])->name('itrs.create-draft');
@@ -309,12 +313,14 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::delete('/itrs/{itr}/items/{itrItem}', [ItrItemController::class, 'destroy'])->whereUuid(['itr', 'itrItem'])->name('itrs.items.destroy');
             Route::get('/itrs/{itr}/print', [ItrPrintController::class, 'print'])->whereUuid('itr')->name('itrs.print');
             Route::get('/itrs/{itr}/print/pdf', [ItrPrintController::class, 'downloadPdf'])->whereUuid('itr')->name('itrs.print.pdf');
+            Route::get('/itrs/{itr}/print/pdf/store', [ItrPrintController::class, 'storePdf'])->whereUuid('itr')->name('itrs.print.archive');
             Route::get('/wmrs', [WmrController::class, 'index'])->name('wmrs.index');
             Route::get('/wmrs/data', [WmrController::class, 'data'])->name('wmrs.data');
             Route::post('/wmrs/create-draft', [WmrController::class, 'createDraft'])->name('wmrs.createDraft');
             Route::get('/wmrs/{wmr}/edit', [WmrController::class, 'edit'])->whereUuid('wmr')->name('wmrs.edit');
             Route::get('/wmrs/{wmr}/print', [WmrPrintController::class, 'print'])->whereUuid('wmr')->name('wmrs.print');
             Route::get('/wmrs/{wmr}/print/pdf', [WmrPrintController::class, 'downloadPdf'])->whereUuid('wmr')->name('wmrs.print.pdf');
+            Route::get('/wmrs/{wmr}/print/pdf/store', [WmrPrintController::class, 'storePdf'])->whereUuid('wmr')->name('wmrs.print.archive');
             Route::get('/wmrs/{wmr}/items/suggest', [WmrItemController::class, 'suggest'])->whereUuid('wmr')->name('wmrs.items.suggest');
             Route::get('/wmrs/{wmr}/items/list', [WmrItemController::class, 'list'])->whereUuid('wmr')->name('wmrs.items.list');
             Route::post('/wmrs/{wmr}/items', [WmrItemController::class, 'store'])->whereUuid('wmr')->name('wmrs.items.store');
@@ -348,6 +354,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::get('/air/{air}/inspect', [AirInspectionController::class, 'show'])->whereUuid('air')->name('air.inspect');
             Route::get('/air/{air}/print', [AirPrintController::class, 'preview'])->whereUuid('air')->name('air.print');
             Route::get('/air/{air}/print/pdf', [AirPrintController::class, 'downloadPdf'])->whereUuid('air')->name('air.print.pdf');
+            Route::get('/air/{air}/print/pdf/store', [AirPrintController::class, 'storePdf'])->whereUuid('air')->name('air.print.archive');
             Route::get('/air/{air}/files', [AirFileController::class, 'index'])->whereUuid('air')->name('air.files.index');
             Route::post('/air/{air}/files', [AirFileController::class, 'store'])->whereUuid('air')->name('air.files.store');
             Route::get('/air/{air}/files/{file}/preview', [AirFileController::class, 'preview'])->whereUuid(['air', 'file'])->name('air.files.preview');

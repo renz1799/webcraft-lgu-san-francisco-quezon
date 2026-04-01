@@ -257,6 +257,59 @@ import {
     return normalizeSnapshot(window.__gsoAirEdit?.persistedValues || {});
   }
 
+  function setPersistedHeaderSnapshot(snapshot = {}) {
+    const normalized = normalizeSnapshot(snapshot);
+
+    if (window.__gsoAirEdit) {
+      window.__gsoAirEdit.persistedValues = normalized;
+    }
+
+    return normalized;
+  }
+
+  function getResponseHeaderSnapshot(data = {}) {
+    return normalizeSnapshot({
+      po_number: data.po_number,
+      po_date: data.po_date,
+      air_number: data.air_number,
+      air_date: data.air_date,
+      invoice_number: data.invoice_number,
+      invoice_date: data.invoice_date,
+      supplier_name: data.supplier_name,
+      requesting_department_id: data.requesting_department_id,
+      fund_source_id: data.fund_source_id,
+      inspected_by_name: data.inspected_by_name,
+      accepted_by_name: data.accepted_by_name,
+      remarks: data.remarks,
+    });
+  }
+
+  function hydrateHeaderForm(snapshot = {}) {
+    const normalized = normalizeSnapshot(snapshot);
+    const fieldMap = {
+      po_number: "gsoAirPoNumber",
+      po_date: "gsoAirPoDate",
+      air_number: "gsoAirAirNumber",
+      air_date: "gsoAirAirDate",
+      invoice_number: "gsoAirInvoiceNumber",
+      invoice_date: "gsoAirInvoiceDate",
+      supplier_name: "gsoAirSupplierName",
+      requesting_department_id: "gsoAirDepartmentId",
+      fund_source_id: "gsoAirFundSourceId",
+      inspected_by_name: "gsoAirInspectedByName",
+      accepted_by_name: "gsoAirAcceptedByName",
+      remarks: "gsoAirRemarks",
+    };
+
+    Object.entries(fieldMap).forEach(([key, id]) => {
+      const element = qs(id);
+      if (!element) return;
+      element.value = normalized[key] ?? "";
+    });
+
+    return normalized;
+  }
+
   function updateToolbarButtons() {
     const config = window.__gsoAirEdit || {};
     const saveButton = qs("gsoAirSaveBtn");
@@ -381,7 +434,12 @@ import {
       return false;
     }
 
-    resetHeaderBaseline(getPersistedHeaderSnapshot());
+    const savedSnapshot = parsed?.data
+      ? getResponseHeaderSnapshot(parsed.data)
+      : readFormSnapshot();
+    const appliedSnapshot = hydrateHeaderForm(savedSnapshot);
+    setPersistedHeaderSnapshot(appliedSnapshot);
+    resetHeaderBaseline(appliedSnapshot);
     await reloadAirFiles();
 
     if (showSuccess) {

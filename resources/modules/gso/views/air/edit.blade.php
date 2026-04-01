@@ -222,9 +222,6 @@
                         @selected($selectedFundId === (string) $fund->id)
                       >
                         {{ $fund->name }}
-                        @if($fund->code)
-                          ({{ $fund->code }})
-                        @endif
                         @if($fund->deleted_at)
                           (Archived)
                         @endif

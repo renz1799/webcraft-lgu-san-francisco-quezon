@@ -46,6 +46,8 @@ integrations
 infrastructure
 standards
 
+Module-specific integration targets such as Google Drive storage roots must live in platform-managed settings (for example `app_settings`) instead of growing `.env` files for every module concern.
+
 Modules provide:
 
 workflows
@@ -573,6 +575,10 @@ Example:
 Different Google Drive per module
 Different email per module
 Different storage per module
+
+Module-specific storage roots should live in `app_settings`.
+
+Keep `.env` for shared integration credentials and platform fallbacks, not for a growing list of per-module Google Drive folder IDs.
 
 Integration storage should support:
 

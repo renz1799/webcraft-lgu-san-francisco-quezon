@@ -14,6 +14,7 @@ use App\Modules\GSO\Repositories\Contracts\AirItemUnitFileRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\AirItemUnitRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\AirRepositoryInterface;
 use App\Modules\GSO\Services\Contracts\Air\AirInspectionUnitFileServiceInterface;
+use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use App\Modules\GSO\Support\Air\AirStatuses;
 use App\Modules\GSO\Support\InventoryConditions;
 use App\Modules\GSO\Support\InventoryFileTypes;
@@ -34,6 +35,7 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
         private readonly AuditLogServiceInterface $auditLogs,
         private readonly GoogleDriveFolderServiceInterface $driveFolders,
         private readonly GoogleDriveFileServiceInterface $driveFiles,
+        private readonly GsoStorageSettingsServiceInterface $storageSettings,
     ) {}
 
     public function listForUnit(string $airId, string $airItemId, string $unitId): array
@@ -362,10 +364,7 @@ class AirInspectionUnitFileService implements AirInspectionUnitFileServiceInterf
             return $existingFolderId;
         }
 
-        $baseFolderId = trim((string) config(
-            'gso.storage.air_unit_files_folder_id',
-            config('services.google_drive.folder_id', '')
-        ));
+        $baseFolderId = trim((string) ($this->storageSettings->airUnitFilesFolderId() ?? ''));
 
         if ($baseFolderId === '') {
             throw new RuntimeException('GSO AIR unit file folder is not configured.');

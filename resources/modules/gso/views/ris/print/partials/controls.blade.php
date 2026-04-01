@@ -39,6 +39,7 @@
         'last_page_grid_rows' => $filters['last_page_grid_rows'] ?? null,
         'description_chars_per_line' => $filters['description_chars_per_line'] ?? null,
     ], fn ($value) => $value !== null && $value !== '');
+    $archiveDocumentNumber = trim((string) ($document['ris_no'] ?? ''));
 @endphp
 
 <x-print.panel
@@ -53,6 +54,8 @@
                 RIS print preview is rendered from the saved record and follows the selected paper profile.
             </p>
         </div>
+
+        @include('gso::print.partials.archive-feedback', ['documentType' => 'RIS'])
 
         <form
             method="GET"
@@ -249,6 +252,14 @@
                         <i class="ri-file-pdf-line label-ti-btn-icon me-2"></i>
                         Download PDF
                     </a>
+
+                    @include('gso::print.partials.archive-action', [
+                        'documentType' => 'RIS',
+                        'documentNumber' => $archiveDocumentNumber,
+                        'archiveRoute' => 'gso.ris.print.archive',
+                        'routeParams' => ['ris' => $ris['id'] ?? ''],
+                        'pdfParams' => $pdfParams,
+                    ])
 
                     <a href="{{ route('gso.ris.print', ['ris' => $ris['id'] ?? '']) }}" class="core-print-sidebar__reset">
                         Reset

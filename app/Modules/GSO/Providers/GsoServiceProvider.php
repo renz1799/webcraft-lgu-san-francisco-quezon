@@ -115,6 +115,8 @@ use App\Modules\GSO\Services\Contracts\AssetTypeServiceInterface;
 use App\Modules\GSO\Services\Contracts\DepartmentServiceInterface;
 use App\Modules\GSO\Services\Contracts\FundClusterServiceInterface;
 use App\Modules\GSO\Services\Contracts\FundSourceServiceInterface;
+use App\Modules\GSO\Services\Contracts\GsoSignedDocumentArchiveServiceInterface;
+use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use App\Modules\GSO\Services\Contracts\GsoDashboardServiceInterface;
 use App\Modules\GSO\Services\Contracts\InspectionPhotoServiceInterface;
 use App\Modules\GSO\Services\Contracts\InspectionServiceInterface;
@@ -182,6 +184,8 @@ use App\Modules\GSO\Services\DepartmentService;
 use App\Modules\GSO\Services\FundClusterService;
 use App\Modules\GSO\Services\FundSourceService;
 use App\Modules\GSO\Services\GsoDashboardService;
+use App\Modules\GSO\Services\GsoSignedDocumentArchiveService;
+use App\Modules\GSO\Services\GsoStorageSettingsService;
 use App\Modules\GSO\Services\InspectionPhotoService;
 use App\Modules\GSO\Services\InspectionService;
 use App\Modules\GSO\Services\InventoryItemCardPrintService;
@@ -357,6 +361,8 @@ class GsoServiceProvider extends ServiceProvider
     {
         $this->bindMany([
             GsoDashboardServiceInterface::class => GsoDashboardService::class,
+            GsoSignedDocumentArchiveServiceInterface::class => GsoSignedDocumentArchiveService::class,
+            GsoStorageSettingsServiceInterface::class => GsoStorageSettingsService::class,
 
             /* Asset Catalog */
             AssetTypeServiceInterface::class => AssetTypeService::class,

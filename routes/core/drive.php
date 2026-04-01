@@ -10,6 +10,7 @@ Route::middleware(['auth', 'password.changed', 'active_module'])->group(function
     Route::post('/drive/connect', [GoogleDriveController::class, 'connect'])->name('drive.connect');
     Route::get('/google/drive/callback', [GoogleDriveController::class, 'callback'])->name('drive.callback');
     Route::post('/drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('drive.disconnect');
+    Route::patch('/drive/storage', [GoogleDriveController::class, 'updateStorage'])->name('drive.storage.update');
     Route::post('/drive/upload', [GoogleDriveController::class, 'upload'])->name('drive.upload');
     Route::get('/drive/preview/{fileId}', [GoogleDriveController::class, 'preview'])
         ->name('drive.preview');

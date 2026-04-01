@@ -11,6 +11,7 @@ use App\Modules\GSO\Models\InventoryItemFile;
 use App\Modules\GSO\Repositories\Contracts\InspectionRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\InventoryItemFileRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\InventoryItemRepositoryInterface;
+use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemEventServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemFileServiceInterface;
 use App\Modules\GSO\Support\InventoryEventTypes;
@@ -32,6 +33,7 @@ class InventoryItemFileService implements InventoryItemFileServiceInterface
         private readonly AuditLogServiceInterface $auditLogs,
         private readonly GoogleDriveFolderServiceInterface $driveFolders,
         private readonly GoogleDriveFileServiceInterface $driveFiles,
+        private readonly GsoStorageSettingsServiceInterface $storageSettings,
     ) {}
 
     public function listForInventoryItem(string $inventoryItemId): array
@@ -355,22 +357,19 @@ class InventoryItemFileService implements InventoryItemFileServiceInterface
             return $existingFolderId;
         }
 
-        $baseFolderId = trim((string) config(
-            'gso.storage.inventory_files_folder_id',
-            config('services.google_drive.folder_id', '')
-        ));
+        $baseFolderId = trim((string) ($this->storageSettings->inventoryFilesFolderId() ?? ''));
 
         if ($baseFolderId === '') {
             throw new RuntimeException('GSO inventory files folder is not configured.');
         }
 
-        $folderName = $this->nullableString($inventoryItem->po_number)
+        $folderName = $this->nullableString($inventoryItem->property_number)
             ?? $this->nullableString($fallbackName)
-            ?? $this->nullableString($inventoryItem->property_number);
+            ?? $this->nullableString($inventoryItem->po_number);
 
         if ($folderName === null) {
             throw ValidationException::withMessages([
-                'po_number' => ['PO number or reference is required before uploading inventory files.'],
+                'property_number' => ['Property number or reference is required before uploading inventory files.'],
             ]);
         }
 

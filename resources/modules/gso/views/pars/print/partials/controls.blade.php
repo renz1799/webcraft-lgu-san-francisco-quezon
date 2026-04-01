@@ -39,6 +39,7 @@
         'last_page_grid_rows' => $filters['last_page_grid_rows'] ?? null,
         'description_chars_per_line' => $filters['description_chars_per_line'] ?? null,
     ], fn ($value) => $value !== null && $value !== '');
+    $archiveDocumentNumber = trim((string) ($document['par_number'] ?? ''));
 @endphp
 
 <x-print.panel
@@ -53,6 +54,8 @@
                 PAR print preview is rendered from the saved record and follows the selected paper profile.
             </p>
         </div>
+
+        @include('gso::print.partials.archive-feedback', ['documentType' => 'PAR'])
 
         <form
             method="GET"
@@ -249,6 +252,14 @@
                         <i class="ri-file-pdf-line label-ti-btn-icon me-2"></i>
                         Download PDF
                     </a>
+
+                    @include('gso::print.partials.archive-action', [
+                        'documentType' => 'PAR',
+                        'documentNumber' => $archiveDocumentNumber,
+                        'archiveRoute' => 'gso.pars.print.archive',
+                        'routeParams' => ['par' => $par['id'] ?? ''],
+                        'pdfParams' => $pdfParams,
+                    ])
 
                     <a href="{{ route('gso.pars.print', ['par' => $par['id'] ?? '']) }}" class="core-print-sidebar__reset">
                         Reset

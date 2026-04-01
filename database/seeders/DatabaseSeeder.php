@@ -7,6 +7,7 @@ use Database\Seeders\Modules\GSO\AssetTypeSeeder;
 use Database\Seeders\Modules\GSO\AssetCategorySeeder;
 use Database\Seeders\Modules\GSO\FundClusterSeeder;
 use Database\Seeders\Modules\GSO\FundSourceSeeder;
+use Database\Seeders\Modules\GSO\GsoStorageSettingsSeeder;
 use Database\Seeders\Modules\GSO\ItemSeeder;
 use Database\Seeders\Modules\GSO\AirWithItemsSeeder;
 use Database\Seeders\Modules\GSO\AirRisPrintTestSeeder;
@@ -33,6 +34,7 @@ class DatabaseSeeder extends Seeder
         $this->call(AssetCategorySeeder::class);
         $this->call(FundClusterSeeder::class);
         $this->call(FundSourceSeeder::class);
+        $this->call(GsoStorageSettingsSeeder::class);
       $this->call(ItemSeeder::class);
        $this->call(AirWithItemsSeeder::class);
        $this->call(AirRisPrintTestSeeder::class);

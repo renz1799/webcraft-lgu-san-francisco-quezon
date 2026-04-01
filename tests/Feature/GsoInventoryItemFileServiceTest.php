@@ -10,6 +10,7 @@ use App\Modules\GSO\Repositories\Contracts\InspectionRepositoryInterface;
 use App\Modules\GSO\Repositories\Eloquent\EloquentInspectionRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentInventoryItemFileRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentInventoryItemRepository;
+use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use App\Modules\GSO\Services\Contracts\InventoryItemEventServiceInterface;
 use App\Modules\GSO\Services\InventoryItemFileService;
 use App\Modules\GSO\Support\InventoryConditions;
@@ -100,10 +101,10 @@ class GsoInventoryItemFileServiceTest extends TestCase
         $driveFolders = Mockery::mock(GoogleDriveFolderServiceInterface::class);
         $driveFolders->shouldReceive('ensureFolder')
             ->once()
-            ->with('PO-001', 'gso-inventory-root')
+            ->with('PROP-001', 'gso-inventory-root')
             ->andReturn([
                 'drive_folder_id' => 'drive-folder-1',
-                'name' => 'PO-001',
+                'name' => 'PROP-001',
                 'created' => true,
                 'parent_id' => 'gso-inventory-root',
             ]);
@@ -138,6 +139,7 @@ class GsoInventoryItemFileServiceTest extends TestCase
             $audit,
             $driveFolders,
             $driveFiles,
+            $this->mockStorageSettings(),
         );
 
         $uploaded = $service->upload('actor-1', 'inventory-1', [
@@ -308,10 +310,10 @@ class GsoInventoryItemFileServiceTest extends TestCase
         $driveFolders = Mockery::mock(GoogleDriveFolderServiceInterface::class);
         $driveFolders->shouldReceive('ensureFolder')
             ->once()
-            ->with('PO-200', 'gso-inventory-root')
+            ->with('PROP-100', 'gso-inventory-root')
             ->andReturn([
                 'drive_folder_id' => 'drive-folder-import',
-                'name' => 'PO-200',
+                'name' => 'PROP-100',
                 'created' => true,
                 'parent_id' => 'gso-inventory-root',
             ]);
@@ -334,6 +336,7 @@ class GsoInventoryItemFileServiceTest extends TestCase
             $audit,
             $driveFolders,
             $driveFiles,
+            $this->mockStorageSettings(),
         );
 
         $payload = $service->importInspectionPhotos('actor-1', 'inventory-1', 'inspection-1');
@@ -499,5 +502,14 @@ class GsoInventoryItemFileServiceTest extends TestCase
             $table->timestamps();
             $table->softDeletes();
         });
+    }
+
+    private function mockStorageSettings(): GsoStorageSettingsServiceInterface
+    {
+        $storageSettings = Mockery::mock(GsoStorageSettingsServiceInterface::class);
+        $storageSettings->shouldReceive('inventoryFilesFolderId')
+            ->andReturn('gso-inventory-root');
+
+        return $storageSettings;
     }
 }

@@ -185,6 +185,37 @@
             width: min(980px, 100%);
         }
 
+        .gso-air-inspection-modal-panel--nested {
+            border: 1px solid rgba(37, 99, 235, 0.22);
+            box-shadow:
+                0 28px 64px rgba(15, 23, 42, 0.24),
+                0 0 0 1px rgba(59, 130, 246, 0.14);
+        }
+
+        .dark .gso-air-inspection-modal-panel--nested {
+            border-color: rgba(96, 165, 250, 0.28);
+            box-shadow:
+                0 28px 64px rgba(2, 6, 23, 0.42),
+                0 0 0 1px rgba(96, 165, 250, 0.16);
+        }
+
+        .gso-air-inspection-modal-card {
+            border: 1px solid rgba(37, 99, 235, 0.18);
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.96) 0%, rgba(241, 245, 249, 0.96) 100%);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+        }
+
+        .dark .gso-air-inspection-modal-card {
+            border-color: rgba(96, 165, 250, 0.24);
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.96) 100%);
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+        }
+
+        #gsoAirInspectionReceivedCompleteness:disabled {
+            opacity: 1;
+            cursor: default;
+        }
+
         .gso-air-inspection-unit-grid,
         .gso-air-inspection-file-grid,
         .gso-air-inspection-component-grid {
@@ -427,12 +458,13 @@
                     </button>
                 @endif
 
-                @if($canPromoteInventory)
+                @if($canPromoteInventory && $status === 'inspected')
                     <button
                         type="button"
                         id="gsoAirInspectionPromoteBtn"
-                        class="ti-btn ti-btn-success"
-                        @disabled($status !== 'inspected')
+                        class="ti-btn ti-btn-success hidden"
+                        hidden
+                        aria-hidden="true"
                     >
                         Promote to Inventory
                     </button>
@@ -535,6 +567,9 @@
                                         <option value="partial" @selected(($air['received_completeness'] ?? '') === 'partial')>Partial</option>
                                     </select>
                                     <div id="gsoAirInspectionCompletenessHint" class="mt-1 text-[11px] text-[#8c9097] dark:text-white/50"></div>
+                                    <div class="mt-1 text-[11px] text-[#8c9097] dark:text-white/50">
+                                        This field is detected automatically from the accepted inspection quantities.
+                                    </div>
                                 </div>
 
                                 <div class="md:col-span-2">
@@ -652,7 +687,7 @@
                 data-hs-overlay-options='{"isClosePrev": false}'
             >
                 <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out !max-w-6xl">
-                    <div class="ti-modal-content pointer-events-auto gso-air-inspection-modal-panel">
+                    <div class="ti-modal-content pointer-events-auto gso-air-inspection-modal-panel gso-air-inspection-modal-panel--nested">
                         <div class="ti-modal-header">
                             <div>
                                 <h6 id="gsoAirUnitComponentModalTitle" class="ti-modal-title text-[1rem] font-semibold">Unit Components</h6>
@@ -708,7 +743,7 @@
                 data-hs-overlay-options='{"isClosePrev": false}'
             >
                 <div class="hs-overlay-open:mt-7 ti-modal-box mt-0 ease-out !max-w-6xl">
-                    <div class="ti-modal-content pointer-events-auto gso-air-inspection-modal-panel">
+                    <div class="ti-modal-content pointer-events-auto gso-air-inspection-modal-panel gso-air-inspection-modal-panel--nested">
                         <div class="ti-modal-header">
                             <div>
                                 <h6 id="gsoAirUnitFileModalTitle" class="ti-modal-title text-[1rem] font-semibold">Unit Images</h6>
@@ -732,7 +767,7 @@
                         <div class="ti-modal-body px-4">
                             <div id="gsoAirUnitFileError" class="hidden mb-3 rounded bg-danger/10 p-3 text-sm text-danger"></div>
                             @if($canEditInspection)
-                                <div class="mb-4 rounded-lg border border-defaultborder p-3">
+                                <div class="gso-air-inspection-modal-card mb-4 rounded-lg p-3">
                                     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                         <div>
                                             <div class="font-medium text-defaulttextcolor dark:text-white">Upload Unit Images</div>

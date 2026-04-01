@@ -9,6 +9,7 @@ use App\Modules\GSO\Models\Inspection;
 use App\Modules\GSO\Models\InspectionPhoto;
 use App\Modules\GSO\Repositories\Contracts\InspectionPhotoRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\InspectionRepositoryInterface;
+use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use App\Modules\GSO\Services\Contracts\InspectionPhotoServiceInterface;
 use App\Modules\GSO\Support\InspectionStatuses;
 use Illuminate\Http\UploadedFile;
@@ -26,6 +27,7 @@ class InspectionPhotoService implements InspectionPhotoServiceInterface
         private readonly AuditLogServiceInterface $auditLogs,
         private readonly GoogleDriveFolderServiceInterface $driveFolders,
         private readonly GoogleDriveFileServiceInterface $driveFiles,
+        private readonly GsoStorageSettingsServiceInterface $storageSettings,
     ) {}
 
     public function listForInspection(string $inspectionId): array
@@ -242,10 +244,7 @@ class InspectionPhotoService implements InspectionPhotoServiceInterface
             return $existingFolderId;
         }
 
-        $baseFolderId = trim((string) config(
-            'gso.storage.inspection_photos_folder_id',
-            config('services.google_drive.folder_id', '')
-        ));
+        $baseFolderId = trim((string) ($this->storageSettings->inspectionPhotosFolderId() ?? ''));
 
         if ($baseFolderId === '') {
             throw new RuntimeException('GSO inspection photo upload folder is not configured.');

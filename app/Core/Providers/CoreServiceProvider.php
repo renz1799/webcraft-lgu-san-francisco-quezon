@@ -167,11 +167,13 @@ use App\Core\Services\Contracts\GoogleDrive\GoogleDriveClientFactoryInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveConnectionServiceInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveFileServiceInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveFolderServiceInterface;
+use App\Core\Services\Contracts\GoogleDrive\GoogleDriveModuleStorageSettingsServiceInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveSettingsProviderInterface;
 use App\Core\Services\GoogleDrive\GoogleDriveClientFactory;
 use App\Core\Services\GoogleDrive\GoogleDriveConnectionService;
 use App\Core\Services\GoogleDrive\GoogleDriveFileService;
 use App\Core\Services\GoogleDrive\GoogleDriveFolderService;
+use App\Core\Services\GoogleDrive\GoogleDriveModuleStorageSettingsService;
 use App\Core\Services\GoogleDrive\GoogleDriveSettingsProvider;
 
 /*
@@ -313,6 +315,7 @@ class CoreServiceProvider extends ServiceProvider
             GoogleDriveConnectionServiceInterface::class => GoogleDriveConnectionService::class,
             GoogleDriveFolderServiceInterface::class => GoogleDriveFolderService::class,
             GoogleDriveFileServiceInterface::class => GoogleDriveFileService::class,
+            GoogleDriveModuleStorageSettingsServiceInterface::class => GoogleDriveModuleStorageSettingsService::class,
 
             // Print
             PrintConfigLoaderInterface::class => PrintConfigLoaderService::class,
