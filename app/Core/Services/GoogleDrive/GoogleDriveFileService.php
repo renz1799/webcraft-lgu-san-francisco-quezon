@@ -34,6 +34,25 @@ class GoogleDriveFileService implements GoogleDriveFileServiceInterface
         );
     }
 
+    public function findFileInFolder(string $name, string $folderId): ?array
+    {
+        $resolvedFolderId = $this->resolveUploadFolderId($folderId);
+        $resolvedName = trim($name);
+
+        if ($resolvedName === '') {
+            throw new RuntimeException('Google Drive file name is required.');
+        }
+
+        $matches = $this->findFilesByName($resolvedName, $resolvedFolderId);
+        $file = $matches[0] ?? null;
+
+        if ($file === null) {
+            return null;
+        }
+
+        return $this->fileMetadataBuilder->build($file, $resolvedFolderId, false);
+    }
+
     public function uploadFromPath(
         string $path,
         ?string $name = null,
@@ -257,7 +276,7 @@ class GoogleDriveFileService implements GoogleDriveFileServiceInterface
         $response = $drive->files->listFiles([
             'q' => $query,
             'pageSize' => 25,
-            'fields' => 'files(id,name,parents)',
+            'fields' => 'files(id,name,mimeType,size,webViewLink,webContentLink,createdTime,parents)',
             'supportsAllDrives' => true,
             'includeItemsFromAllDrives' => true,
         ]);

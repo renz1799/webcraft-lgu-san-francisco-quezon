@@ -3,11 +3,13 @@
 namespace App\Modules\GSO\Http\Controllers\PTR;
 
 use App\Http\Controllers\Controller;
+use App\Modules\GSO\Http\Requests\Print\StoreSignedDocumentPdfRequest;
 use App\Modules\GSO\Http\Requests\PTR\PrintPtrRequest;
 use App\Modules\GSO\Models\Ptr;
 use App\Modules\GSO\Services\Contracts\GsoSignedDocumentArchiveServiceInterface;
 use App\Modules\GSO\Services\Contracts\PTR\PtrPrintServiceInterface;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -28,11 +30,15 @@ class PtrPrintController extends Controller
             requestedPaper: $request->validated('paper_profile'),
             paperOverrides: $request->paperOverrides(),
         );
+        $documentNumber = trim((string) data_get($payload, 'report.document.ptr_no', ''));
 
         return view('gso::ptrs.print.index', [
             'report' => $payload['report'],
             'paperProfile' => $payload['paperProfile'],
             'filters' => $request->validated(),
+            'signedArchive' => $documentNumber !== ''
+                ? $this->signedDocuments->findArchived('PTR', $documentNumber)
+                : null,
         ]);
     }
 
@@ -58,7 +64,7 @@ class PtrPrintController extends Controller
         )->deleteFileAfterSend(true);
     }
 
-    public function storePdf(PrintPtrRequest $request, Ptr $ptr): RedirectResponse
+    public function storePdf(StoreSignedDocumentPdfRequest $request, Ptr $ptr): RedirectResponse|JsonResponse
     {
         $documentNumber = trim((string) ($ptr->ptr_number ?? ''));
 
@@ -68,11 +74,16 @@ class PtrPrintController extends Controller
             ]);
         }
 
-        $path = $this->printer->generatePdf(
-            ptrId: (string) $ptr->id,
-            requestedPaper: $request->validated('paper_profile'),
-            paperOverrides: $request->paperOverrides(),
-        );
+        $uploadedFile = $request->file('signed_pdf');
+        $path = $uploadedFile?->getRealPath() ?: $uploadedFile?->path();
+
+        if (! $uploadedFile || ! is_string($path) || trim($path) === '') {
+            throw ValidationException::withMessages([
+                'signed_pdf' => ['Select the scanned signed PDF to upload.'],
+            ]);
+        }
+
+        $request->releaseSessionLock();
 
         try {
             $stored = $this->signedDocuments->archive('PTR', $documentNumber, $path);
@@ -80,20 +91,43 @@ class PtrPrintController extends Controller
             throw ValidationException::withMessages([
                 'drive' => [$exception->getMessage()],
             ]);
-        } finally {
-            if (is_file($path)) {
-                @unlink($path);
-            }
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Signed PTR PDF uploaded to Google Drive.',
+                'archive' => $stored,
+            ]);
         }
 
         return redirect()->route('gso.ptrs.print', ['ptr' => (string) $ptr->id] + $this->printQueryParams($request))
             ->with('gso_signed_pdf_archive', $stored);
     }
 
+    public function viewArchivedPdf(Ptr $ptr): \Illuminate\Http\Response
+    {
+        $documentNumber = trim((string) ($ptr->ptr_number ?? ''));
+
+        if ($documentNumber === '') {
+            abort(404, 'Signed PTR PDF is not available yet.');
+        }
+
+        try {
+            $download = $this->signedDocuments->downloadArchived('PTR', $documentNumber);
+        } catch (\RuntimeException $exception) {
+            abort(404, $exception->getMessage());
+        }
+
+        return response($download['bytes'], 200, [
+            'Content-Type' => $download['mime_type'] ?? 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . ($download['name'] ?? ($documentNumber . '.pdf')) . '"',
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
-    private function printQueryParams(PrintPtrRequest $request): array
+    private function printQueryParams(StoreSignedDocumentPdfRequest $request): array
     {
         return array_filter([
             'paper_profile' => $request->validated('paper_profile'),

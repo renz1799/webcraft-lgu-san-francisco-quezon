@@ -19,7 +19,7 @@ class GoogleDriveFolderService implements GoogleDriveFolderServiceInterface
         return $this->folderNameSanitizer->sanitize($value);
     }
 
-    public function ensureFolder(string $name, string $parentId): array
+    public function findFolder(string $name, string $parentId): ?array
     {
         $resolvedParentId = trim($parentId);
 
@@ -29,17 +29,37 @@ class GoogleDriveFolderService implements GoogleDriveFolderServiceInterface
 
         $drive = $this->clientFactory->makeAuthorizedDrive();
         $folderName = $this->sanitizeFolderName($name);
-
         $existing = $this->findChildFolder($drive, $folderName, $resolvedParentId);
 
-        if ($existing !== null) {
-            return [
-                'drive_folder_id' => (string) ($existing->id ?? ''),
-                'name' => (string) ($existing->name ?? $folderName),
-                'created' => false,
-                'parent_id' => $resolvedParentId,
-            ];
+        if ($existing === null) {
+            return null;
         }
+
+        return [
+            'drive_folder_id' => (string) ($existing->id ?? ''),
+            'name' => (string) ($existing->name ?? $folderName),
+            'created' => false,
+            'parent_id' => $resolvedParentId,
+        ];
+    }
+
+    public function ensureFolder(string $name, string $parentId): array
+    {
+        $resolvedParentId = trim($parentId);
+
+        if ($resolvedParentId === '') {
+            throw new \RuntimeException('Missing Google Drive parent folder id.');
+        }
+
+        $folderName = $this->sanitizeFolderName($name);
+
+        $existing = $this->findFolder($folderName, $resolvedParentId);
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $drive = $this->clientFactory->makeAuthorizedDrive();
 
         $folder = new DriveFile([
             'name' => $folderName,

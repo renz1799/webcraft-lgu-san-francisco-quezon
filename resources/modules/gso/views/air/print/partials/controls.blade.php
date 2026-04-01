@@ -252,6 +252,8 @@
                         'documentType' => 'AIR',
                         'documentNumber' => $archiveDocumentNumber,
                         'archiveRoute' => 'gso.air.print.archive',
+                        'archiveViewRoute' => 'gso.air.print.archive.view',
+                        'archiveRecord' => $signedArchive ?? null,
                         'routeParams' => ['air' => $air['id'] ?? ''],
                         'pdfParams' => $pdfParams,
                     ])

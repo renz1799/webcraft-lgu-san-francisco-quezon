@@ -196,6 +196,8 @@
                         'documentType' => 'WMR',
                         'documentNumber' => $archiveDocumentNumber,
                         'archiveRoute' => 'gso.wmrs.print.archive',
+                        'archiveViewRoute' => 'gso.wmrs.print.archive.view',
+                        'archiveRecord' => $signedArchive ?? null,
                         'routeParams' => ['wmr' => $wmr['id'] ?? ''],
                         'pdfParams' => $pdfParams,
                     ])

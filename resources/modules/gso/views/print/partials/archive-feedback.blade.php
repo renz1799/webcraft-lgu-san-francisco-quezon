@@ -3,17 +3,21 @@
     $expectedType = strtoupper(trim((string) ($documentType ?? '')));
     $matchesType = is_array($archive)
         && strtoupper(trim((string) ($archive['document_type'] ?? ''))) === $expectedType;
+    $documentErrorKey = strtolower($expectedType);
+    $archiveError = $errors->first('signed_pdf')
+        ?: $errors->first('drive')
+        ?: $errors->first($documentErrorKey);
 @endphp
 
-@if ($errors->any())
+@if ($archiveError !== '')
     <div class="mb-4 rounded border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
-        {{ $errors->first() }}
+        {{ $archiveError }}
     </div>
 @endif
 
 @if ($matchesType)
     <div class="mb-4 rounded border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
-        <div class="font-semibold">Signed PDF stored in Google Drive.</div>
+        <div class="font-semibold">Signed PDF uploaded to Google Drive.</div>
         <div class="mt-1">
             <span class="font-medium">{{ $archive['file_name'] ?? (($archive['document_number'] ?? 'Document') . '.pdf') }}</span>
             was stored under

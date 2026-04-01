@@ -257,6 +257,8 @@
                         'documentType' => 'ITR',
                         'documentNumber' => $archiveDocumentNumber,
                         'archiveRoute' => 'gso.itrs.print.archive',
+                        'archiveViewRoute' => 'gso.itrs.print.archive.view',
+                        'archiveRecord' => $signedArchive ?? null,
                         'routeParams' => ['itr' => $itr['id'] ?? ''],
                         'pdfParams' => $pdfParams,
                     ])

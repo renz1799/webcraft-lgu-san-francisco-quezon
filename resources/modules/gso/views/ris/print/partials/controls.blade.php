@@ -257,6 +257,8 @@
                         'documentType' => 'RIS',
                         'documentNumber' => $archiveDocumentNumber,
                         'archiveRoute' => 'gso.ris.print.archive',
+                        'archiveViewRoute' => 'gso.ris.print.archive.view',
+                        'archiveRecord' => $signedArchive ?? null,
                         'routeParams' => ['ris' => $ris['id'] ?? ''],
                         'pdfParams' => $pdfParams,
                     ])

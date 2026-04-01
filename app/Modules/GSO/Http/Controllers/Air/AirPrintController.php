@@ -4,10 +4,12 @@ namespace App\Modules\GSO\Http\Controllers\Air;
 
 use App\Http\Controllers\Controller;
 use App\Modules\GSO\Http\Requests\Air\PrintAirRequest;
+use App\Modules\GSO\Http\Requests\Print\StoreSignedDocumentPdfRequest;
 use App\Modules\GSO\Models\Air;
 use App\Modules\GSO\Services\Contracts\Air\AirPrintServiceInterface;
 use App\Modules\GSO\Services\Contracts\GsoSignedDocumentArchiveServiceInterface;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -28,11 +30,15 @@ class AirPrintController extends Controller
             requestedPaper: $request->validated('paper_profile'),
             paperOverrides: $request->paperOverrides(),
         );
+        $documentNumber = trim((string) data_get($payload, 'report.document.air_no', ''));
 
         return view('gso::air.print.index', [
             'report' => $payload['report'],
             'paperProfile' => $payload['paperProfile'],
             'filters' => $request->validated(),
+            'signedArchive' => $documentNumber !== ''
+                ? $this->signedDocuments->findArchived('AIR', $documentNumber)
+                : null,
         ]);
     }
 
@@ -58,7 +64,7 @@ class AirPrintController extends Controller
         )->deleteFileAfterSend(true);
     }
 
-    public function storePdf(PrintAirRequest $request, string $air): RedirectResponse
+    public function storePdf(StoreSignedDocumentPdfRequest $request, string $air): RedirectResponse|JsonResponse
     {
         $record = Air::query()
             ->withTrashed()
@@ -73,11 +79,16 @@ class AirPrintController extends Controller
             ]);
         }
 
-        $path = $this->prints->generatePdf(
-            airId: (string) $record->id,
-            requestedPaper: $request->validated('paper_profile'),
-            paperOverrides: $request->paperOverrides(),
-        );
+        $uploadedFile = $request->file('signed_pdf');
+        $path = $uploadedFile?->getRealPath() ?: $uploadedFile?->path();
+
+        if (! $uploadedFile || ! is_string($path) || trim($path) === '') {
+            throw ValidationException::withMessages([
+                'signed_pdf' => ['Select the scanned signed PDF to upload.'],
+            ]);
+        }
+
+        $request->releaseSessionLock();
 
         try {
             $stored = $this->signedDocuments->archive('AIR', $documentNumber, $path);
@@ -85,20 +96,48 @@ class AirPrintController extends Controller
             throw ValidationException::withMessages([
                 'drive' => [$exception->getMessage()],
             ]);
-        } finally {
-            if (is_file($path)) {
-                @unlink($path);
-            }
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Signed AIR PDF uploaded to Google Drive.',
+                'archive' => $stored,
+            ]);
         }
 
         return redirect()->route('gso.air.print', ['air' => (string) $record->id] + $this->printQueryParams($request))
             ->with('gso_signed_pdf_archive', $stored);
     }
 
+    public function viewArchivedPdf(string $air): \Illuminate\Http\Response
+    {
+        $record = Air::query()
+            ->withTrashed()
+            ->select(['id', 'air_number'])
+            ->findOrFail($air);
+
+        $documentNumber = trim((string) ($record->air_number ?? ''));
+
+        if ($documentNumber === '') {
+            abort(404, 'Signed AIR PDF is not available yet.');
+        }
+
+        try {
+            $download = $this->signedDocuments->downloadArchived('AIR', $documentNumber);
+        } catch (\RuntimeException $exception) {
+            abort(404, $exception->getMessage());
+        }
+
+        return response($download['bytes'], 200, [
+            'Content-Type' => $download['mime_type'] ?? 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . ($download['name'] ?? ($documentNumber . '.pdf')) . '"',
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
-    private function printQueryParams(PrintAirRequest $request): array
+    private function printQueryParams(StoreSignedDocumentPdfRequest $request): array
     {
         return array_filter([
             'paper_profile' => $request->validated('paper_profile'),

@@ -68,6 +68,23 @@ class GsoSignedDocumentArchiveServiceTest extends TestCase
             @unlink($path);
         }
     }
+
+    public function test_find_archived_returns_existing_canonical_file_metadata(): void
+    {
+        $folderService = new FakeGoogleDriveFolderService();
+        $fileService = new FakeGoogleDriveFileService();
+        $storageSettings = new FakeGsoStorageSettingsService('signed-root-folder');
+        $service = new GsoSignedDocumentArchiveService($storageSettings, $folderService, $fileService);
+
+        $archived = $service->findArchived('RIS', 'RIS-2026-0001');
+
+        $this->assertNotNull($archived);
+        $this->assertSame('RIS', $archived['document_type']);
+        $this->assertSame('RIS-2026-0001', $archived['document_number']);
+        $this->assertSame('RIS / RIS-2026-0001', $archived['folder_path']);
+        $this->assertSame('RIS-2026-0001.pdf', $archived['file_name']);
+        $this->assertSame('drive-file-existing', $archived['drive_file_id']);
+    }
 }
 
 class FakeGsoStorageSettingsService implements GsoStorageSettingsServiceInterface
@@ -121,6 +138,20 @@ class FakeGoogleDriveFolderService implements GoogleDriveFolderServiceInterface
         return $value;
     }
 
+    public function findFolder(string $name, string $parentId): ?array
+    {
+        if ($name === 'missing') {
+            return null;
+        }
+
+        return [
+            'drive_folder_id' => 'folder-' . strtolower(str_replace(' ', '-', $name)),
+            'name' => $name,
+            'created' => false,
+            'parent_id' => $parentId,
+        ];
+    }
+
     public function ensureFolder(string $name, string $parentId): array
     {
         $this->calls[] = [
@@ -143,6 +174,21 @@ class FakeGoogleDriveFileService implements GoogleDriveFileServiceInterface
      * @var array<string, mixed>|null
      */
     public ?array $lastReplaceCall = null;
+
+    public function findFileInFolder(string $name, string $folderId): ?array
+    {
+        if ($name === 'missing.pdf') {
+            return null;
+        }
+
+        return [
+            'drive_file_id' => 'drive-file-existing',
+            'name' => $name,
+            'mime_type' => 'application/pdf',
+            'folder_id' => $folderId,
+            'created_time' => '2026-04-01T10:00:00+08:00',
+        ];
+    }
 
     public function upload(
         UploadedFile $file,

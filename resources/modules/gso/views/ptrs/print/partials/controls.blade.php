@@ -252,6 +252,8 @@
                         'documentType' => 'PTR',
                         'documentNumber' => $archiveDocumentNumber,
                         'archiveRoute' => 'gso.ptrs.print.archive',
+                        'archiveViewRoute' => 'gso.ptrs.print.archive.view',
+                        'archiveRecord' => $signedArchive ?? null,
                         'routeParams' => ['ptr' => $ptr['id'] ?? ''],
                         'pdfParams' => $pdfParams,
                     ])

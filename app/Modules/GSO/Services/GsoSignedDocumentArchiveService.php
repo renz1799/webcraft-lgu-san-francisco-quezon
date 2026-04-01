@@ -28,40 +28,13 @@ class GsoSignedDocumentArchiveService implements GsoSignedDocumentArchiveService
 
     public function archive(string $documentType, string $documentNumber, string $pdfPath): array
     {
-        $resolvedType = strtoupper(trim($documentType));
-        $resolvedNumber = trim($documentNumber);
-
-        if (! in_array($resolvedType, self::ALLOWED_TYPES, true)) {
-            throw new RuntimeException('Unsupported signed document type.');
-        }
-
-        if ($resolvedNumber === '') {
-            throw new RuntimeException('Document number is required before archiving the PDF.');
-        }
+        [$resolvedType, $resolvedNumber] = $this->normalizeDocumentReference($documentType, $documentNumber);
 
         if (! is_file($pdfPath) || ! is_readable($pdfPath)) {
             throw new RuntimeException('Generated PDF file is missing or unreadable.');
         }
 
-        $rootFolderId = trim((string) ($this->storageSettings->signedDocumentsRootFolderId() ?? ''));
-
-        if ($rootFolderId === '') {
-            throw new RuntimeException('GSO signed documents root folder is not configured.');
-        }
-
-        $typeFolder = $this->driveFolders->ensureFolder($resolvedType, $rootFolderId);
-        $typeFolderId = trim((string) ($typeFolder['drive_folder_id'] ?? ''));
-
-        if ($typeFolderId === '') {
-            throw new RuntimeException('Failed to resolve the Google Drive document-type folder.');
-        }
-
-        $documentFolder = $this->driveFolders->ensureFolder($resolvedNumber, $typeFolderId);
-        $documentFolderId = trim((string) ($documentFolder['drive_folder_id'] ?? ''));
-
-        if ($documentFolderId === '') {
-            throw new RuntimeException('Failed to resolve the Google Drive document folder.');
-        }
+        $documentFolderId = $this->resolveDocumentFolderId($resolvedType, $resolvedNumber, true);
 
         $fileName = $resolvedNumber . '.pdf';
         $stored = $this->driveFiles->replaceFileInFolder(
@@ -79,5 +52,102 @@ class GsoSignedDocumentArchiveService implements GsoSignedDocumentArchiveService
             'folder_path' => implode(' / ', [$resolvedType, $resolvedNumber]),
             'folder_id' => $documentFolderId,
         ];
+    }
+
+    public function findArchived(string $documentType, string $documentNumber): ?array
+    {
+        [$resolvedType, $resolvedNumber] = $this->normalizeDocumentReference($documentType, $documentNumber);
+        $documentFolderId = $this->resolveDocumentFolderId($resolvedType, $resolvedNumber, false);
+
+        if ($documentFolderId === null) {
+            return null;
+        }
+
+        $fileName = $resolvedNumber . '.pdf';
+        $file = $this->driveFiles->findFileInFolder($fileName, $documentFolderId);
+
+        if ($file === null) {
+            return null;
+        }
+
+        return $file + [
+            'document_type' => $resolvedType,
+            'document_number' => $resolvedNumber,
+            'file_name' => $file['name'] ?? $fileName,
+            'folder_path' => implode(' / ', [$resolvedType, $resolvedNumber]),
+            'folder_id' => $documentFolderId,
+        ];
+    }
+
+    public function downloadArchived(string $documentType, string $documentNumber): array
+    {
+        $archived = $this->findArchived($documentType, $documentNumber);
+        $driveFileId = trim((string) ($archived['drive_file_id'] ?? ''));
+
+        if ($driveFileId === '') {
+            throw new RuntimeException('Signed PDF is not yet uploaded for this document.');
+        }
+
+        return $this->driveFiles->download($driveFileId);
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function normalizeDocumentReference(string $documentType, string $documentNumber): array
+    {
+        $resolvedType = strtoupper(trim($documentType));
+        $resolvedNumber = trim($documentNumber);
+
+        if (! in_array($resolvedType, self::ALLOWED_TYPES, true)) {
+            throw new RuntimeException('Unsupported signed document type.');
+        }
+
+        if ($resolvedNumber === '') {
+            throw new RuntimeException('Document number is required before archiving the PDF.');
+        }
+
+        return [$resolvedType, $resolvedNumber];
+    }
+
+    private function resolveDocumentFolderId(string $documentType, string $documentNumber, bool $create): ?string
+    {
+        $rootFolderId = trim((string) ($this->storageSettings->signedDocumentsRootFolderId() ?? ''));
+
+        if ($rootFolderId === '') {
+            return $create
+                ? throw new RuntimeException('GSO signed documents root folder is not configured.')
+                : null;
+        }
+
+        $typeFolder = $create
+            ? $this->driveFolders->ensureFolder($documentType, $rootFolderId)
+            : $this->driveFolders->findFolder($documentType, $rootFolderId);
+
+        $typeFolderId = trim((string) ($typeFolder['drive_folder_id'] ?? ''));
+
+        if ($typeFolderId === '') {
+            if ($create) {
+                throw new RuntimeException('Failed to resolve the Google Drive document-type folder.');
+            }
+
+            return null;
+        }
+
+        $documentFolder = $create
+            ? $this->driveFolders->ensureFolder($documentNumber, $typeFolderId)
+            : $this->driveFolders->findFolder($documentNumber, $typeFolderId);
+
+        $documentFolderId = trim((string) ($documentFolder['drive_folder_id'] ?? ''));
+
+        if ($documentFolderId === '') {
+            if ($create) {
+                throw new RuntimeException('Failed to resolve the Google Drive document folder.');
+            }
+
+            return null;
+        }
+
+        return $documentFolderId;
     }
 }

@@ -257,6 +257,8 @@
                         'documentType' => 'ICS',
                         'documentNumber' => $archiveDocumentNumber,
                         'archiveRoute' => 'gso.ics.print.archive',
+                        'archiveViewRoute' => 'gso.ics.print.archive.view',
+                        'archiveRecord' => $signedArchive ?? null,
                         'routeParams' => ['ics' => $ics['id'] ?? ''],
                         'pdfParams' => $pdfParams,
                     ])

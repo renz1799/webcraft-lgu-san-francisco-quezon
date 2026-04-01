@@ -257,6 +257,8 @@
                         'documentType' => 'PAR',
                         'documentNumber' => $archiveDocumentNumber,
                         'archiveRoute' => 'gso.pars.print.archive',
+                        'archiveViewRoute' => 'gso.pars.print.archive.view',
+                        'archiveRecord' => $signedArchive ?? null,
                         'routeParams' => ['par' => $par['id'] ?? ''],
                         'pdfParams' => $pdfParams,
                     ])

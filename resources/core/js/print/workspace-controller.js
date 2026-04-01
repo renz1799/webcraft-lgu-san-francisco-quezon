@@ -58,6 +58,12 @@ async function extractErrorMessage(response, fallback) {
   try {
     if (contentType.includes("application/json")) {
       const payload = await response.json();
+      const validationMessage = extractJsonValidationMessage(payload);
+
+      if (validationMessage !== "") {
+        return validationMessage;
+      }
+
       const message = typeof payload?.message === "string" ? payload.message.trim() : "";
 
       if (message !== "") {
@@ -75,6 +81,35 @@ async function extractErrorMessage(response, fallback) {
   }
 
   return fallback;
+}
+
+function extractJsonValidationMessage(payload) {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+
+  const errors = payload.errors;
+
+  if (!errors || typeof errors !== "object") {
+    return "";
+  }
+
+  for (const key of Object.keys(errors)) {
+    const entries = errors[key];
+
+    if (Array.isArray(entries) && typeof entries[0] === "string" && entries[0].trim() !== "") {
+      return entries[0].trim();
+    }
+  }
+
+  return "";
+}
+
+function csrfToken() {
+  return document
+    .querySelector('meta[name="csrf-token"]')
+    ?.getAttribute("content")
+    ?.trim();
 }
 
 function clampPercent(value) {
@@ -370,6 +405,358 @@ async function downloadPdf(url, messages, fallbackFilename) {
   }
 }
 
+function buildUploadFormData(form, file) {
+  const payload = new FormData();
+  const formData = new FormData(form);
+
+  for (const [key, rawValue] of formData.entries()) {
+    if (rawValue instanceof File) {
+      continue;
+    }
+
+    const value = String(rawValue || "").trim();
+
+    if (value === "") {
+      continue;
+    }
+
+    payload.append(key, value);
+  }
+
+  payload.append("signed_pdf", file, file.name);
+
+  return payload;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function buildArchiveViewerUrl(url) {
+  if (!url) {
+    return "";
+  }
+
+  const [base, hash = ""] = String(url).split("#", 2);
+  const params = new URLSearchParams(hash);
+
+  if (!params.has("toolbar")) {
+    params.set("toolbar", "0");
+  }
+
+  if (!params.has("navpanes")) {
+    params.set("navpanes", "0");
+  }
+
+  if (!params.has("scrollbar")) {
+    params.set("scrollbar", "0");
+  }
+
+  if (!params.has("zoom")) {
+    params.set("zoom", "page-width");
+  }
+
+  return `${base}#${params.toString()}`;
+}
+
+function renderArchiveStatus(archive) {
+  const fileName = escapeHtml(archive?.file_name || "Signed document.pdf");
+  const folderPath = escapeHtml(archive?.folder_path || "the configured document folder");
+  const createdTime = String(archive?.created_time || "").trim();
+
+  return `
+    Signed PDF available as <span class="font-medium">${fileName}</span> under
+    <span class="font-medium">${folderPath}</span>.
+    ${createdTime !== "" ? `<span class="block mt-1 text-muted">Uploaded ${escapeHtml(createdTime)}</span>` : ""}
+  `;
+}
+
+function updateArchiveControls(triggerButton, archive) {
+  const controls = triggerButton.closest("[data-print-archive-controls]");
+
+  if (!controls) {
+    return;
+  }
+
+  controls.dataset.printArchiveState = "uploaded";
+
+  const viewButton = controls.querySelector("[data-print-archive-view]");
+  const uploadButton = controls.querySelector("[data-print-archive-upload]");
+  const statusNode = controls.querySelector("[data-print-archive-status]");
+
+  if (viewButton) {
+    viewButton.classList.remove("hidden");
+    viewButton.disabled = false;
+  }
+
+  if (uploadButton) {
+    uploadButton.classList.remove("ti-btn-outline-success");
+    uploadButton.classList.add("ti-btn-outline-warning", "mt-2");
+    uploadButton.innerHTML = `
+      <i class="ri-upload-cloud-2-line label-ti-btn-icon me-2"></i>
+      Replace Signed PDF
+    `;
+  }
+
+  if (statusNode) {
+    statusNode.classList.remove("text-muted");
+    statusNode.classList.add("text-success");
+    statusNode.innerHTML = renderArchiveStatus(archive);
+  }
+}
+
+async function promptForSignedPdf(button) {
+  const documentType = button.dataset.printArchiveDocumentType || "Document";
+  const documentNumber = button.dataset.printArchiveDocumentNumber || "DOCUMENT";
+  const result = await Swal.fire({
+    title: `Upload signed ${documentType} PDF`,
+    html: `
+      <div class="text-start">
+        <p class="text-sm text-muted mb-3">
+          Select the scanned signed PDF. It will be stored as
+          <strong>${escapeHtml(documentNumber)}.pdf</strong>.
+        </p>
+        <input
+          id="swal-signed-pdf-input"
+          type="file"
+          accept="application/pdf,.pdf"
+          class="swal2-file"
+        >
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Upload Signed PDF",
+    focusConfirm: false,
+    preConfirm: () => {
+      const input = document.getElementById("swal-signed-pdf-input");
+      const file = input?.files?.[0];
+
+      if (!file) {
+        Swal.showValidationMessage("Select the scanned signed PDF to upload.");
+        return false;
+      }
+
+      const fileName = String(file.name || "").toLowerCase();
+      const isPdf = file.type === "application/pdf" || fileName.endsWith(".pdf");
+
+      if (!isPdf) {
+        Swal.showValidationMessage("Only PDF files can be uploaded as signed documents.");
+        return false;
+      }
+
+      if (Number(file.size || 0) > 10 * 1024 * 1024) {
+        Swal.showValidationMessage("The signed PDF must be 10 MB or smaller.");
+        return false;
+      }
+
+      return file;
+    },
+  });
+
+  return result.isConfirmed ? result.value : null;
+}
+
+async function uploadSignedPdf(url, form, file, button) {
+  const documentType = button.dataset.printArchiveDocumentType || "document";
+  const token = csrfToken();
+
+  Swal.fire({
+    title: `Uploading signed ${documentType} PDF...`,
+    text: "Please wait while the scanned file is stored in Google Drive.",
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        ...(token ? { "X-CSRF-TOKEN": token } : {}),
+      },
+      body: buildUploadFormData(form, file),
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        await extractErrorMessage(
+          response,
+          `The signed ${documentType} PDF could not be uploaded right now.`,
+        ),
+      );
+    }
+
+    const payload = await response.json();
+    const archive = payload?.archive || {};
+    const replaced = Boolean(archive?.replaced_existing);
+    updateArchiveControls(button, archive);
+
+    await Swal.fire({
+      icon: "success",
+      title: "Signed PDF uploaded",
+      html: `
+        <div class="text-start text-sm">
+          <div><strong>${escapeHtml(archive.file_name || file.name)}</strong> was stored under <strong>${escapeHtml(archive.folder_path || "the configured document folder")}</strong>.</div>
+          ${replaced ? '<div class="mt-2">An older signed PDF with the same document number was replaced.</div>' : ""}
+        </div>
+      `,
+    });
+  } catch (error) {
+    await Swal.fire({
+      icon: "error",
+      title: "Upload failed",
+      text:
+        error instanceof Error
+          ? error.message
+          : `The signed ${documentType} PDF could not be uploaded right now.`,
+    });
+  }
+}
+
+async function downloadSignedArchivePdf(viewUrl, documentType, documentNumber) {
+  if (!viewUrl) {
+    return;
+  }
+
+  Swal.fire({
+    title: `Downloading signed ${documentType} PDF...`,
+    text: "Please wait while the archived scan is prepared.",
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    const response = await fetch(viewUrl, {
+      method: "GET",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        await extractErrorMessage(
+          response,
+          `The signed ${documentType} PDF could not be downloaded right now.`,
+        ),
+      );
+    }
+
+    const blob = await response.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = parseFilename(response, `${documentNumber}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objectUrl);
+
+    await Swal.fire({
+      icon: "success",
+      title: "Download ready",
+      text: `${documentNumber}.pdf has been sent to your browser.`,
+      timer: 1400,
+      showConfirmButton: false,
+    });
+  } catch (error) {
+    await Swal.fire({
+      icon: "error",
+      title: "Download failed",
+      text:
+        error instanceof Error
+          ? error.message
+          : `The signed ${documentType} PDF could not be downloaded right now.`,
+    });
+  }
+}
+
+async function previewSignedPdf(button, form) {
+  const viewUrl = button.dataset.printArchiveViewUrl || "";
+  const documentType = button.dataset.printArchiveDocumentType || "document";
+  const documentNumber = button.dataset.printArchiveDocumentNumber || "DOCUMENT";
+  const controls = button.closest("[data-print-archive-controls]");
+  const uploadButton = controls?.querySelector("[data-print-archive-upload]");
+
+  if (!viewUrl) {
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: `${documentType} signed PDF`,
+    width: "min(92vw, 1100px)",
+    html: `
+      <div class="text-start">
+        <div class="mb-3 text-sm text-muted">
+          Previewing <strong>${escapeHtml(documentNumber)}.pdf</strong>.
+        </div>
+        <div class="rounded border border-defaultborder overflow-hidden bg-bodybg" style="height: min(72vh, 900px);">
+          <iframe
+            src="${escapeHtml(buildArchiveViewerUrl(viewUrl))}"
+            title="${escapeHtml(documentType)} signed PDF preview"
+            style="width: 100%; height: 100%; border: 0; background: #2b2b2b;"
+          ></iframe>
+        </div>
+        <div class="mt-3 text-xs text-muted">
+          Need to correct the scan? Replace it here and the file in Google Drive will stay named
+          <strong>${escapeHtml(documentNumber)}.pdf</strong>.
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="ti-btn btn-wave ti-btn-outline-primary"
+            data-print-archive-download="1"
+          >
+            <i class="ri-download-2-line me-2"></i>
+            Download PDF
+          </button>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    cancelButtonText: "Close",
+    showConfirmButton: Boolean(uploadButton),
+    confirmButtonText: "Replace PDF",
+    focusConfirm: false,
+    didOpen: () => {
+      const downloadButton = Swal.getHtmlContainer()?.querySelector(
+        "[data-print-archive-download]",
+      );
+
+      downloadButton?.addEventListener("click", async () => {
+        await downloadSignedArchivePdf(viewUrl, documentType, documentNumber);
+      });
+    },
+  });
+
+  if (!result.isConfirmed || !uploadButton) {
+    return;
+  }
+
+  const file = await promptForSignedPdf(uploadButton);
+
+  if (!file) {
+    return;
+  }
+
+  await uploadSignedPdf(
+    uploadButton.getAttribute("data-print-archive-url") || "",
+    form,
+    file,
+    uploadButton,
+  );
+}
+
 async function refreshPreview(form, config) {
   const workspace = form.closest("[data-print-workspace]");
   const submitButton = form.querySelector('button[type="submit"]');
@@ -503,6 +890,48 @@ export function initPrintWorkspaceController(config) {
         config.pdfMessages,
         config.fallbackFilename,
       );
+    });
+  });
+
+  const archiveButtons = document.querySelectorAll(
+    config.archiveButtonSelector || "[data-print-archive-upload]",
+  );
+
+  archiveButtons.forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      event.preventDefault();
+
+      if (button.disabled) {
+        return;
+      }
+
+      const archiveUrl = button.getAttribute("data-print-archive-url") || "";
+
+      if (!archiveUrl) {
+        return;
+      }
+
+      const file = await promptForSignedPdf(button);
+
+      if (!file) {
+        return;
+      }
+
+      await uploadSignedPdf(archiveUrl, form, file, button);
+    });
+  });
+
+  const archiveViewButtons = document.querySelectorAll("[data-print-archive-view]");
+
+  archiveViewButtons.forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      event.preventDefault();
+
+      if (button.disabled || button.classList.contains("hidden")) {
+        return;
+      }
+
+      await previewSignedPdf(button, form);
     });
   });
 

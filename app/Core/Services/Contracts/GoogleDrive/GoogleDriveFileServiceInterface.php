@@ -6,6 +6,11 @@ use Illuminate\Http\UploadedFile;
 
 interface GoogleDriveFileServiceInterface
 {
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findFileInFolder(string $name, string $folderId): ?array;
+
     public function upload(
         UploadedFile $file,
         ?string $name = null,
