@@ -7,6 +7,7 @@ require __DIR__.'/core/audit.php';
 require __DIR__.'/core/accountable-persons.php';
 require __DIR__.'/core/notifications.php';
 require __DIR__.'/core/drive.php';
+require __DIR__.'/core/workflow-notifications.php';
 require __DIR__.'/core/profile.php';
 require __DIR__.'/core/tasks.php';
 

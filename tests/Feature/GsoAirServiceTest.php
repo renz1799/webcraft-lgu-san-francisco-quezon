@@ -4,6 +4,9 @@ namespace Tests\Feature;
 
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
 use App\Core\Services\Contracts\AccountablePersons\AccountablePersonServiceInterface;
+use App\Core\Services\Contracts\Notifications\NotificationServiceInterface;
+use App\Core\Services\Contracts\Notifications\WorkflowNotificationSettingsServiceInterface;
+use Illuminate\Support\Facades\Route;
 use App\Core\Models\Tasks\Task;
 use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
 use App\Modules\GSO\Builders\Air\AirDatatableRowBuilder;
@@ -31,6 +34,14 @@ class GsoAirServiceTest extends TestCase
         DB::reconnect('sqlite');
 
         Carbon::setTestNow(Carbon::parse('2026-03-21 09:00:00'));
+
+        if (! Route::has('gso.tasks.show')) {
+            Route::get('/gso/tasks/{id}', fn () => 'gso-task')->name('gso.tasks.show');
+        }
+
+        if (! Route::has('gso.air.inspect')) {
+            Route::get('/gso/air/{air}/inspect', fn () => 'gso-air-inspect')->name('gso.air.inspect');
+        }
 
         $this->createSchema();
     }
@@ -108,11 +119,44 @@ class GsoAirServiceTest extends TestCase
         ]);
         $tasks = Mockery::mock(TaskServiceInterface::class);
         $tasks->shouldReceive('findLatestBySubject')->once()->andReturn(null);
-        $tasks->shouldReceive('createUnassigned')->once()->andReturn(new \App\Core\Models\Tasks\Task([
-            'id' => 'task-1',
+        $createdTask = new \App\Core\Models\Tasks\Task([
             'status' => 'pending',
-        ]));
+        ]);
+        $createdTask->id = 'task-1';
+        $tasks->shouldReceive('createUnassigned')->once()->andReturn($createdTask);
         $tasks->shouldReceive('recordEvent')->once();
+        $notifications = Mockery::mock(NotificationServiceInterface::class);
+        $notifications->shouldReceive('notifyUsersByRoles')
+            ->once()
+            ->withArgs(function (
+                array $roles,
+                string $actorUserId,
+                string $type,
+                string $title,
+                string $message,
+                string $entityType,
+                string $entityId,
+                array $data
+            ): bool {
+                return in_array('Inspector', $roles, true)
+                    && $actorUserId === 'user-1'
+                    && $type === 'gso.air.submitted'
+                    && str_contains($title, 'AIR ready for inspection:')
+                    && str_contains($message, 'is submitted and ready for inspection review.')
+                    && $entityType === 'air'
+                    && $entityId !== ''
+                    && ($data['subject_url'] ?? '') !== ''
+                    && ($data['url'] ?? '') === route('gso.tasks.show', ['id' => 'task-1']);
+            });
+        $workflowNotifications = Mockery::mock(WorkflowNotificationSettingsServiceInterface::class);
+        $workflowNotifications->shouldReceive('rolesForEvent')
+            ->once()
+            ->with('GSO', 'air.submitted')
+            ->andReturn(['Inspector']);
+        $workflowNotifications->shouldReceive('messageTemplateForEvent')
+            ->once()
+            ->with('GSO', 'air.submitted')
+            ->andReturn('{air_label} is submitted and ready for inspection review. Click to open the assigned task and continue the workflow.');
 
         $service = new AirService(
             new EloquentAirRepository(),
@@ -120,6 +164,8 @@ class GsoAirServiceTest extends TestCase
             new AirDatatableRowBuilder(),
             $accountableOfficers,
             $tasks,
+            $notifications,
+            $workflowNotifications,
         );
 
         $created = $service->createBlankDraft('user-1');
@@ -294,6 +340,11 @@ class GsoAirServiceTest extends TestCase
         $tasks->shouldNotReceive('findLatestBySubject');
         $tasks->shouldNotReceive('createUnassigned');
         $tasks->shouldNotReceive('recordEvent');
+        $notifications = Mockery::mock(NotificationServiceInterface::class);
+        $notifications->shouldNotReceive('notifyUsersByRoles');
+        $workflowNotifications = Mockery::mock(WorkflowNotificationSettingsServiceInterface::class);
+        $workflowNotifications->shouldNotReceive('rolesForEvent');
+        $workflowNotifications->shouldNotReceive('messageTemplateForEvent');
 
         $service = new AirService(
             new EloquentAirRepository(),
@@ -301,6 +352,8 @@ class GsoAirServiceTest extends TestCase
             new AirDatatableRowBuilder(),
             $accountableOfficers,
             $tasks,
+            $notifications,
+            $workflowNotifications,
         );
 
         $created = $service->createBlankDraft('user-1');
@@ -390,6 +443,11 @@ class GsoAirServiceTest extends TestCase
         $tasks->shouldNotReceive('findLatestBySubject');
         $tasks->shouldNotReceive('createUnassigned');
         $tasks->shouldNotReceive('recordEvent');
+        $notifications = Mockery::mock(NotificationServiceInterface::class);
+        $notifications->shouldNotReceive('notifyUsersByRoles');
+        $workflowNotifications = Mockery::mock(WorkflowNotificationSettingsServiceInterface::class);
+        $workflowNotifications->shouldNotReceive('rolesForEvent');
+        $workflowNotifications->shouldNotReceive('messageTemplateForEvent');
 
         $service = new AirService(
             new EloquentAirRepository(),
@@ -397,6 +455,8 @@ class GsoAirServiceTest extends TestCase
             new AirDatatableRowBuilder(),
             $accountableOfficers,
             $tasks,
+            $notifications,
+            $workflowNotifications,
         );
 
         $created = $service->createBlankDraft('user-1');
@@ -514,14 +574,83 @@ class GsoAirServiceTest extends TestCase
         ]);
 
         $audit = Mockery::mock(AuditLogServiceInterface::class);
-        $audit->shouldReceive('record')->once();
+        $audit->shouldReceive('record')->twice();
         $accountableOfficers = Mockery::mock(AccountablePersonServiceInterface::class);
-        $accountableOfficers->shouldNotReceive('createOrResolve');
+        $accountableOfficers->shouldReceive('createOrResolve')->times(2)->andReturn([
+            'officer' => ['id' => 'officer-1', 'full_name' => 'Juan Dela Cruz'],
+            'created' => false,
+            'restored' => false,
+            'reused' => true,
+        ]);
         $tasks = Mockery::mock(TaskServiceInterface::class);
-        $tasks->shouldReceive('createUnassigned')->once()->andReturn(new Task([
-            'id' => 'task-follow-up',
+        $tasks->shouldReceive('findLatestBySubject')->once()->andReturn(null);
+        $followUpTask = new Task([
             'status' => Task::STATUS_PENDING,
-        ]));
+        ]);
+        $followUpTask->id = 'task-follow-up';
+        $tasks->shouldReceive('createUnassigned')->once()->andReturn($followUpTask);
+        $tasks->shouldReceive('recordEvent')->once();
+        $notifications = Mockery::mock(NotificationServiceInterface::class);
+        $notifications->shouldReceive('notifyUsersByRoles')
+            ->once()
+            ->withArgs(function (
+                array $roles,
+                string $actorUserId,
+                string $type,
+                string $title,
+                string $message,
+                string $entityType,
+                string $entityId,
+                array $data
+            ): bool {
+                return $roles === ['Inspector']
+                    && $actorUserId === 'user-1'
+                    && $type === 'gso.air.submitted'
+                    && str_contains($title, 'AIR ready for inspection:')
+                    && str_contains($message, 'is submitted and ready for inspection review.')
+                    && $entityType === 'air'
+                    && $entityId !== ''
+                    && ($data['url'] ?? '') === route('gso.tasks.show', ['id' => 'task-follow-up']);
+            });
+        $notifications->shouldReceive('notifyUsersByRoles')
+            ->once()
+            ->withArgs(function (
+                array $roles,
+                string $actorUserId,
+                string $type,
+                string $title,
+                string $message,
+                string $entityType,
+                string $entityId,
+                array $data
+            ): bool {
+                return $roles === ['Administrator', 'Staff']
+                    && $actorUserId === 'user-1'
+                    && $type === 'gso.air.follow-up.created'
+                    && str_contains($title, 'Follow-up AIR created:')
+                    && str_contains($message, 'follow-up AIR is created for unresolved inspection items')
+                    && $entityType === 'air'
+                    && $entityId !== ''
+                    && ($data['url'] ?? '') === route('gso.air.inspect', ['air' => $entityId])
+                    && ! empty($data['subject_url']);
+            });
+        $workflowNotifications = Mockery::mock(WorkflowNotificationSettingsServiceInterface::class);
+        $workflowNotifications->shouldReceive('rolesForEvent')
+            ->once()
+            ->with('GSO', 'air.submitted')
+            ->andReturn(['Inspector']);
+        $workflowNotifications->shouldReceive('messageTemplateForEvent')
+            ->once()
+            ->with('GSO', 'air.submitted')
+            ->andReturn('{air_label} is submitted and ready for inspection review. Click to open the assigned task and continue the workflow.');
+        $workflowNotifications->shouldReceive('rolesForEvent')
+            ->once()
+            ->with('GSO', 'air.follow_up_created')
+            ->andReturn(['Administrator', 'Staff']);
+        $workflowNotifications->shouldReceive('messageTemplateForEvent')
+            ->once()
+            ->with('GSO', 'air.follow_up_created')
+            ->andReturn('{air_label} follow-up AIR is created for unresolved inspection items. Click to open the assigned task and continue the workflow.');
 
         $service = new AirService(
             new EloquentAirRepository(),
@@ -529,18 +658,21 @@ class GsoAirServiceTest extends TestCase
             new AirDatatableRowBuilder(),
             $accountableOfficers,
             $tasks,
+            $notifications,
+            $workflowNotifications,
         );
 
         $followUp = $service->createFollowUpFromInspection('user-1', 'air-source');
 
-        $this->assertSame(AirStatuses::DRAFT, $followUp->status);
+        $this->assertSame(AirStatuses::SUBMITTED, $followUp->status);
         $this->assertSame('air-source', (string) $followUp->parent_air_id);
         $this->assertSame(2, (int) $followUp->continuation_no);
+        $this->assertNotSame('', trim((string) ($followUp->air_number ?? '')));
 
         $this->assertDatabaseHas('airs', [
             'id' => $followUp->id,
             'parent_air_id' => 'air-source',
-            'status' => AirStatuses::DRAFT,
+            'status' => AirStatuses::SUBMITTED,
         ]);
 
         $this->assertSame(1, DB::table('air_items')->where('air_id', $followUp->id)->count());
@@ -591,6 +723,11 @@ class GsoAirServiceTest extends TestCase
             'id' => 'task-reopen',
             'status' => Task::STATUS_PENDING,
         ]));
+        $notifications = Mockery::mock(NotificationServiceInterface::class);
+        $notifications->shouldNotReceive('notifyUsersByRoles');
+        $workflowNotifications = Mockery::mock(WorkflowNotificationSettingsServiceInterface::class);
+        $workflowNotifications->shouldNotReceive('rolesForEvent');
+        $workflowNotifications->shouldNotReceive('messageTemplateForEvent');
 
         $service = new AirService(
             new EloquentAirRepository(),
@@ -598,6 +735,8 @@ class GsoAirServiceTest extends TestCase
             new AirDatatableRowBuilder(),
             $accountableOfficers,
             $tasks,
+            $notifications,
+            $workflowNotifications,
         );
 
         $reopened = $service->reopenInspection('user-1', 'air-reopen', 'Correction needed');
@@ -713,6 +852,29 @@ class GsoAirServiceTest extends TestCase
             $table->boolean('requires_serial_snapshot')->default(false);
             $table->boolean('is_semi_expendable_snapshot')->default(false);
             $table->text('remarks')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('air_item_units', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('air_item_id');
+            $table->uuid('inventory_item_id')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('inventory_items', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('air_item_unit_id')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('stock_movements', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('air_item_id')->nullable();
+            $table->uuid('reference_id')->nullable();
+            $table->string('reference_type', 50)->nullable();
             $table->timestamps();
         });
     }

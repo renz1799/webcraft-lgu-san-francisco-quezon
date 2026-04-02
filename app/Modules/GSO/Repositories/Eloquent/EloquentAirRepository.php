@@ -4,8 +4,11 @@ namespace App\Modules\GSO\Repositories\Eloquent;
 
 use App\Modules\GSO\Models\Air;
 use App\Modules\GSO\Repositories\Contracts\AirRepositoryInterface;
+use App\Modules\GSO\Support\Air\AirStatuses;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\DB;
 
 class EloquentAirRepository implements AirRepositoryInterface
 {
@@ -22,7 +25,13 @@ class EloquentAirRepository implements AirRepositoryInterface
 
     public function paginateForTable(array $filters, int $page = 1, int $size = 15): LengthAwarePaginator
     {
-        $query = Air::query()->with($this->relations());
+        $query = Air::query()
+            ->select('airs.*')
+            ->with($this->relations())
+            ->selectSub($this->propertyPromotableUnitsCountSubquery(), 'property_promotable_units_count')
+            ->selectSub($this->propertyPendingUnitsCountSubquery(), 'property_pending_units_count')
+            ->selectSub($this->consumablePromotableLinesCountSubquery(), 'consumable_promotable_lines_count')
+            ->selectSub($this->consumablePendingLinesCountSubquery(), 'consumable_pending_lines_count');
         $archived = $this->resolveArchivedMode($filters);
         $search = trim((string) ($filters['search'] ?? $filters['q'] ?? ''));
         $supplier = trim((string) ($filters['supplier'] ?? ''));
@@ -111,15 +120,14 @@ class EloquentAirRepository implements AirRepositoryInterface
             });
         }
 
-        return $query
-            ->orderByDesc('air_date')
-            ->orderByDesc('created_at')
-            ->paginate(
-                perPage: max(1, min($size, 100)),
-                columns: ['*'],
-                pageName: 'page',
-                page: max(1, $page),
-            );
+        $this->applySorting($query, $filters);
+
+        return $query->paginate(
+            perPage: max(1, min($size, 100)),
+            columns: ['*'],
+            pageName: 'page',
+            page: max(1, $page),
+        );
     }
 
     public function create(array $data): Air
@@ -173,5 +181,140 @@ class EloquentAirRepository implements AirRepositoryInterface
         }
 
         return 'active';
+    }
+
+    private function applySorting(Builder $query, array $filters): void
+    {
+        $sortField = trim((string) ($filters['sorters'][0]['field'] ?? ''));
+        $sortDir = (($filters['sorters'][0]['dir'] ?? 'desc') === 'asc') ? 'asc' : 'desc';
+
+        if ($sortField === 'promotion_status' || $sortField === 'promotion_status_text') {
+            $this->applyPromotionStatusSorting($query, $sortDir);
+
+            return;
+        }
+
+        $sortMap = [
+            'air_number' => 'airs.air_number',
+            'air_date_text' => 'airs.air_date',
+            'air_date' => 'airs.air_date',
+            'po_number' => 'airs.po_number',
+            'supplier_name' => 'airs.supplier_name',
+            'department_label' => 'airs.requesting_department_name_snapshot',
+            'received_completeness' => 'airs.received_completeness',
+            'status' => 'airs.status',
+            'created_at_text' => 'airs.created_at',
+            'created_at' => 'airs.created_at',
+        ];
+
+        $column = $sortMap[$sortField] ?? null;
+
+        if ($column !== null) {
+            $query->orderBy($column, $sortDir);
+            $query->orderByDesc('airs.created_at');
+
+            return;
+        }
+
+        $query->orderByDesc('airs.air_date');
+        $query->orderByDesc('airs.created_at');
+    }
+
+    private function applyPromotionStatusSorting(Builder $query, string $sortDir): void
+    {
+        $query->orderByRaw(
+            "CASE
+                WHEN airs.status = ? AND ((COALESCE(property_pending_units_count, 0) + COALESCE(consumable_pending_lines_count, 0)) > 0) THEN 0
+                WHEN airs.status = ? AND ((COALESCE(property_promotable_units_count, 0) + COALESCE(consumable_promotable_lines_count, 0)) > 0) THEN 1
+                ELSE 2
+            END {$sortDir}",
+            [AirStatuses::INSPECTED, AirStatuses::INSPECTED]
+        );
+
+        if ($sortDir === 'asc') {
+            $query->orderByRaw('(COALESCE(property_pending_units_count, 0) + COALESCE(consumable_pending_lines_count, 0)) DESC');
+        } else {
+            $query->orderByRaw('(COALESCE(property_pending_units_count, 0) + COALESCE(consumable_pending_lines_count, 0)) ASC');
+        }
+
+        $query->orderByDesc('airs.created_at');
+    }
+
+    private function propertyPromotableUnitsCountSubquery(): QueryBuilder
+    {
+        return DB::table('air_item_units')
+            ->join('air_items', 'air_item_units.air_item_id', '=', 'air_items.id')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('air_items.air_id', 'airs.id')
+            ->whereNull('air_item_units.deleted_at')
+            ->where(function ($query) {
+                $query->whereRaw("LOWER(COALESCE(air_items.tracking_type_snapshot, '')) <> 'consumable'")
+                    ->orWhere('air_items.requires_serial_snapshot', true)
+                    ->orWhere('air_items.is_semi_expendable_snapshot', true);
+            });
+    }
+
+    private function propertyPendingUnitsCountSubquery(): QueryBuilder
+    {
+        return DB::table('air_item_units')
+            ->join('air_items', 'air_item_units.air_item_id', '=', 'air_items.id')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('air_items.air_id', 'airs.id')
+            ->whereNull('air_item_units.deleted_at')
+            ->where(function ($query) {
+                $query->whereRaw("LOWER(COALESCE(air_items.tracking_type_snapshot, '')) <> 'consumable'")
+                    ->orWhere('air_items.requires_serial_snapshot', true)
+                    ->orWhere('air_items.is_semi_expendable_snapshot', true);
+            })
+            ->where(function ($query) {
+                $query->whereNull('air_item_units.inventory_item_id')
+                    ->orWhere('air_item_units.inventory_item_id', '');
+            })
+            ->whereNotExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('inventory_items')
+                    ->whereColumn('inventory_items.air_item_unit_id', 'air_item_units.id');
+            });
+    }
+
+    private function consumablePromotableLinesCountSubquery(): QueryBuilder
+    {
+        return DB::table('air_items')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('air_items.air_id', 'airs.id')
+            ->where('air_items.qty_accepted', '>', 0)
+            ->whereRaw("LOWER(COALESCE(air_items.tracking_type_snapshot, '')) = 'consumable'")
+            ->where(function ($query) {
+                $query->whereNull('air_items.requires_serial_snapshot')
+                    ->orWhere('air_items.requires_serial_snapshot', false);
+            })
+            ->where(function ($query) {
+                $query->whereNull('air_items.is_semi_expendable_snapshot')
+                    ->orWhere('air_items.is_semi_expendable_snapshot', false);
+            });
+    }
+
+    private function consumablePendingLinesCountSubquery(): QueryBuilder
+    {
+        return DB::table('air_items')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('air_items.air_id', 'airs.id')
+            ->where('air_items.qty_accepted', '>', 0)
+            ->whereRaw("LOWER(COALESCE(air_items.tracking_type_snapshot, '')) = 'consumable'")
+            ->where(function ($query) {
+                $query->whereNull('air_items.requires_serial_snapshot')
+                    ->orWhere('air_items.requires_serial_snapshot', false);
+            })
+            ->where(function ($query) {
+                $query->whereNull('air_items.is_semi_expendable_snapshot')
+                    ->orWhere('air_items.is_semi_expendable_snapshot', false);
+            })
+            ->whereNotExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('stock_movements')
+                    ->whereColumn('stock_movements.air_item_id', 'air_items.id')
+                    ->whereColumn('stock_movements.reference_id', 'airs.id')
+                    ->where('stock_movements.reference_type', 'AIR');
+            });
     }
 }

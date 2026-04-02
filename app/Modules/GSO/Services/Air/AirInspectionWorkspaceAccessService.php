@@ -23,7 +23,9 @@ class AirInspectionWorkspaceAccessService
         if (! $actor || $airId === '') {
             return [
                 'can_manage' => false,
+                'can_finalize' => false,
                 'has_inspect_permission' => false,
+                'has_finalize_permission' => false,
                 'is_assigned_inspector' => false,
                 'is_assignment_elevated' => false,
                 'assigned_to_user_id' => null,
@@ -32,11 +34,11 @@ class AirInspectionWorkspaceAccessService
         }
 
         $hasInspectPermission = $this->authorizer->allowsPermission($actor, 'air.inspect');
+        $hasFinalizePermission = $this->authorizer->allowsPermission($actor, 'air.finalize_inspection');
         $isAssignmentElevated = $this->authorizer->allowsAnyPermission($actor, [
             'air.update',
             'air.manage_items',
             'air.manage_files',
-            'air.finalize_inspection',
             'air.reopen_inspection',
             'air.promote_inventory',
         ]);
@@ -48,15 +50,18 @@ class AirInspectionWorkspaceAccessService
             && $assignedToUserId === (string) $actor->id;
 
         $canManage = $isAssignmentElevated || $isAssignedInspector;
+        $canFinalize = $hasFinalizePermission && $canManage;
         $warning = null;
 
-        if (! $canManage && $hasInspectPermission) {
+        if (! $canManage && ($hasInspectPermission || $hasFinalizePermission)) {
             $warning = 'You are not currently assigned to this AIR inspection. The workspace is read-only until the task is assigned to you.';
         }
 
         return [
             'can_manage' => $canManage,
+            'can_finalize' => $canFinalize,
             'has_inspect_permission' => $hasInspectPermission,
+            'has_finalize_permission' => $hasFinalizePermission,
             'is_assigned_inspector' => $isAssignedInspector,
             'is_assignment_elevated' => $isAssignmentElevated,
             'assigned_to_user_id' => $assignedToUserId !== '' ? $assignedToUserId : null,
@@ -67,5 +72,10 @@ class AirInspectionWorkspaceAccessService
     public function canManage(?User $actor, string $airId): bool
     {
         return (bool) ($this->resolve($actor, $airId)['can_manage'] ?? false);
+    }
+
+    public function canFinalize(?User $actor, string $airId): bool
+    {
+        return (bool) ($this->resolve($actor, $airId)['can_finalize'] ?? false);
     }
 }

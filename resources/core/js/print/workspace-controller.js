@@ -490,7 +490,7 @@ function updateArchiveControls(triggerButton, archive) {
   const statusNode = controls.querySelector("[data-print-archive-status]");
 
   if (viewButton) {
-    viewButton.classList.remove("hidden");
+    viewButton.style.display = "";
     viewButton.disabled = false;
   }
 
@@ -687,6 +687,20 @@ async function previewSignedPdf(button, form) {
   const documentNumber = button.dataset.printArchiveDocumentNumber || "DOCUMENT";
   const controls = button.closest("[data-print-archive-controls]");
   const uploadButton = controls?.querySelector("[data-print-archive-upload]");
+  const archiveState = String(controls?.dataset?.printArchiveState || "empty").trim();
+  const emptyMessage =
+    button.dataset.printArchiveEmptyMessage ||
+    `No uploaded signed ${documentType} PDF yet. Upload the scanned signed copy first.`;
+
+  if (archiveState !== "uploaded") {
+    await Swal.fire({
+      icon: "info",
+      title: "No signed PDF uploaded yet",
+      text: emptyMessage,
+    });
+
+    return;
+  }
 
   if (!viewUrl) {
     return;
@@ -927,7 +941,7 @@ export function initPrintWorkspaceController(config) {
     button.addEventListener("click", async (event) => {
       event.preventDefault();
 
-      if (button.disabled || button.classList.contains("hidden")) {
+      if (button.style.display === "none") {
         return;
       }
 

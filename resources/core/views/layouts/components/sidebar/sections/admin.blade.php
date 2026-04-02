@@ -70,6 +70,14 @@
           </a>
         </li>
       @endif
+
+      @if($canViewWorkflowNotificationsWorkspace ?? false)
+        <li class="slide">
+          <a href="{{ route('workflow-notifications.index') }}" class="side-menu__item">
+            Workflow Notifications
+          </a>
+        </li>
+      @endif
     </ul>
   </li>
 @endif

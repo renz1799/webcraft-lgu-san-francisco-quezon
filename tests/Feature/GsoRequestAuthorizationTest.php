@@ -6,6 +6,7 @@ use App\Core\Models\User;
 use App\Core\Support\AdminContextAuthorizer;
 use App\Modules\GSO\Http\Requests\AccountableOfficers\ResolveAccountableOfficerRequest;
 use App\Modules\GSO\Http\Requests\Air\PrintAirRequest;
+use App\Modules\GSO\Http\Requests\Air\FinalizeAirInspectionRequest;
 use App\Modules\GSO\Http\Requests\Air\SaveAirInspectionRequest;
 use App\Modules\GSO\Http\Requests\AssetTypes\AssetTypeTableDataRequest;
 use App\Modules\GSO\Http\Requests\Inspections\UpdateInspectionRequest;
@@ -153,6 +154,27 @@ class GsoRequestAuthorizationTest extends TestCase
 
         $workspaceAccess = Mockery::mock(AirInspectionWorkspaceAccessService::class);
         $workspaceAccess->shouldReceive('canManage')
+            ->withArgs(function ($user, string $airId): bool {
+                return $user instanceof User
+                    && (string) $user->id === 'user-1'
+                    && $airId === 'air-1';
+            })
+            ->andReturn(true);
+
+        app()->instance(AirInspectionWorkspaceAccessService::class, $workspaceAccess);
+
+        $this->assertTrue($request->authorize());
+    }
+
+    public function test_finalize_air_inspection_request_uses_assignment_aware_workspace_access(): void
+    {
+        $request = FinalizeAirInspectionRequest::create('/gso/air/air-1/inspection/finalize', 'PUT');
+        $request->setContainer($this->app);
+        $request->setUserResolver(fn () => $this->makeUser('user-1'));
+        $request->setRouteResolver(fn () => $this->makeRoute('gso.air.inspection.finalize', ['air' => 'air-1']));
+
+        $workspaceAccess = Mockery::mock(AirInspectionWorkspaceAccessService::class);
+        $workspaceAccess->shouldReceive('canFinalize')
             ->withArgs(function ($user, string $airId): bool {
                 return $user instanceof User
                     && (string) $user->id === 'user-1'

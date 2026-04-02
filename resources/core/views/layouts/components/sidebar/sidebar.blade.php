@@ -33,13 +33,18 @@
       'drive_connections.disconnect',
       'drive_files.create',
   ]);
+  $canViewWorkflowNotificationsWorkspace = $adminAuthorizer->allowsAnyPermission($user, [
+      'workflow_notifications.view',
+      'workflow_notifications.update',
+  ]);
   $showPlatformAdminSection = $canViewPlatformUsers
       || $canViewPlatformRoles
       || $canViewPlatformPermissions
       || $canRegisterUser
       || $canViewPlatformLoginLogs
       || $canViewPlatformAuditLogs
-      || $canViewDriveWorkspace;
+      || $canViewDriveWorkspace
+      || $canViewWorkflowNotificationsWorkspace;
   $adminRoutes = $adminRoutes ?? app(\App\Core\Support\AdminRouteResolver::class);
   $moduleLinks = $accessibleModules ?? collect();
   $currentModuleCode = strtoupper((string) ($currentModule->code ?? ''));
@@ -95,6 +100,7 @@
         'canViewPlatformLoginLogs' => $canViewPlatformLoginLogs,
         'canViewPlatformAuditLogs' => $canViewPlatformAuditLogs,
         'canViewDriveWorkspace' => $canViewDriveWorkspace,
+        'canViewWorkflowNotificationsWorkspace' => $canViewWorkflowNotificationsWorkspace,
     ])
   @endif
 

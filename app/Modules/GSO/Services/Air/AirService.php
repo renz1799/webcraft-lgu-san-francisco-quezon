@@ -7,6 +7,8 @@ use App\Core\Models\Tasks\Task;
 use App\Core\Models\User;
 use App\Core\Services\Contracts\AccountablePersons\AccountablePersonServiceInterface;
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Services\Contracts\Notifications\NotificationServiceInterface;
+use App\Core\Services\Contracts\Notifications\WorkflowNotificationSettingsServiceInterface;
 use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
 use App\Modules\GSO\Builders\Contracts\Air\AirDatatableRowBuilderInterface;
 use App\Modules\GSO\Models\Air;
@@ -27,6 +29,8 @@ class AirService implements AirServiceInterface
         private readonly AirDatatableRowBuilderInterface $datatableRowBuilder,
         private readonly AccountablePersonServiceInterface $accountablePersons,
         private readonly TaskServiceInterface $tasks,
+        private readonly NotificationServiceInterface $notifications,
+        private readonly WorkflowNotificationSettingsServiceInterface $workflowNotifications,
     ) {}
 
     public function datatable(array $params): array
@@ -172,6 +176,7 @@ class AirService implements AirServiceInterface
             $air = $this->airs->save($air);
             $this->ensureSignatoryRecords($actorUserId, $air);
             $task = $this->syncInspectionTask($actorUserId, $air);
+            $this->notifyInspectorsOfSubmittedAir($actorUserId, $air, $task);
             $after = $this->snapshotAuditFields($air);
 
             $this->auditLogs->record(
@@ -289,25 +294,8 @@ class AirService implements AirServiceInterface
                 ]);
             }
 
-            $task = $this->tasks->createUnassigned(
-                actorUserId: $actorUserId,
-                title: "AIR Follow-up #{$continuationNo} for Purchase Order: " . (string) ($followUp->po_number ?? ''),
-                description: 'Follow-up AIR created from a partial inspection.',
-                type: 'air_draft',
-                subjectType: 'air',
-                subjectId: (string) $followUp->id,
-                data: [
-                    'eligible_roles' => ['Administrator', 'admin', 'Staff'],
-                    'air_id' => (string) $followUp->id,
-                    'po_number' => (string) ($followUp->po_number ?? ''),
-                    'requesting_department_id' => (string) ($followUp->requesting_department_id ?? ''),
-                    'requesting_department_name_snapshot' => (string) ($followUp->requesting_department_name_snapshot ?? ''),
-                    'fund' => $this->resolveFundLabel($followUp),
-                    'subject_url' => $this->editUrl($followUp),
-                    'parent_air_id' => (string) $source->id,
-                    'continuation_no' => $continuationNo,
-                ],
-            );
+            $followUp = $this->submitDraft($actorUserId, (string) $followUp->id);
+            $this->notifyRolesOfCreatedFollowUpAir($actorUserId, $source, $followUp, null);
 
             $this->auditLogs->record(
                 action: 'gso.air.follow-up.created',
@@ -318,23 +306,23 @@ class AirService implements AirServiceInterface
                     'continuation_no' => $continuationNo,
                     'po_number' => (string) ($followUp->po_number ?? ''),
                     'copied_items' => $pendingItems->count(),
+                    'status' => (string) ($followUp->status ?? ''),
                 ],
                 meta: array_filter([
                     'actor_user_id' => $actorUserId,
                     'source_air_id' => (string) $source->id,
-                    'task_id' => (string) ($task->id ?? ''),
                 ]),
                 message: 'GSO follow-up AIR created from inspection: ' . $this->airLabel($followUp),
                 display: [
                     'summary' => 'Follow-up AIR created from partial inspection',
                     'subject_label' => $this->airLabel($followUp),
                     'sections' => [[
-                        'title' => 'Follow-up Draft',
+                        'title' => 'Follow-up AIR',
                         'items' => [
                             ['label' => 'Source AIR', 'before' => 'None', 'after' => $this->airLabel($source)],
                             ['label' => 'Follow-up No.', 'before' => 'None', 'after' => 'Follow-up #' . $continuationNo],
                             ['label' => 'Copied Unresolved Items', 'before' => '0', 'after' => (string) $pendingItems->count()],
-                            ['label' => 'Workflow Status', 'before' => 'None', 'after' => AirStatuses::label(AirStatuses::DRAFT)],
+                            ['label' => 'Workflow Status', 'before' => 'None', 'after' => AirStatuses::label((string) ($followUp->status ?? ''))],
                         ],
                     ]],
                 ],
@@ -687,6 +675,138 @@ class AirService implements AirServiceInterface
         $details[] = 'Review the delivery and complete the inspection details, delivered and accepted quantities, unit records, and photos.';
 
         return implode(' ', $details);
+    }
+
+    private function notifyInspectorsOfSubmittedAir(string $actorUserId, Air $air, ?Task $task): void
+    {
+        $roleNames = $this->workflowNotifications->rolesForEvent('GSO', 'air.submitted');
+
+        if ($roleNames === []) {
+            return;
+        }
+
+        $airNumber = trim((string) ($air->air_number ?? ''));
+        $poNumber = trim((string) ($air->po_number ?? ''));
+        $titleSuffix = $airNumber !== '' ? $airNumber : ($poNumber !== '' ? $poNumber : $this->airLabel($air));
+
+        $taskUrl = $task?->id ? $this->gsoTaskShowUrl((string) $task->id) : $this->inspectionUrl($air);
+        $message = $this->renderWorkflowNotificationMessage(
+            $this->workflowNotifications->messageTemplateForEvent('GSO', 'air.submitted'),
+            [
+                'air_label' => $this->airLabel($air),
+                'air_number' => $airNumber,
+                'po_number' => $poNumber,
+                'task_url' => $taskUrl,
+                'inspection_url' => $this->inspectionUrl($air),
+                'actor_name' => $this->actorDisplayName($actorUserId),
+            ],
+            'A submitted AIR is ready for inspection review.'
+        );
+
+        $this->notifications->notifyUsersByRoles(
+            roleNames: $roleNames,
+            actorUserId: $actorUserId,
+            type: 'gso.air.submitted',
+            title: 'AIR ready for inspection: ' . $titleSuffix,
+            message: $message,
+            entityType: 'air',
+            entityId: (string) $air->id,
+            data: array_filter([
+                'air_id' => (string) $air->id,
+                'air_number' => $airNumber !== '' ? $airNumber : null,
+                'po_number' => $poNumber !== '' ? $poNumber : null,
+                'task_id' => $task?->id ? (string) $task->id : null,
+                'url' => $taskUrl,
+                'subject_url' => $this->inspectionUrl($air),
+            ], static fn (mixed $value): bool => $value !== null && $value !== ''),
+        );
+    }
+
+    private function notifyRolesOfCreatedFollowUpAir(string $actorUserId, Air $sourceAir, Air $followUpAir, ?Task $task): void
+    {
+        $roleNames = $this->workflowNotifications->rolesForEvent('GSO', 'air.follow_up_created');
+
+        if ($roleNames === []) {
+            return;
+        }
+
+        $airNumber = trim((string) ($followUpAir->air_number ?? ''));
+        $poNumber = trim((string) ($followUpAir->po_number ?? ''));
+        $titleSuffix = $airNumber !== '' ? $airNumber : ($poNumber !== '' ? $poNumber : $this->airLabel($followUpAir));
+        $followUpUrl = in_array((string) ($followUpAir->status ?? ''), [AirStatuses::SUBMITTED, AirStatuses::IN_PROGRESS, AirStatuses::INSPECTED], true)
+            ? $this->inspectionUrl($followUpAir)
+            : $this->editUrl($followUpAir);
+        $taskUrl = $task?->id ? $this->gsoTaskShowUrl((string) $task->id) : $followUpUrl;
+        $message = $this->renderWorkflowNotificationMessage(
+            $this->workflowNotifications->messageTemplateForEvent('GSO', 'air.follow_up_created'),
+            [
+                'air_label' => $this->airLabel($followUpAir),
+                'air_number' => $airNumber,
+                'po_number' => $poNumber,
+                'source_air_label' => $this->airLabel($sourceAir),
+                'task_url' => $taskUrl,
+                'follow_up_url' => $followUpUrl,
+                'actor_name' => $this->actorDisplayName($actorUserId),
+            ],
+            'A follow-up AIR draft is created for unresolved inspection items. Click to open the assigned task and continue the workflow.'
+        );
+
+        $this->notifications->notifyUsersByRoles(
+            roleNames: $roleNames,
+            actorUserId: $actorUserId,
+            type: 'gso.air.follow-up.created',
+            title: 'Follow-up AIR created: ' . $titleSuffix,
+            message: $message,
+            entityType: 'air',
+            entityId: (string) $followUpAir->id,
+            data: array_filter([
+                'air_id' => (string) $followUpAir->id,
+                'parent_air_id' => (string) $sourceAir->id,
+                'air_number' => $airNumber !== '' ? $airNumber : null,
+                'po_number' => $poNumber !== '' ? $poNumber : null,
+                'task_id' => $task?->id ? (string) $task->id : null,
+                'url' => $taskUrl,
+                'subject_url' => $followUpUrl,
+            ], static fn (mixed $value): bool => $value !== null && $value !== ''),
+        );
+    }
+
+    /**
+     * @param  array<string, string|null>  $variables
+     */
+    private function renderWorkflowNotificationMessage(string $template, array $variables, string $fallback): string
+    {
+        $template = trim($template);
+
+        if ($template === '') {
+            return $fallback;
+        }
+
+        $replacements = [];
+        foreach ($variables as $key => $value) {
+            $replacements['{' . trim((string) $key) . '}'] = trim((string) ($value ?? ''));
+        }
+
+        $rendered = strtr($template, $replacements);
+        $rendered = preg_replace('/\s+/', ' ', trim($rendered)) ?? '';
+
+        return $rendered !== '' ? $rendered : $fallback;
+    }
+
+    private function actorDisplayName(string $actorUserId): string
+    {
+        $actor = User::query()->find($actorUserId);
+
+        return $this->resolveActorLabel($actor);
+    }
+
+    private function gsoTaskShowUrl(string $taskId): string
+    {
+        try {
+            return route('gso.tasks.show', ['id' => $taskId]);
+        } catch (\Throwable) {
+            return '/gso/tasks/' . $taskId;
+        }
     }
 
     private function resolveFundLabel(Air $air): ?string

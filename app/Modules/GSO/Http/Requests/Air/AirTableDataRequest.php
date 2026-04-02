@@ -32,6 +32,7 @@ class AirTableDataRequest extends FormRequest
         $rawStatus = trim((string) $this->query('status', ''));
         $workflowStatus = trim((string) $this->query('inspection_status', $rawStatus));
         $archived = trim((string) ($this->query('archived', $this->query('record_status', ''))));
+        $sorters = $this->query('sorters', $this->query('sort', []));
 
         if (! in_array($workflowStatus, AirStatuses::values(), true)) {
             $workflowStatus = '';
@@ -56,6 +57,7 @@ class AirTableDataRequest extends FormRequest
             'date_from' => trim((string) $this->query('date_from', '')),
             'date_to' => trim((string) $this->query('date_to', '')),
             'received_completeness' => trim((string) $this->query('received_completeness', '')),
+            'sorters' => is_array($sorters) ? $sorters : [],
             'page' => max(1, (int) $this->query('page', 1)),
             'size' => min(100, max(1, (int) $this->query('size', 15))),
         ]);
@@ -74,6 +76,9 @@ class AirTableDataRequest extends FormRequest
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'received_completeness' => ['nullable', Rule::in(['complete', 'partial'])],
+            'sorters' => ['nullable', 'array'],
+            'sorters.*.field' => ['nullable', 'string', 'max:100'],
+            'sorters.*.dir' => ['nullable', 'in:asc,desc'],
             'page' => ['nullable', 'integer', 'min:1'],
             'size' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

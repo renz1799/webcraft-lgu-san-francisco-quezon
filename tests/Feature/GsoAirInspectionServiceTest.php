@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Services\Contracts\Notifications\NotificationServiceInterface;
+use App\Core\Services\Contracts\Notifications\WorkflowNotificationSettingsServiceInterface;
 use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
 use App\Core\Models\Tasks\Task;
 use App\Modules\GSO\Builders\Air\AirDatatableRowBuilder;
@@ -136,6 +138,37 @@ class GsoAirInspectionServiceTest extends TestCase
             'id' => 'task-1',
             'status' => Task::STATUS_DONE,
         ]));
+        $notifications = Mockery::mock(NotificationServiceInterface::class);
+        $notifications->shouldReceive('notifyUsersByRoles')
+            ->once()
+            ->withArgs(function (
+                array $roles,
+                string $actorUserId,
+                string $type,
+                string $title,
+                string $message,
+                string $entityType,
+                string $entityId,
+                array $data
+            ): bool {
+                return $roles === ['Administrator', 'Staff']
+                    && $actorUserId === 'user-1'
+                    && $type === 'gso.air.inspection.finalized'
+                    && str_contains($title, 'AIR inspection finalized:')
+                    && str_contains($message, 'inspection is finalized')
+                    && $entityType === 'air'
+                    && $entityId === 'air-1'
+                    && ($data['url'] ?? '') !== '';
+            });
+        $workflowNotifications = Mockery::mock(WorkflowNotificationSettingsServiceInterface::class);
+        $workflowNotifications->shouldReceive('rolesForEvent')
+            ->once()
+            ->with('GSO', 'air.inspection_finalized')
+            ->andReturn(['Administrator', 'Staff']);
+        $workflowNotifications->shouldReceive('messageTemplateForEvent')
+            ->once()
+            ->with('GSO', 'air.inspection_finalized')
+            ->andReturn('{air_label} inspection is finalized. Click to open the AIR inspection record and continue the next workflow step.');
 
         $service = new AirInspectionService(
             new EloquentAirRepository(),
@@ -143,6 +176,8 @@ class GsoAirInspectionServiceTest extends TestCase
             new EloquentAirItemUnitRepository(),
             $audit,
             $tasks,
+            $notifications,
+            $workflowNotifications,
             new AirDatatableRowBuilder(),
         );
 
@@ -282,6 +317,11 @@ class GsoAirInspectionServiceTest extends TestCase
         $tasks = Mockery::mock(TaskServiceInterface::class);
         $tasks->shouldNotReceive('findLatestBySubject');
         $tasks->shouldNotReceive('changeStatus');
+        $notifications = Mockery::mock(NotificationServiceInterface::class);
+        $notifications->shouldNotReceive('notifyUsersByRoles');
+        $workflowNotifications = Mockery::mock(WorkflowNotificationSettingsServiceInterface::class);
+        $workflowNotifications->shouldNotReceive('rolesForEvent');
+        $workflowNotifications->shouldNotReceive('messageTemplateForEvent');
 
         $service = new AirInspectionService(
             new EloquentAirRepository(),
@@ -289,6 +329,8 @@ class GsoAirInspectionServiceTest extends TestCase
             new EloquentAirItemUnitRepository(),
             $audit,
             $tasks,
+            $notifications,
+            $workflowNotifications,
             new AirDatatableRowBuilder(),
         );
 
@@ -342,6 +384,11 @@ class GsoAirInspectionServiceTest extends TestCase
         $tasks = Mockery::mock(TaskServiceInterface::class);
         $tasks->shouldNotReceive('findLatestBySubject');
         $tasks->shouldNotReceive('changeStatus');
+        $notifications = Mockery::mock(NotificationServiceInterface::class);
+        $notifications->shouldNotReceive('notifyUsersByRoles');
+        $workflowNotifications = Mockery::mock(WorkflowNotificationSettingsServiceInterface::class);
+        $workflowNotifications->shouldNotReceive('rolesForEvent');
+        $workflowNotifications->shouldNotReceive('messageTemplateForEvent');
 
         $service = new AirInspectionService(
             new EloquentAirRepository(),
@@ -349,6 +396,8 @@ class GsoAirInspectionServiceTest extends TestCase
             new EloquentAirItemUnitRepository(),
             $audit,
             $tasks,
+            $notifications,
+            $workflowNotifications,
             new AirDatatableRowBuilder(),
         );
 
@@ -416,6 +465,11 @@ class GsoAirInspectionServiceTest extends TestCase
         $tasks = Mockery::mock(TaskServiceInterface::class);
         $tasks->shouldNotReceive('findLatestBySubject');
         $tasks->shouldNotReceive('changeStatus');
+        $notifications = Mockery::mock(NotificationServiceInterface::class);
+        $notifications->shouldNotReceive('notifyUsersByRoles');
+        $workflowNotifications = Mockery::mock(WorkflowNotificationSettingsServiceInterface::class);
+        $workflowNotifications->shouldNotReceive('rolesForEvent');
+        $workflowNotifications->shouldNotReceive('messageTemplateForEvent');
 
         $service = new AirInspectionService(
             new EloquentAirRepository(),
@@ -423,6 +477,8 @@ class GsoAirInspectionServiceTest extends TestCase
             new EloquentAirItemUnitRepository(),
             $audit,
             $tasks,
+            $notifications,
+            $workflowNotifications,
             new AirDatatableRowBuilder(),
         );
 

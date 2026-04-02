@@ -4,14 +4,42 @@ namespace Tests\Feature;
 
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveFileServiceInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveFolderServiceInterface;
+use App\Modules\GSO\Models\SignedDocumentArchive;
 use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use App\Modules\GSO\Services\GsoSignedDocumentArchiveService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 use Tests\TestCase;
 
 class GsoSignedDocumentArchiveServiceTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('database.default', 'sqlite');
+        config()->set('database.connections.sqlite.database', ':memory:');
+
+        DB::purge('sqlite');
+        DB::reconnect('sqlite');
+
+        Schema::create('gso_signed_document_archives', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('document_type', 20);
+            $table->string('document_number', 255);
+            $table->string('drive_file_id', 120);
+            $table->string('drive_folder_id', 120)->nullable();
+            $table->string('file_name', 255)->nullable();
+            $table->string('folder_path', 255)->nullable();
+            $table->timestamp('archived_at')->nullable();
+            $table->timestamps();
+            $table->unique(['document_type', 'document_number'], 'gso_signed_document_archives_doc_unique');
+        });
+    }
+
     public function test_archive_uses_signed_documents_root_and_canonical_filename(): void
     {
         $folderService = new FakeGoogleDriveFolderService();
@@ -46,6 +74,14 @@ class GsoSignedDocumentArchiveServiceTest extends TestCase
         $this->assertSame('AIR / AIR-2026-0001', $stored['folder_path']);
         $this->assertSame('AIR-2026-0001.pdf', $stored['file_name']);
         $this->assertTrue($stored['replaced_existing']);
+
+        $this->assertDatabaseHas('gso_signed_document_archives', [
+            'document_type' => 'AIR',
+            'document_number' => 'AIR-2026-0001',
+            'drive_file_id' => 'drive-file-1',
+            'drive_folder_id' => 'folder-air-2026-0001',
+            'file_name' => 'AIR-2026-0001.pdf',
+        ]);
     }
 
     public function test_archive_requires_configured_root_folder(): void
@@ -76,6 +112,16 @@ class GsoSignedDocumentArchiveServiceTest extends TestCase
         $storageSettings = new FakeGsoStorageSettingsService('signed-root-folder');
         $service = new GsoSignedDocumentArchiveService($storageSettings, $folderService, $fileService);
 
+        SignedDocumentArchive::query()->create([
+            'document_type' => 'RIS',
+            'document_number' => 'RIS-2026-0001',
+            'drive_file_id' => 'drive-file-existing',
+            'drive_folder_id' => 'folder-ris-2026-0001',
+            'file_name' => 'RIS-2026-0001.pdf',
+            'folder_path' => 'RIS / RIS-2026-0001',
+            'archived_at' => now(),
+        ]);
+
         $archived = $service->findArchived('RIS', 'RIS-2026-0001');
 
         $this->assertNotNull($archived);
@@ -84,6 +130,18 @@ class GsoSignedDocumentArchiveServiceTest extends TestCase
         $this->assertSame('RIS / RIS-2026-0001', $archived['folder_path']);
         $this->assertSame('RIS-2026-0001.pdf', $archived['file_name']);
         $this->assertSame('drive-file-existing', $archived['drive_file_id']);
+    }
+
+    public function test_find_archived_ignores_old_drive_files_without_archive_record(): void
+    {
+        $folderService = new FakeGoogleDriveFolderService();
+        $fileService = new FakeGoogleDriveFileService();
+        $storageSettings = new FakeGsoStorageSettingsService('signed-root-folder');
+        $service = new GsoSignedDocumentArchiveService($storageSettings, $folderService, $fileService);
+
+        $archived = $service->findArchived('AIR', 'AIR-2026-0999');
+
+        $this->assertNull($archived);
     }
 }
 

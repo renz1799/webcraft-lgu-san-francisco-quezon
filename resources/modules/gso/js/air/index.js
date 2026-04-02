@@ -71,6 +71,26 @@ import "sweetalert2/dist/sweetalert2.min.css";
     return `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${cls}">${escapeHtml(label)}</span>`;
   }
 
+  function getPromotionMeta(statusRaw, labelRaw) {
+    const key = String(statusRaw ?? "").toLowerCase().trim();
+    const label = String(labelRaw ?? "").trim() || "-";
+
+    const map = {
+      fully_promoted: ["bg-success/15 text-success", label],
+      pending: ["bg-warning/15 text-warning", label],
+      not_eligible: ["bg-light text-defaulttextcolor", label],
+    };
+
+    return map[key] || ["bg-light text-defaulttextcolor", label];
+  }
+
+  function promotionPillFormatter(cell) {
+    const row = cell.getRow().getData() || {};
+    const [cls, label] = getPromotionMeta(row?.promotion_status, row?.promotion_status_text);
+
+    return `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${cls}">${escapeHtml(label)}</span>`;
+  }
+
   async function parseErrorResponse(response) {
     const contentType = response.headers.get("content-type") || "";
     const data = contentType.includes("application/json")
@@ -330,6 +350,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
       placeholder: "No AIR records found.",
       pagination: true,
       paginationMode: "remote",
+      sortMode: "remote",
       paginationSize: 15,
       paginationSizeSelector: [15, 25, 50, 100],
       ajaxURL: config.ajaxUrl,
@@ -391,6 +412,14 @@ import "sweetalert2/dist/sweetalert2.min.css";
           field: "status",
           width: 140,
           formatter: statusPillFormatter,
+        },
+        {
+          title: "Promotion Status",
+          field: "promotion_status_text",
+          width: 160,
+          headerSort: true,
+          headerSortStartingDir: "asc",
+          formatter: promotionPillFormatter,
         },
         {
           title: "Created",

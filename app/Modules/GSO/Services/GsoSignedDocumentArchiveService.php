@@ -4,6 +4,7 @@ namespace App\Modules\GSO\Services;
 
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveFileServiceInterface;
 use App\Core\Services\Contracts\GoogleDrive\GoogleDriveFolderServiceInterface;
+use App\Modules\GSO\Models\SignedDocumentArchive;
 use App\Modules\GSO\Services\Contracts\GsoSignedDocumentArchiveServiceInterface;
 use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use RuntimeException;
@@ -45,37 +46,45 @@ class GsoSignedDocumentArchiveService implements GsoSignedDocumentArchiveService
             makePublic: false,
         );
 
-        return $stored + [
+        $archive = [
             'document_type' => $resolvedType,
             'document_number' => $resolvedNumber,
             'file_name' => $stored['name'] ?? $fileName,
             'folder_path' => implode(' / ', [$resolvedType, $resolvedNumber]),
             'folder_id' => $documentFolderId,
         ];
+
+        $this->persistArchiveRecord($archive + $stored);
+
+        return $stored + $archive;
     }
 
     public function findArchived(string $documentType, string $documentNumber): ?array
     {
         [$resolvedType, $resolvedNumber] = $this->normalizeDocumentReference($documentType, $documentNumber);
-        $documentFolderId = $this->resolveDocumentFolderId($resolvedType, $resolvedNumber, false);
+        $archive = SignedDocumentArchive::query()
+            ->where('document_type', $resolvedType)
+            ->where('document_number', $resolvedNumber)
+            ->first();
 
-        if ($documentFolderId === null) {
+        if (! $archive) {
             return null;
         }
 
-        $fileName = $resolvedNumber . '.pdf';
-        $file = $this->driveFiles->findFileInFolder($fileName, $documentFolderId);
+        $driveFileId = trim((string) ($archive->drive_file_id ?? ''));
 
-        if ($file === null) {
+        if ($driveFileId === '') {
             return null;
         }
 
-        return $file + [
+        return [
+            'drive_file_id' => $driveFileId,
             'document_type' => $resolvedType,
             'document_number' => $resolvedNumber,
-            'file_name' => $file['name'] ?? $fileName,
-            'folder_path' => implode(' / ', [$resolvedType, $resolvedNumber]),
-            'folder_id' => $documentFolderId,
+            'file_name' => trim((string) ($archive->file_name ?? '')) ?: ($resolvedNumber . '.pdf'),
+            'folder_path' => trim((string) ($archive->folder_path ?? '')) ?: implode(' / ', [$resolvedType, $resolvedNumber]),
+            'folder_id' => trim((string) ($archive->drive_folder_id ?? '')) ?: null,
+            'created_time' => $archive->archived_at?->toIso8601String(),
         ];
     }
 
@@ -89,6 +98,26 @@ class GsoSignedDocumentArchiveService implements GsoSignedDocumentArchiveService
         }
 
         return $this->driveFiles->download($driveFileId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $archive
+     */
+    private function persistArchiveRecord(array $archive): void
+    {
+        SignedDocumentArchive::query()->updateOrCreate(
+            [
+                'document_type' => (string) ($archive['document_type'] ?? ''),
+                'document_number' => (string) ($archive['document_number'] ?? ''),
+            ],
+            [
+                'drive_file_id' => (string) ($archive['drive_file_id'] ?? ''),
+                'drive_folder_id' => $this->nullableString($archive['folder_id'] ?? null),
+                'file_name' => $this->nullableString($archive['file_name'] ?? null),
+                'folder_path' => $this->nullableString($archive['folder_path'] ?? null),
+                'archived_at' => now(),
+            ],
+        );
     }
 
     /**
@@ -149,5 +178,12 @@ class GsoSignedDocumentArchiveService implements GsoSignedDocumentArchiveService
         }
 
         return $documentFolderId;
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $value = trim((string) ($value ?? ''));
+
+        return $value !== '' ? $value : null;
     }
 }

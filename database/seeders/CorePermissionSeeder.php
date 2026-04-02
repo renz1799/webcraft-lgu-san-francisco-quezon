@@ -64,6 +64,10 @@ class CorePermissionSeeder extends Seeder
                 'drive_connections.disconnect',
                 'drive_files.create',
             ],
+            'Core / Workflow Notifications' => [
+                'workflow_notifications.view',
+                'workflow_notifications.update',
+            ],
             'Core / Theme' => [
                 'theme.update_colors',
             ],

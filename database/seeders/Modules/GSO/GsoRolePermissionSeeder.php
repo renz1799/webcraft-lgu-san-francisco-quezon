@@ -65,6 +65,15 @@ class GsoRolePermissionSeeder extends Seeder
         'wmr.print',
     ];
 
+    private const INSPECTOR_PERMISSIONS = [
+        'air.view',
+        'air.inspect',
+        'air.finalize_inspection',
+        'tasks.view',
+        'tasks.claim',
+        'tasks.comment',
+    ];
+
     public function run(): void
     {
         $this->syncRoleAliasesToAllModulePermissions('GSO', ['Administrator', 'admin']);
@@ -76,7 +85,12 @@ class GsoRolePermissionSeeder extends Seeder
                 ...self::STAFF_DOCUMENT_PERMISSIONS,
             ]))
         );
+        $this->syncRoleToNamedPermissions(
+            'GSO',
+            'Inspector',
+            self::INSPECTOR_PERMISSIONS
+        );
 
-        $this->command?->info('GSO Administrator/admin and Staff permission bundles synced successfully.');
+        $this->command?->info('GSO Administrator/admin, Staff, and Inspector permission bundles synced successfully.');
     }
 }

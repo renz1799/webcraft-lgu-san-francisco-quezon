@@ -257,6 +257,16 @@ import "sweetalert2/dist/sweetalert2.min.css";
       return !!config.canEditInspection && !!state.air?.can_edit_inspection;
     }
 
+    function canFinalize() {
+      return (
+        !!config.canFinalizeInspection &&
+        !!state.air?.can_edit_inspection &&
+        ["submitted", "in_progress"].includes(
+          String(state.air?.status || "").trim(),
+        )
+      );
+    }
+
     function canPromote() {
       return (
         !!config.canPromoteInventory &&
@@ -492,7 +502,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
             ? "Save and Finalize"
             : inspectionToolbarState.defaultFinalizeLabel;
         finalizeButton.disabled =
-          !canEdit() ||
+          !canFinalize() ||
           finalizeBlocked ||
           inspectionToolbarState.isSaving ||
           inspectionToolbarState.isFinalizing;
@@ -1127,6 +1137,17 @@ import "sweetalert2/dist/sweetalert2.min.css";
     }
 
     async function finalizeInspection() {
+      if (!canFinalize()) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Finalize blocked",
+          text:
+            config.inspectionAssignmentWarning ||
+            "You are not allowed to finalize this AIR inspection right now.",
+        });
+        return;
+      }
+
       const hasChanges = inspectionToolbarState.dirtyCount > 0;
       const guardState = refreshInspectionGuards();
 

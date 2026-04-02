@@ -7,7 +7,8 @@
     $resolvedUploadPermission = trim((string) ($uploadPermission ?? ''));
     $resolvedArchive = is_array($archiveRecord ?? null) ? $archiveRecord : null;
     $archiveReady = $resolvedDocumentNumber !== '';
-    $archiveExists = $archiveReady && $resolvedArchive !== null;
+    $resolvedArchiveFileId = trim((string) ($resolvedArchive['drive_file_id'] ?? ''));
+    $archiveExists = $archiveReady && $resolvedArchive !== null && $resolvedArchiveFileId !== '';
     $canUploadArchive = $resolvedUploadPermission === ''
         ? true
         : ((bool) $archiveActor && $archiveAuthorizer->allowsPermission($archiveActor, $resolvedUploadPermission));
@@ -29,12 +30,13 @@
     @if ($archiveReady)
         <button
             type="button"
-            class="ti-btn btn-wave ti-btn-outline-primary label-ti-btn w-full text-center {{ $archiveExists ? '' : 'hidden' }}"
+            class="ti-btn btn-wave ti-btn-outline-primary label-ti-btn w-full text-center"
             data-print-archive-view="1"
             data-print-archive-view-url="{{ $archiveViewUrl }}"
             data-print-archive-document-type="{{ $resolvedDocumentType }}"
             data-print-archive-document-number="{{ $resolvedDocumentNumber }}"
-            @disabled(! $archiveExists)
+            data-print-archive-empty-message="No uploaded signed PDF yet. Upload the scanned signed {{ $resolvedDocumentType }} first."
+            style="{{ $archiveExists ? '' : 'display: none;' }}"
         >
             <i class="ri-file-search-line label-ti-btn-icon me-2"></i>
             View Signed Document

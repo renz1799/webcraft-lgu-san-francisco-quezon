@@ -3,7 +3,9 @@
 namespace App\Core\Builders\Tasks;
 
 use App\Core\Builders\Tasks\Contracts\TaskNotificationPayloadBuilderInterface;
+use App\Core\Models\Module;
 use App\Core\Models\Tasks\Task;
+use Illuminate\Support\Facades\Route;
 
 class TaskNotificationPayloadBuilder implements TaskNotificationPayloadBuilderInterface
 {
@@ -18,7 +20,7 @@ class TaskNotificationPayloadBuilder implements TaskNotificationPayloadBuilderIn
             'data' => [
                 'task_id' => (string) $task->id,
                 'task_title' => (string) $task->title,
-                'url' => route('tasks.show', (string) $task->id),
+                'url' => $this->taskShowUrl($task),
             ],
         ];
     }
@@ -33,7 +35,7 @@ class TaskNotificationPayloadBuilder implements TaskNotificationPayloadBuilderIn
             'entity_id' => (string) $task->id,
             'data' => [
                 'task_id' => (string) $task->id,
-                'url' => route('tasks.show', (string) $task->id),
+                'url' => $this->taskShowUrl($task),
                 'from_status' => $fromStatus,
                 'to_status' => $toStatus,
             ],
@@ -50,7 +52,7 @@ class TaskNotificationPayloadBuilder implements TaskNotificationPayloadBuilderIn
             'entity_id' => (string) $task->id,
             'data' => [
                 'task_id' => (string) $task->id,
-                'url' => route('tasks.show', (string) $task->id),
+                'url' => $this->taskShowUrl($task),
             ],
         ];
     }
@@ -65,8 +67,38 @@ class TaskNotificationPayloadBuilder implements TaskNotificationPayloadBuilderIn
             'entity_id' => (string) $task->id,
             'data' => [
                 'task_id' => (string) $task->id,
-                'url' => route('tasks.show', (string) $task->id),
+                'url' => $this->taskShowUrl($task),
             ],
         ];
+    }
+
+    private function taskShowUrl(Task $task): string
+    {
+        $routeName = $this->taskShowRouteName($task);
+
+        return route($routeName, ['id' => (string) $task->id]);
+    }
+
+    private function taskShowRouteName(Task $task): string
+    {
+        $moduleCode = strtoupper(trim((string) ($task->module?->code ?? '')));
+
+        if ($moduleCode === '') {
+            $moduleId = trim((string) ($task->module_id ?? ''));
+
+            if ($moduleId !== '') {
+                $moduleCode = strtoupper((string) (Module::query()->whereKey($moduleId)->value('code') ?? ''));
+            }
+        }
+
+        if ($moduleCode !== '') {
+            $moduleRouteName = strtolower($moduleCode) . '.tasks.show';
+
+            if (Route::has($moduleRouteName)) {
+                return $moduleRouteName;
+            }
+        }
+
+        return 'tasks.show';
     }
 }

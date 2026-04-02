@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Core\Builders\Tasks\TaskNotificationPayloadBuilder;
+use App\Core\Models\Module;
 use App\Core\Models\Notification;
 use App\Core\Models\Tasks\Task;
 use App\Core\Repositories\Tasks\Contracts\TaskEventRepositoryInterface;
@@ -22,6 +23,10 @@ class TaskNotificationServiceTest extends TestCase
 
         if (! Route::has('tasks.show')) {
             Route::get('/tasks/{task}', fn () => 'task')->name('tasks.show');
+        }
+
+        if (! Route::has('gso.tasks.show')) {
+            Route::get('/gso/tasks/{id}', fn () => 'gso-task')->name('gso.tasks.show');
         }
     }
 
@@ -69,6 +74,64 @@ class TaskNotificationServiceTest extends TestCase
                 $this->assertSame('task-1', $data['task_id']);
                 $this->assertSame(route('tasks.show', 'task-1'), $data['url']);
                 $this->assertSame('module-1', $moduleId);
+                $this->assertSame('department-1', $departmentId);
+
+                return true;
+            })
+            ->andReturn(new Notification());
+
+        $service = new TaskNotificationService(
+            $notifications,
+            $taskEvents,
+            $users,
+            new TaskNotificationPayloadBuilder(),
+        );
+
+        $service->notifyAssigned($task, 'actor-1', 'assignee-1');
+    }
+
+    public function test_notify_assigned_uses_module_task_route_when_available(): void
+    {
+        $notifications = Mockery::mock(NotificationServiceInterface::class);
+        $taskEvents = Mockery::mock(TaskEventRepositoryInterface::class);
+        $users = Mockery::mock(UserRepositoryInterface::class);
+
+        $task = new Task([
+            'title' => 'Inspect submitted AIR',
+            'module_id' => 'module-gso',
+            'department_id' => 'department-1',
+        ]);
+        $task->id = 'task-gso-1';
+        $task->setRelation('module', new Module([
+            'id' => 'module-gso',
+            'code' => 'GSO',
+            'name' => 'General Services Office',
+        ]));
+
+        $notifications->shouldReceive('notifyUser')
+            ->once()
+            ->withArgs(function (
+                string $notifiableUserId,
+                string $actorUserId,
+                string $type,
+                string $title,
+                string $message,
+                string $entityType,
+                string $entityId,
+                array $data,
+                ?string $moduleId,
+                ?string $departmentId
+            ): bool {
+                $this->assertSame('assignee-1', $notifiableUserId);
+                $this->assertSame('actor-1', $actorUserId);
+                $this->assertSame('task_assigned', $type);
+                $this->assertSame('New Task Assigned', $title);
+                $this->assertSame('You were assigned: Inspect submitted AIR', $message);
+                $this->assertSame('tasks', $entityType);
+                $this->assertSame('task-gso-1', $entityId);
+                $this->assertSame('task-gso-1', $data['task_id']);
+                $this->assertSame(route('gso.tasks.show', ['id' => 'task-gso-1']), $data['url']);
+                $this->assertSame('module-gso', $moduleId);
                 $this->assertSame('department-1', $departmentId);
 
                 return true;

@@ -7,12 +7,8 @@
     $canManageAir = $gsoAuthorizer->allowsAnyPermission($gsoUser, [
         'air.create',
         'air.update',
-        'air.inspect',
         'air.manage_items',
         'air.manage_files',
-        'air.promote_inventory',
-        'air.finalize_inspection',
-        'air.reopen_inspection',
         'air.archive',
         'air.restore',
     ]);

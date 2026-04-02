@@ -2,8 +2,11 @@
 
 namespace App\Modules\GSO\Services\Air;
 
+use App\Core\Models\User;
 use App\Core\Models\Tasks\Task;
 use App\Core\Services\Contracts\AuditLogs\AuditLogServiceInterface;
+use App\Core\Services\Contracts\Notifications\NotificationServiceInterface;
+use App\Core\Services\Contracts\Notifications\WorkflowNotificationSettingsServiceInterface;
 use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
 use App\Modules\GSO\Builders\Contracts\Air\AirDatatableRowBuilderInterface;
 use App\Modules\GSO\Models\Air;
@@ -25,6 +28,8 @@ class AirInspectionService implements AirInspectionServiceInterface
         private readonly AirItemUnitRepositoryInterface $units,
         private readonly AuditLogServiceInterface $auditLogs,
         private readonly TaskServiceInterface $tasks,
+        private readonly NotificationServiceInterface $notifications,
+        private readonly WorkflowNotificationSettingsServiceInterface $workflowNotifications,
         private readonly AirDatatableRowBuilderInterface $airRowBuilder,
     ) {}
 
@@ -141,6 +146,7 @@ class AirInspectionService implements AirInspectionServiceInterface
             $air = $this->airs->save($air);
             $after = $this->snapshotAir($air);
             $this->markInspectionTaskDone($actorUserId, $air);
+            $this->notifyRolesOfFinalizedInspection($actorUserId, $air);
 
             $this->auditLogs->record(
                 action: 'gso.air.inspection.finalized',
@@ -471,6 +477,48 @@ class AirInspectionService implements AirInspectionServiceInterface
         );
     }
 
+    private function notifyRolesOfFinalizedInspection(string $actorUserId, Air $air): void
+    {
+        $roleNames = $this->workflowNotifications->rolesForEvent('GSO', 'air.inspection_finalized');
+
+        if ($roleNames === []) {
+            return;
+        }
+
+        $airNumber = trim((string) ($air->air_number ?? ''));
+        $poNumber = trim((string) ($air->po_number ?? ''));
+        $titleSuffix = $airNumber !== '' ? $airNumber : ($poNumber !== '' ? $poNumber : $this->airLabel($air));
+        $inspectionUrl = $this->inspectionUrl($air);
+        $message = $this->renderWorkflowNotificationMessage(
+            $this->workflowNotifications->messageTemplateForEvent('GSO', 'air.inspection_finalized'),
+            [
+                'air_label' => $this->airLabel($air),
+                'air_number' => $airNumber,
+                'po_number' => $poNumber,
+                'inspection_url' => $inspectionUrl,
+                'actor_name' => $this->actorDisplayName($actorUserId),
+            ],
+            'AIR inspection finalized. Click to open the AIR inspection record and continue the next workflow step.'
+        );
+
+        $this->notifications->notifyUsersByRoles(
+            roleNames: $roleNames,
+            actorUserId: $actorUserId,
+            type: 'gso.air.inspection.finalized',
+            title: 'AIR inspection finalized: ' . $titleSuffix,
+            message: $message,
+            entityType: 'air',
+            entityId: (string) $air->id,
+            data: array_filter([
+                'air_id' => (string) $air->id,
+                'air_number' => $airNumber !== '' ? $airNumber : null,
+                'po_number' => $poNumber !== '' ? $poNumber : null,
+                'url' => $inspectionUrl,
+                'subject_url' => $inspectionUrl,
+            ], static fn (mixed $value): bool => $value !== null && $value !== ''),
+        );
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -530,5 +578,49 @@ class AirInspectionService implements AirInspectionServiceInterface
         $value = preg_replace('/\s+/', ' ', trim((string) ($value ?? ''))) ?? '';
 
         return $value !== '' ? $value : null;
+    }
+
+    /**
+     * @param  array<string, string|null>  $variables
+     */
+    private function renderWorkflowNotificationMessage(string $template, array $variables, string $fallback): string
+    {
+        $template = trim($template);
+
+        if ($template === '') {
+            return $fallback;
+        }
+
+        $replacements = [];
+        foreach ($variables as $key => $value) {
+            $replacements['{' . trim((string) $key) . '}'] = trim((string) ($value ?? ''));
+        }
+
+        $rendered = strtr($template, $replacements);
+        $rendered = preg_replace('/\s+/', ' ', trim($rendered)) ?? '';
+
+        return $rendered !== '' ? $rendered : $fallback;
+    }
+
+    private function actorDisplayName(string $actorUserId): string
+    {
+        $actor = User::query()->find($actorUserId);
+        $username = trim((string) ($actor?->username ?? ''));
+        $email = trim((string) ($actor?->email ?? ''));
+
+        if ($username !== '' && $email !== '') {
+            return "{$username} ({$email})";
+        }
+
+        return $username !== '' ? $username : ($email !== '' ? $email : 'System User');
+    }
+
+    private function inspectionUrl(Air $air): string
+    {
+        try {
+            return route('gso.air.inspect', ['air' => $air->id]);
+        } catch (\Throwable) {
+            return '/gso/air/' . (string) $air->id . '/inspect';
+        }
     }
 }

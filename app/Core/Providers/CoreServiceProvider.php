@@ -150,7 +150,9 @@ use App\Core\Repositories\Eloquent\EloquentNotificationRepository;
 
 // Services
 use App\Core\Services\Contracts\Notifications\NotificationServiceInterface;
+use App\Core\Services\Contracts\Notifications\WorkflowNotificationSettingsServiceInterface;
 use App\Core\Services\Notifications\NotificationService;
+use App\Core\Services\Notifications\WorkflowNotificationSettingsService;
 
 /*
 |--------------------------------------------------------------------------
@@ -308,6 +310,7 @@ class CoreServiceProvider extends ServiceProvider
 
             // Notifications
             NotificationServiceInterface::class => NotificationService::class,
+            WorkflowNotificationSettingsServiceInterface::class => WorkflowNotificationSettingsService::class,
 
             // Google Drive
             GoogleDriveSettingsProviderInterface::class => GoogleDriveSettingsProvider::class,

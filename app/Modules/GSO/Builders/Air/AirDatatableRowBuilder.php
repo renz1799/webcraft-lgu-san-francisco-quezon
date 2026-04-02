@@ -15,6 +15,17 @@ class AirDatatableRowBuilder implements AirDatatableRowBuilderInterface
         $creator = $air->relationLoaded('creator') ? $air->creator : null;
         $isArchived = $air->deleted_at !== null;
         $isFollowUp = $air->parent_air_id !== null;
+        $propertyPromotableUnits = max(0, (int) ($air->property_promotable_units_count ?? 0));
+        $propertyPendingUnits = max(0, (int) ($air->property_pending_units_count ?? 0));
+        $consumablePromotableLines = max(0, (int) ($air->consumable_promotable_lines_count ?? 0));
+        $consumablePendingLines = max(0, (int) ($air->consumable_pending_lines_count ?? 0));
+        $promotionEligibleCount = $propertyPromotableUnits + $consumablePromotableLines;
+        $promotionPendingCount = $propertyPendingUnits + $consumablePendingLines;
+        [$promotionStatus, $promotionStatusText] = $this->promotionStatusMeta(
+            status: (string) ($air->status ?? ''),
+            eligibleCount: $promotionEligibleCount,
+            pendingCount: $promotionPendingCount,
+        );
 
         return [
             'id' => (string) $air->id,
@@ -66,6 +77,14 @@ class AirDatatableRowBuilder implements AirDatatableRowBuilderInterface
             'inspection_notes' => $this->nullableString($air->inspection_notes),
             'inspected_by_name' => $this->nullableString($air->inspected_by_name),
             'accepted_by_name' => $this->nullableString($air->accepted_by_name),
+            'property_promotable_units_count' => $propertyPromotableUnits,
+            'property_pending_units_count' => $propertyPendingUnits,
+            'consumable_promotable_lines_count' => $consumablePromotableLines,
+            'consumable_pending_lines_count' => $consumablePendingLines,
+            'promotion_eligible_count' => $promotionEligibleCount,
+            'promotion_pending_count' => $promotionPendingCount,
+            'promotion_status' => $promotionStatus,
+            'promotion_status_text' => $promotionStatusText,
             'created_by_user_id' => $this->nullableString($air->created_by_user_id),
             'created_by_name_snapshot' => $this->nullableString($air->created_by_name_snapshot),
             'created_by_label' => $this->creatorLabel(
@@ -166,6 +185,22 @@ class AirDatatableRowBuilder implements AirDatatableRowBuilderInterface
         $value = trim((string) ($value ?? ''));
 
         return $value !== '' ? ucwords(str_replace('_', ' ', $value)) : 'None';
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function promotionStatusMeta(string $status, int $eligibleCount, int $pendingCount): array
+    {
+        if ($status !== AirStatuses::INSPECTED || $eligibleCount <= 0) {
+            return ['not_eligible', 'Not Eligible'];
+        }
+
+        if ($pendingCount > 0) {
+            return ['pending', $pendingCount . ' Pending'];
+        }
+
+        return ['fully_promoted', 'Fully Promoted'];
     }
 
     private function nullableString(mixed $value): ?string

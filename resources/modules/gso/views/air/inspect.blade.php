@@ -5,31 +5,25 @@
     $airAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
     $inspectionAccess = is_array($inspectionAccess ?? null) ? $inspectionAccess : [];
     $canManageInspectionWorkspace = (bool) ($inspectionAccess['can_manage'] ?? false);
+    $canFinalizeInspectionWorkspace = (bool) ($inspectionAccess['can_finalize'] ?? false);
     $inspectionAssignmentWarning = trim((string) ($inspectionAccess['warning'] ?? ''));
     $canManageAir = $airAuthorizer->allowsAnyPermission($airViewer, [
         'air.create',
         'air.update',
-        'air.inspect',
         'air.manage_items',
         'air.manage_files',
         'air.promote_inventory',
-        'air.finalize_inspection',
         'air.reopen_inspection',
         'air.archive',
         'air.restore',
     ]);
     $canAccessDraftWorkspace = $airAuthorizer->allowsAnyPermission($airViewer, [
-        'air.view',
         'air.create',
         'air.update',
         'air.manage_items',
         'air.manage_files',
-        'air.promote_inventory',
-        'air.finalize_inspection',
-        'air.reopen_inspection',
         'air.archive',
         'air.restore',
-        'air.print',
     ]);
     $canPromoteInventory = $airAuthorizer->allowsAnyPermission($airViewer, [
         'air.promote_inventory',
@@ -48,6 +42,17 @@
     $canReopenInspection = $airAuthorizer->allowsPermission($airViewer, 'air.reopen_inspection')
         && (bool) ($air['can_reopen_inspection'] ?? false);
     $canCreateFollowUpAir = $canManageAir && (bool) ($air['can_create_follow_up_air'] ?? false);
+    $canGenerateRis = $airAuthorizer->allowsAnyPermission($airViewer, [
+        'ris.generate_from_air',
+        'ris.create',
+        'ris.update',
+    ]);
+    $canViewRis = $airAuthorizer->allowsAnyPermission($airViewer, [
+        'ris.view',
+        'ris.update',
+        'ris.create',
+        'ris.generate_from_air',
+    ]);
     $latestFollowUpAir = is_array($air['latest_follow_up_air'] ?? null)
         ? $air['latest_follow_up_air']
         : null;
@@ -437,6 +442,9 @@
                     <button type="button" id="gsoAirInspectionSaveBtn" class="ti-btn ti-btn-primary">
                         Save Inspection
                     </button>
+                @endif
+
+                @if($canFinalizeInspectionWorkspace && in_array($status, ['submitted', 'in_progress'], true))
                     <button type="button" id="gsoAirInspectionFinalizeBtn" class="ti-btn ti-btn-success">
                         Finalize
                     </button>
@@ -463,7 +471,14 @@
                     </button>
                 @endif
 
-                @if($status === 'inspected' && $hasConsumableItems)
+                @if(
+                    $status === 'inspected'
+                    && $hasConsumableItems
+                    && (
+                        ($existingRis && $canViewRis)
+                        || (! $existingRis && $canGenerateRis)
+                    )
+                )
                     <button
                         type="button"
                         id="airGenerateRisBtn"
@@ -876,6 +891,7 @@
             'csrf' => csrf_token(),
             'canManage' => $canManageAir,
             'canEditInspection' => $canEditInspection,
+            'canFinalizeInspection' => $canFinalizeInspectionWorkspace,
             'canPromoteInventory' => $canPromoteInventory,
             'inspectionAssignmentWarning' => $inspectionAssignmentWarning,
             'conditionStatuses' => $conditionStatuses,
