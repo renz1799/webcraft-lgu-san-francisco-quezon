@@ -33,6 +33,7 @@ class GsoPermissionSeeder extends Seeder
                 'air.archive',
                 'air.restore',
                 'air.print',
+                'air.upload_signed_pdf',
             ],
             'GSO / RIS' => [
                 'ris.view',
@@ -48,6 +49,7 @@ class GsoPermissionSeeder extends Seeder
                 'ris.manage_items',
                 'ris.generate_from_air',
                 'ris.print',
+                'ris.upload_signed_pdf',
             ],
             'GSO / PAR' => [
                 'par.view',
@@ -60,6 +62,7 @@ class GsoPermissionSeeder extends Seeder
                 'par.restore',
                 'par.manage_items',
                 'par.print',
+                'par.upload_signed_pdf',
             ],
             'GSO / ICS' => [
                 'ics.view',
@@ -72,6 +75,7 @@ class GsoPermissionSeeder extends Seeder
                 'ics.restore',
                 'ics.manage_items',
                 'ics.print',
+                'ics.upload_signed_pdf',
             ],
             'GSO / PTR' => [
                 'ptr.view',
@@ -84,6 +88,7 @@ class GsoPermissionSeeder extends Seeder
                 'ptr.restore',
                 'ptr.manage_items',
                 'ptr.print',
+                'ptr.upload_signed_pdf',
             ],
             'GSO / ITR' => [
                 'itr.view',
@@ -96,6 +101,7 @@ class GsoPermissionSeeder extends Seeder
                 'itr.restore',
                 'itr.manage_items',
                 'itr.print',
+                'itr.upload_signed_pdf',
             ],
             'GSO / WMR' => [
                 'wmr.view',
@@ -109,6 +115,7 @@ class GsoPermissionSeeder extends Seeder
                 'wmr.restore',
                 'wmr.manage_items',
                 'wmr.print',
+                'wmr.upload_signed_pdf',
             ],
             'GSO / Inventory' => [
                 'items.view',

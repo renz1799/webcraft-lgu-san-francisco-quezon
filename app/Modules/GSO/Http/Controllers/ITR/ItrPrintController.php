@@ -21,6 +21,7 @@ class ItrPrintController extends Controller
         private readonly GsoSignedDocumentArchiveServiceInterface $signedDocuments,
     ) {
         $this->middleware('permission:itr.print|itr.view|itr.create|itr.update|itr.submit|itr.finalize|itr.reopen|itr.archive|itr.restore|itr.manage_items');
+        $this->middleware('permission:itr.upload_signed_pdf')->only(['storePdf']);
     }
 
     public function print(PrintItrRequest $request, Itr $itr): View

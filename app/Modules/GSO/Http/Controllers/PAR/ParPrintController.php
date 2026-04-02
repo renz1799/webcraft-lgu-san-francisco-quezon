@@ -21,6 +21,7 @@ class ParPrintController extends Controller
         private readonly GsoSignedDocumentArchiveServiceInterface $signedDocuments,
     ) {
         $this->middleware('permission:par.print|par.view|par.create|par.update|par.submit|par.finalize|par.reopen|par.archive|par.restore|par.manage_items');
+        $this->middleware('permission:par.upload_signed_pdf')->only(['storePdf']);
     }
 
     public function print(PrintParRequest $request, Par $par): View

@@ -21,6 +21,7 @@ class WmrPrintController extends Controller
         private readonly GsoSignedDocumentArchiveServiceInterface $signedDocuments,
     ) {
         $this->middleware('permission:wmr.print|wmr.view|wmr.create|wmr.update|wmr.submit|wmr.approve|wmr.finalize|wmr.reopen|wmr.archive|wmr.restore|wmr.manage_items');
+        $this->middleware('permission:wmr.upload_signed_pdf')->only(['storePdf']);
     }
 
     public function print(PrintWmrRequest $request, Wmr $wmr): View

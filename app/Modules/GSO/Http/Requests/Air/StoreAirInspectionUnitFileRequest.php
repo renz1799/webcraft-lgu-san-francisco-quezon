@@ -3,6 +3,7 @@
 namespace App\Modules\GSO\Http\Requests\Air;
 
 use App\Modules\GSO\Support\InventoryFileTypes;
+use App\Modules\GSO\Services\Air\AirInspectionWorkspaceAccessService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -11,12 +12,10 @@ class StoreAirInspectionUnitFileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsAnyPermission($user, [
-            'air.inspect',
-            'air.manage_files',
-        ]);
+        return app(AirInspectionWorkspaceAccessService::class)->canManage(
+            $this->user(),
+            (string) $this->route('air'),
+        );
     }
 
     public function rules(): array

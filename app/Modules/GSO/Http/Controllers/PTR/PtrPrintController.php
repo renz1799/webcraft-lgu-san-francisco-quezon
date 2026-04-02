@@ -21,6 +21,7 @@ class PtrPrintController extends Controller
         private readonly GsoSignedDocumentArchiveServiceInterface $signedDocuments,
     ) {
         $this->middleware('permission:ptr.print|ptr.view|ptr.create|ptr.update|ptr.submit|ptr.finalize|ptr.reopen|ptr.archive|ptr.restore|ptr.manage_items');
+        $this->middleware('permission:ptr.upload_signed_pdf')->only(['storePdf']);
     }
 
     public function print(PrintPtrRequest $request, Ptr $ptr): View

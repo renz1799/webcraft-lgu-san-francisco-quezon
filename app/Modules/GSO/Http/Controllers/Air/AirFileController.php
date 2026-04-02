@@ -15,10 +15,10 @@ class AirFileController extends Controller
     public function __construct(
         private readonly AirFileServiceInterface $files,
     ) {
-        $this->middleware('permission:air.view|air.create|air.update|air.inspect|air.manage_items|air.manage_files|air.promote_inventory|air.finalize_inspection|air.reopen_inspection|air.archive|air.restore|air.print')
+        $this->middleware('permission:air.view|air.create|air.update|air.manage_items|air.manage_files|air.promote_inventory|air.finalize_inspection|air.reopen_inspection|air.archive|air.restore|air.print')
             ->only(['index', 'preview']);
 
-        $this->middleware('permission:air.create|air.update|air.inspect|air.manage_items|air.manage_files|air.promote_inventory|air.finalize_inspection|air.reopen_inspection|air.archive|air.restore|air.print')
+        $this->middleware('permission:air.create|air.update|air.manage_items|air.manage_files|air.promote_inventory|air.finalize_inspection|air.reopen_inspection|air.archive|air.restore|air.print')
             ->only(['store', 'destroy', 'setPrimary']);
     }
 

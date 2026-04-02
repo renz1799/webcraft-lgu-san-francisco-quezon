@@ -6,14 +6,19 @@ use App\Core\Models\User;
 use App\Core\Support\AdminContextAuthorizer;
 use App\Modules\GSO\Http\Requests\AccountableOfficers\ResolveAccountableOfficerRequest;
 use App\Modules\GSO\Http\Requests\Air\PrintAirRequest;
+use App\Modules\GSO\Http\Requests\Air\SaveAirInspectionRequest;
 use App\Modules\GSO\Http\Requests\AssetTypes\AssetTypeTableDataRequest;
 use App\Modules\GSO\Http\Requests\Inspections\UpdateInspectionRequest;
 use App\Modules\GSO\Http\Requests\InventoryItems\UpdateInventoryItemRequest;
 use App\Modules\GSO\Http\Requests\Items\StoreItemRequest;
+use App\Modules\GSO\Http\Requests\Print\StoreSignedDocumentPdfRequest;
 use App\Modules\GSO\Http\Requests\Reports\PrintPropertyCardsRequest;
 use App\Modules\GSO\Http\Requests\RIS\RestoreRisRequest;
 use App\Modules\GSO\Http\Requests\RIS\Workflow\SubmitRisRequest;
+use App\Modules\GSO\Services\Air\AirInspectionWorkspaceAccessService;
+use Illuminate\Http\Request;
 use App\Modules\GSO\Http\Requests\Stocks\StockTableDataRequest;
+use Illuminate\Routing\Route;
 use Mockery;
 use Tests\TestCase;
 
@@ -139,6 +144,39 @@ class GsoRequestAuthorizationTest extends TestCase
         $this->assertTrue($request->authorize());
     }
 
+    public function test_save_air_inspection_request_uses_assignment_aware_workspace_access(): void
+    {
+        $request = SaveAirInspectionRequest::create('/gso/air/air-1/inspection', 'PUT');
+        $request->setContainer($this->app);
+        $request->setUserResolver(fn () => $this->makeUser('user-1'));
+        $request->setRouteResolver(fn () => $this->makeRoute('gso.air.inspection.save', ['air' => 'air-1']));
+
+        $workspaceAccess = Mockery::mock(AirInspectionWorkspaceAccessService::class);
+        $workspaceAccess->shouldReceive('canManage')
+            ->withArgs(function ($user, string $airId): bool {
+                return $user instanceof User
+                    && (string) $user->id === 'user-1'
+                    && $airId === 'air-1';
+            })
+            ->andReturn(true);
+
+        app()->instance(AirInspectionWorkspaceAccessService::class, $workspaceAccess);
+
+        $this->assertTrue($request->authorize());
+    }
+
+    public function test_store_signed_document_pdf_request_uses_document_upload_permission(): void
+    {
+        $request = StoreSignedDocumentPdfRequest::create('/gso/air/air-1/print/pdf/store', 'POST');
+        $request->setContainer($this->app);
+        $request->setUserResolver(fn () => $this->makeUser('user-1'));
+        $request->setRouteResolver(fn () => $this->makeRoute('gso.air.print.archive', ['air' => 'air-1']));
+
+        $this->mockAuthorizerForPermission('air.upload_signed_pdf', true);
+
+        $this->assertTrue($request->authorize());
+    }
+
     public function test_submit_ris_request_uses_submit_or_update_permissions(): void
     {
         $request = SubmitRisRequest::create('/gso/ris/ris-1/submit', 'POST');
@@ -225,5 +263,21 @@ class GsoRequestAuthorizationTest extends TestCase
             ->andReturn(true);
 
         app()->instance(AdminContextAuthorizer::class, $authorizer);
+    }
+
+    /**
+     * @param  array<string, string>  $parameters
+     */
+    private function makeRoute(string $name, array $parameters = []): Route
+    {
+        $route = new Route(['GET'], '/', []);
+        $route->name($name);
+        $route->bind(Request::create('/'));
+
+        foreach ($parameters as $key => $value) {
+            $route->setParameter($key, $value);
+        }
+
+        return $route;
     }
 }

@@ -2,13 +2,29 @@
 
 namespace App\Modules\GSO\Http\Requests\Print;
 
+use App\Core\Support\AdminContextAuthorizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreSignedDocumentPdfRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+        $routeName = (string) $this->route()?->getName();
+
+        $permission = [
+            'gso.air.print.archive' => 'air.upload_signed_pdf',
+            'gso.ris.print.archive' => 'ris.upload_signed_pdf',
+            'gso.pars.print.archive' => 'par.upload_signed_pdf',
+            'gso.ics.print.archive' => 'ics.upload_signed_pdf',
+            'gso.ptrs.print.archive' => 'ptr.upload_signed_pdf',
+            'gso.itrs.print.archive' => 'itr.upload_signed_pdf',
+            'gso.wmrs.print.archive' => 'wmr.upload_signed_pdf',
+        ][$routeName] ?? '';
+
+        return (bool) $user
+            && $permission !== ''
+            && app(AdminContextAuthorizer::class)->allowsPermission($user, $permission);
     }
 
     /**

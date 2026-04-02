@@ -21,6 +21,7 @@ class IcsPrintController extends Controller
         private readonly GsoSignedDocumentArchiveServiceInterface $signedDocuments,
     ) {
         $this->middleware('permission:ics.print|ics.view|ics.create|ics.update|ics.submit|ics.finalize|ics.reopen|ics.archive|ics.restore|ics.manage_items');
+        $this->middleware('permission:ics.upload_signed_pdf')->only(['storePdf']);
     }
 
     public function print(PrintIcsRequest $request, Ics $ics): View

@@ -3,6 +3,9 @@
 @php
     $airViewer = auth()->user();
     $airAuthorizer = app(\App\Core\Support\AdminContextAuthorizer::class);
+    $inspectionAccess = is_array($inspectionAccess ?? null) ? $inspectionAccess : [];
+    $canManageInspectionWorkspace = (bool) ($inspectionAccess['can_manage'] ?? false);
+    $inspectionAssignmentWarning = trim((string) ($inspectionAccess['warning'] ?? ''));
     $canManageAir = $airAuthorizer->allowsAnyPermission($airViewer, [
         'air.create',
         'air.update',
@@ -15,13 +18,26 @@
         'air.archive',
         'air.restore',
     ]);
+    $canAccessDraftWorkspace = $airAuthorizer->allowsAnyPermission($airViewer, [
+        'air.view',
+        'air.create',
+        'air.update',
+        'air.manage_items',
+        'air.manage_files',
+        'air.promote_inventory',
+        'air.finalize_inspection',
+        'air.reopen_inspection',
+        'air.archive',
+        'air.restore',
+        'air.print',
+    ]);
     $canPromoteInventory = $airAuthorizer->allowsAnyPermission($airViewer, [
         'air.promote_inventory',
         'inventory_items.create',
         'inventory_items.update',
         'inventory_items.import_from_inspection',
     ]);
-    $canEditInspection = $canManageAir && (bool) ($air['can_edit_inspection'] ?? false);
+    $canEditInspection = $canManageInspectionWorkspace && (bool) ($air['can_edit_inspection'] ?? false);
     $canViewInspection = (bool) ($air['can_view_inspection'] ?? false);
     $isArchived = (bool) ($air['is_archived'] ?? false);
     $status = (string) ($air['status'] ?? '');
@@ -35,6 +51,9 @@
     $latestFollowUpAir = is_array($air['latest_follow_up_air'] ?? null)
         ? $air['latest_follow_up_air']
         : null;
+    $backUrl = $canAccessDraftWorkspace
+        ? route('gso.air.edit', ['air' => $air['id'] ?? ''])
+        : route('gso.tasks.index');
 @endphp
 
 @section('styles')
@@ -481,7 +500,7 @@
                     </a>
                 @endif
 
-                <a href="{{ route('gso.air.edit', ['air' => $air['id'] ?? '']) }}" class="ti-btn ti-btn-light">
+                <a href="{{ $backUrl }}" class="ti-btn ti-btn-light">
                     Back
                 </a>
             </div>
@@ -496,6 +515,10 @@
         @elseif(! $canViewInspection)
             <div class="mb-4 rounded border border-warning bg-warning/10 px-4 py-3 text-sm text-warning">
                 This AIR is not yet in the inspection workspace stage. Submit the draft first, then continue inspection here.
+            </div>
+        @elseif($inspectionAssignmentWarning !== '')
+            <div class="mb-4 rounded border border-warning bg-warning/10 px-4 py-3 text-sm text-warning">
+                {{ $inspectionAssignmentWarning }}
             </div>
         @elseif(! $canEditInspection)
             <div class="mb-4 rounded border border-primary bg-primary/10 px-4 py-3 text-sm text-primary">
@@ -854,6 +877,7 @@
             'canManage' => $canManageAir,
             'canEditInspection' => $canEditInspection,
             'canPromoteInventory' => $canPromoteInventory,
+            'inspectionAssignmentWarning' => $inspectionAssignmentWarning,
             'conditionStatuses' => $conditionStatuses,
         ];
     @endphp

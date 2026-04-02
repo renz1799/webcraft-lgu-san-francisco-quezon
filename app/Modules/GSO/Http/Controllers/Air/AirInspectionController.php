@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Modules\GSO\Http\Requests\Air\FinalizeAirInspectionRequest;
 use App\Modules\GSO\Http\Requests\Air\ReopenAirInspectionRequest;
 use App\Modules\GSO\Http\Requests\Air\SaveAirInspectionRequest;
+use App\Modules\GSO\Services\Air\AirInspectionWorkspaceAccessService;
 use App\Modules\GSO\Models\Ris;
 use App\Modules\GSO\Services\Contracts\Air\AirServiceInterface;
 use App\Modules\GSO\Services\Contracts\Air\AirInspectionServiceInterface;
 use App\Modules\GSO\Support\InventoryConditions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AirInspectionController extends Controller
@@ -19,6 +21,7 @@ class AirInspectionController extends Controller
     public function __construct(
         private readonly AirInspectionServiceInterface $inspection,
         private readonly AirServiceInterface $airs,
+        private readonly AirInspectionWorkspaceAccessService $workspaceAccess,
     ) {
         $this->middleware('permission:air.view|air.inspect|air.finalize_inspection|air.reopen_inspection')
             ->only(['show']);
@@ -30,9 +33,10 @@ class AirInspectionController extends Controller
             ->only(['reopen']);
     }
 
-    public function show(string $air): View
+    public function show(Request $request, string $air): View
     {
         $payload = $this->inspection->getForInspection($air);
+        $inspectionAccess = $this->workspaceAccess->resolve($request->user(), $air);
         $existingRis = Ris::query()
             ->where('air_id', $air)
             ->first();
@@ -48,6 +52,7 @@ class AirInspectionController extends Controller
             'conditionStatuses' => InventoryConditions::labels(),
             'existingRis' => $existingRis,
             'hasConsumableItems' => $hasConsumableItems,
+            'inspectionAccess' => $inspectionAccess,
         ]);
     }
 

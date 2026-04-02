@@ -256,6 +256,7 @@
                     @include('gso::print.partials.archive-action', [
                         'documentType' => 'RIS',
                         'documentNumber' => $archiveDocumentNumber,
+                        'uploadPermission' => 'ris.upload_signed_pdf',
                         'archiveRoute' => 'gso.ris.print.archive',
                         'archiveViewRoute' => 'gso.ris.print.archive.view',
                         'archiveRecord' => $signedArchive ?? null,

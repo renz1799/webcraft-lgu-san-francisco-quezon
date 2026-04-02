@@ -21,6 +21,7 @@ class AirPrintController extends Controller
         private readonly GsoSignedDocumentArchiveServiceInterface $signedDocuments,
     ) {
         $this->middleware('permission:air.print|air.view|air.update');
+        $this->middleware('permission:air.upload_signed_pdf')->only(['storePdf']);
     }
 
     public function preview(PrintAirRequest $request, string $air): View

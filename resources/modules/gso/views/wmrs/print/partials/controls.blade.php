@@ -195,6 +195,7 @@
                     @include('gso::print.partials.archive-action', [
                         'documentType' => 'WMR',
                         'documentNumber' => $archiveDocumentNumber,
+                        'uploadPermission' => 'wmr.upload_signed_pdf',
                         'archiveRoute' => 'gso.wmrs.print.archive',
                         'archiveViewRoute' => 'gso.wmrs.print.archive.view',
                         'archiveRecord' => $signedArchive ?? null,

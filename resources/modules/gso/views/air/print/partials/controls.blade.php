@@ -251,6 +251,7 @@
                     @include('gso::print.partials.archive-action', [
                         'documentType' => 'AIR',
                         'documentNumber' => $archiveDocumentNumber,
+                        'uploadPermission' => 'air.upload_signed_pdf',
                         'archiveRoute' => 'gso.air.print.archive',
                         'archiveViewRoute' => 'gso.air.print.archive.view',
                         'archiveRecord' => $signedArchive ?? null,

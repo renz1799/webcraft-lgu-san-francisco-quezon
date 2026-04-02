@@ -256,6 +256,7 @@
                     @include('gso::print.partials.archive-action', [
                         'documentType' => 'ITR',
                         'documentNumber' => $archiveDocumentNumber,
+                        'uploadPermission' => 'itr.upload_signed_pdf',
                         'archiveRoute' => 'gso.itrs.print.archive',
                         'archiveViewRoute' => 'gso.itrs.print.archive.view',
                         'archiveRecord' => $signedArchive ?? null,

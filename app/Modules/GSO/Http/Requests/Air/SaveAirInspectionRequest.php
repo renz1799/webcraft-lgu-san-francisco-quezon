@@ -2,6 +2,7 @@
 
 namespace App\Modules\GSO\Http\Requests\Air;
 
+use App\Modules\GSO\Services\Air\AirInspectionWorkspaceAccessService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,9 +10,10 @@ class SaveAirInspectionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return (bool) $user && app(\App\Core\Support\AdminContextAuthorizer::class)->allowsPermission($user, 'air.inspect');
+        return app(AirInspectionWorkspaceAccessService::class)->canManage(
+            $this->user(),
+            (string) $this->route('air'),
+        );
     }
 
     public function rules(): array

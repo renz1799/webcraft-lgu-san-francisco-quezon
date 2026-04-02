@@ -16,7 +16,6 @@ class AirTableDataRequest extends FormRequest
             'air.view',
             'air.create',
             'air.update',
-            'air.inspect',
             'air.manage_items',
             'air.manage_files',
             'air.finalize_inspection',

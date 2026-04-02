@@ -256,6 +256,7 @@
                     @include('gso::print.partials.archive-action', [
                         'documentType' => 'ICS',
                         'documentNumber' => $archiveDocumentNumber,
+                        'uploadPermission' => 'ics.upload_signed_pdf',
                         'archiveRoute' => 'gso.ics.print.archive',
                         'archiveViewRoute' => 'gso.ics.print.archive.view',
                         'archiveRecord' => $signedArchive ?? null,

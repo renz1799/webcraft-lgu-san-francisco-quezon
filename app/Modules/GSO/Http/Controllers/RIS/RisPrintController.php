@@ -21,6 +21,7 @@ class RisPrintController extends Controller
         private readonly GsoSignedDocumentArchiveServiceInterface $signedDocuments,
     ) {
         $this->middleware('permission:ris.print|ris.view|ris.create|ris.update|ris.submit|ris.approve|ris.reject|ris.reopen|ris.revert|ris.archive|ris.restore|ris.manage_items|ris.generate_from_air');
+        $this->middleware('permission:ris.upload_signed_pdf')->only(['storePdf']);
     }
 
     public function print(PrintRisRequest $request, Ris $ris): View
