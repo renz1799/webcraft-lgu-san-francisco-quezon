@@ -282,6 +282,89 @@ class TaskModuleScopeTest extends TestCase
         $this->assertSame('CORE', $payload['data'][0]['owner_module_code']);
     }
 
+    public function test_task_datatable_search_and_assignee_filter_match_profile_name_columns(): void
+    {
+        \DB::table('modules')->insert([
+            'id' => 'module-1',
+            'code' => 'GSO',
+            'name' => 'General Services Office',
+            'type' => 'business',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $actor = $this->createUserWithModule('user-actor', 'module-1', 'department-1', 'Actor User');
+        $assignee = $this->createUserWithModule('user-assignee', 'module-1', 'department-1', 'Maria Dela Cruz');
+
+        Task::query()->create([
+            'module_id' => 'module-1',
+            'department_id' => 'department-1',
+            'title' => 'Inspect storage room',
+            'description' => 'Confirm inventory labels.',
+            'status' => Task::STATUS_PENDING,
+            'created_by_user_id' => $actor->id,
+            'assigned_to_user_id' => $assignee->id,
+            'data' => [],
+        ]);
+
+        $moduleAccess = Mockery::mock(ModuleAccessServiceInterface::class);
+        $accessibleModule = new Module([
+            'code' => 'GSO',
+            'name' => 'General Services Office',
+            'type' => 'business',
+            'is_active' => true,
+        ]);
+        $accessibleModule->id = 'module-1';
+        $moduleAccess->shouldReceive('accessibleModulesForUser')
+            ->andReturn(collect([$accessibleModule]));
+
+        $users = Mockery::mock(\App\Core\Repositories\Contracts\UserRepositoryInterface::class);
+        $users->shouldReceive('getRoleNamesInModule')
+            ->withArgs(function (User $user, string $moduleId): bool {
+                return (string) $user->id !== '' && $moduleId === 'module-1';
+            })
+            ->andReturn([]);
+        app()->instance(\App\Core\Repositories\Contracts\UserRepositoryInterface::class, $users);
+
+        $readService = new TaskReadService(
+            app(\App\Core\Repositories\Tasks\Contracts\TaskRepositoryInterface::class),
+            app(\App\Core\Repositories\Tasks\Contracts\TaskEventRepositoryInterface::class),
+            $users,
+            $moduleAccess,
+            new TaskPolicy(),
+            new TaskDatatableRowBuilder(),
+            new TaskAdminStatsBuilder(),
+            new TaskShowActionProvider(),
+            new UserTaskReassignOptionBuilder(),
+            $this->makeTaskAuthorizer($moduleAccess),
+        );
+
+        $this->grantDirectPermission($actor, 'module-1', 'tasks.view_all');
+
+        $searchPayload = $readService->datatable($actor, [
+            'scope' => 'all',
+            'page' => 1,
+            'size' => 15,
+            'search' => 'Maria Cruz',
+        ]);
+
+        $this->assertSame(1, $searchPayload['total']);
+        $this->assertCount(1, $searchPayload['data']);
+        $this->assertSame('Inspect storage room', $searchPayload['data'][0]['title']);
+
+        $assignedPayload = $readService->datatable($actor, [
+            'scope' => 'all',
+            'page' => 1,
+            'size' => 15,
+            'assigned_to' => 'Maria Cruz',
+        ]);
+
+        $this->assertSame(1, $assignedPayload['total']);
+        $this->assertCount(1, $assignedPayload['data']);
+        $this->assertSame('Inspect storage room', $assignedPayload['data'][0]['title']);
+    }
+
     private function setUpSchema(): void
     {
         Schema::dropAllTables();

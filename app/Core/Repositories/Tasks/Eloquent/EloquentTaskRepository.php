@@ -288,7 +288,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
                     ->orWhereHas('assignee', function (Builder $uq) use ($search) {
                         $uq->where('username', 'like', "%{$search}%")
                             ->orWhereHas('profile', function (Builder $pq) use ($search) {
-                                $pq->where('full_name', 'like', "%{$search}%");
+                                $this->applyProfileNameSearch($pq, $search);
                             });
                     });
             });
@@ -298,7 +298,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
             $query->whereHas('assignee', function (Builder $uq) use ($assignedTo) {
                 $uq->where('username', 'like', "%{$assignedTo}%")
                     ->orWhereHas('profile', function (Builder $pq) use ($assignedTo) {
-                        $pq->where('full_name', 'like', "%{$assignedTo}%");
+                        $this->applyProfileNameSearch($pq, $assignedTo);
                     });
             });
         }
@@ -342,6 +342,28 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         }
 
         return $query->orderByDesc('created_at');
+    }
+
+    private function applyProfileNameSearch(Builder $query, string $search): void
+    {
+        $terms = preg_split('/[\s,]+/', trim($search), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if ($terms === []) {
+            return;
+        }
+
+        $query->where(function (Builder $nameQuery) use ($terms) {
+            foreach ($terms as $term) {
+                $like = "%{$term}%";
+
+                $nameQuery->where(function (Builder $columnQuery) use ($like) {
+                    $columnQuery->where('first_name', 'like', $like)
+                        ->orWhere('middle_name', 'like', $like)
+                        ->orWhere('last_name', 'like', $like)
+                        ->orWhere('name_extension', 'like', $like);
+                });
+            }
+        });
     }
 
     private function queryInModules(array|string|null $moduleIds = null): Builder
