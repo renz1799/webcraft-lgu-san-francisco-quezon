@@ -14,65 +14,84 @@ class EloquentRisRepository implements RisRepositoryInterface
         $size = max(1, (int) $size);
 
         $base = DB::table('ris')
+            ->leftJoin('fund_sources', 'fund_sources.id', '=', 'ris.fund_source_id')
             ->select([
-                'id',
-                'ris_number',
-                'ris_date',
-                'fund',
-                'status',
-                'purpose',
-                'deleted_at',
+                'ris.id',
+                'ris.ris_number',
+                'ris.ris_date',
+                'ris.fund',
+                'ris.status',
+                'ris.purpose',
+                'ris.deleted_at',
+                'fund_sources.name as fund_source_name',
             ]);
 
         $recordStatus = strtolower(trim((string) ($filters['record_status'] ?? '')));
         if ($recordStatus === 'archived') {
-            $base->whereNotNull('deleted_at');
+            $base->whereNotNull('ris.deleted_at');
         } elseif ($recordStatus !== 'all') {
-            $base->whereNull('deleted_at');
+            $base->whereNull('ris.deleted_at');
         }
 
-        $recordsTotal = (clone $base)->count();
+        $recordsTotal = (clone $base)->count('ris.id');
 
         $filtered = clone $base;
 
         $search = trim((string) ($filters['search'] ?? ''));
         if ($search !== '') {
             $filtered->where(function ($query) use ($search) {
-                $query->where('ris_number', 'like', "%{$search}%")
-                    ->orWhere('purpose', 'like', "%{$search}%")
-                    ->orWhere('fund', 'like', "%{$search}%");
+                $query->where('ris.ris_number', 'like', "%{$search}%")
+                    ->orWhere('ris.purpose', 'like', "%{$search}%")
+                    ->orWhere('ris.fund', 'like', "%{$search}%")
+                    ->orWhere('fund_sources.name', 'like', "%{$search}%");
             });
         }
 
         $workflowStatus = strtolower(trim((string) ($filters['status'] ?? '')));
         if ($workflowStatus !== '') {
-            $filtered->whereRaw('LOWER(status) = ?', [$workflowStatus]);
+            $filtered->whereRaw('LOWER(ris.status) = ?', [$workflowStatus]);
         }
 
         $dateFrom = trim((string) ($filters['date_from'] ?? ''));
         $dateTo = trim((string) ($filters['date_to'] ?? ''));
         if ($dateFrom !== '') {
-            $filtered->whereDate('ris_date', '>=', $dateFrom);
+            $filtered->whereDate('ris.ris_date', '>=', $dateFrom);
         }
         if ($dateTo !== '') {
-            $filtered->whereDate('ris_date', '<=', $dateTo);
+            $filtered->whereDate('ris.ris_date', '<=', $dateTo);
         }
 
         $fund = trim((string) ($filters['fund'] ?? ''));
         if ($fund !== '') {
-            $filtered->where('fund', 'like', "%{$fund}%");
+            $filtered->where(function ($query) use ($fund) {
+                $query->where('fund_sources.name', 'like', "%{$fund}%")
+                    ->orWhere('ris.fund', 'like', "%{$fund}%");
+            });
         }
 
-        $recordsFiltered = (clone $filtered)->count();
+        $recordsFiltered = (clone $filtered)->count('ris.id');
         $lastPage = $recordsFiltered > 0 ? (int) ceil($recordsFiltered / $size) : 1;
         $page = min($page, $lastPage);
 
         $rows = (clone $filtered)
-            ->orderByDesc('ris_date')
-            ->orderByDesc('ris_number')
+            ->orderByDesc('ris.ris_date')
+            ->orderByDesc('ris.ris_number')
             ->forPage($page, $size)
             ->get()
-            ->map(fn ($row) => (array) $row)
+            ->map(function ($row) {
+                return [
+                    'id' => (string) ($row->id ?? ''),
+                    'ris_number' => (string) ($row->ris_number ?? ''),
+                    'ris_date' => (string) ($row->ris_date ?? ''),
+                    'fund' => $this->normalizeFundLabel(
+                        (string) ($row->fund_source_name ?? ''),
+                        (string) ($row->fund ?? ''),
+                    ),
+                    'status' => (string) ($row->status ?? ''),
+                    'purpose' => (string) ($row->purpose ?? ''),
+                    'deleted_at' => $row->deleted_at ? (string) $row->deleted_at : null,
+                ];
+            })
             ->values()
             ->all();
 
@@ -120,5 +139,22 @@ class EloquentRisRepository implements RisRepositoryInterface
     public function restore(Ris $ris): void
     {
         $ris->restore();
+    }
+
+    private function normalizeFundLabel(string $name, string $fallback): string
+    {
+        $name = trim($name);
+        if ($name !== '') {
+            return $name;
+        }
+
+        $fallback = trim($fallback);
+        if ($fallback === '') {
+            return '';
+        }
+
+        $parts = explode(' - ', $fallback, 2);
+
+        return trim(count($parts) === 2 ? $parts[1] : $fallback);
     }
 }

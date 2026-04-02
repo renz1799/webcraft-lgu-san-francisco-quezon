@@ -40,12 +40,18 @@ class ResetPasswordController extends Controller
 
         $status = Password::broker()->reset(
             $payload,
-            function (User $user) use ($payload, &$resetUser): void {
-                $user->forceFill([
+            function (User $user) use ($payload, $isInvitationFlow, &$resetUser): void {
+                $updates = [
                     'password' => Hash::make((string) $payload['password']),
                     'remember_token' => Str::random(60),
                     'must_change_password' => false,
-                ])->save();
+                ];
+
+                if ($isInvitationFlow && $user->email_verified_at === null) {
+                    $updates['email_verified_at'] = now();
+                }
+
+                $user->forceFill($updates)->save();
 
                 event(new PasswordReset($user));
 
@@ -62,11 +68,24 @@ class ResetPasswordController extends Controller
         }
 
         if ($resetUser instanceof User) {
+            $changesOld = [
+                'must_change_password' => true,
+            ];
+
+            $changesNew = [
+                'must_change_password' => false,
+                'password_changed' => true,
+            ];
+
+            if ($isInvitationFlow && $resetUser->email_verified_at !== null) {
+                $changesNew['email_verified_at'] = $resetUser->email_verified_at->toDateTimeString();
+            }
+
             $this->audit->record(
                 $isInvitationFlow ? 'auth.invitation.completed' : 'auth.password_reset.completed',
                 $resetUser,
-                ['must_change_password' => true],
-                ['must_change_password' => false, 'password_changed' => true],
+                $changesOld,
+                $changesNew,
                 [
                     'channel' => 'email',
                     'broker' => config('auth.defaults.passwords'),
@@ -91,6 +110,12 @@ class ResetPasswordController extends Controller
                                 [
                                     'label' => 'Flow',
                                     'value' => $isInvitationFlow ? 'Invitation password setup' : 'Self-service email reset',
+                                ],
+                                [
+                                    'label' => 'Email Verification',
+                                    'value' => $isInvitationFlow
+                                        ? ($resetUser->email_verified_at ? 'Verified from invitation link' : 'Pending')
+                                        : ($resetUser->email_verified_at ? 'Already verified' : 'Unchanged'),
                                 ],
                             ],
                         ],

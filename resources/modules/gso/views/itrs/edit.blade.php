@@ -118,7 +118,7 @@
                     @foreach(($fundSources ?? collect()) as $fundSource)
                       @php $clusterCode = trim((string) optional($fundSource->fundCluster)->code); @endphp
                       <option value="{{ (string) $fundSource->id }}" data-fund-cluster-label="{{ $clusterCode }}" @selected((string) old('from_fund_source_id', (string) ($itr->from_fund_source_id ?? '')) === (string) $fundSource->id)>
-                        {{ $fundSource->code }} - {{ $fundSource->name }}
+                        {{ $fundSource->name }}
                       </option>
                     @endforeach
                   </select>
@@ -158,7 +158,7 @@
                     @foreach(($fundSources ?? collect()) as $fundSource)
                       @php $clusterCode = trim((string) optional($fundSource->fundCluster)->code); @endphp
                       <option value="{{ (string) $fundSource->id }}" data-fund-cluster-label="{{ $clusterCode }}" @selected((string) old('to_fund_source_id', (string) ($itr->to_fund_source_id ?? '')) === (string) $fundSource->id)>
-                        {{ $fundSource->code }} - {{ $fundSource->name }}
+                        {{ $fundSource->name }}
                       </option>
                     @endforeach
                   </select>

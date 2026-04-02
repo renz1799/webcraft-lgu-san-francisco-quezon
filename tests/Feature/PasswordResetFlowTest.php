@@ -117,6 +117,7 @@ class PasswordResetFlowTest extends TestCase
         $this->assertNotNull($fresh);
         $this->assertTrue(Hash::check('new-secure-password', $fresh->password));
         $this->assertFalse((bool) $fresh->must_change_password);
+        $this->assertNull($fresh->email_verified_at);
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'auth.password_reset.completed',
             'subject_id' => $user->id,
@@ -148,6 +149,7 @@ class PasswordResetFlowTest extends TestCase
         $this->assertNotNull($fresh);
         $this->assertTrue(Hash::check('invitation-password', $fresh->password));
         $this->assertFalse((bool) $fresh->must_change_password);
+        $this->assertNotNull($fresh->email_verified_at);
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'auth.invitation.completed',
             'subject_id' => $user->id,

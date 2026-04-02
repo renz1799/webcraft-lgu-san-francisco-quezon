@@ -103,7 +103,7 @@
                       value="{{ (string) $fundCluster->id }}"
                       @selected((string) old('fund_cluster_id', (string) ($wmr->fund_cluster_id ?? '')) === (string) $fundCluster->id)
                     >
-                      {{ $fundCluster->code }} - {{ $fundCluster->name }}
+                      {{ $fundCluster->name }}
                     </option>
                   @endforeach
                 </select>

@@ -390,11 +390,7 @@ class RisService implements RisServiceInterface
             return null;
         }
 
-        $label = trim(
-            ((string) ($fundSource->code ?? '')) .
-            (((string) ($fundSource->code ?? '')) !== '' ? ' - ' : '') .
-            ((string) ($fundSource->name ?? ''))
-        );
+        $label = trim((string) ($fundSource->name ?? ''));
 
         return $label !== '' ? $label : null;
     }

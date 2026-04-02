@@ -127,7 +127,7 @@
                                             data-fund-cluster-label="{{ $clusterCode }}"
                                             @selected((string) old('fund_source_id', (string) ($ics->fund_source_id ?? '')) === (string) $fundSource->id)
                                         >
-                                            {{ trim(($fundSource->code ? $fundSource->code . ' - ' : '') . $fundSource->name) }}
+                                            {{ $fundSource->name }}
                                         </option>
                                     @endforeach
                                 </select>

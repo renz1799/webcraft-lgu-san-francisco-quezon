@@ -95,7 +95,7 @@
                   <option value="">All Fund Clusters</option>
                   @foreach(($fundClusters ?? collect()) as $cluster)
                     <option value="{{ $cluster->id }}">
-                      {{ $cluster->code }} - {{ $cluster->name }}
+                      {{ $cluster->name }}
                     </option>
                   @endforeach
                 </select>

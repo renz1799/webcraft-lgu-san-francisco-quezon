@@ -117,7 +117,7 @@
                                         <option value="">- Select Fund Source -</option>
                                         @foreach($fundSources as $fundSource)
                                             <option value="{{ $fundSource->id }}" @selected(old('fund_source_id', $ris->fund_source_id) == $fundSource->id)>
-                                                {{ $fundSource->code }} - {{ $fundSource->name }}
+                                                {{ $fundSource->name }}
                                             </option>
                                         @endforeach
                                     </select>

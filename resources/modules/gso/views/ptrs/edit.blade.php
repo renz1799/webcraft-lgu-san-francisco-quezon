@@ -143,7 +143,7 @@
                         data-fund-cluster-label="{{ $clusterCode }}"
                         @selected((string) old('from_fund_source_id', (string) ($ptr->from_fund_source_id ?? '')) === (string) $fundSource->id)
                       >
-                        {{ $fundSource->code }} - {{ $fundSource->name }}
+                        {{ $fundSource->name }}
                       </option>
                     @endforeach
                   </select>
@@ -193,7 +193,7 @@
                         data-fund-cluster-label="{{ $clusterCode }}"
                         @selected((string) old('to_fund_source_id', (string) ($ptr->to_fund_source_id ?? '')) === (string) $fundSource->id)
                       >
-                        {{ $fundSource->code }} - {{ $fundSource->name }}
+                        {{ $fundSource->name }}
                       </option>
                     @endforeach
                   </select>

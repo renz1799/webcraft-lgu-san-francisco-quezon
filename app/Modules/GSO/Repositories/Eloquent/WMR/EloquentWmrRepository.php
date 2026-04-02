@@ -83,10 +83,7 @@ class EloquentWmrRepository implements WmrRepositoryInterface
             ->forPage($page, $size)
             ->get()
             ->map(function ($row) {
-                $fundCluster = trim(
-                    (string) (($row->fund_cluster_code ?? '') !== '' ? ($row->fund_cluster_code . ' - ') : '') .
-                    (string) ($row->fund_cluster_name ?? '')
-                );
+                $fundCluster = trim((string) ($row->fund_cluster_name ?? ''));
 
                 return [
                     'id' => (string) ($row->id ?? ''),
