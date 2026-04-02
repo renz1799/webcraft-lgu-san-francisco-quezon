@@ -241,15 +241,15 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
                                     <label class="ti-form-label">Name <span class="text-red-500">*</span></label>
-                                    <input name="approved_by_name" form="risForm" value="{{ old('approved_by_name', $ris->approved_by_name ?? 'JOSELITO R. ALEGA') }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
+                                    <input name="approved_by_name" form="risForm" value="{{ old('approved_by_name', $ris->approved_by_name ?? '') }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
                                 </div>
                                 <div>
                                     <label class="ti-form-label">Designation <span class="text-red-500">*</span></label>
-                                    <input name="approved_by_designation" form="risForm" value="{{ old('approved_by_designation', $ris->approved_by_designation ?? 'Municipal Mayor') }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
+                                    <input name="approved_by_designation" form="risForm" value="{{ old('approved_by_designation', $ris->approved_by_designation ?? '') }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
                                 </div>
                                 <div>
                                     <label class="ti-form-label">Date <span class="text-red-500">*</span></label>
-                                    <input type="date" name="approved_by_date" form="risForm" value="{{ old('approved_by_date', optional($ris->approved_by_date)->toDateString() ?? now()->toDateString()) }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
+                                    <input type="date" name="approved_by_date" form="risForm" value="{{ old('approved_by_date', optional($ris->approved_by_date)->toDateString()) }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
                                 </div>
                             </div>
                         </div>
@@ -259,15 +259,15 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
                                     <label class="ti-form-label">Name <span class="text-red-500">*</span></label>
-                                    <input name="issued_by_name" form="risForm" value="{{ old('issued_by_name', (string) ($ris->issued_by_name ?? ('KRISTIAN D. EDA' . chr(209) . 'O'))) }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
+                                    <input name="issued_by_name" form="risForm" value="{{ old('issued_by_name', $ris->issued_by_name ?? '') }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
                                 </div>
                                 <div>
                                     <label class="ti-form-label">Designation <span class="text-red-500">*</span></label>
-                                    <input name="issued_by_designation" form="risForm" value="{{ old('issued_by_designation', (string) ($ris->issued_by_designation ?? 'GSO-Designate')) }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
+                                    <input name="issued_by_designation" form="risForm" value="{{ old('issued_by_designation', $ris->issued_by_designation ?? '') }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
                                 </div>
                                 <div>
                                     <label class="ti-form-label">Date <span class="text-red-500">*</span></label>
-                                    <input type="date" name="issued_by_date" form="risForm" value="{{ old('issued_by_date', optional($ris->issued_by_date)->toDateString() ?? now()->toDateString()) }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
+                                    <input type="date" name="issued_by_date" form="risForm" value="{{ old('issued_by_date', optional($ris->issued_by_date)->toDateString()) }}" class="ti-form-input w-full" required @disabled(!$isDraft) />
                                 </div>
                             </div>
                         </div>
