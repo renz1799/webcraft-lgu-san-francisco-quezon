@@ -9,6 +9,7 @@ use App\Modules\GSO\Repositories\Eloquent\EloquentAirItemRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirItemUnitFileRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirItemUnitRepository;
 use App\Modules\GSO\Repositories\Eloquent\EloquentAirRepository;
+use App\Modules\GSO\Services\Contracts\GsoStorageSettingsServiceInterface;
 use App\Modules\GSO\Services\Air\AirInspectionUnitFileService;
 use App\Modules\GSO\Support\Air\AirStatuses;
 use Illuminate\Database\Schema\Blueprint;
@@ -98,6 +99,7 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
             $audit,
             $driveFolders,
             $driveFiles,
+            $this->mockStorageSettings(),
         );
 
         $uploaded = $service->upload('actor-1', 'air-1', 'air-item-1', 'unit-1', [
@@ -189,6 +191,7 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
             $audit,
             $driveFolders,
             $driveFiles,
+            $this->mockStorageSettings(),
         );
 
         $this->expectException(ValidationException::class);
@@ -228,6 +231,7 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
             $audit,
             $driveFolders,
             $driveFiles,
+            $this->mockStorageSettings(),
         );
 
         $this->expectException(ValidationException::class);
@@ -414,5 +418,29 @@ class GsoAirInspectionUnitFileServiceTest extends TestCase
             $table->timestamps();
             $table->softDeletes();
         });
+
+        Schema::create('air_item_images', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('air_item_id');
+            $table->string('storage_provider', 50)->default('google');
+            $table->string('storage_disk', 50)->nullable();
+            $table->string('storage_path');
+            $table->string('external_file_id', 255)->nullable();
+            $table->string('original_name')->nullable();
+            $table->string('stored_name')->nullable();
+            $table->string('mime_type')->nullable();
+            $table->unsignedBigInteger('size_bytes')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+    }
+
+    private function mockStorageSettings(): GsoStorageSettingsServiceInterface
+    {
+        $storage = Mockery::mock(GsoStorageSettingsServiceInterface::class);
+        $storage->shouldReceive('airUnitFilesFolderId')->andReturn('gso-air-unit-root');
+        $storage->shouldReceive('inspectionPhotosFolderId')->andReturn('gso-inspection-root');
+
+        return $storage;
     }
 }

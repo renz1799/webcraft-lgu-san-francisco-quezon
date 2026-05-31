@@ -407,5 +407,37 @@ class GsoAirInspectionUnitServiceTest extends TestCase
             $table->timestamps();
             $table->softDeletes();
         });
+
+        Schema::create('air_item_images', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('air_item_id');
+            $table->string('storage_provider', 50)->default('google');
+            $table->string('storage_disk', 50)->nullable();
+            $table->string('storage_path');
+            $table->string('external_file_id', 255)->nullable();
+            $table->string('original_name')->nullable();
+            $table->string('stored_name')->nullable();
+            $table->string('mime_type')->nullable();
+            $table->unsignedBigInteger('size_bytes')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('air_item_components', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('air_item_id');
+            $table->uuid('client_request_id')->nullable();
+            $table->unsignedInteger('line_no')->default(1);
+            $table->string('name', 255);
+            $table->unsignedInteger('quantity')->default(1);
+            $table->string('unit', 50)->nullable();
+            $table->decimal('component_cost', 15, 2)->default(0);
+            $table->string('serial_number', 255)->nullable();
+            $table->string('condition', 255)->nullable();
+            $table->boolean('is_present')->default(true);
+            $table->text('remarks')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
     }
 }

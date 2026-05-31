@@ -58,4 +58,20 @@ class AirItem extends Model
             ->orderBy('created_at')
             ->orderBy('id');
     }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(AirItemImage::class, 'air_item_id', 'id')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    public function components(): HasMany
+    {
+        return $this->hasMany(AirItemComponent::class, 'air_item_id', 'id')
+            ->orderBy('line_no')
+            ->orderBy('name')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
 }

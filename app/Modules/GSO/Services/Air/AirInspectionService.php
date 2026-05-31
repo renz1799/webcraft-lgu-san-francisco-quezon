@@ -11,9 +11,12 @@ use App\Core\Services\Tasks\Contracts\TaskServiceInterface;
 use App\Modules\GSO\Builders\Contracts\Air\AirDatatableRowBuilderInterface;
 use App\Modules\GSO\Models\Air;
 use App\Modules\GSO\Models\AirItem;
+use App\Modules\GSO\Models\AirItemComponent;
+use App\Modules\GSO\Models\AirItemImage;
 use App\Modules\GSO\Repositories\Contracts\AirItemRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\AirItemUnitRepositoryInterface;
 use App\Modules\GSO\Repositories\Contracts\AirRepositoryInterface;
+use App\Modules\GSO\Services\AssetComponentService;
 use App\Modules\GSO\Services\Contracts\Air\AirInspectionServiceInterface;
 use App\Modules\GSO\Support\Air\AirStatuses;
 use Illuminate\Support\Collection;
@@ -360,6 +363,19 @@ class AirInspectionService implements AirInspectionServiceInterface
      */
     private function serializeAirItem(AirItem $airItem, int $unitCount): array
     {
+        /** @var AssetComponentService $componentService */
+        $componentService = app(AssetComponentService::class);
+        $images = $airItem->relationLoaded('images')
+            ? $airItem->images
+                ->map(
+                    fn (AirItemImage $image): array => $this->serializeAirItemImage($image),
+                )
+                ->values()
+                ->all()
+            : [];
+        $components = $this->serializeAirItemComponents($airItem);
+        $componentSummary = $componentService->summarize($components);
+
         return [
             'id' => (string) $airItem->id,
             'air_id' => (string) $airItem->air_id,
@@ -378,6 +394,93 @@ class AirInspectionService implements AirInspectionServiceInterface
             'remarks' => $this->nullableString($airItem->remarks),
             'units_count' => $unitCount,
             'needs_units' => $this->requiresUnitTracking($airItem),
+            'images' => $images,
+            'components' => $components,
+            'component_count' => count($components),
+            'has_components' => (bool) ($componentSummary['has_components'] ?? false),
+            'component_total_cost' => (float) ($componentSummary['component_total_cost'] ?? 0),
+            'components_complete' => (bool) ($componentSummary['components_complete'] ?? false),
+            'component_cost_warning' => $componentService->getComponentCostWarning(
+                rows: $components,
+                parentUnitCost: $airItem->acquisition_cost,
+                contextLabel: 'Component schedule',
+            ),
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function serializeAirItemComponents(AirItem $airItem): array
+    {
+        $components = $airItem->relationLoaded('components')
+            ? $airItem->components
+            : $airItem->components()->get();
+
+        return $components
+            ->map(function (AirItemComponent $component): array {
+                return [
+                    'id' => (string) $component->id,
+                    'client_request_id' => $this->nullableString($component->client_request_id),
+                    'line_no' => (int) ($component->line_no ?? 1),
+                    'name' => trim((string) ($component->name ?? '')),
+                    'quantity' => max(1, (int) ($component->quantity ?? 1)),
+                    'unit' => $this->nullableString($component->unit),
+                    'component_cost' => round((float) ($component->component_cost ?? 0), 2),
+                    'serial_number' => $this->nullableString($component->serial_number),
+                    'condition' => $this->nullableString($component->condition),
+                    'is_present' => (bool) ($component->is_present ?? true),
+                    'remarks' => $this->nullableString($component->remarks),
+                    'created_at' => $component->created_at?->toDateTimeString(),
+                    'updated_at' => $component->updated_at?->toDateTimeString(),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeAirItemImage(AirItemImage $image): array
+    {
+        $storageProvider = $this->nullableString($image->storage_provider) ?? 'google';
+        $storagePath = $this->nullableString($image->storage_path) ?? '';
+        $externalFileId = $this->nullableString($image->external_file_id);
+        $previewUrl = null;
+
+        if ($storageProvider === 'google' &&
+            ($externalFileId ?? $storagePath) !== '') {
+            $previewUrl = route('drive.preview', [
+                'fileId' => $externalFileId ?? $storagePath,
+            ]);
+        } elseif (
+            $storagePath !== '' &&
+            (str_starts_with($storagePath, 'http://') ||
+                str_starts_with($storagePath, 'https://') ||
+                str_starts_with($storagePath, '/'))
+        ) {
+            $previewUrl = $storagePath;
+        }
+
+        return [
+            'id' => (string) $image->id,
+            'air_item_id' => (string) $image->air_item_id,
+            'storage_provider' => $storageProvider,
+            'storage_disk' => $this->nullableString($image->storage_disk),
+            'storage_path' => $storagePath,
+            'external_file_id' => $externalFileId,
+            'original_name' => $this->nullableString($image->original_name),
+            'stored_name' => $this->nullableString($image->stored_name) ??
+                $this->nullableString($image->original_name),
+            'mime_type' => $this->nullableString($image->mime_type),
+            'size_bytes' => $image->size_bytes !== null
+                ? (int) $image->size_bytes
+                : null,
+            'size_text' => $this->formatBytes($image->size_bytes),
+            'preview_url' => $previewUrl,
+            'created_at' => $image->created_at?->toDateTimeString(),
+            'updated_at' => $image->updated_at?->toDateTimeString(),
         ];
     }
 
@@ -560,6 +663,24 @@ class AirInspectionService implements AirInspectionServiceInterface
         }
 
         return $itemName !== '' ? $itemName : ($stockNo !== '' ? $stockNo : 'AIR Item');
+    }
+
+    private function formatBytes(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $bytes = (int) $value;
+        if ($bytes <= 0) {
+            return '0 B';
+        }
+
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $power = min((int) floor(log($bytes, 1024)), count($units) - 1);
+        $normalized = $bytes / (1024 ** $power);
+
+        return number_format($normalized, $power === 0 ? 0 : 1) . ' ' . $units[$power];
     }
 
     private function displayValue(mixed $value): string

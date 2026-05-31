@@ -86,6 +86,14 @@ class EloquentAirItemRepository implements AirItemRepositoryInterface
                 ]),
             'item.unitConversions' => fn ($query) => $query
                 ->select(['id', 'item_id', 'from_unit', 'multiplier']),
+            'images' => fn ($query) => $query
+                ->orderBy('created_at')
+                ->orderBy('id'),
+            'components' => fn ($query) => $query
+                ->orderBy('line_no')
+                ->orderBy('name')
+                ->orderBy('created_at')
+                ->orderBy('id'),
         ];
     }
 }

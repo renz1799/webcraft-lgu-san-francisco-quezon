@@ -7,6 +7,8 @@ use App\Modules\GSO\Http\Controllers\Air\AirActionController;
 use App\Modules\GSO\Http\Controllers\Air\AirController;
 use App\Modules\GSO\Http\Controllers\Air\AirFileController;
 use App\Modules\GSO\Http\Controllers\Air\AirInventoryPromotionController;
+use App\Modules\GSO\Http\Controllers\Air\AirInspectionItemComponentController;
+use App\Modules\GSO\Http\Controllers\Air\AirInspectionItemImageController;
 use App\Modules\GSO\Http\Controllers\Air\AirInspectionController;
 use App\Modules\GSO\Http\Controllers\Air\AirInspectionUnitController;
 use App\Modules\GSO\Http\Controllers\Air\AirInspectionUnitFileController;
@@ -401,6 +403,15 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             Route::put('/air/{air}/inspection/items/{airItem}/units/{unit}/files/{file}/primary', [AirInspectionUnitFileController::class, 'setPrimary'])
                 ->whereUuid(['air', 'airItem', 'unit', 'file'])
                 ->name('air.inspection.unit-files.set-primary');
+            Route::post('/airs/{air}/lines/{line}/images', [AirInspectionItemImageController::class, 'store'])
+                ->whereUuid(['air', 'line'])
+                ->name('airs.lines.images.store');
+            Route::delete('/airs/{air}/lines/{line}/images/{image}', [AirInspectionItemImageController::class, 'destroy'])
+                ->whereUuid(['air', 'line', 'image'])
+                ->name('airs.lines.images.destroy');
+            Route::put('/airs/{air}/lines/{line}/components', [AirInspectionItemComponentController::class, 'save'])
+                ->whereUuid(['air', 'line'])
+                ->name('airs.lines.components.save');
             Route::prefix('inventory/items')
                 ->as('items.')
                 ->group(function () {
@@ -787,6 +798,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::get('/air/{air}/inspection/items/{airItem}/units/{unit}/files/{file}/preview', [AirInspectionUnitFileController::class, 'preview'])->whereUuid(['air', 'airItem', 'unit', 'file']);
         Route::delete('/air/{air}/inspection/items/{airItem}/units/{unit}/files/{file}', [AirInspectionUnitFileController::class, 'destroy'])->whereUuid(['air', 'airItem', 'unit', 'file']);
         Route::put('/air/{air}/inspection/items/{airItem}/units/{unit}/files/{file}/primary', [AirInspectionUnitFileController::class, 'setPrimary'])->whereUuid(['air', 'airItem', 'unit', 'file']);
+        Route::post('/airs/{air}/lines/{line}/images', [AirInspectionItemImageController::class, 'store'])->whereUuid(['air', 'line']);
+        Route::delete('/airs/{air}/lines/{line}/images/{image}', [AirInspectionItemImageController::class, 'destroy'])->whereUuid(['air', 'line', 'image']);
+        Route::put('/airs/{air}/lines/{line}/components', [AirInspectionItemComponentController::class, 'save'])->whereUuid(['air', 'line']);
         Route::post('/stocks/adjust', [StockController::class, 'adjust']);
     });
 });

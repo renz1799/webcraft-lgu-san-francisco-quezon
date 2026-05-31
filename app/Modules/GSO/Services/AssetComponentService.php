@@ -2,6 +2,8 @@
 
 namespace App\Modules\GSO\Services;
 
+use App\Modules\GSO\Models\AirItem;
+use App\Modules\GSO\Models\AirItemComponent;
 use App\Modules\GSO\Models\AirItemUnit;
 use App\Modules\GSO\Models\AirItemUnitComponent;
 use App\Modules\GSO\Models\InventoryItem;
@@ -125,6 +127,33 @@ class AssetComponentService
             AirItemUnitComponent::query()->create(array_merge($row, [
                 'air_item_unit_id' => (string) $unit->id,
             ]));
+        }
+
+        return $normalized;
+    }
+
+    public function syncAirItemComponents(AirItem $airItem, array $rows): array
+    {
+        AirItemComponent::query()
+            ->where('air_item_id', (string) $airItem->id)
+            ->delete();
+
+        $normalized = $this->normalizeComponentRows($rows);
+
+        foreach ($normalized as $index => $row) {
+            AirItemComponent::query()->create([
+                'air_item_id' => (string) $airItem->id,
+                'client_request_id' => $this->nullableTrim($rows[$index]['client_request_id'] ?? null),
+                'line_no' => (int) ($row['line_no'] ?? ($index + 1)),
+                'name' => $row['name'],
+                'quantity' => $row['quantity'],
+                'unit' => $row['unit'],
+                'component_cost' => $row['component_cost'],
+                'serial_number' => $row['serial_number'],
+                'condition' => $row['condition'],
+                'is_present' => $row['is_present'],
+                'remarks' => $row['remarks'],
+            ]);
         }
 
         return $normalized;
